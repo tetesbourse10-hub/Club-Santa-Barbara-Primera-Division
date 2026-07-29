@@ -468,6 +468,10 @@
       transition: all .25s ease;
     }
     .hd-match:hover { border-color: rgba(245,158,11,.3); transform: translateX(3px); }
+    .hd-match-link { cursor: pointer; }
+    .hd-match-link:hover { border-color: rgba(96,165,250,.4); }
+    .hd-match-arrow { color: #475569; font-size: 1.1rem; font-weight: 700; align-self: center; transition: color .2s, transform .2s; }
+    .hd-match-link:hover .hd-match-arrow { color: #60a5fa; transform: translateX(3px); }
     .hd-match-res {
       width: 52px; height: 52px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
       font-size: 1rem; font-weight: 900; flex-shrink: 0; letter-spacing: -.02em;
@@ -3727,6 +3731,16 @@ function _goBackFromTorneo() {
     if (origin.isB) renderJugAnualesYearB(origin.year); else renderJugAnualesYear(origin.year);
     return;
   }
+  if (origin && origin.type === 'historial') {
+    currentData = origin.isB ? DATA_B : DATA_A;
+    const badge = document.getElementById('section-badge');
+    badge.textContent = currentData.badge;
+    badge.className = 'header-section-badge ' + currentData.badgeClass;
+    const histBtn = document.querySelector("#main-nav button[onclick*=\"'historial'\"]");
+    showTab('historial', histBtn);
+    renderHistorialDetalle(origin.rival);
+    return;
+  }
   document.querySelectorAll('#main-nav button')[4].click();
 }
 
@@ -4563,7 +4577,9 @@ function renderRecopa() {
   const fromAntiguosRC = document.querySelectorAll('#main-nav button')[4]?.classList.contains('active');
   const backBtnRC = fromAntiguosRC
     ? `<button class="torneo-back" onclick="_goBackFromTorneo()">← Torneos Antiguos</button>`
-    : `<button class="torneo-back" onclick="showTab('posiciones', document.querySelectorAll('#main-nav button')[1])">← Torneos Actuales</button>`;
+    : _torneoEntryOrigin
+      ? `<button class="torneo-back" onclick="_goBackFromTorneo()">← Volver</button>`
+      : `<button class="torneo-back" onclick="showTab('posiciones', document.querySelectorAll('#main-nav button')[1])">← Torneos Actuales</button>`;
 
   document.getElementById('torneo-recopa-content').innerHTML = `
     ${backBtnRC}
@@ -5111,7 +5127,9 @@ function renderTorneoApertura() {
   // (the finished Apertura, both A and B) — the back button follows wherever we came from.
   const backBtnHtml = fromAntiguos
     ? `<button class="torneo-back" onclick="_goBackFromTorneo()">← Torneos Antiguos</button>`
-    : `<button class="torneo-back" onclick="showTab('posiciones', document.querySelectorAll('#main-nav button')[1])">← Torneos Actuales</button>`;
+    : _torneoEntryOrigin
+      ? `<button class="torneo-back" onclick="_goBackFromTorneo()">← Volver</button>`
+      : `<button class="torneo-back" onclick="showTab('posiciones', document.querySelectorAll('#main-nav button')[1])">← Torneos Actuales</button>`;
 
   document.getElementById('torneo-apertura-content').innerHTML = `
     ${backBtnHtml}
@@ -7226,23 +7244,66 @@ function _buildSummaryFromCache(matches) {
 // Player-level referentes (goleador/asistidor/presencias) against ONE
 // specific rival, for the "Historial vs Clubes" sidebar — aggregated from
 // every match-with-lineup source (Torneos Antiguos AND the live current
-// season) for whichever category (Primera A or B) is active.
-// _allPlayerTorneoSources() already lists every torneo source with its team
-// (cat), so this just needs to filter by category and rival.
-function _histRivalPlayerStats(rival, isB) {
+// season) for whichever category (Primera A or B) is active. Every row here
+// carries the same navKey goToMatchFecha already knows how to deep-link into
+// (see _allPlayerTorneoSources/COPA_BLOCKS), so this same list also powers
+// the clickable match rows in renderHistorialDetalle — one source of truth
+// for both the visible cards and the leader stats computed from them.
+function _histTorneoTipo(torneo) {
+  const t = String(torneo || '');
+  if (/clausura/i.test(t))   return 'clausura';
+  if (/apertura/i.test(t))   return 'apertura';
+  if (/recopa/i.test(t))     return 'recopa';
+  if (/supercopa/i.test(t))  return 'supercopa';
+  if (/copa/i.test(t))       return 'copa';
+  return 'otro';
+}
+// Every match-with-lineup across every source (same COPA_BLOCKS-first order
+// as _collectAllMatchesForPlayer, so the dedupe below keeps the properly
+// linked copy of any copa parked in two places at once).
+function _allMatchesWithNav() {
+  const copaRows = Object.entries(COPA_BLOCKS)
+    .flatMap(([title, matches]) => (matches || []).map(m =>
+      ({ m, torneo: title, navKey: PP_COPA_BLOCKS_NAVKEY[title] || null, cat: 'a' })));
+  const rows = _allPlayerTorneoSources()
+    .flatMap(({ d, navKey, torneo, cat }) => (d.apertura || []).map(m => ({ m, torneo, navKey, cat })));
+  return [...copaRows, ...rows]
+    .map(({ m, torneo, navKey, cat }) => {
+      const anio = (torneo.match(/\d{4}/) || [])[0] || '';
+      return { ...m, torneo, anio, navKey, cat, esCopa: /recopa|supercopa|copa/i.test(torneo) };
+    })
+    .filter(_ppDedupeCopaMatches());
+}
+function _histRivalMatches(rival, isB) {
   const cat = isB ? 'b' : 'a';
   const rivalUp = rival.toUpperCase();
-  const matches = _allPlayerTorneoSources()
-    .filter(src => src.cat === cat)
-    .flatMap(src => (src.d.apertura || []))
-    .filter(m => (m.rival || '').toUpperCase() === rivalUp);
-  if (!isB) {
-    Object.entries(COPA_BLOCKS).forEach(([, arr]) => {
-      (arr || []).forEach(m => { if ((m.rival || '').toUpperCase() === rivalUp) matches.push(m); });
-    });
-  }
-
-  const stats = _aggregatePlayerStats(matches);
+  return _allMatchesWithNav().filter(m => m.cat === cat && (m.rival || '').toUpperCase() === rivalUp);
+}
+// Resolves one "Partidos Historial" sheet row (rival/año/torneo/fecha, no
+// lineup) into its matching Fecha-a-Fecha source (with jugadores + navKey) —
+// the only fields both sheets share are rival (already filtered upstream),
+// año and torneo tipo, with fecha as tiebreaker for league matchdays. Returns
+// null when that match has no ficha loaded yet (nothing to click into, and
+// nothing to count towards the leaders card).
+function _histResolveLineupMatch(m, navMatches) {
+  const tipo = _histTorneoTipo(m.torneo);
+  const candidates = navMatches.filter(c => c.anio === m.anio && _histTorneoTipo(c.torneo) === tipo);
+  if (!candidates.length) return null;
+  if (candidates.length === 1) return candidates[0];
+  const byFecha = candidates.find(c => String(c.fecha) === String(m.fecha));
+  return byFecha || candidates[0];
+}
+// Same locator convention goToMatchFecha's callers already use elsewhere
+// (_ppStatRowHtml, "Últimos 5 Partidos") — 'ch:' sources locate by rival,
+// 'rc:' by rival+fase, everything else by fecha.
+function _histLocatorFor(nav) {
+  if (!nav || !nav.navKey) return null;
+  if (nav.navKey.startsWith('ch:')) return nav.rival;
+  if (nav.navKey.startsWith('rc:')) return `${nav.rival}|${nav.posCSB || nav.fecha}`;
+  return nav.fecha;
+}
+function _histLeadersFromMatches(resolvedMatches) {
+  const stats = _aggregatePlayerStats(resolvedMatches);
   const top = key => {
     const withStat = stats.filter(s => s[key] > 0).sort((a, b) => b[key] - a[key]);
     if (!withStat.length) return null;
@@ -7250,6 +7311,15 @@ function _histRivalPlayerStats(rival, isB) {
     return { nombres: withStat.filter(s => s[key] === max).map(s => s.nombre), val: max };
   };
   return { goleador: top('goles'), asistidor: top('asist'), presencias: top('pj') };
+}
+// Match-row click target: remembers we came from this rival's historial (same
+// _torneoEntryOrigin mechanism "← Torneos Antiguos"/_goBackFromTorneo already
+// uses for the "Estadísticas Anuales" origin) so the back button returns
+// straight to this exact drilldown instead of the generic torneo menu.
+function histGoToMatchFecha(navKey, locator, rivalName, isB) {
+  if (!navKey || locator == null) return;
+  _torneoEntryOrigin = { type: 'historial', rival: rivalName, isB };
+  goToMatchFecha(navKey, locator);
 }
 // One "referente vs rival" card (Máximo Goleador/Asistidor/Más Presencias) —
 // each tied player gets its own stacked line instead of a comma-joined list,
@@ -7274,7 +7344,8 @@ function renderHistorialDetalle(rival) {
   el.innerHTML = `<div class="hd-loading"><div class="hd-loading-spin">⚽</div><div style="margin-top:12px;font-size:.85rem">Cargando historial vs ${rival}…</div></div>`;
   document.getElementById('part-title').textContent = '';
 
-  (currentData === DATA_B ? _loadPartidosCacheB() : _loadPartidosCache()).then(allMatches => {
+  const isB = currentData === DATA_B;
+  Promise.all([isB ? _loadPartidosCacheB() : _loadPartidosCache(), _ppEnsureAllHistoricoLoaded()]).then(([allMatches]) => {
     const rivalUp = rival.toUpperCase();
     // All matches vs this rival, sorted newest first (reverse chronological)
     const matches = allMatches
@@ -7286,6 +7357,14 @@ function renderHistorialDetalle(rival) {
         const af = Number(a.fecha) || 0, bf = Number(b.fecha) || 0;
         return bf - af;
       });
+
+    // Resolve each visible match to its Fecha-a-Fecha ficha (lineup + navKey)
+    // when one has been loaded — powers both the click-through into "Fecha a
+    // Fecha" below and the "Referentes vs Rival" leaders, which only count
+    // matches actually cargados/integrados here (not just "registered" in
+    // the aggregate historial sheet).
+    const navMatches = _histRivalMatches(rival, isB);
+    matches.forEach(m => { m._nav = _histResolveLineupMatch(m, navMatches); });
 
     // ── KPI calculations from real match data ─────────────────────────────
     const played = matches.filter(m => m.gf !== null && m.gc !== null);
@@ -7323,7 +7402,7 @@ function renderHistorialDetalle(rival) {
 
     // ── Unified sidebar ───────────────────────────────────────────────────
     function initials(s) { return s.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
-    const rivalPlayerStats = _histRivalPlayerStats(rival, currentData === DATA_B);
+    const rivalPlayerStats = _histLeadersFromMatches(matches.map(m => m._nav).filter(Boolean));
     const sidebar = `
       <div class="hd-sidebar">
         <div class="hd-profile-card">
@@ -7396,8 +7475,16 @@ function renderHistorialDetalle(rival) {
         const fechaTag = m.fecha && /^\d+$/.test(String(m.fecha))
           ? `<span class="hd-tag">Fecha ${m.fecha}</span>`
           : m.fecha ? `<span class="hd-tag">${m.fecha}</span>` : '';
+        // Clickable straight into that date's "Fecha a Fecha" ficha whenever
+        // this match resolved to a loaded lineup source (_nav) — matches
+        // still pending digitization stay as plain, non-clickable cards.
+        const locator = _histLocatorFor(m._nav);
+        const clickable = !!m._nav && locator != null;
+        const rowAttrs = clickable
+          ? `class="hd-match hd-match-link" onclick="histGoToMatchFecha('${m._nav.navKey}', '${String(locator).replace(/'/g, "\\'")}', '${rival.replace(/'/g, "\\'")}', ${isB})" title="Ver en Fecha a Fecha"`
+          : `class="hd-match"`;
         return `
-          <div class="hd-match">
+          <div ${rowAttrs}>
             <div class="hd-match-res ${resClass(m)}">${resLabel}</div>
             <div class="hd-match-info">
               <div class="hd-match-meta">
@@ -7407,6 +7494,7 @@ function renderHistorialDetalle(rival) {
               ${m.parciales ? `<div class="hd-match-parcial">Parciales: ${m.parciales}</div>` : ''}
               ${obsHtml}
             </div>
+            ${clickable ? `<div class="hd-match-arrow">›</div>` : ''}
           </div>`;
       }).join('');
       return `
