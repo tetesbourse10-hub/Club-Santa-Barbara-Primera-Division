@@ -7201,13 +7201,18 @@ async function _loadPartidosCacheB() {
     if (!rows || rows.length < 5) throw new Error('empty: ' + (rows ? rows.length : 0));
     const parsed = _parsePartidosPorTorneos(rows);
     // The 2021 section (the sheet's oldest/first block) doesn't carry its
-    // tournament-header row the same clean way the rest of the sheet does,
-    // so those matches fall through to the parser's "Sin torneo" fallback.
-    // Every 2021 match in this sheet belongs to the same single competition
-    // (Apertura 2021 AIFA D), so it's safe to relabel by year alone here —
+    // year/tournament-header rows the same clean way the rest of the sheet
+    // does, so those matches fall through the parser's "Sin torneo" fallback
+    // with a blank `anio` too (the year-row detection above never fires for
+    // that block). Every match that hits this fallback in the B sheet
+    // belongs to that same single 2021 competition — Apertura AIFA D 2021,
+    // the exact name HISTORICO_GENERIC['apertura-2021d-b'] already uses for
+    // its Fecha a Fecha tab — so it's safe to relabel by fallback alone here,
     // scoped to _loadPartidosCacheB only, not the shared parser, so it can't
     // affect any other year/sheet that legitimately hits that fallback.
-    parsed.forEach(m => { if (m.anio === '2021' && m.torneo === 'Sin torneo') m.torneo = 'Apertura 2021 AIFA D'; });
+    parsed.forEach(m => {
+      if (m.torneo === 'Sin torneo') { m.torneo = 'Apertura AIFA D 2021'; m.anio = m.anio || '2021'; }
+    });
     console.log('[Historial B] Parsed matches:', parsed.length, parsed.slice(0,3));
     _partidosCacheB = parsed;
   } catch(e) {
@@ -9808,24 +9813,45 @@ function parseMatches(rows) {
 function parseTablaSheet(rows) {
   if (!rows || rows.length < 2) return [];
   const num = v => { const n = parseInt(String(v??'').replace(/[^0-9\-]/g,'')); return isNaN(n) ? 0 : n; };
+  // Column positions are detected from the header row instead of hardcoded —
+  // a couple of Primera B seasons' "Copas" header cell comes back merged/
+  // shifted from the sheet, which silently corrupted the very first ranked
+  // row (the one most likely to actually carry Copas text instead of a blank)
+  // under the old fixed-index read. Falls back to the historical fixed
+  // layout (Copas|Equipo|Posicion|PTS|PJ|PG|PE|PP|GF|GC|DF) whenever a
+  // column's header text isn't recognized, so already-working sheets keep
+  // behaving exactly as before.
+  const h = rows[0].map(c => String(c ?? '').toLowerCase().trim());
+  const idx = (...keys) => { for (const k of keys) { const i = h.findIndex(c => c.includes(k)); if (i >= 0) return i; } return -1; };
+  const at = (fallback, ...keys) => { const i = idx(...keys); return i >= 0 ? i : fallback; };
+  const cEquipo = at(1, 'equipo', 'club');
+  const cCopas  = at(0, 'copa');
+  const cPts    = at(3, 'pts', 'punto');
+  const cPj     = at(4, 'pj', 'jugado');
+  const cPg     = at(5, 'pg', 'ganado');
+  const cPe     = at(6, 'pe', 'empat');
+  const cPp     = at(7, 'pp', 'perdid');
+  const cGf     = at(8, 'gf', 'favor');
+  const cGc     = at(9, 'gc', 'contra');
+  const cDf     = at(10, 'df', 'dif');
   const result = [];
   let rank = 1;
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i];
-    const equipo = String(r[1]??'').trim();
+    const equipo = String(r[cEquipo]??'').trim();
     if (!equipo || /^(equipo|club|nombre)$/i.test(equipo)) continue;
     result.push({
       pos:   rank + '°',
       equipo,
-      copas: String(r[0]??'').trim(),
-      pts:   num(r[3]),
-      pj:    num(r[4]),
-      pg:    num(r[5]),
-      pe:    num(r[6]),
-      pp:    num(r[7]),
-      gf:    num(r[8]),
-      gc:    num(r[9]),
-      df:    num(r[10]),
+      copas: String(r[cCopas]??'').trim(),
+      pts:   num(r[cPts]),
+      pj:    num(r[cPj]),
+      pg:    num(r[cPg]),
+      pe:    num(r[cPe]),
+      pp:    num(r[cPp]),
+      gf:    num(r[cGf]),
+      gc:    num(r[cGc]),
+      df:    num(r[cDf]),
       csb:   /santa.b[aá]rb/i.test(equipo),
     });
     rank++;
