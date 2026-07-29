@@ -144,6 +144,52 @@
     .badge-blue  { background: rgba(59,130,246,0.15); color: var(--azul-claro); }
     .badge-green { background: rgba(34,197,94,0.15);  color: var(--verde); }
 
+    /* ── NEXT MATCH BANNER ── */
+    .next-match-banner {
+      width: 100%;
+      max-width: 900px;
+      background: #141d2e;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      padding: 18px 24px;
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .nmb-label {
+      font-size: 0.68rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--dorado); margin-bottom: 6px;
+    }
+    .nmb-rival { font-size: 1.15rem; font-weight: 800; color: var(--blanco); margin-bottom: 4px; }
+    .nmb-meta { font-size: 0.78rem; color: var(--gris-texto); }
+    .nmb-countdown { text-align: right; flex-shrink: 0; }
+    .nmb-cd-val { font-size: 1.8rem; font-weight: 900; color: var(--naranja); line-height: 1; }
+    .nmb-cd-val .nmb-cd-unit { font-size: 1rem; font-weight: 700; margin-right: 8px; }
+    .nmb-cd-label { font-size: 0.65rem; color: var(--gris-texto); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
+
+    /* ── LANDING CARD: position badge + last-result/points footer ── */
+    .lc-badge { position: absolute; top: 14px; right: 14px; }
+    .lc-badge-pill {
+      font-size: 0.66rem; font-weight: 800; padding: 3px 9px; border-radius: 20px; letter-spacing: 0.02em; white-space: nowrap;
+    }
+    .lc-badge-green { background: rgba(34,197,94,0.15);  color: #4ade80; }
+    .lc-badge-amber { background: rgba(245,158,11,0.15); color: #fbbf24; }
+    .lc-badge-red   { background: rgba(239,68,68,0.15);  color: #f87171; }
+    .lc-footer {
+      width: 100%;
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      margin-top: 4px; padding-top: 12px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      font-size: 0.72rem; color: var(--gris-texto);
+    }
+    .lc-foot-pts { font-weight: 800; color: var(--blanco); }
+    .lc-res-g { color: #4ade80; font-weight: 800; }
+    .lc-res-e { color: #fbbf24; font-weight: 800; }
+    .lc-res-p { color: #f87171; font-weight: 800; }
+
     /* ── APP SHELL (hidden until a card is clicked) ── */
     #app { display: none; flex-direction: column; min-height: 100vh; }
 
@@ -512,9 +558,12 @@
     .nido-sub { font-size: 0.9rem; color: var(--gris-texto); max-width: 320px; line-height: 1.6; }
 
     @media (max-width: 600px) {
-      .landing-card { width: 160px; padding: 28px 16px 22px; }
+      .landing-card { width: 100%; max-width: 320px; padding: 28px 16px 22px; }
       .landing-card .card-icon { font-size: 2.4rem; }
       .landing-title { font-size: 1.5rem; }
+      .landing-cards { flex-direction: column; align-items: center; width: 100%; }
+      .next-match-banner { flex-direction: column; align-items: flex-start; padding: 16px 18px; }
+      .nmb-countdown { text-align: left; align-self: stretch; }
     }
 
     footer { text-align: center; padding: 24px; font-size: 0.72rem; color: var(--gris-texto); border-top: 1px solid var(--gris); margin-top: 40px; }
@@ -1517,26 +1566,34 @@
   <div class="landing-title">Club <span>Santa Bárbara</span></div>
   <div class="landing-sub">Estadísticas Generales</div>
 
+  <div id="landing-next-match"></div>
+
   <div class="landing-cards">
     <div class="landing-card" onclick="openSection('a')">
+      <div class="lc-badge" id="lc-badge-a"></div>
       <div class="card-icon">🏆</div>
       <div class="card-name">Primera A</div>
       <div class="card-desc">1ª División<br>Temporada 2026</div>
       <span class="card-badge badge-gold">Clausura AIFA A 2026</span>
+      <div class="lc-footer" id="lc-footer-a"></div>
     </div>
 
     <div class="landing-card" onclick="openSection('b')">
+      <div class="lc-badge" id="lc-badge-b"></div>
       <div class="card-icon">⚽</div>
       <div class="card-name">Primera B</div>
       <div class="card-desc">1ª División B<br>Temporada 2026</div>
       <span class="card-badge badge-blue">Clausura AIFA B 2026</span>
+      <div class="lc-footer" id="lc-footer-b"></div>
     </div>
 
     <div class="landing-card" onclick="openSection('nido')">
+      <div class="lc-badge" id="lc-badge-nido"></div>
       <div class="card-icon">🏟️</div>
       <div class="card-name">El Nido</div>
       <div class="card-desc">Jugadores de la Primera División A y B del club</div>
       <span class="card-badge badge-green">NUESTROS JUGADORES</span>
+      <div class="lc-footer" id="lc-footer-nido"></div>
     </div>
   </div>
 </div>
@@ -10215,6 +10272,125 @@ function _swrHydrate() {
   } catch(e) { return false; }
 }
 
+// ──────────────────────────────────────────────
+// LANDING WIDGETS — próximo partido + posición/último resultado por card
+// ──────────────────────────────────────────────
+// The "Dia" column comes in as "d/m" or "d/m/yyyy" (year omitted for the
+// current season), "Hora" as "Nhs", "N:MMhs" or plain "N:MM" — tolerant
+// parse into a real Date so the countdown has something to count down to.
+function _parseFechaHora(diaStr, horaStr) {
+  const m = String(diaStr || '').trim().match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
+  if (!m) return null;
+  const day = parseInt(m[1]), month = parseInt(m[2]);
+  let year = m[3] ? parseInt(m[3]) : new Date().getFullYear();
+  if (year < 100) year += 2000;
+  const hm = String(horaStr || '').match(/(\d{1,2})(?::(\d{2}))?/);
+  const hour = hm ? parseInt(hm[1]) : 0;
+  const min  = hm && hm[2] ? parseInt(hm[2]) : 0;
+  const dt = new Date(year, month - 1, day, hour, min);
+  // No explicit year in the sheet and the assumed-current-year date already
+  // passed by more than a few days → the match is really next year (season
+  // crossing Dec→Jan), bump forward once.
+  if (!m[3] && dt.getTime() < Date.now() - 3 * 86400000) dt.setFullYear(year + 1);
+  return dt;
+}
+function _countdownParts(target) {
+  const diffMs = target.getTime() - Date.now();
+  if (diffMs <= 0) return null;
+  return { days: Math.floor(diffMs / 86400000), hours: Math.floor((diffMs % 86400000) / 3600000) };
+}
+// Next PENDING league match for a team's live season — same "next"/"detNext"
+// pattern already used by the Torneos Actuales "Próximo Partido" card,
+// reused here so the landing banner reads from that exact same source.
+function _teamNextMatch(d) {
+  const partidos = (d.partidos || []).filter(m => /^\d+$/.test(m.fecha));
+  const pending = partidos.filter(m => m.resultado === null);
+  const next = pending[0];
+  if (!next) return null;
+  const det = (d.apertura || []).find(m => String(m.fecha) === String(next.fecha));
+  return { rival: next.rival, dia: det?.dia || '', hora: det?.hora || '', lugar: det?.lugar || '',
+    dt: det ? _parseFechaHora(det.dia, det.hora) : null };
+}
+function renderLandingNextMatch() {
+  const el = document.getElementById('landing-next-match');
+  if (!el) return;
+  const candidates = [{ d: DATA_A, label: 'Primera A' }, { d: DATA_B, label: 'Primera B' }]
+    .map(c => ({ ...c, m: _teamNextMatch(c.d) }))
+    .filter(c => c.m);
+  if (!candidates.length) { el.innerHTML = ''; return; }
+  // Soonest resolvable date first; matches with an unparseable date (rare
+  // formatting gaps in "Dia") sort after ones that have one.
+  candidates.sort((a, b) => (a.m.dt ? a.m.dt.getTime() : Infinity) - (b.m.dt ? b.m.dt.getTime() : Infinity));
+  const { m, label } = candidates[0];
+  const fechaHoraTxt = [m.dia, m.hora].filter(Boolean).join(' · ');
+  const cd = m.dt ? _countdownParts(m.dt) : null;
+  el.innerHTML = `
+    <div class="next-match-banner">
+      <div class="nmb-main">
+        <div class="nmb-label">Próximo Partido · ${label}</div>
+        <div class="nmb-rival">vs ${m.rival}</div>
+        <div class="nmb-meta">📅 ${fechaHoraTxt || 'Fecha a confirmar'}${m.lugar ? ' · 📍 ' + m.lugar : ''}</div>
+      </div>
+      ${cd ? `<div class="nmb-countdown">
+        <div class="nmb-cd-val">${cd.days}<span class="nmb-cd-unit">d</span>${cd.hours}<span class="nmb-cd-unit">h</span></div>
+        <div class="nmb-cd-label">restantes</div>
+      </div>` : ''}
+    </div>`;
+}
+function _posBadgeClass(pos, total) {
+  if (!pos || !total) return 'lc-badge-amber';
+  const third = Math.ceil(total / 3);
+  if (pos <= third) return 'lc-badge-green';
+  if (pos <= third * 2) return 'lc-badge-amber';
+  return 'lc-badge-red';
+}
+function renderLandingCardStats() {
+  [['a', DATA_A], ['b', DATA_B]].forEach(([key, d]) => {
+    const badgeEl = document.getElementById('lc-badge-' + key);
+    const footEl  = document.getElementById('lc-footer-' + key);
+    const tabla = d.tabla || [];
+    const own = tabla.find(t => t.csb);
+    if (badgeEl) badgeEl.innerHTML = own
+      ? `<span class="lc-badge-pill ${_posBadgeClass(parseInt(own.pos) || 0, tabla.length)}">${own.pos} puesto</span>` : '';
+    if (footEl) {
+      const partidos = (d.partidos || []).filter(m => /^\d+$/.test(m.fecha));
+      const played = partidos.filter(m => m.resultado !== null);
+      const last = played.length ? played[played.length - 1] : null;
+      const res = last ? (last.gf > last.gc ? 'G' : last.gf === last.gc ? 'E' : 'P') : null;
+      const resClass = res === 'G' ? 'lc-res-g' : res === 'E' ? 'lc-res-e' : res === 'P' ? 'lc-res-p' : '';
+      footEl.innerHTML = res
+        ? `<span>Último: <span class="${resClass}">${res}</span></span>${own ? `<span class="lc-foot-pts">${own.pts} pts</span>` : ''}`
+        : `<span>Sin partidos jugados</span>`;
+    }
+  });
+
+  // El Nido footer: current-season plantel (Primera A + B combined, deduped
+  // by name) + top scorer — reuses the same core sources already loaded at
+  // boot (DATA_A/DATA_B.jugadores), no extra fetch needed.
+  const nidoBadge = document.getElementById('lc-badge-nido');
+  const nidoFoot  = document.getElementById('lc-footer-nido');
+  const rosterMap = new Map();
+  [...(DATA_A.jugadores || []), ...(DATA_B.jugadores || [])].forEach(p => {
+    if (!p.nombre) return;
+    const key = normName(p.nombre), goles = p.goles || 0;
+    if (!rosterMap.has(key) || goles > rosterMap.get(key).goles) rosterMap.set(key, { nombre: p.nombre, goles });
+  });
+  const roster = [...rosterMap.values()];
+  if (nidoBadge) nidoBadge.innerHTML = roster.length
+    ? `<span class="lc-badge-pill lc-badge-green">${roster.length} jugadores</span>` : '';
+  if (nidoFoot) {
+    const top = roster.length ? roster.reduce((a, b) => (b.goles > a.goles ? b : a)) : null;
+    nidoFoot.innerHTML = (top && top.goles > 0)
+      ? `<span>⚽ Goleador: <strong>${top.nombre}</strong></span><span class="lc-foot-pts">${top.goles} goles</span>`
+      : `<span>Sin registros aún</span>`;
+  }
+}
+function renderLandingWidgets() {
+  renderLandingNextMatch();
+  renderLandingCardStats();
+}
+setInterval(renderLandingNextMatch, 60000);
+
 function refreshCurrentView() {
   if (!currentData) return;
   const map = { 'tab-resumen':renderResumen, 'tab-posiciones':renderTorneosMenu,
@@ -10621,6 +10797,7 @@ async function loadLiveData() {
   if (statusEl) { statusEl.textContent = ''; statusEl.className = ''; }
   _swrSave();
   refreshCurrentView();
+  renderLandingWidgets();
 }
 
 // ──────────────────────────────────────────────
