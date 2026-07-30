@@ -6032,6 +6032,17 @@ function _applyBasicoFechaFix(parsed, fixes) {
   });
 }
 
+// Club-confirmed override for specific Tabla Completa rows whose PTS/PJ/PG/PE
+// keep coming back blank/zero no matter how the sheet's columns are read —
+// see HISTORICO_GENERIC's tablaFix. Only overrides the given fields; PP/GF/
+// GC/DF (already correct on that row) are left untouched.
+function _applyTablaFix(tabla, fixes) {
+  (fixes || []).forEach(fix => {
+    const row = tabla.find(t => (t.equipo || '').toUpperCase().includes(fix.equipo.toUpperCase()));
+    if (row) Object.assign(row, fix.patch);
+  });
+}
+
 async function _loadHistoricoGeneric(key, dataObj, cfg) {
   if (_historicoGenericLoaded[key]) return;
   try {
@@ -6088,7 +6099,10 @@ async function _loadHistoricoGeneric(key, dataObj, cfg) {
     } catch(e) { console.warn(`[${key}] parseMatches (basico):`, e); }
 
     if (ok(global)) { const p = parseGlobalStats(ok(global)); if (p.length > 0) dataObj.jugadores = p; }
-    if (tabla && ok(tabla)) { const t = parseTablaSheet(ok(tabla)); if (t.length >= 3) dataObj.tabla = t; }
+    if (tabla && ok(tabla)) {
+      const t = parseTablaSheet(ok(tabla));
+      if (t.length >= 3) { _applyTablaFix(t, cfg.tablaFix); dataObj.tabla = t; }
+    }
 
     // Clausura AIFA A 2025's sheet mixed in 3 copa fixtures (SITAS C, GEBA
     // Azul, and the Fecha 18 decider vs GEBA) as if they were league matches —
@@ -6141,10 +6155,17 @@ const HISTORICO_GENERIC = {
   // sheet: 'B_HIST' is a key into GS, resolved at load time (not here) —
   // GS itself is declared later in the file, so referencing GS.B_HIST at this
   // point (module-eval time) would throw a "before initialization" error.
+  // tablaFix: club-confirmed override for specific rows whose PTS/PJ/PG/PE
+  // keep coming back blank/zero from the sheet's Tabla Completa range no
+  // matter how the columns are read — patched by team name onto the row
+  // parseTablaSheet already produced (PP/GF/GC/DF from that row are left
+  // as-is, only these 4 fields get overridden).
   'apertura-2025b': { d: DATA_B_AP2025, sheet: 'B_HIST', gid: 1121583527, name: 'Apertura AIFA B 2025',
-    plantel: 'L3:X33', fecha: 'A19:I527', tabla: 'L37:V53', basico: 'A1:Z16' },
+    plantel: 'L3:X33', fecha: 'A19:I527', tabla: 'L37:V53', basico: 'A1:Z16',
+    tablaFix: [{ equipo: 'BANCO CIUDAD', patch: { pts: 35, pj: 15, pg: 11, pe: 2, pp: 2 } }] },
   'clausura-2025b': { d: DATA_B_CL2025, sheet: 'B_HIST', gid: 1928858455, name: 'Clausura AIFA B 2025',
-    plantel: 'L3:X35', fecha: 'A19:J528', tabla: 'L38:V54', basico: 'A1:Z16' },
+    plantel: 'L3:X35', fecha: 'A19:J528', tabla: 'L38:V54', basico: 'A1:Z16',
+    tablaFix: [{ equipo: 'LOS MOLINOS', patch: { pts: 32, pj: 15, pg: 10, pe: 2, pp: 3 } }] },
   // The 16th match (vs SHOLEM ROJO) was a promotion/relegation playoff, not a
   // regular matchday — relabel it without changing the underlying fecha
   // number used for sorting/matching.
@@ -6152,7 +6173,8 @@ const HISTORICO_GENERIC = {
     plantel: 'L3:X33', fecha: 'A20:J562', tabla: 'L37:V53', basico: 'A1:Z17', fechaLabels: { 16: 'Promoción' },
     // The básico table's Promoción row (vs SHOLEM ROJO) has a blank Fecha
     // cell — patch it to 16 so it isn't dropped by the numeric-fecha filter.
-    basicoFechaFix: [{ rival: 'SHOLEM ROJO', fecha: '16' }] },
+    basicoFechaFix: [{ rival: 'SHOLEM ROJO', fecha: '16' }],
+    tablaFix: [{ equipo: 'HEBRAICA', patch: { pts: 34, pj: 15, pg: 11, pe: 1, pp: 3 } }] },
   // No tabla range given for these two — Tabla Completa shows "Cargando…"
   // until we get that range.
   'apertura-2023d-b': { d: DATA_B_AP2023, sheet: 'B_HIST', gid: 1429757852, name: 'Apertura AIFA D 2023',
@@ -10638,10 +10660,32 @@ async function loadLiveData() {
 
   const ok = r => r.status === 'fulfilled' ? r.value : null;
 
+  // Club-defined position → clasificación bands for each category's CURRENT
+  // (in-progress) standings — fills the "Copas" column while the sheet
+  // itself doesn't have it marked yet (typically only entered once a zone is
+  // mathematically locked in). Never overwrites a value the club already
+  // loaded for that row.
+  const COPAS_POR_POSICION_A = {
+    1: 'Campeón y Supercopa', 2: 'Supercopa', 3: 'Recopa', 4: 'Recopa',
+    5: 'Copa de Honor', 6: 'Copa de Honor', 13: 'Promoción', 14: 'Descenso', 15: 'Descenso',
+  };
+  const COPAS_POR_POSICION_B = {
+    1: 'Campeón, Ascenso y Supercopa', 2: 'Ascenso y Supercopa', 3: 'Promoción y Recopa', 4: 'Recopa',
+    13: 'Promoción', 14: 'Descenso', 15: 'Descenso',
+  };
+  function _fillCopasPorPosicion(tabla, rules) {
+    (tabla || []).forEach(t => {
+      if (t.copas) return;
+      const pos = parseInt(t.pos) || 0;
+      if (rules[pos]) t.copas = rules[pos];
+    });
+  }
+
   // PRIMERA A standings — the simulator sheet always tracks whichever season
   // is currently live, so this still feeds the live DATA_A (now Clausura).
   const aTbl = ok(aSim) ? parseSimStandings(ok(aSim), 5) : [];
   if (aTbl.length >= 10) DATA_A.tabla = aTbl;
+  _fillCopasPorPosicion(DATA_A.tabla, COPAS_POR_POSICION_A);
 
   // Apertura AIFA A 2026 detailed match data — positions + fecha-a-fecha,
   // fetched by gid (see loadLiveData's fetchGvizByGid(GS.A_MAIN, 2018022084, ...)).
@@ -10732,6 +10776,7 @@ async function loadLiveData() {
     const t = parseTablaSheet(ok(aClTabla));
     if (t.length >= 5) DATA_A.tabla = t;
   }
+  _fillCopasPorPosicion(DATA_A.tabla, COPAS_POR_POSICION_A);
 
   // PRIMERA B — Apertura AIFA B 2026 (finished season, archived data source)
   const bApTbl = ok(bApBasic) ? parseHeaderStandings(ok(bApBasic)) : [];
@@ -10767,6 +10812,7 @@ async function loadLiveData() {
   // PRIMERA B — Clausura AIFA B 2026 (live season, own new sheet tab → DATA_B)
   let bClTbl = ok(bSim) ? parseSimStandings(ok(bSim), 5) : [];
   if (bClTbl.length >= 5) DATA_B.tabla = bClTbl;
+  _fillCopasPorPosicion(DATA_B.tabla, COPAS_POR_POSICION_B);
 
   if (ok(bClDet)) try {
     const p   = parsePlayers(ok(bClDet));
@@ -10786,6 +10832,7 @@ async function loadLiveData() {
     const t = parseTablaSheet(ok(bClTabla));
     if (t.length >= 5) DATA_B.tabla = t;
   }
+  _fillCopasPorPosicion(DATA_B.tabla, COPAS_POR_POSICION_B);
 
   // Estadisticas Historicas — only historico (club all-time record) and B's
   // graficos (season-by-season history) are used; the sheet's own
