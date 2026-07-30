@@ -152,9 +152,15 @@
       gap: 20px;
       margin-bottom: 28px;
     }
+    /* The actual flex items are these wrapper <div>s (Primera A always first
+       → left, Primera B always second → right) — .next-match-box is what
+       renderLandingNextMatch() injects one level deeper via innerHTML, so
+       the equal-width split has to be sized here, not on that inner class,
+       or an empty box (no pending match) collapses instead of holding its
+       half of the row. */
+    #landing-next-match-a, #landing-next-match-b { flex: 1 1 0; min-width: 0; }
     .next-match-box {
-      flex: 1 1 0;
-      min-width: 0;
+      width: 100%;
       background: #141d2e;
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 10px;
@@ -10418,19 +10424,50 @@ function renderLandingCardStats() {
 // with whatever El Nido already has loaded (a hard page reload picks up
 // brand-new players; this doesn't re-poll mid-session on its own).
 let _landingNidoRotIdx = 0;
-function _landingNidoTopScorers() {
-  const top = list => (list && list.length) ? list.reduce((a, b) => (b.goles > a.goles ? b : a)) : null;
-  return [
-    { label: 'General',   top: top(window._nidoGetMerged ? window._nidoGetMerged() : []) },
-    { label: 'Primera A', top: top(window._nidoGetTeamData ? window._nidoGetTeamData('a') : []) },
-    { label: 'Primera B', top: top(window._nidoGetTeamData ? window._nidoGetTeamData('b') : []) },
+// Icon + unit label per RANK_METRICS key (same keys "Base de Datos de
+// Jugadores" already uses) — purely cosmetic, falls back to a star + the
+// metric's own label for anything not explicitly listed here.
+const NIDO_RANK_DISPLAY = {
+  pj:         { icon: '📋', unit: 'PJ' },
+  goles:      { icon: '⚽', unit: 'goles' },
+  asist:      { icon: '🎯', unit: 'asist.' },
+  gmas:       { icon: '🔥', unit: 'G+A' },
+  titulos:    { icon: '🏆', unit: 'títulos' },
+  vallas:     { icon: '🧤', unit: 'vallas' },
+  promGol:    { icon: '⚽', unit: 'prom. goles' },
+  promAsist:  { icon: '🎯', unit: 'prom. asist.' },
+  promGmas:   { icon: '🔥', unit: 'prom. G+A' },
+  vallasProm: { icon: '🧤', unit: 'prom. vallas' },
+};
+// Every (ranking × categoría) combination with at least one player above
+// zero in that metric — the rotator cycles through ALL of them (Goleadores,
+// Asistidores, Partidos Jugados, Títulos, etc., each split General/Primera
+// A/Primera B), not just "goleador general" like the first version did.
+function _landingNidoRankGroups() {
+  const metrics = window._nidoRankMetrics || [];
+  const cats = [
+    { label: 'General',   list: window._nidoGetMerged ? window._nidoGetMerged() : [] },
+    { label: 'Primera A', list: window._nidoGetTeamData ? window._nidoGetTeamData('a') : [] },
+    { label: 'Primera B', list: window._nidoGetTeamData ? window._nidoGetTeamData('b') : [] },
   ];
+  const groups = [];
+  metrics.forEach(m => {
+    cats.forEach(c => {
+      const list = (c.list || []).filter(p => (p[m.key] || 0) > 0);
+      if (!list.length) return;
+      const top = list.reduce((a, b) => (b[m.key] > a[m.key] ? b : a));
+      groups.push({ metricLabel: m.label, catLabel: c.label, top,
+        disp: NIDO_RANK_DISPLAY[m.key] || { icon: '⭐', unit: m.label },
+        val: m.isFloat ? String(top[m.key].toFixed(2)).replace('.', ',') : top[m.key] });
+    });
+  });
+  return groups;
 }
 function _paintNidoRotator(el) {
-  const groups = _landingNidoTopScorers().filter(g => g.top && g.top.goles > 0);
+  const groups = _landingNidoRankGroups();
   if (!groups.length) { el.innerHTML = `<span>Sin registros aún</span>`; return; }
   const g = groups[_landingNidoRotIdx % groups.length];
-  el.innerHTML = `<span><span style="color:var(--gris-texto)">${g.label}:</span> ⚽ <strong>${g.top.nombre}</strong></span><span class="lc-foot-pts">${g.top.goles} goles</span>`;
+  el.innerHTML = `<span><span style="color:var(--gris-texto)">${g.metricLabel} · ${g.catLabel}:</span> ${g.disp.icon} <strong>${g.top.nombre}</strong></span><span class="lc-foot-pts">${g.val} ${g.disp.unit}</span>`;
 }
 function renderLandingNidoFooter() {
   const nidoBadge = document.getElementById('lc-badge-nido');
@@ -10448,7 +10485,8 @@ function renderLandingWidgets() {
   renderLandingCardStats();
 }
 setInterval(renderLandingNextMatch, 60000);
-// Rotates the El Nido footer between General/Primera A/Primera B goleadores
+// Rotates the El Nido footer through every ranking (Goleadores, Asistidores,
+// Partidos Jugados, Títulos, ...) × categoría (General/Primera A/Primera B)
 // every few seconds, with a brief fade instead of snapping the text.
 setInterval(() => {
   const el = document.getElementById('lc-footer-nido');
@@ -11286,6 +11324,10 @@ async function loadLiveData() {
   window._nidoEnsureLoaded = _nidoLoad;
   window._nidoGetTeamData  = function(team) { return team === 'b' ? _nidoDataB : _nidoDataA; };
   window._nidoGetMerged    = function() { return _nidoMerged || []; };
+  // Same ranking list the "Base de Datos de Jugadores" filter buttons use —
+  // exposed so the landing footer's rotator can cycle through every one of
+  // them instead of hardcoding just "Goleadores".
+  window._nidoRankMetrics  = RANK_METRICS;
   window._nidoFindPlayer   = function(nombre, team) {
     const pool = team === 'b' ? _nidoDataB : team === 'a' ? _nidoDataA : (_nidoMerged || []);
     return pool.find(p => normName(p.nombre) === normName(nombre)) || null;
