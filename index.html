@@ -583,6 +583,56 @@
     .nido-title { font-size: 1.6rem; font-weight: 900; color: var(--blanco); }
     .nido-sub { font-size: 0.9rem; color: var(--gris-texto); max-width: 320px; line-height: 1.6; }
 
+    /* ── EL NIDO — mobile layout (≤768px), desktop table/filters untouched ── */
+    .nido-mobile-only { display: none; }
+    @media (max-width: 768px) {
+      .nido-desktop-only { display: none !important; }
+      .nido-mobile-only { display: block; }
+
+      .nido-mobile-filters { margin-bottom: 16px; }
+      .nido-mobile-pills { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+      .nido-mobile-dropdown-row { display: flex; gap: 8px; margin-bottom: 10px; }
+      .nido-mobile-select {
+        flex: 1; min-width: 0; padding: 8px 10px; border-radius: 8px;
+        background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+        color: #f1f5f9; font-size: 13px; outline: none;
+      }
+      .nido-mobile-search {
+        width: 100%; box-sizing: border-box; padding: 9px 13px; border-radius: 8px;
+        background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+        color: #f1f5f9; font-size: 13px; outline: none; margin-bottom: 10px;
+      }
+      .nido-mobile-summary { font-size: 12px; color: #6b7280; }
+
+      .nido-mobile-cards { display: flex; flex-direction: column; gap: 10px; }
+      .nido-card {
+        display: flex; gap: 12px; align-items: flex-start;
+        background: #141d2e; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px;
+        padding: 12px 14px;
+      }
+      .nido-card-rank { font-size: 1.3rem; font-weight: 900; flex-shrink: 0; width: 24px; text-align: center; }
+      .nido-card-body { flex: 1; min-width: 0; }
+      .nido-card-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+      .nido-card-name { font-size: 0.92rem; font-weight: 700; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .nido-card-value { font-size: 1.3rem; font-weight: 900; color: var(--dorado); flex-shrink: 0; }
+      .nido-card-badges { display: flex; gap: 6px; margin-top: 5px; flex-wrap: wrap; align-items: center; }
+      .nido-card-pos { display: inline-block; font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 6px; border: 1px solid; letter-spacing: .03em; }
+      .nido-card-stats {
+        display: flex; gap: 14px; margin-top: 9px; padding-top: 9px;
+        border-top: 1px solid rgba(255,255,255,0.08); flex-wrap: wrap;
+      }
+      .nido-card-stat { display: flex; flex-direction: column; }
+      .nido-card-stat-val { font-size: 0.82rem; font-weight: 700; color: #cbd5e1; }
+      .nido-card-stat-label { font-size: 0.62rem; color: #6b7280; text-transform: uppercase; letter-spacing: .04em; }
+
+      .nido-load-more {
+        margin-top: 4px; padding: 10px; border-radius: 8px; width: 100%;
+        background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+        color: #d1d5db; font-size: 0.82rem; font-weight: 600; cursor: pointer;
+      }
+      .nido-mobile-empty { text-align: center; padding: 30px; color: #6b7280; font-size: 0.85rem; }
+    }
+
     @media (max-width: 600px) {
       .landing-card { width: 100%; max-width: 320px; padding: 28px 16px 22px; }
       .landing-card .card-icon { font-size: 2.4rem; }
@@ -11019,6 +11069,7 @@ async function loadLiveData() {
   let _nidoLoading = false;
   let _nidoPos     = 'todas';
   let _nidoPosOpen = false;
+  let _nidoMobileVisible = 15; // mobile card list "cargar más" — reset on any filter change
 
   const POSICIONES = ['ARQ', 'LI', 'LD', 'DFC', 'MC', 'DEL'];
   const normPos = p => String(p || '').trim().toUpperCase();
@@ -11292,7 +11343,7 @@ async function loadLiveData() {
     const showing  = rows.length;
     const colspan  = isRankMode ? 10 : 9;
 
-    return `<div style="border-radius:12px;border:1px solid rgba(255,255,255,0.09);overflow:hidden;">
+    const desktopHtml = `<div class="nido-desktop-only" style="border-radius:12px;border:1px solid rgba(255,255,255,0.09);overflow:hidden;">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:rgba(255,255,255,0.03);border-bottom:1px solid rgba(255,255,255,0.07);">
         <span style="font-size:12px;color:#6b7280;">
           Mostrando <strong style="color:#c0c8d8;font-weight:600;">${showing}</strong> de <strong style="color:#c0c8d8;font-weight:600;">${totalDs}</strong> jugadores
@@ -11302,6 +11353,69 @@ async function loadLiveData() {
       <div style="overflow-x:auto;">
         <table style="width:100%;border-collapse:collapse;">${thead}<tbody>${tbody || `<tr><td colspan="${colspan}" style="padding:32px;text-align:center;color:#4b5563;">Sin resultados</td></tr>`}</tbody></table>
       </div>
+    </div>`;
+
+    return desktopHtml + _renderNidoMobileCards(rows, activeColKey, promSwap);
+  }
+
+  const NIDO_COL_LABELS = { pj:'PJ', goles:'Goles', asist:'Asist.', gmas:'G+A', titulos:'Títulos', vallas:'Vallas' };
+  // Same per-column value (raw vs. promedio-swapped) the desktop table's
+  // `td()`/`fmt()` helpers compute, reused here so mobile shows identical
+  // numbers — just laid out as a card instead of a table row.
+  function _nidoStatValue(p, key, promSwap) {
+    const raw = key === 'titulos' ? (p.titulos || 0) : p[key];
+    const promFieldByKey = { goles: 'promGol', asist: 'promAsist', gmas: 'promGmas', vallas: 'vallasProm' };
+    const promField = promFieldByKey[key];
+    if (promSwap && promField && promSwap.field === promField) {
+      const v = p[promField] || 0;
+      return v > 0 ? v.toFixed(2) : '—';
+    }
+    return raw;
+  }
+  // Mobile card list (≤768px) — same `rows` (already filtered+sorted) and
+  // ranking state the desktop table above just rendered, so both stay in
+  // sync from the exact same renderTable() call. Capped at
+  // _nidoMobileVisible with a "Cargar más" button instead of rendering all
+  // ~103 players at once.
+  function _renderNidoMobileCards(rows, activeColKey, promSwap) {
+    const total = rows.length;
+    const visible = rows.slice(0, _nidoMobileVisible);
+
+    const cardsHtml = visible.map((p, i) => {
+      const rankColor = i === 0 ? '#eab308' : i === 1 ? '#cbd5e1' : i === 2 ? '#d6a87c' : '#6b7280';
+      const pColor = posColor(p.pos);
+      const teamBadges = p.teams.map(teamBadge).join('');
+      const secondaryKeys = ['pj', 'goles', 'asist', 'titulos', 'vallas']
+        .filter(k => k !== activeColKey).slice(0, 4);
+      const secondaryHtml = secondaryKeys.map(k => `
+        <div class="nido-card-stat">
+          <span class="nido-card-stat-val">${_nidoStatValue(p, k, promSwap)}</span>
+          <span class="nido-card-stat-label">${NIDO_COL_LABELS[k]}</span>
+        </div>`).join('');
+      return `
+        <div class="nido-card">
+          <div class="nido-card-rank" style="color:${rankColor}">${i + 1}</div>
+          <div class="nido-card-body">
+            <div class="nido-card-top">
+              <div class="nido-card-name">${pl(p.nombre)}</div>
+              <div class="nido-card-value">${_nidoStatValue(p, activeColKey, promSwap)}</div>
+            </div>
+            <div class="nido-card-badges">
+              <span class="nido-card-pos" style="background:${pColor}1a;border-color:${pColor}59;color:${pColor}">${p.pos || '—'}</span>
+              ${teamBadges}
+            </div>
+            <div class="nido-card-stats">${secondaryHtml}</div>
+          </div>
+        </div>`;
+    }).join('');
+
+    const loadMoreHtml = total > _nidoMobileVisible
+      ? `<button class="nido-load-more" onclick="window._nidoLoadMore()">Cargar más jugadores (${total - _nidoMobileVisible} restantes)</button>`
+      : '';
+
+    return `<div class="nido-mobile-only nido-mobile-cards">
+      ${cardsHtml || `<div class="nido-mobile-empty">Sin resultados</div>`}
+      ${loadMoreHtml}
     </div>`;
   }
 
@@ -11359,7 +11473,7 @@ async function loadLiveData() {
         <div style="font-size:12px;color:#4b5563;margin-top:3px;">Club Santa Bárbara — Primera A &amp; Primera B</div>
       </div>
 
-      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:14px;">
+      <div class="nido-desktop-only" style="display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:14px;">
         <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
           <span style="font-size:11px;color:#4b5563;font-weight:600;letter-spacing:.05em;white-space:nowrap;">PLANTEL</span>
           ${teamBtns}
@@ -11378,6 +11492,21 @@ async function loadLiveData() {
         <input id="nido-search" type="text" placeholder="Buscar jugador…" value="${_nidoQuery}"
           oninput="window._nidoSearch(this.value)"
           style="min-width:170px;max-width:260px;padding:7px 13px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#f1f5f9;font-size:13px;outline:none;" />
+      </div>
+
+      <div class="nido-mobile-only nido-mobile-filters">
+        <div class="nido-mobile-pills">${teamBtns}</div>
+        <div class="nido-mobile-dropdown-row">
+          <select class="nido-mobile-select" onchange="window._nidoPosSelect(this.value)">
+            ${posOptions.map(p => `<option value="${p}" ${p === _nidoPos ? 'selected' : ''}>${p === 'todas' ? 'Posición: Todas' : 'Posición: ' + p}</option>`).join('')}
+          </select>
+          <select class="nido-mobile-select" onchange="window._nidoRankMode(this.value)">
+            ${RANK_METRICS.map(m => `<option value="${m.key}" ${(_nidoRank || _nidoSort.col) === m.key ? 'selected' : ''}>${m.label}</option>`).join('')}
+          </select>
+        </div>
+        <input id="nido-search-mobile" type="text" class="nido-mobile-search" placeholder="Buscar jugador…" value="${_nidoQuery}"
+          oninput="window._nidoSearch(this.value)" />
+        <div class="nido-mobile-summary">Ranking por ${(RANK_METRICS.find(m => m.key === (_nidoRank || _nidoSort.col)) || {}).label || 'Partidos Jugados'} · ${filteredData().length} jugadores</div>
       </div>
 
       <div id="nido-table-container">${renderTable()}</div>
@@ -11427,13 +11556,14 @@ async function loadLiveData() {
     return pool.find(p => normName(p.nombre) === normName(nombre)) || null;
   };
 
-  window._nidoTeam = function(t) { _nidoTeam = t; _renderNidoContent(); };
+  window._nidoTeam = function(t) { _nidoTeam = t; _nidoMobileVisible = 15; _renderNidoContent(); };
   window._nidoPosToggle = function() { _nidoPosOpen = !_nidoPosOpen; _renderNidoContent(); };
-  window._nidoPosSelect = function(p) { _nidoPos = p; _nidoPosOpen = false; _renderNidoContent(); };
+  window._nidoPosSelect = function(p) { _nidoPos = p; _nidoPosOpen = false; _nidoMobileVisible = 15; _renderNidoContent(); };
   // Only refresh the results table on each keystroke — never touch the input's
   // parent innerHTML, or the DOM node (and keyboard focus) would be destroyed.
   window._nidoSearch = function(q) {
     _nidoQuery = q;
+    _nidoMobileVisible = 15;
     const c = document.getElementById('nido-table-container');
     if (c) c.innerHTML = renderTable();
   };
@@ -11441,12 +11571,19 @@ async function loadLiveData() {
     _nidoRank = null;
     if (_nidoSort.col === col) _nidoSort.asc = !_nidoSort.asc;
     else { _nidoSort.col = col; _nidoSort.asc = false; }
+    _nidoMobileVisible = 15;
     _renderNidoContent();
   };
   window._nidoRankMode = function(m) {
     _nidoRank = m;
     if (m) _nidoSort = { col: m, asc: false };
+    _nidoMobileVisible = 15;
     _renderNidoContent();
+  };
+  window._nidoLoadMore = function() {
+    _nidoMobileVisible += 15;
+    const c = document.getElementById('nido-table-container');
+    if (c) c.innerHTML = renderTable();
   };
 })();
 
