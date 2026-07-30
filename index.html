@@ -633,6 +633,48 @@
       .nido-mobile-empty { text-align: center; padding: 30px; color: #6b7280; font-size: 0.85rem; }
     }
 
+    /* ── ESTADÍSTICAS TOTALES (Primera A & B) — mobile layout (≤768px) ──
+       Desktop keeps its sticky-column table untouched; that same sticky-
+       name-column technique is unique to this component (verified via
+       grep for `position:sticky;left` — Historial vs Clubes and Torneos
+       Actuales use plain scrollable tables, no sticky columns, so they
+       don't reproduce this specific name-wrap/overlap bug). */
+    .jtot-kpi-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 12px; }
+    .jtot-tabrow { display: flex; gap: 5px; flex-wrap: wrap; }
+    .jtot-mobile-only { display: none; }
+    @media (max-width: 768px) {
+      .jtot-desktop-only { display: none !important; }
+      .jtot-mobile-only { display: block; }
+
+      .jtot-tabrow { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .jtot-tabrow button { flex-shrink: 0; }
+
+      .jtot-kpi-card { display: flex; flex-direction: column; justify-content: center; min-height: 82px; }
+
+      .jtot-cards { display: flex; flex-direction: column; gap: 10px; }
+      .jtot-card {
+        display: flex; align-items: flex-start; gap: 10px;
+        background: #141d2e; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px;
+        padding: 12px 14px; cursor: pointer;
+      }
+      .jtot-card-rank { font-size: 1rem; font-weight: 800; width: 22px; text-align: center; flex-shrink: 0; padding-top: 4px; }
+      .jtot-card-avatar {
+        width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.65rem; font-weight: 900; flex-shrink: 0;
+      }
+      .jtot-card-body { flex: 1; min-width: 0; }
+      .jtot-card-name { font-size: 0.88rem; font-weight: 800; color: #fff; line-height: 1.25; }
+      .jtot-card-pos {
+        display: inline-block; margin-top: 4px; padding: 2px 8px; border-radius: 999px;
+        font-size: 0.6rem; font-weight: 800; letter-spacing: .05em; border: 1px solid;
+      }
+      .jtot-card-stat { flex-shrink: 0; text-align: right; }
+      .jtot-card-stat-val { font-size: 1.2rem; font-weight: 900; line-height: 1; }
+      .jtot-card-stat-label { font-size: 0.6rem; color: #6b7280; text-transform: uppercase; letter-spacing: .05em; margin-top: 2px; }
+      .jtot-mobile-empty { text-align: center; padding: 30px; color: #6b7280; font-size: 0.85rem; }
+    }
+
     @media (max-width: 600px) {
       .landing-card { width: 100%; max-width: 320px; padding: 28px 16px 22px; }
       .landing-card .card-icon { font-size: 2.4rem; }
@@ -7855,6 +7897,53 @@ const COL_META = {
   [JUG_COL.vallasProm]:  { label:'Prom 🧤',    icon:'📈', color:'#60a5fa' },
 };
 
+// Mobile card list (≤768px) for "Estadísticas Totales" — shared by both
+// Primera A (_jugTotalBuild) and Primera B (_jugBBuild), parameterized by
+// their respective column/color maps since those live in separate consts.
+// Replaces the desktop's sticky-name-column table entirely on mobile — a
+// long name wrapping to 2 lines no longer has a stat number rendered on
+// top of it, since each player is its own card instead of a table row.
+function _jugTotalMobileCardsHtml(rows, sortCol, colMap, posColorMap, posBgMap, colMetaMap) {
+  const medals = ['🥇', '🥈', '🥉'];
+  const num = v => {
+    if (!v || v === '-' || v === '\\-' || v === '#DIV/0!' || v === '') return null;
+    const n = parseFloat(String(v).replace(',', '.'));
+    return isNaN(n) ? null : n;
+  };
+  const meta = colMetaMap[sortCol] || { label: 'Valor', color: '#94a3b8' };
+
+  const cardsHtml = rows.map((r, i) => {
+    const nombre = r[colMap.nombre] || '—';
+    const initials = nombre.trim().split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+    const pos = r[colMap.pos] || '';
+    const pc = posColorMap[pos] || '#94a3b8';
+    const pb = posBgMap[pos] || 'rgba(255,255,255,0.08)';
+    const rank = i < 3 ? i : -1;
+    const rankHtml = rank >= 0 ? medals[rank] : `<span style="color:#6b7280">${i + 1}</span>`;
+    const n = num(r[sortCol]);
+    const valDisplay = (n === null) ? '—' : (Number.isInteger(n) ? n : n.toFixed(2).replace('.', ','));
+    // 1er puesto: borde levemente dorado para destacarlo, como el resto del sitio.
+    const topBorder = i === 0 ? 'border-color:rgba(251,191,36,0.4);' : '';
+    return `
+      <div class="jtot-card" style="${topBorder}" onclick="goToPlayer('${nombre.replace(/'/g, "\\'")}')">
+        <div class="jtot-card-rank">${rankHtml}</div>
+        <div class="jtot-card-avatar" style="background:${pb};border-color:${pc}44;color:${pc}">${initials}</div>
+        <div class="jtot-card-body">
+          <div class="jtot-card-name">${nombre}</div>
+          <span class="jtot-card-pos" style="color:${pc};background:${pb};border-color:${pc}44">${pos}</span>
+        </div>
+        <div class="jtot-card-stat">
+          <div class="jtot-card-stat-val" style="color:${meta.color}">${valDisplay}</div>
+          <div class="jtot-card-stat-label">${meta.label}</div>
+        </div>
+      </div>`;
+  }).join('');
+
+  return `<div class="jtot-mobile-only jtot-cards">
+    ${cardsHtml || `<div class="jtot-mobile-empty">Sin resultados</div>`}
+  </div>`;
+}
+
 function renderJugadoresTotales() {
   const wrap = document.getElementById('jug-totales-content');
   wrap.innerHTML = `
@@ -7868,7 +7957,7 @@ function renderJugadoresTotales() {
     <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
       <input id="jug-search" type="search" placeholder="🔍 Buscar jugador..." oninput="_jugTotalFilter(this.value)"
         style="flex:1;min-width:160px;padding:7px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:#fff;font-size:0.85rem;outline:none">
-      <div id="jug-tab-row" style="display:flex;gap:5px;flex-wrap:wrap"></div>
+      <div id="jug-tab-row" class="jtot-tabrow"></div>
     </div>
     <div class="table-wrap" id="jug-totales-wrap" style="overflow-x:auto;position:relative">
       <div style="color:var(--gris-texto);padding:24px;text-align:center">Cargando...</div>
@@ -7948,19 +8037,23 @@ function _jugTotalKpi() {
   const maxPJ  = [..._jugTotalesData].sort((a,b) => n(b[JUG_COL.pj]) - n(a[JUG_COL.pj]))[0];
   const maxGol = [..._jugTotalesData].sort((a,b) => n(b[JUG_COL.goles]) - n(a[JUG_COL.goles]))[0];
   const kpiCard = (icon, label, val, sub, color) => `
-    <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px">
-      <div style="font-size:1.3rem;flex-shrink:0">${icon}</div>
-      <div>
-        <div style="font-size:1.15rem;font-weight:900;color:${color};line-height:1">${val}</div>
-        <div style="font-size:0.65rem;color:var(--gris-texto);text-transform:uppercase;letter-spacing:.06em;margin-top:1px">${label}</div>
-        ${sub ? `<div style="font-size:0.7rem;color:rgba(255,255,255,0.4);margin-top:1px">${sub}</div>` : ''}
+    <div class="jtot-kpi-card">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="font-size:1.3rem;flex-shrink:0">${icon}</div>
+        <div>
+          <div style="font-size:1.15rem;font-weight:900;color:${color};line-height:1">${val}</div>
+          <div style="font-size:0.65rem;color:var(--gris-texto);text-transform:uppercase;letter-spacing:.06em;margin-top:1px">${label}</div>
+          ${sub ? `<div style="font-size:0.7rem;color:rgba(255,255,255,0.4);margin-top:1px">${sub}</div>` : ''}
+        </div>
       </div>
     </div>`;
   const kpiLeader = (icon, label, name, val, color) => `
-    <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 12px">
-      <div style="font-size:0.6rem;color:var(--gris-texto);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">${icon} ${label}</div>
-      <div style="font-size:0.9rem;font-weight:800;color:#fff;line-height:1.1">${name}</div>
-      <div style="font-size:1.05rem;font-weight:900;color:${color};margin-top:2px">${val}</div>
+    <div class="jtot-kpi-card">
+      <div>
+        <div style="font-size:0.6rem;color:var(--gris-texto);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">${icon} ${label}</div>
+        <div style="font-size:0.9rem;font-weight:800;color:#fff;line-height:1.1">${name}</div>
+        <div style="font-size:1.05rem;font-weight:900;color:${color};margin-top:2px">${val}</div>
+      </div>
     </div>`;
   el.innerHTML =
     kpiCard('👤', 'Jugadores', _jugTotalesData.length, '', '#94a3b8') +
@@ -8065,10 +8158,13 @@ function _jugTotalBuild() {
   }).join('');
 
   wrap.innerHTML = `
-    <table style="width:100%;border-collapse:collapse;font-size:0.85rem">
-      <thead><tr>${ths}</tr></thead>
-      <tbody>${trs || `<tr><td colspan="${2 + activeCols.length}" style="text-align:center;color:var(--gris-texto);padding:32px">Sin resultados</td></tr>`}</tbody>
-    </table>`;
+    <div class="jtot-desktop-only">
+      <table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+        <thead><tr>${ths}</tr></thead>
+        <tbody>${trs || `<tr><td colspan="${2 + activeCols.length}" style="text-align:center;color:var(--gris-texto);padding:32px">Sin resultados</td></tr>`}</tbody>
+      </table>
+    </div>
+    ${_jugTotalMobileCardsHtml(rows, sortCol, JUG_COL, POS_COLOR, POS_BG, COL_META)}`;
 }
 
 // ── Estadísticas Totales — Primera B ────────────────────────────────────────
@@ -8130,7 +8226,7 @@ function renderJugadoresTotalesB() {
     <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
       <input id="jug-search-b" type="search" placeholder="🔍 Buscar jugador..." oninput="_jugBFilter(this.value)"
         style="flex:1;min-width:160px;padding:7px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:#fff;font-size:0.85rem;outline:none">
-      <div id="jug-tab-row-b" style="display:flex;gap:5px;flex-wrap:wrap"></div>
+      <div id="jug-tab-row-b" class="jtot-tabrow"></div>
     </div>
     <div class="table-wrap" id="jug-totales-wrap-b" style="overflow-x:auto;position:relative">
       <div style="color:var(--gris-texto);padding:24px;text-align:center">Cargando...</div>
@@ -8221,19 +8317,23 @@ function _jugBKpi() {
   const maxPJ  = [..._jugBData].sort((a,b) => n(b[JUG_COL_B.pj]) - n(a[JUG_COL_B.pj]))[0];
   const maxGol = [..._jugBData].sort((a,b) => n(b[JUG_COL_B.goles]) - n(a[JUG_COL_B.goles]))[0];
   const kpiCard = (icon, label, val, sub, color) => `
-    <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px">
-      <div style="font-size:1.3rem;flex-shrink:0">${icon}</div>
-      <div>
-        <div style="font-size:1.15rem;font-weight:900;color:${color};line-height:1">${val}</div>
-        <div style="font-size:0.65rem;color:var(--gris-texto);text-transform:uppercase;letter-spacing:.06em;margin-top:1px">${label}</div>
-        ${sub ? `<div style="font-size:0.7rem;color:rgba(255,255,255,0.4);margin-top:1px">${sub}</div>` : ''}
+    <div class="jtot-kpi-card">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="font-size:1.3rem;flex-shrink:0">${icon}</div>
+        <div>
+          <div style="font-size:1.15rem;font-weight:900;color:${color};line-height:1">${val}</div>
+          <div style="font-size:0.65rem;color:var(--gris-texto);text-transform:uppercase;letter-spacing:.06em;margin-top:1px">${label}</div>
+          ${sub ? `<div style="font-size:0.7rem;color:rgba(255,255,255,0.4);margin-top:1px">${sub}</div>` : ''}
+        </div>
       </div>
     </div>`;
   const kpiLeader = (icon, label, name, val, color) => `
-    <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 12px">
-      <div style="font-size:0.6rem;color:var(--gris-texto);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">${icon} ${label}</div>
-      <div style="font-size:0.9rem;font-weight:800;color:#fff;line-height:1.1">${name}</div>
-      <div style="font-size:1.05rem;font-weight:900;color:${color};margin-top:2px">${val}</div>
+    <div class="jtot-kpi-card">
+      <div>
+        <div style="font-size:0.6rem;color:var(--gris-texto);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">${icon} ${label}</div>
+        <div style="font-size:0.9rem;font-weight:800;color:#fff;line-height:1.1">${name}</div>
+        <div style="font-size:1.05rem;font-weight:900;color:${color};margin-top:2px">${val}</div>
+      </div>
     </div>`;
   el.innerHTML =
     kpiCard('👤', 'Jugadores', _jugBData.length, '', '#94a3b8') +
@@ -8329,10 +8429,13 @@ function _jugBBuild() {
   }).join('');
 
   wrap.innerHTML = `
-    <table style="width:100%;border-collapse:collapse;font-size:0.85rem">
-      <thead><tr>${ths}</tr></thead>
-      <tbody>${trs || `<tr><td colspan="${2 + activeCols.length}" style="text-align:center;color:var(--gris-texto);padding:32px">Sin resultados</td></tr>`}</tbody>
-    </table>`;
+    <div class="jtot-desktop-only">
+      <table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+        <thead><tr>${ths}</tr></thead>
+        <tbody>${trs || `<tr><td colspan="${2 + activeCols.length}" style="text-align:center;color:var(--gris-texto);padding:32px">Sin resultados</td></tr>`}</tbody>
+      </table>
+    </div>
+    ${_jugTotalMobileCardsHtml(rows, sortCol, JUG_COL_B, POS_COLOR_B, POS_BG_B, COL_META_B)}`;
 }
 
 // ── Debuts ───────────────────────────────────────────────────────────────────
