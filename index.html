@@ -144,33 +144,43 @@
     .badge-blue  { background: rgba(59,130,246,0.15); color: var(--azul-claro); }
     .badge-green { background: rgba(34,197,94,0.15);  color: var(--verde); }
 
-    /* ── NEXT MATCH BANNER ── */
-    .next-match-banner {
+    /* ── NEXT MATCH BANNER — one box per category, side by side ── */
+    .next-match-row {
       width: 100%;
       max-width: 900px;
+      display: flex;
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+    .next-match-box {
+      flex: 1 1 0;
+      min-width: 0;
       background: #141d2e;
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 10px;
-      padding: 18px 24px;
-      margin-bottom: 28px;
+      padding: 16px 20px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 20px;
-      flex-wrap: wrap;
+      gap: 16px;
     }
+    .nmb-box-a { border-color: rgba(245,158,11,0.35); }
+    .nmb-box-a .nmb-label, .nmb-box-a .nmb-rival { color: var(--dorado); }
+    .nmb-box-b { border-color: rgba(59,130,246,0.35); }
+    .nmb-box-b .nmb-label, .nmb-box-b .nmb-rival { color: var(--azul-claro); }
     .nmb-label {
-      font-size: 0.68rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;
-      color: var(--dorado); margin-bottom: 6px;
+      font-size: 0.66rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
+      margin-bottom: 6px;
     }
-    .nmb-rival { font-size: 1.15rem; font-weight: 800; color: var(--blanco); margin-bottom: 4px; }
-    .nmb-meta { font-size: 0.78rem; color: var(--gris-texto); }
+    .nmb-rival { font-size: 1.05rem; font-weight: 800; margin-bottom: 4px; }
+    .nmb-meta { font-size: 0.76rem; color: var(--gris-texto); }
+    .nmb-meta .nmb-local { color: var(--texto); font-weight: 600; }
     .nmb-countdown { text-align: right; flex-shrink: 0; }
-    .nmb-cd-val { font-size: 1.8rem; font-weight: 900; color: var(--naranja); line-height: 1; }
-    .nmb-cd-val .nmb-cd-unit { font-size: 1rem; font-weight: 700; margin-right: 8px; }
+    .nmb-cd-val { font-size: 1.4rem; font-weight: 900; color: var(--naranja); line-height: 1; }
+    .nmb-cd-val .nmb-cd-unit { font-size: 1.4rem; font-weight: 700; margin-right: 6px; }
     .nmb-cd-label { font-size: 0.65rem; color: var(--gris-texto); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
 
-    /* ── LANDING CARD: position badge + last-result/points footer ── */
+    /* ── LANDING CARD: position badge + last-3-results/points footer ── */
     .lc-badge { position: absolute; top: 14px; right: 14px; }
     .lc-badge-pill {
       font-size: 0.66rem; font-weight: 800; padding: 3px 9px; border-radius: 20px; letter-spacing: 0.02em; white-space: nowrap;
@@ -184,7 +194,17 @@
       margin-top: 4px; padding-top: 12px;
       border-top: 1px solid rgba(255,255,255,0.08);
       font-size: 0.72rem; color: var(--gris-texto);
+      transition: opacity .2s;
     }
+    .lc-footer.lc-fading { opacity: 0; }
+    .lc-foot-results { display: flex; gap: 5px; align-items: center; }
+    .lc-res-pill {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 20px; height: 20px; border-radius: 6px; font-size: 0.68rem; font-weight: 800;
+    }
+    .lc-res-pill.lc-res-g { background: rgba(34,197,94,0.15);  color: #4ade80; }
+    .lc-res-pill.lc-res-e { background: rgba(245,158,11,0.15); color: #fbbf24; }
+    .lc-res-pill.lc-res-p { background: rgba(239,68,68,0.15); color: #f87171; }
     .lc-foot-pts { font-weight: 800; color: var(--blanco); }
     .lc-res-g { color: #4ade80; font-weight: 800; }
     .lc-res-e { color: #fbbf24; font-weight: 800; }
@@ -562,7 +582,8 @@
       .landing-card .card-icon { font-size: 2.4rem; }
       .landing-title { font-size: 1.5rem; }
       .landing-cards { flex-direction: column; align-items: center; width: 100%; }
-      .next-match-banner { flex-direction: column; align-items: flex-start; padding: 16px 18px; }
+      .next-match-row { flex-direction: column; width: 100%; }
+      .next-match-box { flex-direction: column; align-items: flex-start; padding: 16px 18px; width: 100%; }
       .nmb-countdown { text-align: left; align-self: stretch; }
     }
 
@@ -1566,7 +1587,10 @@
   <div class="landing-title">Club <span>Santa Bárbara</span></div>
   <div class="landing-sub">Estadísticas Generales</div>
 
-  <div id="landing-next-match"></div>
+  <div class="next-match-row">
+    <div id="landing-next-match-a"></div>
+    <div id="landing-next-match-b"></div>
+  </div>
 
   <div class="landing-cards">
     <div class="landing-card" onclick="openSection('a')">
@@ -10309,33 +10333,47 @@ function _teamNextMatch(d) {
   if (!next) return null;
   const det = (d.apertura || []).find(m => String(m.fecha) === String(next.fecha));
   return { rival: next.rival, dia: det?.dia || '', hora: det?.hora || '', lugar: det?.lugar || '',
-    dt: det ? _parseFechaHora(det.dia, det.hora) : null };
+    local: next.local || '', dt: det ? _parseFechaHora(det.dia, det.hora) : null };
 }
-function renderLandingNextMatch() {
-  const el = document.getElementById('landing-next-match');
+const DIAS_SEMANA = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+// "Sábado · 17:00hs · 01/08" instead of the raw sheet date — weekday name
+// derived from the parsed Date, "Hora" passed through as-is (already
+// human-readable), day/month re-formatted zero-padded from the same Date so
+// it doesn't depend on the sheet's own separator/leading-zero conventions.
+function _fmtProximoMeta(m) {
+  const localTxt = /visit/i.test(m.local) ? 'Visitante' : /local/i.test(m.local) ? 'Local' : '';
+  if (!m.dt) return { weekday: '', diaMes: m.dia || '', horaTxt: m.hora || '', localTxt };
+  const pad = n => String(n).padStart(2, '0');
+  return {
+    weekday: DIAS_SEMANA[m.dt.getDay()],
+    diaMes: `${pad(m.dt.getDate())}/${pad(m.dt.getMonth() + 1)}`,
+    horaTxt: m.hora || '',
+    localTxt,
+  };
+}
+function _renderNextMatchBox(elId, boxClass, label, m) {
+  const el = document.getElementById(elId);
   if (!el) return;
-  const candidates = [{ d: DATA_A, label: 'Primera A' }, { d: DATA_B, label: 'Primera B' }]
-    .map(c => ({ ...c, m: _teamNextMatch(c.d) }))
-    .filter(c => c.m);
-  if (!candidates.length) { el.innerHTML = ''; return; }
-  // Soonest resolvable date first; matches with an unparseable date (rare
-  // formatting gaps in "Dia") sort after ones that have one.
-  candidates.sort((a, b) => (a.m.dt ? a.m.dt.getTime() : Infinity) - (b.m.dt ? b.m.dt.getTime() : Infinity));
-  const { m, label } = candidates[0];
-  const fechaHoraTxt = [m.dia, m.hora].filter(Boolean).join(' · ');
+  if (!m) { el.innerHTML = ''; return; }
+  const meta = _fmtProximoMeta(m);
   const cd = m.dt ? _countdownParts(m.dt) : null;
+  const metaLine = [meta.weekday, meta.horaTxt, meta.diaMes].filter(Boolean).join(' · ');
   el.innerHTML = `
-    <div class="next-match-banner">
+    <div class="next-match-box ${boxClass}">
       <div class="nmb-main">
         <div class="nmb-label">Próximo Partido · ${label}</div>
         <div class="nmb-rival">vs ${m.rival}</div>
-        <div class="nmb-meta">📅 ${fechaHoraTxt || 'Fecha a confirmar'}${m.lugar ? ' · 📍 ' + m.lugar : ''}</div>
+        <div class="nmb-meta">📅 ${metaLine || 'Fecha a confirmar'}${meta.localTxt ? ` · <span class="nmb-local">${meta.localTxt}</span>` : ''}${m.lugar ? ' · 📍 ' + m.lugar : ''}</div>
       </div>
       ${cd ? `<div class="nmb-countdown">
-        <div class="nmb-cd-val">${cd.days}<span class="nmb-cd-unit">d</span>${cd.hours}<span class="nmb-cd-unit">h</span></div>
+        <div class="nmb-cd-val">${cd.days}<span class="nmb-cd-unit">d</span> ${cd.hours}<span class="nmb-cd-unit">h</span></div>
         <div class="nmb-cd-label">restantes</div>
       </div>` : ''}
     </div>`;
+}
+function renderLandingNextMatch() {
+  _renderNextMatchBox('landing-next-match-a', 'nmb-box-a', 'Primera A', _teamNextMatch(DATA_A));
+  _renderNextMatchBox('landing-next-match-b', 'nmb-box-b', 'Primera B', _teamNextMatch(DATA_B));
 }
 function _posBadgeClass(pos, total) {
   if (!pos || !total) return 'lc-badge-amber';
@@ -10355,41 +10393,73 @@ function renderLandingCardStats() {
     if (footEl) {
       const partidos = (d.partidos || []).filter(m => /^\d+$/.test(m.fecha));
       const played = partidos.filter(m => m.resultado !== null);
-      const last = played.length ? played[played.length - 1] : null;
-      const res = last ? (last.gf > last.gc ? 'G' : last.gf === last.gc ? 'E' : 'P') : null;
-      const resClass = res === 'G' ? 'lc-res-g' : res === 'E' ? 'lc-res-e' : res === 'P' ? 'lc-res-p' : '';
-      footEl.innerHTML = res
-        ? `<span>Último: <span class="${resClass}">${res}</span></span>${own ? `<span class="lc-foot-pts">${own.pts} pts</span>` : ''}`
-        : `<span>Sin partidos jugados</span>`;
+      // Últimos 3 partidos, más reciente primero.
+      const lastThree = played.slice(-3).reverse();
+      if (lastThree.length) {
+        const pills = lastThree.map(m => {
+          const r = m.gf > m.gc ? 'G' : m.gf === m.gc ? 'E' : 'P';
+          const cls = r === 'G' ? 'lc-res-g' : r === 'E' ? 'lc-res-e' : 'lc-res-p';
+          return `<span class="lc-res-pill ${cls}" title="vs ${m.rival} (${m.resultado})">${r}</span>`;
+        }).join('');
+        footEl.innerHTML = `<span class="lc-foot-results">${pills}</span>${own ? `<span class="lc-foot-pts">${own.pts} pts</span>` : ''}`;
+      } else {
+        footEl.innerHTML = `<span>Sin partidos jugados</span>`;
+      }
     }
   });
-
-  // El Nido footer: current-season plantel (Primera A + B combined, deduped
-  // by name) + top scorer — reuses the same core sources already loaded at
-  // boot (DATA_A/DATA_B.jugadores), no extra fetch needed.
+  renderLandingNidoFooter();
+}
+// El Nido footer: the club's FULL player database (window._nidoGetMerged,
+// same "Jugadores Estadisticas" sheets the El Nido section itself reads —
+// currently ~103 players), not just the two current-season squad sheets
+// (DATA_A/DATA_B.jugadores, ~50) the previous version used by mistake.
+// _nidoEnsureLoaded() is a one-shot cache shared with the rest of the app —
+// cheap to call here every refresh cycle, and it's what keeps this in sync
+// with whatever El Nido already has loaded (a hard page reload picks up
+// brand-new players; this doesn't re-poll mid-session on its own).
+let _landingNidoRotIdx = 0;
+function _landingNidoTopScorers() {
+  const top = list => (list && list.length) ? list.reduce((a, b) => (b.goles > a.goles ? b : a)) : null;
+  return [
+    { label: 'General',   top: top(window._nidoGetMerged ? window._nidoGetMerged() : []) },
+    { label: 'Primera A', top: top(window._nidoGetTeamData ? window._nidoGetTeamData('a') : []) },
+    { label: 'Primera B', top: top(window._nidoGetTeamData ? window._nidoGetTeamData('b') : []) },
+  ];
+}
+function _paintNidoRotator(el) {
+  const groups = _landingNidoTopScorers().filter(g => g.top && g.top.goles > 0);
+  if (!groups.length) { el.innerHTML = `<span>Sin registros aún</span>`; return; }
+  const g = groups[_landingNidoRotIdx % groups.length];
+  el.innerHTML = `<span><span style="color:var(--gris-texto)">${g.label}:</span> ⚽ <strong>${g.top.nombre}</strong></span><span class="lc-foot-pts">${g.top.goles} goles</span>`;
+}
+function renderLandingNidoFooter() {
   const nidoBadge = document.getElementById('lc-badge-nido');
   const nidoFoot  = document.getElementById('lc-footer-nido');
-  const rosterMap = new Map();
-  [...(DATA_A.jugadores || []), ...(DATA_B.jugadores || [])].forEach(p => {
-    if (!p.nombre) return;
-    const key = normName(p.nombre), goles = p.goles || 0;
-    if (!rosterMap.has(key) || goles > rosterMap.get(key).goles) rosterMap.set(key, { nombre: p.nombre, goles });
+  if ((!nidoBadge && !nidoFoot) || !window._nidoEnsureLoaded) return;
+  window._nidoEnsureLoaded().then(() => {
+    const merged = window._nidoGetMerged ? window._nidoGetMerged() : [];
+    if (nidoBadge) nidoBadge.innerHTML = merged.length
+      ? `<span class="lc-badge-pill lc-badge-green">${merged.length} jugadores</span>` : '';
+    if (nidoFoot) _paintNidoRotator(nidoFoot);
   });
-  const roster = [...rosterMap.values()];
-  if (nidoBadge) nidoBadge.innerHTML = roster.length
-    ? `<span class="lc-badge-pill lc-badge-green">${roster.length} jugadores</span>` : '';
-  if (nidoFoot) {
-    const top = roster.length ? roster.reduce((a, b) => (b.goles > a.goles ? b : a)) : null;
-    nidoFoot.innerHTML = (top && top.goles > 0)
-      ? `<span>⚽ Goleador: <strong>${top.nombre}</strong></span><span class="lc-foot-pts">${top.goles} goles</span>`
-      : `<span>Sin registros aún</span>`;
-  }
 }
 function renderLandingWidgets() {
   renderLandingNextMatch();
   renderLandingCardStats();
 }
 setInterval(renderLandingNextMatch, 60000);
+// Rotates the El Nido footer between General/Primera A/Primera B goleadores
+// every few seconds, with a brief fade instead of snapping the text.
+setInterval(() => {
+  const el = document.getElementById('lc-footer-nido');
+  if (!el || !window._nidoGetMerged || !window._nidoGetMerged().length) return;
+  el.classList.add('lc-fading');
+  setTimeout(() => {
+    _landingNidoRotIdx++;
+    _paintNidoRotator(el);
+    el.classList.remove('lc-fading');
+  }, 250);
+}, 4000);
 
 function refreshCurrentView() {
   if (!currentData) return;
