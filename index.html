@@ -10555,7 +10555,7 @@ async function loadLiveData() {
   // Fetch each section as a targeted range so parsers receive exactly the right rows
   const [aSim, aBasic, aDet, bSim, bApBasic, bApDet, aHist, bHist, aGlobal, aTabla,
          a25Det, a25Global, a25Tabla, a25Basico, bApGlobal, bApTabla,
-         bClDet, bClGlobal, bClTabla, aClDet, aClGlobal, aClTabla, copasSheet, copasBasicSheet, bRecopaSheet,
+         bClDet, bClGlobal, bClTabla, aClDet, aClGlobal, aClTabla, aClBasic, copasSheet, copasBasicSheet, bRecopaSheet,
          bSupercopa25Det, bSupercopa25Plantel, bRecopa24Det, bRecopa24Plantel,
          bRecopa21Det, bRecopa21Plantel] = await Promise.allSettled([
     fetchCSV(GS.A_SIM),
@@ -10609,6 +10609,10 @@ async function loadLiveData() {
     fetchGvizByGid(GS.A_MAIN, 618783090, 'A22:I532'),
     fetchGvizByGid(GS.A_MAIN, 618783090, 'L3:X29'),
     fetchGvizByGid(GS.A_MAIN, 618783090, 'L33:V49'),
+    // Short "resumen"/Centro de Datos table (club-confirmed A1:J18) — carries
+    // Observaciones/Parciales/Posición/Local missing from the detailed Fecha
+    // a Fecha block above, same enrichment pattern as Apertura AIFA A 2026.
+    fetchGvizByGid(GS.A_MAIN, 618783090, 'A1:J18'),
     // ── Centralized "SB en Copas" sheet (Primera A) — every Recopa/Supercopa,
     //    every year, segmented by title row (see parseCopaSheet). Wide range
     //    for headroom since we don't know the exact row count yet.
@@ -10702,6 +10706,27 @@ async function loadLiveData() {
   if (ok(aClGlobal)) {
     const p = parseGlobalStats(ok(aClGlobal));
     if (p.length > 0) DATA_A.jugadores = p;
+  }
+  // Cherry-pick Observaciones/Parciales/Posición/Local (club-confirmed
+  // A1:J18) onto the already-correct partidos derived from the detailed
+  // match data above — same enrichment the finished Apertura AIFA A 2026
+  // season gets, since the detailed vertical block never carries Posición
+  // at all and only carries Local/Visitante indirectly (inferred from
+  // Lugar, which is often blank).
+  if (ok(aClBasic)) {
+    const m = _ligaOnlyMatches(parseMatches(ok(aClBasic)));
+    const byKey = new Map(m.map(x => [`${(x.rival || '').toUpperCase()}|${x.fecha}`, x]));
+    for (const p of DATA_A.partidos) {
+      const src = byKey.get(`${(p.rival || '').toUpperCase()}|${p.fecha}`);
+      if (!src) continue;
+      if (src.obs) p.obs = src.obs;
+      if (src.parciales) p.parciales = src.parciales;
+      if (src.posCSB) p.posCSB = src.posCSB;
+      if (src.posRival) p.posRival = src.posRival;
+      if (src.local) p.local = src.local;
+      if (src.estadio) p.estadio = src.estadio;
+      if (src.horario) p.horario = src.horario;
+    }
   }
   if (ok(aClTabla)) {
     const t = parseTablaSheet(ok(aClTabla));
