@@ -646,7 +646,19 @@
       .jtot-desktop-only { display: none !important; }
       .jtot-mobile-only { display: block; }
 
-      .jtot-tabrow { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      /* Sibling of the search input inside a flex row — without min-width:0
+         a flex item refuses to shrink below its content's natural width
+         (the classic flexbox overflow gotcha), so the row never actually
+         scrolled internally, it just pushed the page wider / got clipped
+         with no way to reach the last 2-3 category buttons. width:100%
+         forces it onto its own full-width line once it wraps below the
+         search input. */
+      .jtot-tabrow {
+        flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch;
+        min-width: 0; width: 100%;
+        mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent 100%);
+        -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent 100%);
+      }
       .jtot-tabrow button { flex-shrink: 0; }
 
       .jtot-kpi-card { display: flex; flex-direction: column; justify-content: center; min-height: 82px; }
@@ -664,7 +676,8 @@
         font-size: 0.65rem; font-weight: 900; flex-shrink: 0;
       }
       .jtot-card-body { flex: 1; min-width: 0; }
-      .jtot-card-name { font-size: 0.88rem; font-weight: 800; color: #fff; line-height: 1.25; }
+      .jtot-card-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+      .jtot-card-name { font-size: 0.88rem; font-weight: 800; color: #fff; line-height: 1.25; flex: 1; min-width: 0; }
       .jtot-card-pos {
         display: inline-block; margin-top: 4px; padding: 2px 8px; border-radius: 999px;
         font-size: 0.6rem; font-weight: 800; letter-spacing: .05em; border: 1px solid;
@@ -672,6 +685,13 @@
       .jtot-card-stat { flex-shrink: 0; text-align: right; }
       .jtot-card-stat-val { font-size: 1.2rem; font-weight: 900; line-height: 1; }
       .jtot-card-stat-label { font-size: 0.6rem; color: #6b7280; text-transform: uppercase; letter-spacing: .05em; margin-top: 2px; }
+      .jtot-card-secondary {
+        display: flex; gap: 14px; flex-wrap: wrap; margin-top: 8px; padding-top: 8px;
+        border-top: 1px solid rgba(255,255,255,0.08);
+      }
+      .jtot-card-sec { display: flex; flex-direction: column; }
+      .jtot-card-sec-val { font-size: 0.82rem; font-weight: 700; color: #cbd5e1; }
+      .jtot-card-sec-label { font-size: 0.6rem; color: #6b7280; text-transform: uppercase; letter-spacing: .04em; }
       .jtot-mobile-empty { text-align: center; padding: 30px; color: #6b7280; font-size: 0.85rem; }
     }
 
@@ -7903,14 +7923,22 @@ const COL_META = {
 // Replaces the desktop's sticky-name-column table entirely on mobile — a
 // long name wrapping to 2 lines no longer has a stat number rendered on
 // top of it, since each player is its own card instead of a table row.
-function _jugTotalMobileCardsHtml(rows, sortCol, colMap, posColorMap, posBgMap, colMetaMap) {
+function _jugTotalMobileCardsHtml(rows, sortCol, activeCols, colMap, posColorMap, posBgMap, colMetaMap) {
   const medals = ['🥇', '🥈', '🥉'];
   const num = v => {
     if (!v || v === '-' || v === '\\-' || v === '#DIV/0!' || v === '') return null;
     const n = parseFloat(String(v).replace(',', '.'));
     return isNaN(n) ? null : n;
   };
+  const fmt = n => (n === null) ? '—' : (Number.isInteger(n) ? n : n.toFixed(2).replace('.', ','));
   const meta = colMetaMap[sortCol] || { label: 'Valor', color: '#94a3b8' };
+  // Every OTHER column the active category tab carries (Títulos/Rojas/
+  // Capitán/etc.) — desktop shows these as separate table columns
+  // regardless of which one is sorted; the mobile card only showed the
+  // sorted one, so switching category tabs looked like nothing changed
+  // beyond the first column (always PJ). Shown as a small stat row so
+  // every column desktop has is visible here too.
+  const secondaryCols = activeCols.filter(c => c !== sortCol);
 
   const cardsHtml = rows.map((r, i) => {
     const nombre = r[colMap.nombre] || '—';
@@ -7920,21 +7948,27 @@ function _jugTotalMobileCardsHtml(rows, sortCol, colMap, posColorMap, posBgMap, 
     const pb = posBgMap[pos] || 'rgba(255,255,255,0.08)';
     const rank = i < 3 ? i : -1;
     const rankHtml = rank >= 0 ? medals[rank] : `<span style="color:#6b7280">${i + 1}</span>`;
-    const n = num(r[sortCol]);
-    const valDisplay = (n === null) ? '—' : (Number.isInteger(n) ? n : n.toFixed(2).replace('.', ','));
+    const valDisplay = fmt(num(r[sortCol]));
     // 1er puesto: borde levemente dorado para destacarlo, como el resto del sitio.
     const topBorder = i === 0 ? 'border-color:rgba(251,191,36,0.4);' : '';
+    const secondaryHtml = secondaryCols.map(ci => {
+      const m = colMetaMap[ci] || { label: '', color: '#94a3b8' };
+      return `<div class="jtot-card-sec"><span class="jtot-card-sec-val">${fmt(num(r[ci]))}</span><span class="jtot-card-sec-label">${m.label}</span></div>`;
+    }).join('');
     return `
       <div class="jtot-card" style="${topBorder}" onclick="goToPlayer('${nombre.replace(/'/g, "\\'")}')">
         <div class="jtot-card-rank">${rankHtml}</div>
         <div class="jtot-card-avatar" style="background:${pb};border-color:${pc}44;color:${pc}">${initials}</div>
         <div class="jtot-card-body">
-          <div class="jtot-card-name">${nombre}</div>
+          <div class="jtot-card-top">
+            <div class="jtot-card-name">${nombre}</div>
+            <div class="jtot-card-stat">
+              <div class="jtot-card-stat-val" style="color:${meta.color}">${valDisplay}</div>
+              <div class="jtot-card-stat-label">${meta.label}</div>
+            </div>
+          </div>
           <span class="jtot-card-pos" style="color:${pc};background:${pb};border-color:${pc}44">${pos}</span>
-        </div>
-        <div class="jtot-card-stat">
-          <div class="jtot-card-stat-val" style="color:${meta.color}">${valDisplay}</div>
-          <div class="jtot-card-stat-label">${meta.label}</div>
+          ${secondaryHtml ? `<div class="jtot-card-secondary">${secondaryHtml}</div>` : ''}
         </div>
       </div>`;
   }).join('');
@@ -8164,7 +8198,7 @@ function _jugTotalBuild() {
         <tbody>${trs || `<tr><td colspan="${2 + activeCols.length}" style="text-align:center;color:var(--gris-texto);padding:32px">Sin resultados</td></tr>`}</tbody>
       </table>
     </div>
-    ${_jugTotalMobileCardsHtml(rows, sortCol, JUG_COL, POS_COLOR, POS_BG, COL_META)}`;
+    ${_jugTotalMobileCardsHtml(rows, sortCol, activeCols, JUG_COL, POS_COLOR, POS_BG, COL_META)}`;
 }
 
 // ── Estadísticas Totales — Primera B ────────────────────────────────────────
@@ -8435,7 +8469,7 @@ function _jugBBuild() {
         <tbody>${trs || `<tr><td colspan="${2 + activeCols.length}" style="text-align:center;color:var(--gris-texto);padding:32px">Sin resultados</td></tr>`}</tbody>
       </table>
     </div>
-    ${_jugTotalMobileCardsHtml(rows, sortCol, JUG_COL_B, POS_COLOR_B, POS_BG_B, COL_META_B)}`;
+    ${_jugTotalMobileCardsHtml(rows, sortCol, activeCols, JUG_COL_B, POS_COLOR_B, POS_BG_B, COL_META_B)}`;
 }
 
 // ── Debuts ───────────────────────────────────────────────────────────────────
