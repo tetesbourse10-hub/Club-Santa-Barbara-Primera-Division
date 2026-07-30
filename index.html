@@ -1102,10 +1102,11 @@
     .ap-table tr.leader-row td:first-child { border-left:3px solid #22c55e; }
     .ap-table tr.leader-row td:nth-child(2) { color:#22c55e; font-weight:700; }
     .copa-badge { display:inline-block; padding:2px 7px; border-radius:20px; font-size:0.6rem; font-weight:700; white-space:nowrap; }
-    .copa-campeon  { background:rgba(245,158,11,.12); color:#f59e0b; border:1px solid rgba(245,158,11,.3); }
-    .copa-recopa   { background:rgba(34,197,94,.10);  color:#22c55e; border:1px solid rgba(34,197,94,.25); }
-    .copa-honor    { background:rgba(251,146,60,.10); color:#fb923c; border:1px solid rgba(251,146,60,.25); }
-    .copa-descenso { background:rgba(239,68,68,.10);  color:#ef4444; border:1px solid rgba(239,68,68,.25); }
+    .copa-campeon   { background:rgba(245,158,11,.12); color:#f59e0b; border:1px solid rgba(245,158,11,.3); }
+    .copa-recopa    { background:rgba(34,197,94,.10);  color:#22c55e; border:1px solid rgba(34,197,94,.25); }
+    .copa-honor     { background:rgba(168,85,247,.10); color:#a855f7; border:1px solid rgba(168,85,247,.25); }
+    .copa-promocion { background:rgba(234,179,8,.10);  color:#eab308; border:1px solid rgba(234,179,8,.25); }
+    .copa-descenso  { background:rgba(239,68,68,.10);  color:#ef4444; border:1px solid rgba(239,68,68,.25); }
     .ap-table tr.csb-row td { color:var(--azul-claro); font-weight:700; background:rgba(59,130,246,0.08); }
     .ap-fechas-title { font-size:0.68rem; text-transform:uppercase; letter-spacing:0.1em; color:var(--gris-texto); margin-bottom:10px; font-weight:700; }
     .ap-fecha-nav { display:flex; gap:7px; overflow-x:auto; scrollbar-width:none; padding-bottom:6px; margin-bottom:20px; }
@@ -5146,8 +5147,9 @@ function renderTorneoApertura() {
   const tabla = d.tabla || [];
   const copaLegendItems = [
     { color:'#f59e0b', label:'Campeón / Supercopa' },
-    { color:'#22c55e', label:'Recopa / Promoción' },
-    { color:'#fb923c', label:'Copa de Honor' },
+    { color:'#22c55e', label:'Recopa' },
+    { color:'#a855f7', label:'Copa de Honor' },
+    { color:'#eab308', label:'Promoción' },
     { color:'#ef4444', label:'Descenso' },
   ];
   // Archived view (Torneos Antiguos) always points at the finished Apertura;
@@ -5161,7 +5163,7 @@ function renderTorneoApertura() {
     if (!copa || copa === '-' || copa === '–') return '<span style="color:rgba(255,255,255,.15)">—</span>';
     if (/campe[oó]n|supercopa/i.test(copa))    return `<span class="copa-badge copa-campeon">${copa}</span>`;
     if (/recopa/i.test(copa))                   return `<span class="copa-badge copa-recopa">${copa}</span>`;
-    if (/promoci[oó]n/i.test(copa))             return `<span class="copa-badge copa-honor">${copa}</span>`;
+    if (/promoci[oó]n/i.test(copa))             return `<span class="copa-badge copa-promocion">${copa}</span>`;
     if (/copa de honor/i.test(copa))            return `<span class="copa-badge copa-honor">${copa}</span>`;
     if (/descenso/i.test(copa))                 return `<span class="copa-badge copa-descenso">${copa}</span>`;
     return `<span style="color:rgba(255,255,255,.4);font-size:0.68rem">${copa}</span>`;
@@ -5453,8 +5455,9 @@ function renderTorneoApertura2025A() {
   const tabla = d.tabla || [];
   const copaLegendItems = [
     { color:'#f59e0b', label:'Campeón / Supercopa' },
-    { color:'#22c55e', label:'Recopa / Promoción' },
-    { color:'#fb923c', label:'Copa de Honor' },
+    { color:'#22c55e', label:'Recopa' },
+    { color:'#a855f7', label:'Copa de Honor' },
+    { color:'#eab308', label:'Promoción' },
     { color:'#ef4444', label:'Descenso' },
   ];
 
@@ -5462,7 +5465,7 @@ function renderTorneoApertura2025A() {
     if (!copa || copa === '-' || copa === '–') return '<span style="color:rgba(255,255,255,.15)">—</span>';
     if (/campe[oó]n|supercopa/i.test(copa))    return `<span class="copa-badge copa-campeon">${copa}</span>`;
     if (/recopa/i.test(copa))                   return `<span class="copa-badge copa-recopa">${copa}</span>`;
-    if (/promoci[oó]n/i.test(copa))             return `<span class="copa-badge copa-honor">${copa}</span>`;
+    if (/promoci[oó]n/i.test(copa))             return `<span class="copa-badge copa-promocion">${copa}</span>`;
     if (/copa de honor/i.test(copa))            return `<span class="copa-badge copa-honor">${copa}</span>`;
     if (/descenso/i.test(copa))                 return `<span class="copa-badge copa-descenso">${copa}</span>`;
     return `<span style="color:rgba(255,255,255,.4);font-size:0.68rem">${copa}</span>`;
@@ -5743,8 +5746,9 @@ function renderTorneoHistoricoGeneric(d, name, fechaLabels) {
   const tabla = d.tabla || [];
   const copaLegendItems = [
     { color:'#f59e0b', label:'Campeón / Supercopa' },
-    { color:'#22c55e', label:'Recopa / Promoción' },
-    { color:'#fb923c', label:'Copa de Honor' },
+    { color:'#22c55e', label:'Recopa' },
+    { color:'#a855f7', label:'Copa de Honor' },
+    { color:'#eab308', label:'Promoción' },
     { color:'#ef4444', label:'Descenso' },
   ];
 
@@ -5752,7 +5756,7 @@ function renderTorneoHistoricoGeneric(d, name, fechaLabels) {
     if (!copa || copa === '-' || copa === '–') return '<span style="color:rgba(255,255,255,.15)">—</span>';
     if (/campe[oó]n|supercopa/i.test(copa))    return `<span class="copa-badge copa-campeon">${copa}</span>`;
     if (/recopa/i.test(copa))                   return `<span class="copa-badge copa-recopa">${copa}</span>`;
-    if (/promoci[oó]n/i.test(copa))             return `<span class="copa-badge copa-honor">${copa}</span>`;
+    if (/promoci[oó]n/i.test(copa))             return `<span class="copa-badge copa-promocion">${copa}</span>`;
     if (/copa de honor/i.test(copa))            return `<span class="copa-badge copa-honor">${copa}</span>`;
     if (/descenso/i.test(copa))                 return `<span class="copa-badge copa-descenso">${copa}</span>`;
     return `<span style="color:rgba(255,255,255,.4);font-size:0.68rem">${copa}</span>`;
@@ -6385,15 +6389,16 @@ function renderTorneoApt2024DB() {
     const tabla = d.tabla || [];
     const copaLegendItems = [
       { color:'#f59e0b', label:'Campeón / Supercopa' },
-      { color:'#22c55e', label:'Recopa / Promoción' },
-      { color:'#fb923c', label:'Copa de Honor' },
+      { color:'#22c55e', label:'Recopa' },
+      { color:'#a855f7', label:'Copa de Honor' },
+      { color:'#eab308', label:'Promoción' },
       { color:'#ef4444', label:'Descenso' },
     ];
     function copaBadge(copa) {
       if (!copa || copa === '-' || copa === '–') return '<span style="color:rgba(255,255,255,.15)">—</span>';
       if (/campe[oó]n|supercopa/i.test(copa)) return `<span class="copa-badge copa-campeon">${copa}</span>`;
       if (/recopa/i.test(copa))               return `<span class="copa-badge copa-recopa">${copa}</span>`;
-      if (/promoci[oó]n/i.test(copa))         return `<span class="copa-badge copa-honor">${copa}</span>`;
+      if (/promoci[oó]n/i.test(copa))         return `<span class="copa-badge copa-promocion">${copa}</span>`;
       if (/copa de honor/i.test(copa))        return `<span class="copa-badge copa-honor">${copa}</span>`;
       if (/descenso/i.test(copa))             return `<span class="copa-badge copa-descenso">${copa}</span>`;
       return `<span style="color:rgba(255,255,255,.4);font-size:0.68rem">${copa}</span>`;
@@ -6607,6 +6612,18 @@ function renderResumen() {
 
   // Compact standings centered on Santa Bárbara: 3 teams above, CSB itself
   // (highlighted), 3 teams below — instead of the full table.
+  // Same badge markup/regex-to-color mapping as the other Tabla Completa
+  // views (copaBadge in renderTorneoApertura et al.) — kept local here since
+  // this is the only render site in renderResumen's scope that needs it.
+  function miniCopaBadge(copa) {
+    if (!copa || copa === '-' || copa === '–') return '<span style="color:rgba(255,255,255,.15)">—</span>';
+    if (/campe[oó]n|supercopa/i.test(copa)) return `<span class="copa-badge copa-campeon">${copa}</span>`;
+    if (/recopa/i.test(copa))               return `<span class="copa-badge copa-recopa">${copa}</span>`;
+    if (/promoci[oó]n/i.test(copa))         return `<span class="copa-badge copa-promocion">${copa}</span>`;
+    if (/copa de honor/i.test(copa))        return `<span class="copa-badge copa-honor">${copa}</span>`;
+    if (/descenso/i.test(copa))             return `<span class="copa-badge copa-descenso">${copa}</span>`;
+    return `<span style="color:rgba(255,255,255,.4);font-size:0.68rem">${copa}</span>`;
+  }
   function miniTablaHtml(tabla, torneoLabel) {
     const badge = `<div class="mini-tabla-badge">📊 Tabla de Posiciones${torneoLabel ? ' – ' + torneoLabel : ''}</div>`;
     if (!tabla || !tabla.length) {
@@ -6623,10 +6640,11 @@ function renderResumen() {
     const rows = slice.map(t => `<tr class="${t.csb ? 'csb-row' : ''}">
       <td>${t.pos}</td><td>${t.csb ? '⭐ ' : ''}${t.equipo}</td><td>${t.pts}</td><td>${t.pj}</td>
       <td style="color:${t.df > 0 ? '#22c55e' : t.df < 0 ? '#ef4444' : 'inherit'}">${t.df > 0 ? '+' : ''}${t.df ?? '–'}</td>
+      <td>${miniCopaBadge(t.copas)}</td>
     </tr>`).join('');
     return `${badge}<div class="mini-tabla-wrap">
       <table class="mini-tabla">
-        <thead><tr><th>#</th><th>Equipo</th><th>Pts</th><th>PJ</th><th>DF</th></tr></thead>
+        <thead><tr><th>#</th><th>Equipo</th><th>Pts</th><th>PJ</th><th>DF</th><th>Clasif.</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>`;
@@ -10623,7 +10641,11 @@ async function loadLiveData() {
     //    the detailed Fecha a Fecha instead (see _deriveBasicFromDetailed). ──
     fetchGvizByGid(GS.B_HIST, 266944794, 'A19:J561'),
     fetchGvizByGid(GS.B_HIST, 266944794, 'L3:X33'),
-    fetchGvizByGid(GS.B_HIST, 266944794, 'L37:V53'),
+    // One row of headroom past the club-confirmed L37:V53 — a team was
+    // reported missing from this live standings table; parseTablaSheet
+    // already skips blank/header-like rows, so a wider range is harmless if
+    // this season really only has the same 16 teams as before.
+    fetchGvizByGid(GS.B_HIST, 266944794, 'L37:V54'),
     // ── Clausura AIFA A 2026 (live season, its own new tab — fetched by gid).
     //    Club-confirmed ranges; no separate short "basic" table, so partidos
     //    is derived from the detailed Fecha a Fecha (_deriveBasicFromDetailed),
