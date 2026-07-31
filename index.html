@@ -10408,7 +10408,11 @@ function parseTablaSheet(rows) {
   for (let i = headerIdx + 1; i < rows.length; i++) {
     const r = rows[i];
     const equipo = String(r[cEquipo]??'').trim();
-    if (!equipo || /^(equipo|club|nombre)$/i.test(equipo)) continue;
+    // A real club name is never just digits — guards against leftover rows
+    // from a DIFFERENT table above this one (same columns, different
+    // meaning) slipping through as a bogus "team" when the fetch range has
+    // to reach further up than the tabla itself to reliably catch its header.
+    if (!equipo || /^(equipo|club|nombre)$/i.test(equipo) || /^\d+$/.test(equipo)) continue;
     result.push({
       pos:   rank + '°',
       equipo,
