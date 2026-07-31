@@ -474,8 +474,12 @@
     .hd-layout { display: grid; grid-template-columns: 270px 1fr; gap: 20px; align-items: start; }
     @media (max-width: 800px) { .hd-layout { grid-template-columns: 1fr; } }
 
-    /* Unified profile card */
-    .hd-sidebar { position: sticky; top: 12px; }
+    /* Unified profile card — sticky so it accompanies the scroll on rivals
+       with long match lists instead of scrolling past/desyncing from them.
+       align-self is explicit here (not just inherited from .hd-layout's
+       align-items:start) so this still holds even if the sidebar is ever
+       reused outside that grid. */
+    .hd-sidebar { position: sticky; top: 1.5rem; align-self: flex-start; }
     .hd-profile-card {
       background: linear-gradient(160deg,#1a2236,#131825);
       border: 1px solid #1e2a3a; border-radius: 18px; overflow: hidden;
@@ -701,7 +705,11 @@
         display: flex; gap: 14px; flex-wrap: wrap; margin-top: 8px; padding-top: 8px;
         border-top: 1px solid rgba(255,255,255,0.08);
       }
-      .jtot-card-sec { display: flex; flex-direction: column; }
+      .jtot-card-sec {
+        display: flex; flex-direction: column; align-items: flex-start;
+        background: transparent; border: none; padding: 0; margin: 0;
+        font-family: inherit; cursor: pointer;
+      }
       .jtot-card-sec-val { font-size: 0.82rem; font-weight: 700; color: #cbd5e1; }
       .jtot-card-sec-label { font-size: 0.6rem; color: #6b7280; text-transform: uppercase; letter-spacing: .04em; }
       .jtot-mobile-empty { text-align: center; padding: 30px; color: #6b7280; font-size: 0.85rem; }
@@ -761,18 +769,20 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      font-size: 0.85rem;
+      font-size: 0.78rem;
       font-weight: 600;
-      color: #cbd5e1;
-      background: transparent;
-      border: none;
-      padding: 6px 2px;
+      color: #e2e8f0;
+      background: rgba(15,23,42,0.8);
+      border: 1px solid rgba(148,163,184,0.25);
+      border-radius: 8px;
+      padding: 6px 12px;
       cursor: pointer;
       font-family: inherit;
       margin-bottom: 20px;
-      transition: color 0.2s;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+      transition: background 0.2s, color 0.2s;
     }
-    .volver-btn:hover { color: #f8fafc; }
+    .volver-btn:hover { background: rgba(30,41,59,0.9); color: #fff; }
     .torneo-wip {
       display: flex;
       flex-direction: column;
@@ -3559,7 +3569,7 @@ function _ppStatRowHtml(kind, p) {
     : p.fecha;
   const clickable = !!p.navKey && !!locator;
   const rowAttrs = clickable
-    ? `class="pp-match-row pp-match-row-link" onclick="goToMatchFecha('${p.navKey}', '${String(locator).replace(/'/g, "\\'")}')" title="Ver en Fecha a Fecha"`
+    ? `class="pp-match-row pp-match-row-link" onclick="_navPush('Perfil de Jugador', () => goToPlayer(window._ppCurrentNombre));goToMatchFecha('${p.navKey}', '${String(locator).replace(/'/g, "\\'")}')" title="Ver en Fecha a Fecha"`
     : `class="pp-match-row"`;
   return `<div ${rowAttrs}>
     <div class="pp-match-main">
@@ -3800,6 +3810,9 @@ window.ppFilterTipo = function(kind, tipo) {
 };
 
 function renderPlayerProfile(nombre) {
+  // Stashed so a match row's "Volver" (via _navPush, see _ppStatRowHtml) can
+  // reopen this exact profile regardless of which player it belongs to.
+  window._ppCurrentNombre = nombre;
   let overlay = document.getElementById('player-profile-overlay');
   if (!overlay) {
     overlay = document.createElement('div');
@@ -5111,7 +5124,13 @@ function _cdFechaLabel(fecha, isCopa) {
 // render into different container ids, so buildCentroDatosHtml is told
 // which pair to call via opts instead of hardcoding one.
 function _cdGoToFecha(tabFn, fechaFn, fecha) {
-  if (typeof window[tabFn] === 'function') window[tabFn]('fechas');
+  // Pushed so "← Volver" comes back to this torneo's own Centro de Datos
+  // sub-tab (just switching tabs within the same torneo view) instead of
+  // immediately exiting all the way out to the Torneos Antiguos/Actuales menu.
+  if (typeof window[tabFn] === 'function') {
+    _navPush('Centro de Datos', () => window[tabFn]('datos'));
+    window[tabFn]('fechas');
+  }
   if (typeof window[fechaFn] === 'function') window[fechaFn](fecha);
   const nav = document.querySelector('.ap-tab-nav');
   if (nav) nav.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -8127,12 +8146,23 @@ const JUG_TABS = [
   { key:'vallas',       label:'Vallas',       cols:[JUG_COL.pj, JUG_COL.vallas, JUG_COL.vallasProm] },
 ];
 
+// Métrica principal que cada pestaña ordena automáticamente al seleccionarla
+// (de mayor a menor), en vez de arrastrar el criterio de la pestaña anterior.
+const JUG_TAB_SORT_COL = {
+  general: JUG_COL.pj,
+  liderazgo: JUG_COL.capitan,
+  disciplina: JUG_COL.rojas,
+  participacion: JUG_COL.titular,
+  rendimiento: JUG_COL.promGmas,
+  vallas: JUG_COL.vallas,
+};
+
 const COL_META = {
   [JUG_COL.pj]:       { label:'PJ',    icon:'🎮', color:'#94a3b8' },
   [JUG_COL.goles]:    { label:'Goles', icon:'⚽', color:'#22c55e' },
   [JUG_COL.asist]:    { label:'Asist', icon:'🎯', color:'#3b82f6' },
   [JUG_COL.gmas]:     { label:'G+A',   icon:'🔥', color:'#a855f7' },
-  [JUG_COL.capitan]:  { label:'Cap.',  icon:'🧢', color:'#f97316' },
+  [JUG_COL.capitan]:  { label:'Cap.',  icon:'©️', color:'#f97316' },
   [JUG_COL.titulos]:  { label:'Títulos',icon:'🏆',color:'#fbbf24' },
   [JUG_COL.ascensos]: { label:'Asc.',  icon:'⬆️', color:'#fbbf24' },
   [JUG_COL.rojas]:    { label:'Rojas', icon:'🟥', color:'#ef4444' },
@@ -8151,7 +8181,7 @@ const COL_META = {
 // Replaces the desktop's sticky-name-column table entirely on mobile — a
 // long name wrapping to 2 lines no longer has a stat number rendered on
 // top of it, since each player is its own card instead of a table row.
-function _jugTotalMobileCardsHtml(rows, sortCol, activeCols, colMap, posColorMap, posBgMap, colMetaMap) {
+function _jugTotalMobileCardsHtml(rows, sortCol, activeCols, colMap, posColorMap, posBgMap, colMetaMap, sortFnName) {
   const medals = ['🥇', '🥈', '🥉'];
   const num = v => {
     if (!v || v === '-' || v === '\\-' || v === '#DIV/0!' || v === '') return null;
@@ -8179,9 +8209,16 @@ function _jugTotalMobileCardsHtml(rows, sortCol, activeCols, colMap, posColorMap
     const valDisplay = fmt(num(r[sortCol]));
     // 1er puesto: borde levemente dorado para destacarlo, como el resto del sitio.
     const topBorder = i === 0 ? 'border-color:rgba(251,191,36,0.4);' : '';
+    // Each secondary metric is its own tappable button (not just display) so
+    // switching which stat is highlighted/sorted works on mobile — without
+    // stopPropagation the tap would just bubble up to the card's own
+    // onclick and open the player's profile instead.
     const secondaryHtml = secondaryCols.map(ci => {
       const m = colMetaMap[ci] || { label: '', color: '#94a3b8' };
-      return `<div class="jtot-card-sec"><span class="jtot-card-sec-val">${fmt(num(r[ci]))}</span><span class="jtot-card-sec-label">${m.label}</span></div>`;
+      const onClickAttr = sortFnName
+        ? ` onclick="event.stopPropagation();${sortFnName}(${ci})"`
+        : '';
+      return `<button type="button" class="jtot-card-sec"${onClickAttr}><span class="jtot-card-sec-val">${fmt(num(r[ci]))}</span><span class="jtot-card-sec-label">${m.label}</span></button>`;
     }).join('');
     return `
       <div class="jtot-card" style="${topBorder}" onclick="goToPlayer('${nombre.replace(/'/g, "\\'")}')">
@@ -8275,6 +8312,8 @@ function _jugTotalSort(colIdx) {
 
 function _jugTotalSetTab(key) {
   _jugTotalesTab = key;
+  const sortCol = JUG_TAB_SORT_COL[key];
+  if (sortCol !== undefined) _jugTotalesSort = { col: sortCol, asc: false };
   _jugTotalBuild();
 }
 
@@ -8335,7 +8374,7 @@ function _jugTotalBuild() {
   if (tabRow) {
     tabRow.innerHTML = JUG_TABS.map(t => {
       const active = _jugTotalesTab === t.key;
-      return `<button onclick="_jugTotalSetTab('${t.key}')" style="padding:5px 14px;border-radius:20px;border:1px solid ${active?'rgba(249,115,22,0.6)':'rgba(255,255,255,0.09)'};background:${active?'#f97316':'rgba(255,255,255,0.06)'};color:${active?'#fff':'#94a3b8'};font-size:0.78rem;font-weight:${active?'700':'400'};cursor:pointer;white-space:nowrap;transition:all .15s">${t.label}</button>`;
+      return `<button onclick="event.stopPropagation();_jugTotalSetTab('${t.key}')" style="padding:5px 14px;border-radius:20px;border:1px solid ${active?'rgba(249,115,22,0.6)':'rgba(255,255,255,0.09)'};background:${active?'#f97316':'rgba(255,255,255,0.06)'};color:${active?'#fff':'#94a3b8'};font-size:0.78rem;font-weight:${active?'700':'400'};cursor:pointer;white-space:nowrap;transition:all .15s">${t.label}</button>`;
     }).join('');
   }
 
@@ -8426,7 +8465,7 @@ function _jugTotalBuild() {
         <tbody>${trs || `<tr><td colspan="${2 + activeCols.length}" style="text-align:center;color:var(--gris-texto);padding:32px">Sin resultados</td></tr>`}</tbody>
       </table>
     </div>
-    ${_jugTotalMobileCardsHtml(rows, sortCol, activeCols, JUG_COL, POS_COLOR, POS_BG, COL_META)}`;
+    ${_jugTotalMobileCardsHtml(rows, sortCol, activeCols, JUG_COL, POS_COLOR, POS_BG, COL_META, '_jugTotalSort')}`;
 }
 
 // ── Estadísticas Totales — Primera B ────────────────────────────────────────
@@ -8452,12 +8491,22 @@ const JUG_TABS_B = [
   { key:'vallas',        label:'Vallas',        cols:[JUG_COL_B.pj, JUG_COL_B.vallas] },
 ];
 
+// Métrica principal que cada pestaña ordena automáticamente al seleccionarla.
+const JUG_TAB_SORT_COL_B = {
+  general: JUG_COL_B.pj,
+  liderazgo: JUG_COL_B.capitan,
+  disciplina: JUG_COL_B.rojas,
+  participacion: JUG_COL_B.titular,
+  rendimiento: JUG_COL_B.promGmas,
+  vallas: JUG_COL_B.vallas,
+};
+
 const COL_META_B = {
   [JUG_COL_B.pj]:       { label:'PJ',       icon:'🎮', color:'#94a3b8' },
   [JUG_COL_B.goles]:    { label:'Goles',    icon:'⚽', color:'#22c55e' },
   [JUG_COL_B.asist]:    { label:'Asist',    icon:'🎯', color:'#3b82f6' },
   [JUG_COL_B.gmas]:     { label:'G+A',      icon:'🔥', color:'#a855f7' },
-  [JUG_COL_B.capitan]:  { label:'Cap.',     icon:'🧢', color:'#f97316' },
+  [JUG_COL_B.capitan]:  { label:'Cap.',     icon:'©️', color:'#f97316' },
   [JUG_COL_B.titulos]:  { label:'Títulos',  icon:'🏆', color:'#fbbf24' },
   [JUG_COL_B.ascensos]: { label:'Asc.',     icon:'⬆️', color:'#fbbf24' },
   [JUG_COL_B.rojas]:    { label:'Rojas',    icon:'🟥', color:'#ef4444' },
@@ -8556,6 +8605,8 @@ function _jugBSortCol(colIdx) {
 
 function _jugBSetTab(key) {
   _jugBTab = key;
+  const sortCol = JUG_TAB_SORT_COL_B[key];
+  if (sortCol !== undefined) _jugBSort = { col: sortCol, asc: false };
   _jugBBuild();
 }
 
@@ -8614,7 +8665,7 @@ function _jugBBuild() {
   if (tabRow) {
     tabRow.innerHTML = JUG_TABS_B.map(t => {
       const active = _jugBTab === t.key;
-      return `<button onclick="_jugBSetTab('${t.key}')" style="padding:5px 14px;border-radius:20px;border:1px solid ${active?'rgba(249,115,22,0.6)':'rgba(255,255,255,0.09)'};background:${active?'#f97316':'rgba(255,255,255,0.06)'};color:${active?'#fff':'#94a3b8'};font-size:0.78rem;font-weight:${active?'700':'400'};cursor:pointer;white-space:nowrap;transition:all .15s">${t.label}</button>`;
+      return `<button onclick="event.stopPropagation();_jugBSetTab('${t.key}')" style="padding:5px 14px;border-radius:20px;border:1px solid ${active?'rgba(249,115,22,0.6)':'rgba(255,255,255,0.09)'};background:${active?'#f97316':'rgba(255,255,255,0.06)'};color:${active?'#fff':'#94a3b8'};font-size:0.78rem;font-weight:${active?'700':'400'};cursor:pointer;white-space:nowrap;transition:all .15s">${t.label}</button>`;
     }).join('');
   }
 
@@ -8697,7 +8748,7 @@ function _jugBBuild() {
         <tbody>${trs || `<tr><td colspan="${2 + activeCols.length}" style="text-align:center;color:var(--gris-texto);padding:32px">Sin resultados</td></tr>`}</tbody>
       </table>
     </div>
-    ${_jugTotalMobileCardsHtml(rows, sortCol, activeCols, JUG_COL_B, POS_COLOR_B, POS_BG_B, COL_META_B)}`;
+    ${_jugTotalMobileCardsHtml(rows, sortCol, activeCols, JUG_COL_B, POS_COLOR_B, POS_BG_B, COL_META_B, '_jugBSort')}`;
 }
 
 // ── Debuts ───────────────────────────────────────────────────────────────────
@@ -11202,7 +11253,7 @@ async function loadLiveData() {
   };
   const COPAS_POR_POSICION_B = {
     1: 'Campeón, Ascenso y Supercopa', 2: 'Ascenso y Supercopa', 3: 'Promoción y Recopa', 4: 'Recopa',
-    13: 'Promoción', 14: 'Descenso', 15: 'Descenso',
+    14: 'Descenso', 15: 'Descenso',
   };
   function _fillCopasPorPosicion(tabla, rules) {
     (tabla || []).forEach(t => {
