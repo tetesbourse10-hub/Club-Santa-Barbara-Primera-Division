@@ -11347,7 +11347,15 @@ async function loadLiveData() {
   // winner — if the real fetch ever failed silently, the stale simulador
   // data would stick around with no indication anything was wrong. Now bSim
   // only fills in when the real source hasn't returned anything usable.
-  const bClTablaParsed = ok(bClTabla) ? parseTablaSheet(ok(bClTabla)) : [];
+  const bClTablaRaw = ok(bClTabla);
+  const bClTablaParsed = bClTablaRaw ? parseTablaSheet(bClTablaRaw) : [];
+  // Temporary diagnostic — remove once the "Banco Ciudad missing" report is
+  // confirmed fixed. Shows exactly what raw rows we got back for this range
+  // and what we parsed out of them, since the range/header logic looks
+  // correct on paper but the club keeps seeing rank 1 go missing.
+  console.log('[Tabla B diag] raw rows:', bClTablaRaw ? bClTablaRaw.length : 'FETCH FAILED',
+    bClTablaRaw ? bClTablaRaw.slice(0, 3) : '', '→ parsed', bClTablaParsed.length, 'teams:',
+    bClTablaParsed.map(t => t.pos + ' ' + t.equipo));
   if (bClTablaParsed.length >= 5) {
     DATA_B.tabla = bClTablaParsed;
   } else {
