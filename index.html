@@ -10338,6 +10338,26 @@ function parseMatches(rows) {
 // Expected columns: Pos | Equipo | Clasificación | PTS | PJ | PG | PE | PP | GF | GC | DF
 // Sheet L37:V53 layout: Clasificación | Equipo | Pos | PTS | PJ | PG | PE | PP | GF | GC | DF
 // Row 0 = header, rows 1+ = teams in position order
+// Finds the real header row within the first few fetched rows instead of
+// blindly trusting rows[0] — this class of range/off-by-one bug has hit
+// this club's sheets more than once (whatever is truly rank/row 1 goes
+// missing while every other row still parses fine, because the GViz range
+// fetch or CSV parsing occasionally drops/shifts the leading row so a real
+// DATA row ends up in position 0 and gets misread as the header instead).
+// `keywordGroups` is a list of keyword-lists; a row counts as the header
+// once at least 2 of those groups each match some cell — a real header
+// always has these, a data row (team/player name + numbers) never does.
+function _findHeaderRowIdx(rows, maxScan, keywordGroups) {
+  for (let i = 0; i < Math.min(maxScan, rows.length); i++) {
+    const h = rows[i].map(c => String(c ?? '').toLowerCase().trim());
+    let hits = 0;
+    for (const group of keywordGroups) {
+      if (h.some(c => group.some(k => c.includes(k)))) hits++;
+    }
+    if (hits >= 2) return i;
+  }
+  return 0; // no row looked like a header — fall back to the old assumption
+}
 function parseTablaSheet(rows) {
   if (!rows || rows.length < 2) return [];
   const num = v => { const n = parseInt(String(v??'').replace(/[^0-9\-]/g,'')); return isNaN(n) ? 0 : n; };
@@ -10349,7 +10369,8 @@ function parseTablaSheet(rows) {
   // layout (Copas|Equipo|Posicion|PTS|PJ|PG|PE|PP|GF|GC|DF) whenever a
   // column's header text isn't recognized, so already-working sheets keep
   // behaving exactly as before.
-  const h = rows[0].map(c => String(c ?? '').toLowerCase().trim());
+  const headerIdx = _findHeaderRowIdx(rows, 3, [['equipo', 'club'], ['pts', 'punto'], ['pj', 'jugado']]);
+  const h = rows[headerIdx].map(c => String(c ?? '').toLowerCase().trim());
   const idx = (...keys) => { for (const k of keys) { const i = h.findIndex(c => c.includes(k)); if (i >= 0) return i; } return -1; };
   const at = (fallback, ...keys) => { const i = idx(...keys); return i >= 0 ? i : fallback; };
   const cEquipo = at(1, 'equipo', 'club');
@@ -10364,7 +10385,7 @@ function parseTablaSheet(rows) {
   const cDf     = at(10, 'df', 'dif');
   const result = [];
   let rank = 1;
-  for (let i = 1; i < rows.length; i++) {
+  for (let i = headerIdx + 1; i < rows.length; i++) {
     const r = rows[i];
     const equipo = String(r[cEquipo]??'').trim();
     if (!equipo || /^(equipo|club|nombre)$/i.test(equipo)) continue;
@@ -10392,7 +10413,8 @@ function parseTablaSheet(rows) {
 function parseGlobalStats(rows) {
   if (!rows || rows.length < 2) return [];
   const num = v => { const n = parseFloat(String(v??'').replace(',','.')); return isNaN(n) ? 0 : n; };
-  const h = rows[0].map(c => String(c??'').toLowerCase().trim());
+  const headerIdx = _findHeaderRowIdx(rows, 3, [['jugador'], ['goles'], ['partidos jugados', 'titular']]);
+  const h = rows[headerIdx].map(c => String(c??'').toLowerCase().trim());
   const idx = k => h.findIndex(c => c.includes(k));
   const cols = {
     nombre:    0,
@@ -10409,7 +10431,7 @@ function parseGlobalStats(rows) {
     promGA:    h.findIndex(c => c.includes('prom') && (c.includes('g+a') || (c.includes('g') && c.includes('a') && !c.includes('gol') && !c.includes('asist')))),
   };
   const players = [];
-  for (let i = 1; i < rows.length; i++) {
+  for (let i = headerIdx + 1; i < rows.length; i++) {
     const row = rows[i];
     const nombre = String(row[cols.nombre] ?? '').trim();
     if (!nombre || /^(jugador|total|porcentaje|promedio)/i.test(nombre)) continue;
@@ -11095,10 +11117,16 @@ async function loadLiveData() {
     //    separate short "basic" table this time, so partidos is derived from
     //    the detailed Fecha a Fecha instead (see _deriveBasicFromDetailed). ──
     fetchGvizByGid(GS.B_HIST, 266944794, 'A19:J561'),
-    // Club-confirmed updated ranges (plantel grew, tabla row shifted down —
-    // this also covers the previously-missing team from the old L37:V54).
-    fetchGvizByGid(GS.B_HIST, 266944794, 'L3:X35'),
-    fetchGvizByGid(GS.B_HIST, 266944794, 'L39:V55'),
+    // Club-confirmed layout: Plantel header at L3, Tabla header at L39
+    // (screenshot-verified — Banco Ciudad's own "Equipo" cell is exactly
+    // M40). Fetched with one extra row of buffer above each header (L2/L38)
+    // since the equivalent range with no buffer has repeatedly come back
+    // missing exactly its first data row (rank 1) — parseTablaSheet/
+    // parseGlobalStats now also locate the header dynamically within the
+    // first few fetched rows instead of assuming it's always row 0, so the
+    // extra buffer row is harmless either way.
+    fetchGvizByGid(GS.B_HIST, 266944794, 'L2:X35'),
+    fetchGvizByGid(GS.B_HIST, 266944794, 'L38:V55'),
     // ── Clausura AIFA A 2026 (live season, its own new tab — fetched by gid).
     //    Club-confirmed ranges; no separate short "basic" table, so partidos
     //    is derived from the detailed Fecha a Fecha (_deriveBasicFromDetailed),
