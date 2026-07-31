@@ -1322,16 +1322,69 @@
     .ap-tab-btn:hover { color:#94a3b8; }
     .ap-tab-btn.active { color:var(--dorado); border-bottom-color:var(--dorado); }
     .ap-tab-btn .ap-tab-icon { font-size:1.1rem; }
+    @media (max-width:768px) {
+      .ap-tab-nav {
+        overflow-x:auto; flex-wrap:nowrap; position:relative;
+        scrollbar-width:none; -ms-overflow-style:none;
+      }
+      .ap-tab-nav::-webkit-scrollbar { display:none; }
+      .ap-tab-btn { flex-shrink:0; }
+      .ap-tab-nav.can-scroll::after {
+        content:'›'; position:sticky; right:0; top:0; bottom:0; margin-left:auto;
+        width:32px; display:flex; align-items:center; justify-content:flex-end;
+        padding-right:4px; font-size:1.1rem; font-weight:900; color:var(--dorado);
+        background:linear-gradient(to right, rgba(11,14,20,0) 0%, var(--azul) 65%);
+        pointer-events:none;
+      }
+    }
     .ap-tab-panel { display:none; }
     .ap-tab-panel.active { display:block; animation: apFadeIn .2s ease; }
     @keyframes apFadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
 
+    /* ── Shared mobile "row card" component ──
+       Reused by Centro de Datos, Plantel (Torneos Actuales) and Historial vs
+       Clubes so that mobile only ever needs one card visual language instead
+       of three ad-hoc ones. Desktop tables are untouched; these cards render
+       only under the ≤768px breakpoint via the .mrow-cards wrapper. */
+    .mrow-cards { display:none; }
+    @media (max-width:768px) {
+      .mrow-cards { display:flex; flex-direction:column; gap:10px; }
+    }
+    .mrow-card {
+      background:#141d2e; border:1px solid rgba(255,255,255,0.08); border-radius:10px;
+      padding:12px 14px;
+    }
+    .mrow-card.clickable { cursor:pointer; }
+    .mrow-top { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+    .mrow-top-main { flex:1; min-width:0; }
+    .mrow-eyebrow { font-size:0.68rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:#64748b; margin-bottom:2px; }
+    .mrow-title-row { display:flex; align-items:center; gap:6px; }
+    .mrow-title { font-size:0.92rem; font-weight:800; color:#e2e8f0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .mrow-chevron { color:#475569; font-size:0.8rem; flex-shrink:0; }
+    .mrow-meta { font-size:0.76rem; font-weight:700; margin-top:2px; }
+    .mrow-highlight { text-align:right; flex-shrink:0; }
+    .mrow-highlight-val { font-size:1rem; font-weight:900; }
+    .mrow-highlight-label { font-size:0.62rem; color:#64748b; text-transform:uppercase; letter-spacing:.04em; margin-top:1px; }
+    .mrow-badge { display:inline-block; padding:3px 8px; border-radius:6px; font-size:0.68rem; font-weight:800; }
+    .mrow-secondary { display:flex; flex-wrap:wrap; gap:10px 18px; margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.06); }
+    .mrow-sec-item { display:flex; flex-direction:column; }
+    .mrow-sec-val { font-size:0.82rem; font-weight:800; color:#e2e8f0; }
+    .mrow-sec-label { font-size:0.6rem; color:#64748b; text-transform:uppercase; letter-spacing:.04em; }
+    .mrow-expand-btn {
+      margin-top:10px; width:100%; padding:8px; border-radius:8px; border:1px solid rgba(255,255,255,0.1);
+      background:rgba(255,255,255,0.03); color:#94a3b8; font-size:0.76rem; font-weight:700; cursor:pointer; font-family:inherit;
+    }
+    .mrow-expand-content { margin-top:8px; font-size:0.78rem; color:#94a3b8; line-height:1.4; display:none; white-space:pre-wrap; }
+    .mrow-expand-content.open { display:block; }
+    .mrow-empty { color:#475569; padding:32px 16px; text-align:center; font-size:0.85rem; }
+
     /* ── Centro de Datos (Fixture) ── */
     .cd-empty { color:#475569; padding:48px 20px; text-align:center; font-size:0.9rem; }
-    /* overflow-x:auto (not "hidden") — on mobile this table is wider than the
-       screen; without a scroll container the extra columns were silently
-       clipped instead of reachable by swiping. */
+    /* Desktop keeps the wide table with horizontal scroll as a fallback;
+       ≤768px hides it in favor of the .mrow-cards card view (see shared
+       "row card" component above) so columns are never silently clipped. */
     .cd-wrap { border-radius:14px; border:1px solid rgba(255,255,255,0.08); overflow-x:auto; background:rgba(255,255,255,0.02); }
+    @media (max-width:768px) { .cd-wrap { display:none; } }
     .cd-table { width:100%; border-collapse:collapse; font-size:0.85rem; min-width:640px; }
     .cd-table thead tr { background:rgba(255,255,255,0.04); }
     .cd-table th { text-align:left; padding:12px 14px; font-size:0.68rem; font-weight:800; text-transform:uppercase;
@@ -1382,6 +1435,11 @@
     .ap-plantel-kpi-name { font-size:0.8rem; font-weight:700; color:#e2e8f0; }
     .ap-plantel-kpi-label { font-size:0.7rem; color:#94a3b8; font-weight:500; }
     .ap-plantel-table-wrap { overflow-x:auto; border-radius:14px; border:1px solid #1e2a3a; }
+    /* Generic "hide this table on mobile in favor of .mrow-cards" opt-in —
+       only elements that explicitly add this class are affected, so the
+       other 4 Plantel-tab copies elsewhere in the site (which don't add it)
+       keep rendering their table on mobile untouched. */
+    @media (max-width:768px) { .mrow-desktop-only { display:none; } }
     .ap-plantel-table { width:100%; border-collapse:collapse; font-size:0.78rem; }
     .ap-plantel-table thead th {
       background:#0d1219; color:#94a3b8; font-size:0.68rem; font-weight:700;
@@ -5004,6 +5062,79 @@ function _cdGoToFecha(tabFn, fechaFn, fecha) {
 // "Fecha a Fecha" tab uses (default apSwitchTab/selectFecha) — only numeric-
 // fecha rows (real matchdays) become clickable, since copa rows don't have
 // a slot in the Fecha a Fecha nav to jump to.
+// Mobile-only card view for Plantel (Torneos Actuales) — desktop keeps its
+// sortable `.ap-plantel-table` (hidden ≤768px via the `.mrow-desktop-only`
+// class added just on that wrapper, not shared CSS, so the other Plantel tab
+// copies elsewhere in the site are untouched). Position badge uses the same
+// POS_COLOR/POS_COLOR_B maps as El Nido/Estadísticas Totales for consistency.
+function _apPlantelMobileCardsHtml(rows, posColorMap) {
+  const cardsHtml = (rows || []).map(({ j, g, a, tit, cit, pj, pos }) => {
+    const pc = posColorMap[String(pos || '').toUpperCase()] || '#94a3b8';
+    return `
+      <div class="mrow-card">
+        <div class="mrow-top">
+          <div class="mrow-top-main">
+            ${pos ? `<span class="mrow-badge" style="color:${pc};background:${pc}1a;border:1px solid ${pc}44;margin-bottom:4px">${pos}</span>` : ''}
+            <div class="mrow-title-row"><div class="mrow-title">${j.nombre}</div></div>
+          </div>
+          <div class="mrow-highlight">
+            <div class="mrow-highlight-val" style="color:var(--dorado)">${pj}</div>
+            <div class="mrow-highlight-label">PJ</div>
+          </div>
+        </div>
+        <div class="mrow-secondary">
+          <div class="mrow-sec-item"><span class="mrow-sec-val">${tit}</span><span class="mrow-sec-label">Titular</span></div>
+          <div class="mrow-sec-item"><span class="mrow-sec-val" style="color:#22c55e">${g}</span><span class="mrow-sec-label">Goles</span></div>
+          <div class="mrow-sec-item"><span class="mrow-sec-val" style="color:#38bdf8">${a}</span><span class="mrow-sec-label">Asist.</span></div>
+          <div class="mrow-sec-item"><span class="mrow-sec-val">${cit}</span><span class="mrow-sec-label">Citado</span></div>
+        </div>
+      </div>`;
+  }).join('');
+  return `<div class="mrow-cards">${cardsHtml || '<div class="mrow-empty">Sin datos de plantel.</div>'}</div>`;
+}
+
+// Mobile-only card view for Centro de Datos (desktop keeps the `.cd-wrap`
+// table; `.cd-wrap` is hidden ≤768px via CSS and this replaces it) — same
+// `rows`/isCopaRow/clickable logic as the desktop <tr> builder above, just a
+// different shape, so both stay in sync from the same source data.
+function _cdMobileCardsHtml(rows, opts) {
+  const tabFn = opts.tabFn || 'apSwitchTab';
+  const fechaFn = opts.fechaFn || 'selectFecha';
+  const cardsHtml = rows.map(m => {
+    const isCopaRow = opts.isCopa || !/^\d+$/.test(String(m.fecha ?? '').trim());
+    const clickable = opts.clickable !== false && !isCopaRow;
+    const L = String(m.local || '').toUpperCase();
+    const condColor = L.includes('LOCAL') ? '#22c55e' : L.includes('VISIT') ? '#22d3ee' : '#64748b';
+    const condLabel = _cdCondicion(m.local);
+    const rachaChip = m._racha ? `<span class="cd-racha-chip">${m._racha}</span>` : '';
+    const obsText = m.obs ? String(m.obs) : '';
+    const longObs = obsText.length > 90;
+    const clickAttr = clickable ? ` onclick="_cdGoToFecha('${tabFn}','${fechaFn}',${parseInt(m.fecha)})"` : '';
+    return `
+      <div class="mrow-card${clickable ? ' clickable' : ''}"${clickAttr}>
+        <div class="mrow-top">
+          <div class="mrow-top-main">
+            <div class="mrow-eyebrow">${_cdFechaLabel(m.fecha, isCopaRow)}</div>
+            <div class="mrow-title-row"><div class="mrow-title">${m.rival}</div></div>
+            <div class="mrow-meta" style="color:${condColor}">${condLabel}</div>
+          </div>
+          <div class="mrow-highlight">${_cdResultadoBadge(m)}</div>
+        </div>
+        <div class="mrow-secondary">
+          <div class="mrow-sec-item"><span class="mrow-sec-val">${_cdParciales(m.parciales)}</span><span class="mrow-sec-label">Parciales</span></div>
+          <div class="mrow-sec-item"><span class="mrow-sec-val">${_cdPosicion(m, isCopaRow)}</span><span class="mrow-sec-label">Posición / Instancia</span></div>
+        </div>
+        ${rachaChip ? `<div style="margin-top:8px">${rachaChip}</div>` : ''}
+        ${obsText ? (longObs
+          ? `<button class="mrow-expand-btn" onclick="event.stopPropagation();this.nextElementSibling.classList.toggle('open');this.textContent=this.nextElementSibling.classList.contains('open')?'Ocultar crónica ▲':'Ver crónica completa ▼'">Ver crónica completa ▼</button>
+             <div class="mrow-expand-content">${obsText}</div>`
+          : `<div class="mrow-expand-content open" style="margin-top:8px">${obsText}</div>`)
+          : ''}
+      </div>`;
+  }).join('');
+  return `<div class="mrow-cards">${cardsHtml || '<div class="mrow-empty">📭 Sin datos cargados para este torneo todavía.</div>'}</div>`;
+}
+
 function buildCentroDatosHtml(matches, opts) {
   opts = opts || {};
   const tabFn = opts.tabFn || 'apSwitchTab';
@@ -5049,7 +5180,7 @@ function buildCentroDatosHtml(matches, opts) {
       </tr></thead>
       <tbody>${trs}</tbody>
     </table>
-  </div>`;
+  </div>${_cdMobileCardsHtml(rows, opts)}`;
 }
 
 // ──────────────────────────────────────────────
@@ -5198,12 +5329,12 @@ function renderTorneoApertura() {
       </th>`
     ).join('')}</tr></thead>`;
 
-    const tableHtml = `<div class="ap-plantel-table-wrap">
+    const tableHtml = `<div class="ap-plantel-table-wrap mrow-desktop-only">
       <table class="ap-plantel-table" id="${tableId}">
         ${thead}
         <tbody>${renderRows(defaultSorted)}</tbody>
       </table>
-    </div>`;
+    </div>${_apPlantelMobileCardsHtml(defaultSorted, isA ? POS_COLOR : POS_COLOR_B)}`;
 
     // Sort state: null means default positional order
     window._apPlantelSortState = { col: null, asc: false };
@@ -7167,7 +7298,34 @@ function renderHistorial() {
         <td>${r.gc}</td>
         <td class="${balClass(r.dif)}">${sign(r.dif)}</td>
       </tr>`).join('');
-    return `<div class="hist-table-wrap"><table class="hist-table"><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody></table></div>`;
+    return `<div class="hist-table-wrap mrow-desktop-only"><table class="hist-table"><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody></table></div>${buildMobileCards(rows)}`;
+  }
+
+  // Mobile card view: club name + chevron on top (preserves the drilldown
+  // click), goal difference (Dif.) highlighted on the right since it's the
+  // single most useful at-a-glance number, secondary line with PJ/V/E/D/GF·GC.
+  function buildMobileCards(rows) {
+    if (!rows.length) return '';
+    const cardsHtml = rows.map(r => `
+      <div class="mrow-card clickable" onclick="histDrilldown('${r.rival.replace(/'/g,"\\'")}')">
+        <div class="mrow-top">
+          <div class="mrow-top-main">
+            <div class="mrow-title-row"><div class="mrow-title">${r.rival}</div><span class="mrow-chevron">›</span></div>
+          </div>
+          <div class="mrow-highlight">
+            <div class="mrow-highlight-val ${balClass(r.dif)}">${sign(r.dif)}</div>
+            <div class="mrow-highlight-label">Dif.</div>
+          </div>
+        </div>
+        <div class="mrow-secondary">
+          <div class="mrow-sec-item"><span class="mrow-sec-val">${r.pj}</span><span class="mrow-sec-label">PJ</span></div>
+          <div class="mrow-sec-item"><span class="mrow-sec-val" style="color:#22c55e">${r.pg}</span><span class="mrow-sec-label">V</span></div>
+          <div class="mrow-sec-item"><span class="mrow-sec-val" style="color:#eab308">${r.pe}</span><span class="mrow-sec-label">E</span></div>
+          <div class="mrow-sec-item"><span class="mrow-sec-val" style="color:#ef4444">${r.pp}</span><span class="mrow-sec-label">D</span></div>
+          <div class="mrow-sec-item"><span class="mrow-sec-val">${r.gf}·${r.gc}</span><span class="mrow-sec-label">GF·GC</span></div>
+        </div>
+      </div>`).join('');
+    return `<div class="mrow-cards">${cardsHtml}</div>`;
   }
 
   function getSorted(q) {
@@ -11729,6 +11887,31 @@ async function loadLiveData() {
     if (c) c.innerHTML = renderTable();
   };
 })();
+
+// ── Sub-tabs (Centro de Datos/Plantel/Tabla/Fecha a Fecha/Detalladas) mobile
+// scroll-fade: shows a right-edge gradient + "›" hint while there's more tab
+// content to scroll to, hides it once scrolled to the end. Delegated so it
+// works across all 6+ tournament tab-nav instances without touching each one.
+function _updateTabNavFade(nav) {
+  if (!nav) return;
+  const overflowing = nav.scrollWidth > nav.clientWidth + 2;
+  const atEnd = nav.scrollLeft + nav.clientWidth >= nav.scrollWidth - 4;
+  nav.classList.toggle('can-scroll', overflowing && !atEnd);
+}
+function _initTabNavFades() {
+  document.querySelectorAll('.ap-tab-nav').forEach(_updateTabNavFade);
+}
+document.addEventListener('scroll', e => {
+  if (e.target && e.target.classList && e.target.classList.contains('ap-tab-nav')) _updateTabNavFade(e.target);
+}, true);
+window.addEventListener('resize', _initTabNavFades);
+new MutationObserver(muts => {
+  let found = false;
+  muts.forEach(m => m.addedNodes.forEach(n => {
+    if (n.nodeType === 1 && (n.classList?.contains('ap-tab-nav') || n.querySelector?.('.ap-tab-nav'))) found = true;
+  }));
+  if (found) _initTabNavFades();
+}).observe(document.body, { childList: true, subtree: true });
 
 _swrHydrate(); // instant-render last known good data while the fresh fetch below is in flight
 loadLiveData();
