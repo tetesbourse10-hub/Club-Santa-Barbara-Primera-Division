@@ -169,7 +169,10 @@
       align-items: center;
       justify-content: space-between;
       gap: 16px;
+      transition: border-color .15s, background .15s;
     }
+    .next-match-box.clickable { cursor: pointer; }
+    .next-match-box.clickable:hover { background: #182338; }
     .nmb-box-a { border-color: rgba(245,158,11,0.35); }
     .nmb-box-a .nmb-label, .nmb-box-a .nmb-rival { color: var(--dorado); }
     .nmb-box-b { border-color: rgba(59,130,246,0.35); }
@@ -1245,6 +1248,13 @@
     .ap-fecha-btn.active { background:var(--azul-claro); border-color:var(--azul-claro); color:#fff; }
     .ap-fecha-btn.played { border-color:rgba(34,197,94,0.35); }
     .ap-fecha-btn.pending { color:var(--dorado); border-color:rgba(245,158,11,0.25); }
+    /* Small rival tag under each Fecha button — lets you spot the match you
+       want without clicking through each one first. */
+    .ap-fecha-btn-wrap { display:flex; flex-direction:column; align-items:center; gap:3px; flex-shrink:0; }
+    .ap-fecha-rival {
+      font-size:0.6rem; color:var(--gris-texto); max-width:76px;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:center;
+    }
 
     /* ── Torneos Antiguos — horizontal year nav ── */
     .hist-year-nav { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:24px; padding-bottom:16px; border-bottom:1px solid rgba(255,255,255,0.06); }
@@ -4761,7 +4771,13 @@ function renderRecopa() {
 
   // ── Tab 2: Fase de Eliminación (bracket) ───────────────────────────────
   function rcTeam(name, score, isWinner, isCsb, isPending) {
-    const nameClass = isPending
+    // A team name is only shown greyed-out/italic when it's genuinely
+    // undetermined (waiting on a previous round's winner) — a match with
+    // both qualifiers already known but simply not yet played (isPending)
+    // still shows both names in normal/highlighted color, since the cruce
+    // itself is already defined.
+    const unknown = !name || /^tbd$|ganador|perdedor|a definir|por definir/i.test(name);
+    const nameClass = unknown
       ? 'tbd'
       : [isCsb ? 'csb-name' : '', isWinner ? 'winner' : ''].filter(Boolean).join(' ');
     const scoreClass = isPending ? 'tbd' : isWinner ? 'win' : score !== null ? 'loss' : 'tbd';
@@ -5485,9 +5501,11 @@ function renderTorneoApertura() {
     </div>` : `<div class="ap-standings-card"><div class="ap-card-title">📊 Tabla de Posiciones</div><div style="color:var(--gris-texto);font-size:0.82rem">Cargando…</div></div>`;
 
   // ── Tab 3: Fecha a Fecha ────────────────────────────────────────────────
-  const allFechas = partidos.map(m => ({ n: parseInt(m.fecha), played: m.resultado !== null })).sort((a,b) => a.n - b.n);
-  const fechaBtns = allFechas.map(f =>
-    `<button class="ap-fecha-btn ${f.played ? 'played' : 'pending'}" data-fecha="${f.n}" onclick="selectFecha(${f.n})">Fecha ${f.n}</button>`
+  const allFechas = partidos.map(m => ({ n: parseInt(m.fecha), played: m.resultado !== null, rival: m.rival })).sort((a,b) => a.n - b.n);
+  const fechaBtns = allFechas.map(f => `<div class="ap-fecha-btn-wrap">
+    <button class="ap-fecha-btn ${f.played ? 'played' : 'pending'}" data-fecha="${f.n}" onclick="selectFecha(${f.n})">Fecha ${f.n}</button>
+    <div class="ap-fecha-rival">${f.rival ? 'vs ' + f.rival : ''}</div>
+  </div>`
   ).join('');
 
   document.getElementById('torneo-apertura-content').innerHTML = `
@@ -6902,13 +6920,14 @@ function renderResumen() {
     const end = Math.min(tabla.length, idx + 5);
     const slice = tabla.slice(start, end);
     const rows = slice.map(t => `<tr class="${t.csb ? 'csb-row' : ''}">
-      <td>${t.pos}</td><td>${t.csb ? '⭐ ' : ''}${t.equipo}</td><td>${t.pts}</td><td>${t.pj}</td>
-      <td style="color:${t.df > 0 ? '#22c55e' : t.df < 0 ? '#ef4444' : 'inherit'}">${t.df > 0 ? '+' : ''}${t.df ?? '–'}</td>
+      <td>${t.pos}</td><td>${t.csb ? '⭐ ' : ''}${t.equipo}</td>
       <td>${miniCopaBadge(t.copas)}</td>
+      <td>${t.pts}</td><td>${t.pj}</td>
+      <td style="color:${t.df > 0 ? '#22c55e' : t.df < 0 ? '#ef4444' : 'inherit'}">${t.df > 0 ? '+' : ''}${t.df ?? '–'}</td>
     </tr>`).join('');
     return `${badge}<div class="mini-tabla-wrap">
       <table class="mini-tabla">
-        <thead><tr><th>#</th><th>Equipo</th><th>Pts</th><th>PJ</th><th>DF</th><th>Clasif.</th></tr></thead>
+        <thead><tr><th>#</th><th>Equipo</th><th>Clasif.</th><th>Pts</th><th>PJ</th><th>DIF</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>`;
@@ -10755,7 +10774,11 @@ function _parseFechaHora(diaStr, horaStr) {
 function _countdownParts(target) {
   const diffMs = target.getTime() - Date.now();
   if (diffMs <= 0) return null;
-  return { days: Math.floor(diffMs / 86400000), hours: Math.floor((diffMs % 86400000) / 3600000) };
+  return {
+    days: Math.floor(diffMs / 86400000),
+    hours: Math.floor((diffMs % 86400000) / 3600000),
+    minutes: Math.floor((diffMs % 3600000) / 60000),
+  };
 }
 // Next PENDING league match for a team's live season — same "next"/"detNext"
 // pattern already used by the Torneos Actuales "Próximo Partido" card,
@@ -10766,7 +10789,7 @@ function _teamNextMatch(d) {
   const next = pending[0];
   if (!next) return null;
   const det = (d.apertura || []).find(m => String(m.fecha) === String(next.fecha));
-  return { rival: next.rival, dia: det?.dia || '', hora: det?.hora || '', lugar: det?.lugar || '',
+  return { rival: next.rival, fecha: next.fecha, dia: det?.dia || '', hora: det?.hora || '', lugar: det?.lugar || '',
     local: next.local || '', dt: det ? _parseFechaHora(det.dia, det.hora) : null };
 }
 const DIAS_SEMANA = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
@@ -10822,29 +10845,36 @@ function _paintLandingSkeletons() {
     if (footEl && !footEl.innerHTML) footEl.innerHTML = bar('120px', '12px');
   });
 }
-function _renderNextMatchBox(elId, boxClass, label, m) {
+function _renderNextMatchBox(elId, boxClass, label, m, navKey) {
   const el = document.getElementById(elId);
   if (!el) return;
   if (!m) { _softSetHtml(el, ''); return; }
   const meta = _fmtProximoMeta(m);
   const cd = m.dt ? _countdownParts(m.dt) : null;
   const metaLine = [meta.weekday, meta.horaTxt, meta.diaMes].filter(Boolean).join(' · ');
+  // <1 día restante: se omite el "0d" — "18h 45m" en vez de "0d 18h".
+  const cdVal = cd
+    ? (cd.days > 0
+        ? `${cd.days}<span class="nmb-cd-unit">d</span> ${cd.hours}<span class="nmb-cd-unit">h</span>`
+        : `${cd.hours}<span class="nmb-cd-unit">h</span> ${cd.minutes}<span class="nmb-cd-unit">m</span>`)
+    : '';
+  const clickAttr = m.fecha != null ? ` onclick="goToMatchFecha('${navKey}', ${parseInt(m.fecha)})"` : '';
   _softSetHtml(el, `
-    <div class="next-match-box ${boxClass}">
+    <div class="next-match-box ${boxClass}${clickAttr ? ' clickable' : ''}"${clickAttr}>
       <div class="nmb-main">
         <div class="nmb-label">Próximo Partido · ${label}</div>
         <div class="nmb-rival">vs ${m.rival}</div>
         <div class="nmb-meta">📅 ${metaLine || 'Fecha a confirmar'}${meta.localTxt ? ` · <span class="nmb-local">${meta.localTxt}</span>` : ''}${m.lugar ? ' · 📍 ' + m.lugar : ''}</div>
       </div>
       ${cd ? `<div class="nmb-countdown">
-        <div class="nmb-cd-val">${cd.days}<span class="nmb-cd-unit">d</span> ${cd.hours}<span class="nmb-cd-unit">h</span></div>
+        <div class="nmb-cd-val">${cdVal}</div>
         <div class="nmb-cd-label">restantes</div>
       </div>` : ''}
     </div>`);
 }
 function renderLandingNextMatch() {
-  _renderNextMatchBox('landing-next-match-a', 'nmb-box-a', 'Primera A', _teamNextMatch(DATA_A));
-  _renderNextMatchBox('landing-next-match-b', 'nmb-box-b', 'Primera B', _teamNextMatch(DATA_B));
+  _renderNextMatchBox('landing-next-match-a', 'nmb-box-a', 'Primera A', _teamNextMatch(DATA_A), 'a');
+  _renderNextMatchBox('landing-next-match-b', 'nmb-box-b', 'Primera B', _teamNextMatch(DATA_B), 'b');
 }
 function _posBadgeClass(pos, total) {
   if (!pos || !total) return 'lc-badge-amber';
