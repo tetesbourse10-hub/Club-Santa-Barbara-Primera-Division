@@ -478,8 +478,11 @@
        with long match lists instead of scrolling past/desyncing from them.
        align-self is explicit here (not just inherited from .hd-layout's
        align-items:start) so this still holds even if the sidebar is ever
-       reused outside that grid. */
+       reused outside that grid. Desktop-only: in the single-column mobile
+       layout there's no side-by-side scroll to sync, and sticky positioning
+       there just made the card overlap the match list below it. */
     .hd-sidebar { position: sticky; top: 1.5rem; align-self: flex-start; }
+    @media (max-width: 800px) { .hd-sidebar { position: static; top: auto; } }
     .hd-profile-card {
       background: linear-gradient(160deg,#1a2236,#131825);
       border: 1px solid #1e2a3a; border-radius: 18px; overflow: hidden;
@@ -624,7 +627,7 @@
       .nido-card {
         display: flex; gap: 12px; align-items: flex-start;
         background: #141d2e; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px;
-        padding: 12px 14px;
+        padding: 12px 14px; cursor: pointer;
       }
       .nido-card-rank { font-size: 1.3rem; font-weight: 900; flex-shrink: 0; width: 24px; text-align: center; }
       .nido-card-body { flex: 1; min-width: 0; }
@@ -11925,7 +11928,7 @@ async function loadLiveData() {
           <span class="nido-card-stat-label">${NIDO_COL_LABELS[k]}</span>
         </div>`).join('');
       return `
-        <div class="nido-card">
+        <div class="nido-card" onclick="goToPlayer('${p.nombre.replace(/'/g, "\\'")}')">
           <div class="nido-card-rank" style="color:${rankColor}">${i + 1}</div>
           <div class="nido-card-body">
             <div class="nido-card-top">
