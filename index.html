@@ -4258,6 +4258,24 @@ function _aggregatePlayerStats(matches) {
   return arr;
 }
 
+// _aggregatePlayerStats only harvests players who appear in at least one
+// match's own squad list — a player already on the roster sheet ("Estadís-
+// ticas Globales del Torneo") who simply hasn't featured in any parsed
+// match yet (new signing, unused substitute) would otherwise vanish from
+// Plantel entirely despite being right there in the roster. This merges
+// the two so every roster player always shows, with match-aggregated stats
+// layered on top wherever they exist.
+function _mergeRosterWithAggregated(roster, aggregated) {
+  const byKey = {};
+  (roster || []).forEach(r => { if (r.nombre) byKey[normName(r.nombre)] = { ...r }; });
+  (aggregated || []).forEach(a => {
+    if (!a.nombre) return;
+    const key = normName(a.nombre);
+    byKey[key] = byKey[key] ? { ...byKey[key], ...a } : { ...a };
+  });
+  return Object.values(byKey);
+}
+
 // Same per-player aggregation as above, but also breaks each player's totals
 // down by rival — powers the "Estadísticas Detalladas" drilldown (goles/asist/
 // presencias against each specific opponent).
@@ -5266,7 +5284,9 @@ function renderTorneoApertura() {
 
   // ── Tab 1: Plantel ──────────────────────────────────────────────────────
   function buildPlantelTab() {
-    const jugs = ligaDetailMatches.length ? _aggregatePlayerStats(ligaDetailMatches) : (d.jugadores || []);
+    const jugs = ligaDetailMatches.length
+      ? _mergeRosterWithAggregated(d.jugadores, _aggregatePlayerStats(ligaDetailMatches))
+      : (d.jugadores || []);
     if (!jugs.length) {
       return `<div style="color:#475569;padding:40px;text-align:center">Cargando plantel…</div>`;
     }
@@ -11320,9 +11340,21 @@ async function loadLiveData() {
     if (t.length >= 5) DATA_B_APERTURA2026.tabla = t;
   }
 
-  // PRIMERA B — Clausura AIFA B 2026 (live season, own new sheet tab → DATA_B)
-  let bClTbl = ok(bSim) ? parseSimStandings(ok(bSim), 5) : [];
-  if (bClTbl.length >= 5) DATA_B.tabla = bClTbl;
+  // PRIMERA B — Clausura AIFA B 2026 (live season, own new sheet tab → DATA_B).
+  // bClTabla is the real standings source (the club's own dedicated gid);
+  // bSim is a legacy/simulator sheet from before that tab existed. Both used
+  // to be able to write DATA_B.tabla with only assignment order deciding the
+  // winner — if the real fetch ever failed silently, the stale simulador
+  // data would stick around with no indication anything was wrong. Now bSim
+  // only fills in when the real source hasn't returned anything usable.
+  const bClTablaParsed = ok(bClTabla) ? parseTablaSheet(ok(bClTabla)) : [];
+  if (bClTablaParsed.length >= 5) {
+    DATA_B.tabla = bClTablaParsed;
+  } else {
+    console.warn(`Tabla B (Clausura 2026): fetch ${ok(bClTabla) ? 'succeeded but parsed ' + bClTablaParsed.length + ' rows' : 'FAILED'} — falling back to B_SIM`);
+    const bSimTbl = ok(bSim) ? parseSimStandings(ok(bSim), 5) : [];
+    if (bSimTbl.length >= 5) DATA_B.tabla = bSimTbl;
+  }
   _fillCopasPorPosicion(DATA_B.tabla, COPAS_POR_POSICION_B);
 
   if (ok(bClDet)) try {
@@ -11339,11 +11371,6 @@ async function loadLiveData() {
     const p = parseGlobalStats(ok(bClGlobal));
     if (p.length > 0) DATA_B.jugadores = p;
   }
-  if (ok(bClTabla)) {
-    const t = parseTablaSheet(ok(bClTabla));
-    if (t.length >= 5) DATA_B.tabla = t;
-  }
-  _fillCopasPorPosicion(DATA_B.tabla, COPAS_POR_POSICION_B);
 
   // Estadisticas Historicas — only historico (club all-time record) and B's
   // graficos (season-by-season history) are used; the sheet's own
