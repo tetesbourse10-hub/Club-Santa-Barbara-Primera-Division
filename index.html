@@ -10827,19 +10827,18 @@ async function loadLiveData() {
     //    separate short "basic" table this time, so partidos is derived from
     //    the detailed Fecha a Fecha instead (see _deriveBasicFromDetailed). ──
     fetchGvizByGid(GS.B_HIST, 266944794, 'A19:J561'),
-    fetchGvizByGid(GS.B_HIST, 266944794, 'L3:X33'),
-    // One row of headroom past the club-confirmed L37:V53 — a team was
-    // reported missing from this live standings table; parseTablaSheet
-    // already skips blank/header-like rows, so a wider range is harmless if
-    // this season really only has the same 16 teams as before.
-    fetchGvizByGid(GS.B_HIST, 266944794, 'L37:V54'),
+    // Club-confirmed updated ranges (plantel grew, tabla row shifted down —
+    // this also covers the previously-missing team from the old L37:V54).
+    fetchGvizByGid(GS.B_HIST, 266944794, 'L3:X35'),
+    fetchGvizByGid(GS.B_HIST, 266944794, 'L39:V55'),
     // ── Clausura AIFA A 2026 (live season, its own new tab — fetched by gid).
     //    Club-confirmed ranges; no separate short "basic" table, so partidos
     //    is derived from the detailed Fecha a Fecha (_deriveBasicFromDetailed),
     //    same pattern as Clausura AIFA B 2026 above. ──
     fetchGvizByGid(GS.A_MAIN, 618783090, 'A22:I532'),
-    fetchGvizByGid(GS.A_MAIN, 618783090, 'L3:X29'),
-    fetchGvizByGid(GS.A_MAIN, 618783090, 'L33:V49'),
+    // Club-confirmed updated ranges (plantel grew, tabla row shifted down).
+    fetchGvizByGid(GS.A_MAIN, 618783090, 'L3:X31'),
+    fetchGvizByGid(GS.A_MAIN, 618783090, 'L35:V51'),
     // Short "resumen"/Centro de Datos table (club-confirmed A1:J18) — carries
     // Observaciones/Parciales/Posición/Local missing from the detailed Fecha
     // a Fecha block above, same enrichment pattern as Apertura AIFA A 2026.
