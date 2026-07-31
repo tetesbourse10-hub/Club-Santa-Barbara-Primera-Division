@@ -10875,7 +10875,7 @@ async function loadLiveData() {
   // loaded for that row.
   const COPAS_POR_POSICION_A = {
     1: 'Campeón y Supercopa', 2: 'Supercopa', 3: 'Recopa', 4: 'Recopa',
-    5: 'Copa de Honor', 6: 'Copa de Honor', 13: 'Promoción', 14: 'Descenso', 15: 'Descenso',
+    5: 'Copa de Honor', 6: 'Copa de Honor', 14: 'Descenso', 15: 'Descenso',
   };
   const COPAS_POR_POSICION_B = {
     1: 'Campeón, Ascenso y Supercopa', 2: 'Ascenso y Supercopa', 3: 'Promoción y Recopa', 4: 'Recopa',
@@ -10947,7 +10947,14 @@ async function loadLiveData() {
   // PRIMERA A — Clausura AIFA A 2026 (live season, own new sheet tab → DATA_A)
   if (ok(aClDet)) try {
     const p   = parsePlayers(ok(aClDet));
-    const det = _ligaOnlyMatches(parseDetailedMatches(ok(aClDet), true));
+    // Single round-robin with the 15 teams this cycle (same format as
+    // Apertura AIFA A 2026's 16 teams topping out at Fecha 15 — n-1 rounds)
+    // means Fecha 14 is the real last matchday; a stray "Fecha 17" row
+    // showed up in Centro de Datos/Fecha a Fecha, almost certainly a leaked
+    // copa fixture parsed as if it were a league round. Capped the same way
+    // HISTORICO_GENERIC seasons already cap their own leaks (maxFecha/capFecha).
+    const det = _ligaOnlyMatches(parseDetailedMatches(ok(aClDet), true))
+      .filter(m => parseInt(m.fecha) <= 14);
     if (p.length > 0)   DATA_A.jugadores = p;
     if (det.length > 0) {
       DATA_A.apertura  = det;
