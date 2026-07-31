@@ -216,6 +216,18 @@
     .lc-res-e { color: #fbbf24; font-weight: 800; }
     .lc-res-p { color: #f87171; font-weight: 800; }
 
+    /* ── Landing widgets: skeleton placeholders (first visit, no SWR cache
+       yet) + soft-update fade (avoids a jarring snap when the background
+       fetch resolves with different data than what's on screen). ── */
+    .sk-bar {
+      display: inline-block; border-radius: 6px;
+      background: linear-gradient(90deg, rgba(255,255,255,0.06) 25%, rgba(255,255,255,0.12) 37%, rgba(255,255,255,0.06) 63%);
+      background-size: 400px 100%;
+      animation: sk-shimmer 1.4s ease infinite;
+    }
+    @keyframes sk-shimmer { 0% { background-position: -200px 0; } 100% { background-position: 200px 0; } }
+    .sw-fade { opacity: 0; transition: opacity .15s ease; }
+
     /* ── APP SHELL (hidden until a card is clicked) ── */
     #app { display: none; flex-direction: column; min-height: 100vh; }
 
@@ -10655,7 +10667,18 @@ let COPA_BLOCKS = {};
 // fetches fresh data in the background exactly as before and re-renders via
 // refreshCurrentView() if anything changed — that revalidation path is
 // unchanged, this only fills the gap before its first resolution.
+//
+// _swrHydrate() only loads the snapshot into memory — the caller decides
+// what to render with it (see the bottom of this script: on success it
+// immediately repaints the landing widgets/current tab, then loadLiveData()
+// still runs in the background exactly as before).
 const SWR_CACHE_KEY = 'csb_swr_cache_v2';
+// Cache older than this is considered too stale to flash instantly (e.g. a
+// tab left open since early on a matchday) — in that case we'd rather show
+// the skeleton and wait the ~1-2s for the real fetch than risk displaying an
+// outdated live scoreline. The background fetch itself always fires either
+// way, so this only affects whether the FIRST paint uses cache or waits.
+const SWR_CACHE_MAX_AGE_MS = 15 * 60 * 1000; // 15 min
 function _swrSnapshotOf(obj) {
   return { partidos: obj.partidos, apertura: obj.apertura, jugadores: obj.jugadores, tabla: obj.tabla };
 }
@@ -10678,6 +10701,7 @@ function _swrHydrate() {
     if (!raw) return false;
     const snap = JSON.parse(raw);
     if (!snap || !snap.DATA_A) return false;
+    if (!snap.savedAt || (Date.now() - snap.savedAt) > SWR_CACHE_MAX_AGE_MS) return false;
     Object.assign(DATA_A, snap.DATA_A);
     Object.assign(DATA_B, snap.DATA_B);
     if (snap.DATA_A_APERTURA2026) Object.assign(DATA_A_APERTURA2026, snap.DATA_A_APERTURA2026);
@@ -10742,14 +10766,51 @@ function _fmtProximoMeta(m) {
     localTxt,
   };
 }
+// Skips the DOM write entirely when the new markup is identical to what's
+// already on screen (avoids pointless reflow/flicker on every 60s poll or
+// SWR revalidation), and fades briefly through opacity when it does change
+// instead of snapping straight to the new content.
+function _softSetHtml(el, html) {
+  if (!el || el.innerHTML === html) return;
+  el.classList.add('sw-fade');
+  requestAnimationFrame(() => {
+    el.innerHTML = html;
+    requestAnimationFrame(() => el.classList.remove('sw-fade'));
+  });
+}
+// First-visit placeholder (no SWR cache yet) for the landing widgets that
+// would otherwise render as blank boxes for the ~1-2s the first fetch takes
+// — replaced (with a fade, via _softSetHtml above) as soon as either a fresh
+// cache hydration or the real fetch produces actual content.
+function _paintLandingSkeletons() {
+  const bar = (w, h) => `<span class="sk-bar" style="width:${w};height:${h}"></span>`;
+  const box = cls => `<div class="next-match-box ${cls}">
+    <div class="nmb-main">
+      <div>${bar('90px', '10px')}</div>
+      <div style="margin-top:8px">${bar('150px', '16px')}</div>
+      <div style="margin-top:8px">${bar('190px', '10px')}</div>
+    </div>
+    <div class="nmb-countdown">${bar('54px', '24px')}</div>
+  </div>`;
+  const a = document.getElementById('landing-next-match-a');
+  const b = document.getElementById('landing-next-match-b');
+  if (a && !a.innerHTML) a.innerHTML = box('nmb-box-a');
+  if (b && !b.innerHTML) b.innerHTML = box('nmb-box-b');
+  ['a', 'b', 'nido'].forEach(key => {
+    const badgeEl = document.getElementById('lc-badge-' + key);
+    const footEl  = document.getElementById('lc-footer-' + key);
+    if (badgeEl && !badgeEl.innerHTML) badgeEl.innerHTML = bar('70px', '16px');
+    if (footEl && !footEl.innerHTML) footEl.innerHTML = bar('120px', '12px');
+  });
+}
 function _renderNextMatchBox(elId, boxClass, label, m) {
   const el = document.getElementById(elId);
   if (!el) return;
-  if (!m) { el.innerHTML = ''; return; }
+  if (!m) { _softSetHtml(el, ''); return; }
   const meta = _fmtProximoMeta(m);
   const cd = m.dt ? _countdownParts(m.dt) : null;
   const metaLine = [meta.weekday, meta.horaTxt, meta.diaMes].filter(Boolean).join(' · ');
-  el.innerHTML = `
+  _softSetHtml(el, `
     <div class="next-match-box ${boxClass}">
       <div class="nmb-main">
         <div class="nmb-label">Próximo Partido · ${label}</div>
@@ -10760,7 +10821,7 @@ function _renderNextMatchBox(elId, boxClass, label, m) {
         <div class="nmb-cd-val">${cd.days}<span class="nmb-cd-unit">d</span> ${cd.hours}<span class="nmb-cd-unit">h</span></div>
         <div class="nmb-cd-label">restantes</div>
       </div>` : ''}
-    </div>`;
+    </div>`);
 }
 function renderLandingNextMatch() {
   _renderNextMatchBox('landing-next-match-a', 'nmb-box-a', 'Primera A', _teamNextMatch(DATA_A));
@@ -10779,8 +10840,8 @@ function renderLandingCardStats() {
     const footEl  = document.getElementById('lc-footer-' + key);
     const tabla = d.tabla || [];
     const own = tabla.find(t => t.csb);
-    if (badgeEl) badgeEl.innerHTML = own
-      ? `<span class="lc-badge-pill ${_posBadgeClass(parseInt(own.pos) || 0, tabla.length)}">${own.pos} puesto</span>` : '';
+    if (badgeEl) _softSetHtml(badgeEl, own
+      ? `<span class="lc-badge-pill ${_posBadgeClass(parseInt(own.pos) || 0, tabla.length)}">${own.pos} puesto</span>` : '');
     if (footEl) {
       const partidos = (d.partidos || []).filter(m => /^\d+$/.test(m.fecha));
       const played = partidos.filter(m => m.resultado !== null);
@@ -10792,9 +10853,9 @@ function renderLandingCardStats() {
           const cls = r === 'G' ? 'lc-res-g' : r === 'E' ? 'lc-res-e' : 'lc-res-p';
           return `<span class="lc-res-pill ${cls}" title="vs ${m.rival} (${m.resultado})">${r}</span>`;
         }).join('');
-        footEl.innerHTML = `<span class="lc-foot-results">${pills}</span>${own ? `<span class="lc-foot-pts">${own.pts} pts</span>` : ''}`;
+        _softSetHtml(footEl, `<span class="lc-foot-results">${pills}</span>${own ? `<span class="lc-foot-pts">${own.pts} pts</span>` : ''}`);
       } else {
-        footEl.innerHTML = `<span>Sin partidos jugados</span>`;
+        _softSetHtml(footEl, `<span>Sin partidos jugados</span>`);
       }
     }
   });
@@ -10860,8 +10921,8 @@ function renderLandingNidoFooter() {
   if ((!nidoBadge && !nidoFoot) || !window._nidoEnsureLoaded) return;
   window._nidoEnsureLoaded().then(() => {
     const merged = window._nidoGetMerged ? window._nidoGetMerged() : [];
-    if (nidoBadge) nidoBadge.innerHTML = merged.length
-      ? `<span class="lc-badge-pill lc-badge-green">${merged.length} jugadores</span>` : '';
+    if (nidoBadge) _softSetHtml(nidoBadge, merged.length
+      ? `<span class="lc-badge-pill lc-badge-green">${merged.length} jugadores</span>` : '');
     if (nidoFoot) _paintNidoRotator(nidoFoot);
   });
 }
@@ -11913,7 +11974,16 @@ new MutationObserver(muts => {
   if (found) _initTabNavFades();
 }).observe(document.body, { childList: true, subtree: true });
 
-_swrHydrate(); // instant-render last known good data while the fresh fetch below is in flight
+_paintLandingSkeletons(); // shimmer placeholders in case there's no fresh-enough cache to instant-render below
+if (_swrHydrate()) {
+  // Cache was fresh enough (<15 min old, see SWR_CACHE_MAX_AGE_MS) — paint it
+  // right now instead of waiting on the fetch below. loadLiveData() still
+  // runs immediately after exactly as before; when it resolves, the soft-
+  // update helpers above skip the repaint if nothing actually changed, or
+  // fade smoothly into whatever did.
+  renderLandingWidgets();
+  refreshCurrentView();
+}
 loadLiveData();
 setInterval(loadLiveData, 60 * 1000); // auto-refresh every 60s
 document.addEventListener('visibilitychange', () => { if (!document.hidden) loadLiveData(); });
