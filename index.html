@@ -468,9 +468,6 @@
     .hd-empty-sub { font-size: .8rem; color: #64748b; line-height: 1.6; max-width: 320px; }
 
     /* ── HISTORIAL DETALLE ── */
-    .hd-back { display: inline-flex; align-items: center; gap: 8px; background: transparent; border: 1px solid #1e2a3a; border-radius: 10px; padding: 7px 14px; color: #64748b; font-size: .8rem; cursor: pointer; font-family: inherit; transition: all .2s; margin-bottom: 18px; }
-    .hd-back:hover { border-color: var(--dorado); color: var(--dorado); }
-
     .hd-layout { display: grid; grid-template-columns: 270px 1fr; gap: 20px; align-items: start; }
     @media (max-width: 800px) { .hd-layout { grid-template-columns: 1fr; } }
 
@@ -754,21 +751,25 @@
     .torneo-card-icon { font-size: 2.2rem; }
     .torneo-card-name { font-size: 1.05rem; font-weight: 800; color: var(--blanco); }
     .torneo-card-sub  { font-size: 0.78rem; color: var(--gris-texto); }
-    .torneo-back {
+    /* ── Global "Volver" button — single reusable back-navigation component,
+       replaces the old per-section .torneo-back/.hd-back buttons that each
+       hardcoded their own destination. ── */
+    .volver-btn {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      font-size: 0.8rem;
-      color: var(--gris-texto);
-      background: rgba(255,255,255,0.06);
+      gap: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #cbd5e1;
+      background: transparent;
       border: none;
-      border-radius: 8px;
-      padding: 6px 14px;
+      padding: 6px 2px;
       cursor: pointer;
+      font-family: inherit;
       margin-bottom: 20px;
-      transition: color 0.2s, background 0.2s;
+      transition: color 0.2s;
     }
-    .torneo-back:hover { color: var(--blanco); background: rgba(255,255,255,0.1); }
+    .volver-btn:hover { color: #f8fafc; }
     .torneo-wip {
       display: flex;
       flex-direction: column;
@@ -2737,7 +2738,7 @@ function renderCentroDatosOnly(key) {
   if (!cfg) return;
   const d = _cdOnlyData[key];
   document.getElementById('torneo-cdonly-content').innerHTML = `
-    <button class="torneo-back" onclick="_goBackFromTorneo()">← Torneos Antiguos</button>
+    ${_volverBtnHtml()}
     <div class="section-title" style="margin-bottom:20px">🗂️ ${cfg.name} — Centro de Datos</div>
     ${buildCentroDatosHtml(d.partidos, { isCopa: cfg.isCopa, clickable: false })}`;
   if (!_cdOnlyLoaded[key]) {
@@ -3886,7 +3887,7 @@ function renderPlayerProfile(nombre) {
 
   overlay.innerHTML = `
     <div class="pp-wrap">
-      <button class="hd-back" onclick="closePlayerProfile()">← Cerrar perfil</button>
+      <button class="volver-btn" onclick="closePlayerProfile()">← Volver</button>
       <div class="pp-header">
         <div class="pp-avatar">${initials}</div>
         <div>
@@ -3987,37 +3988,64 @@ function goBack() {
 
 const JUG_SUB_IDS = ['tab-jug-totales','tab-jug-anuales','tab-jug-debuts','tab-jug-inferiores'];
 
-// Remembers that a torneo card was opened from "Estadísticas Anuales" (as
-// opposed to from "Gráficos"/Torneos Antiguos itself, where the default
-// "back to Torneos Antiguos" behavior is already correct) — set right before
-// firing a TORNEO_NAV_MAP card's onclick, consumed once by _goBackFromTorneo.
-let _torneoEntryOrigin = null;
-function _setAnualesOrigin(year, isB) { _torneoEntryOrigin = { type: 'anuales', year, isB }; }
-
-// Shared "← Torneos Antiguos" back action for every torneo view — returns to
-// Estadísticas Anuales at the exact year the user came from when that's
-// where the card was opened from, otherwise falls back to the plain
-// Torneos Antiguos list (the pre-existing behavior).
-function _goBackFromTorneo() {
-  const origin = _torneoEntryOrigin;
-  _torneoEntryOrigin = null;
-  if (origin && origin.type === 'anuales') {
-    showTab('jugadores', document.querySelectorAll('#main-nav button')[2]);
-    showJugSub('anuales');
-    if (origin.isB) renderJugAnualesYearB(origin.year); else renderJugAnualesYear(origin.year);
+// ── Global "Volver" navigation memory ───────────────────────────────────
+// Single history stack shared by every contextual back button in the app
+// (torneos, anuales, historial, jugadores, gráficos) — replaces what used to
+// be one-shot ad-hoc state (_torneoEntryOrigin/_setAnualesOrigin, plus ~10
+// duplicated back buttons each hardcoding their own destination). Every
+// place that navigates FORWARD into a sub-view pushes a `{label, restore}`
+// entry right before doing so; the one shared "← Volver" button everywhere
+// just calls volverAtras(), which pops and replays that closure — so it
+// always lands exactly where the user came from, regardless of path taken.
+//
+// The player-profile overlay is intentionally NOT routed through this stack
+// — it already has its own robust return mechanism via history.pushState/
+// popstate on the URL hash (see goToPlayer/closePlayerProfile above), which
+// also has to keep working with the browser's physical Back button. Mixing
+// that hash-driven stack with this in-memory one would risk them desyncing
+// (e.g. a physical Back pops the hash but not this array). Its button is
+// still restyled to the same `.volver-btn` look for visual consistency.
+let _navStack = [];
+function _navPush(label, restore) {
+  _navStack.push({ label, restore, scrollY: window.scrollY });
+}
+function volverAtras() {
+  const entry = _navStack.pop();
+  if (entry && typeof entry.restore === 'function') {
+    entry.restore();
+    if (typeof entry.scrollY === 'number') setTimeout(() => window.scrollTo(0, entry.scrollY), 0);
     return;
   }
-  if (origin && origin.type === 'historial') {
-    currentData = origin.isB ? DATA_B : DATA_A;
-    const badge = document.getElementById('section-badge');
-    badge.textContent = currentData.badge;
-    badge.className = 'header-section-badge ' + currentData.badgeClass;
-    const histBtn = document.querySelector("#main-nav button[onclick*=\"'historial'\"]");
-    showTab('historial', histBtn);
-    renderHistorialDetalle(origin.rival);
-    return;
-  }
-  document.querySelectorAll('#main-nav button')[4].click();
+  // Fallback seguro: sin historial propio (enlace directo, recarga a mitad
+  // de una vista) — volver a la sección de nivel superior que corresponda
+  // según lo que esté visible ahora mismo, en vez de no hacer nada.
+  const activeMainBtn = document.querySelector('#main-nav button.active');
+  const idx = activeMainBtn ? [...document.querySelectorAll('#main-nav button')].indexOf(activeMainBtn) : -1;
+  if (idx === 1) { showTab('posiciones', activeMainBtn); return; }
+  if (idx === 2) { showTab('jugadores', activeMainBtn); return; }
+  if (idx === 3) { showTab('historial', activeMainBtn); return; }
+  if (idx === 4) { showTab('graficos', activeMainBtn); return; }
+  goBack();
+}
+// Único componente visual de retroceso — reemplaza los ~20 botones de
+// "volver" que antes tenía cada vista con su propio destino hardcodeado.
+function _volverBtnHtml(extraStyle) {
+  return `<button class="volver-btn" onclick="volverAtras()"${extraStyle ? ` style="${extraStyle}"` : ''}>← Volver</button>`;
+}
+// Pushed right before entering any "Estadísticas Jugadores" sub-panel
+// (Totales/Anuales/Debuts/Inferiores) from its picker menu.
+function _navPushJugadores() {
+  _navPush('Estadísticas Jugadores', () => showTab('jugadores', document.querySelectorAll('#main-nav button')[2]));
+}
+// Pushed right before entering a torneo from the "Torneos Actuales" picker
+// (Apertura/Clausura en vivo, Recopa en vivo).
+function _navPushTorneosActuales() {
+  _navPush('Torneos Actuales', () => showTab('posiciones', document.querySelectorAll('#main-nav button')[1]));
+}
+// Pushed right before entering a torneo from "Torneos Antiguos" (same panel
+// as "Gráficos" — see main-nav button 4).
+function _navPushTorneosAntiguos() {
+  _navPush('Torneos Antiguos', () => showTab('graficos', document.querySelectorAll('#main-nav button')[4]));
 }
 
 function showTab(name, btn) {
@@ -4061,13 +4089,13 @@ function renderTorneosMenu() {
   // AIFA 2026 (same live sheet feed pattern, relabeled). A's Recopa 2026 keeps
   // running in parallel (still active); B's Recopa already finished and moved
   // to Torneos Antiguos, so it's dropped from Torneos Actuales.
-  const ligaCard = `<div class="torneo-card" onclick="showTorneo('apertura')">
+  const ligaCard = `<div class="torneo-card" onclick="_navPushTorneosActuales();showTorneo('apertura')">
          <div class="torneo-card-icon">🥇</div>
          <div class="torneo-card-name">Clausura AIFA ${isA ? 'A' : 'B'} 2026</div>
          <div class="torneo-card-sub">Liga oficial AIFA · Temporada 2026</div>
        </div>`;
   const cards = isA
-    ? ligaCard + `<div class="torneo-card" onclick="showTorneo('recopa')">
+    ? ligaCard + `<div class="torneo-card" onclick="_navPushTorneosActuales();showTorneo('recopa')">
          <div class="torneo-card-icon">🏅</div>
          <div class="torneo-card-name">Recopa 2026</div>
          <div class="torneo-card-sub">Torneo copa · Temporada 2026</div>
@@ -4847,18 +4875,8 @@ function renderRecopa() {
     </button>`;
   }).join('');
 
-  // ── Render ──────────────────────────────────────────────────────────────
-  // A's Recopa 2026 is still active (Torneos Actuales); B's already finished and
-  // was moved to Torneos Antiguos — the back button follows wherever we came from.
-  const fromAntiguosRC = document.querySelectorAll('#main-nav button')[4]?.classList.contains('active');
-  const backBtnRC = fromAntiguosRC
-    ? `<button class="torneo-back" onclick="_goBackFromTorneo()">← Torneos Antiguos</button>`
-    : _torneoEntryOrigin
-      ? `<button class="torneo-back" onclick="_goBackFromTorneo()">← Volver</button>`
-      : `<button class="torneo-back" onclick="showTab('posiciones', document.querySelectorAll('#main-nav button')[1])">← Torneos Actuales</button>`;
-
   document.getElementById('torneo-recopa-content').innerHTML = `
-    ${backBtnRC}
+    ${_volverBtnHtml()}
     <div class="section-title" style="margin-bottom:20px">🏅 ${name}</div>
 
     <nav class="ap-tab-nav">
@@ -4962,7 +4980,7 @@ function renderCopaHistorico(matches, name, jugadoresOverride) {
   }).join('');
 
   document.getElementById(CONTAINER).innerHTML = `
-    <button class="torneo-back" onclick="_goBackFromTorneo()">← Torneos Antiguos</button>
+    ${_volverBtnHtml()}
     <div class="section-title" style="margin-bottom:20px">🏅 ${name}</div>
     <nav class="ap-tab-nav">
       <button class="ap-tab-btn active" data-tab="plantel" onclick="chSwitchTab('plantel')"><span class="ap-tab-icon">🌟</span> Plantel</button>
@@ -5472,17 +5490,8 @@ function renderTorneoApertura() {
     `<button class="ap-fecha-btn ${f.played ? 'played' : 'pending'}" data-fecha="${f.n}" onclick="selectFecha(${f.n})">Fecha ${f.n}</button>`
   ).join('');
 
-  // ── Render shell ────────────────────────────────────────────────────────
-  // Reached either from "Torneos Actuales" (B's live Clausura) or "Torneos Antiguos"
-  // (the finished Apertura, both A and B) — the back button follows wherever we came from.
-  const backBtnHtml = fromAntiguos
-    ? `<button class="torneo-back" onclick="_goBackFromTorneo()">← Torneos Antiguos</button>`
-    : _torneoEntryOrigin
-      ? `<button class="torneo-back" onclick="_goBackFromTorneo()">← Volver</button>`
-      : `<button class="torneo-back" onclick="showTab('posiciones', document.querySelectorAll('#main-nav button')[1])">← Torneos Actuales</button>`;
-
   document.getElementById('torneo-apertura-content').innerHTML = `
-    ${backBtnHtml}
+    ${_volverBtnHtml()}
     <div class="section-title" style="margin-bottom:20px">🥇 ${name}</div>
 
     <nav class="ap-tab-nav">
@@ -5770,7 +5779,7 @@ function renderTorneoApertura2025A() {
 
   // ── Render shell ────────────────────────────────────────────────────────
   document.getElementById(CONTAINER).innerHTML = `
-    <button class="torneo-back" onclick="_goBackFromTorneo()">← Torneos Antiguos</button>
+    ${_volverBtnHtml()}
     <div class="section-title" style="margin-bottom:20px">📁 ${name}</div>
 
     <nav class="ap-tab-nav">
@@ -6061,7 +6070,7 @@ function renderTorneoHistoricoGeneric(d, name, fechaLabels) {
 
   // ── Render shell ────────────────────────────────────────────────────────
   document.getElementById(CONTAINER).innerHTML = `
-    <button class="torneo-back" onclick="_goBackFromTorneo()">← Torneos Antiguos</button>
+    ${_volverBtnHtml()}
     <div class="section-title" style="margin-bottom:20px">📁 ${name}</div>
 
     <nav class="ap-tab-nav">
@@ -6702,7 +6711,7 @@ function renderTorneoApt2024DB() {
 
     // ── Render shell ────────────────────────────────────────────────────
     document.getElementById(CONTAINER).innerHTML = `
-      <button class="torneo-back" onclick="_goBackFromTorneo()">← Torneos Antiguos</button>
+      ${_volverBtnHtml()}
       <div class="section-title" style="margin-bottom:20px">📁 ${name}</div>
       <nav class="ap-tab-nav">
         <button class="ap-tab-btn active" data-tab="datos"    onclick="ap24dSwitchTab('datos')">   <span class="ap-tab-icon">🗂️</span> Centro de Datos</button>
@@ -7383,7 +7392,10 @@ function renderHistorial() {
   // pick _loadPartidosCache vs _loadPartidosCacheB) — Primera B used to get
   // routed to a separate KPI-only view (renderHistorialDetalleB) because it
   // had no real match-level sheet wired up yet.
-  window.histDrilldown = rival => renderHistorialDetalle(rival);
+  window.histDrilldown = rival => {
+    _navPush('Historial vs Clubes', () => renderHistorial());
+    renderHistorialDetalle(rival);
+  };
 
   if (currentData === DATA_B) {
     // Direct mapping from "HISTORIAL PRIMERA B vs OTROS CLUBES" (A3:I61) — re-fetched
@@ -7732,13 +7744,20 @@ function _histLeadersFromMatches(resolvedMatches) {
   };
   return { goleador: top('goles'), asistidor: top('asist'), presencias: top('pj') };
 }
-// Match-row click target: remembers we came from this rival's historial (same
-// _torneoEntryOrigin mechanism "← Torneos Antiguos"/_goBackFromTorneo already
-// uses for the "Estadísticas Anuales" origin) so the back button returns
-// straight to this exact drilldown instead of the generic torneo menu.
+// Match-row click target: pushes a restore back to this exact rival's
+// historial drilldown (instead of the generic torneo menu) before jumping
+// into the torneo's Fecha a Fecha view.
 function histGoToMatchFecha(navKey, locator, rivalName, isB) {
   if (!navKey || locator == null) return;
-  _torneoEntryOrigin = { type: 'historial', rival: rivalName, isB };
+  _navPush('Historial vs Clubes', () => {
+    currentData = isB ? DATA_B : DATA_A;
+    const badge = document.getElementById('section-badge');
+    badge.textContent = currentData.badge;
+    badge.className = 'header-section-badge ' + currentData.badgeClass;
+    const histBtn = document.querySelector("#main-nav button[onclick*=\"'historial'\"]");
+    showTab('historial', histBtn);
+    renderHistorialDetalle(rivalName);
+  });
   goToMatchFecha(navKey, locator);
 }
 // One "referente vs rival" card (Máximo Goleador/Asistidor/Más Presencias) —
@@ -7928,7 +7947,7 @@ function renderHistorialDetalle(rival) {
     }).join('');
 
     el.innerHTML = `
-      <button class="hd-back" onclick="renderHistorial()">← Volver al historial</button>
+      ${_volverBtnHtml()}
       ${rivalKpis}
       <div class="hd-layout">
         ${sidebar}
@@ -7970,23 +7989,23 @@ function renderJugadoresMenu() {
   document.getElementById('jugadores-picker-content').innerHTML = `
     <div class="section-title" style="margin-bottom:20px">👟 Estadísticas Jugadores – ${currentData.nombre}</div>
     <div class="torneos-picker-grid" style="max-width:900px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
-      <div class="torneo-card" onclick="showJugSub('totales')">
+      <div class="torneo-card" onclick="_navPushJugadores();showJugSub('totales')">
         <div class="torneo-card-icon">📊</div>
         <div class="torneo-card-name">Estadísticas Totales</div>
         <div class="torneo-card-sub">Estadísticas históricas acumuladas</div>
       </div>
-      <div class="torneo-card" onclick="showJugSub('anuales')">
+      <div class="torneo-card" onclick="_navPushJugadores();showJugSub('anuales')">
         <div class="torneo-card-icon">📅</div>
         <div class="torneo-card-name">Estadísticas Anuales</div>
         <div class="torneo-card-sub">Estadísticas separadas por temporada</div>
       </div>
       ${currentData !== DATA_B ? `
-      <div class="torneo-card" onclick="showJugSub('debuts')">
+      <div class="torneo-card" onclick="_navPushJugadores();showJugSub('debuts')">
         <div class="torneo-card-icon">🌟</div>
         <div class="torneo-card-name">Debuts</div>
         <div class="torneo-card-sub">Registro de debutantes del plantel</div>
       </div>
-      <div class="torneo-card" onclick="showJugSub('inferiores')">
+      <div class="torneo-card" onclick="_navPushJugadores();showJugSub('inferiores')">
         <div class="torneo-card-icon">🎓</div>
         <div class="torneo-card-name">Inferiores Aportes</div>
         <div class="torneo-card-sub">Jugadores surgidos de inferiores</div>
@@ -8151,7 +8170,7 @@ function _jugTotalMobileCardsHtml(rows, sortCol, activeCols, colMap, posColorMap
 function renderJugadoresTotales() {
   const wrap = document.getElementById('jug-totales-content');
   wrap.innerHTML = `
-    <button class="torneo-back" onclick="showTab('jugadores', document.querySelectorAll('#main-nav button')[2])" style="margin-bottom:14px">← Estadísticas Jugadores</button>
+    ${_volverBtnHtml('margin-bottom:14px')}
     <div style="margin-bottom:14px">
       <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gris-texto);margin-bottom:2px">Club Santa Bárbara</div>
       <div style="font-size:1.25rem;font-weight:900;color:#fff;line-height:1.1">Estadísticas Históricas</div>
@@ -8420,7 +8439,7 @@ let _jugBTab = 'general';
 function renderJugadoresTotalesB() {
   const wrap = document.getElementById('jug-totales-content');
   wrap.innerHTML = `
-    <button class="torneo-back" onclick="showTab('jugadores', document.querySelectorAll('#main-nav button')[2])" style="margin-bottom:14px">← Estadísticas Jugadores</button>
+    ${_volverBtnHtml('margin-bottom:14px')}
     <div style="margin-bottom:14px">
       <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gris-texto);margin-bottom:2px">Club Santa Bárbara · Primera B</div>
       <div style="font-size:1.25rem;font-weight:900;color:#fff;line-height:1.1">Estadísticas Históricas</div>
@@ -8937,7 +8956,7 @@ let _anualesQuery = '';
 
 function renderJugAnualesMenu() {
   if (currentData === DATA_B) return renderJugAnualesMenuB();
-  const back = `<button class="torneo-back" onclick="showTab('jugadores', document.querySelectorAll('#main-nav button')[2])" style="margin-bottom:16px">← Estadísticas Jugadores</button>`;
+  const back = _volverBtnHtml('margin-bottom:16px');
   document.getElementById('jug-anuales-content').innerHTML = back + `
     <div style="margin-bottom:18px">
       <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gris-texto);margin-bottom:2px">Club Santa Bárbara</div>
@@ -8945,7 +8964,7 @@ function renderJugAnualesMenu() {
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;max-width:600px">
       ${Object.keys(SEED_ANUALES).sort((a, b) => b - a).map(y => `
-        <div onclick="renderJugAnualesYear('${y}')" style="cursor:pointer;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:22px 20px;text-align:center;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,0.09)';this.style.borderColor='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.04)';this.style.borderColor='rgba(255,255,255,0.1)'">
+        <div onclick="_navPush('Estadísticas Anuales', () => renderJugAnualesMenu());renderJugAnualesYear('${y}')" style="cursor:pointer;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:22px 20px;text-align:center;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,0.09)';this.style.borderColor='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.04)';this.style.borderColor='rgba(255,255,255,0.1)'">
           <div style="font-size:2rem;margin-bottom:8px">📊</div>
           <div style="font-size:1.5rem;font-weight:900;color:#fff">${y}</div>
           <div style="font-size:0.72rem;color:var(--gris-texto);margin-top:4px">Ver temporada →</div>
@@ -8973,7 +8992,7 @@ function renderJugAnualesYear(year) {
   const posIcon = p => { const n = parseInt(p); return n === 1 ? '🥇' : n <= 3 ? '🟢' : n <= 10 ? '🩵' : n <= 16 ? '🟠' : '🔴'; };
   const posStyle = _posSemaforoColor;
 
-  const backMenu = `<button class="torneo-back" onclick="renderJugAnualesMenu()" style="margin-bottom:16px">← Estadísticas Anuales</button>`;
+  const backMenu = _volverBtnHtml('margin-bottom:16px');
 
   document.getElementById('jug-anuales-content').innerHTML = backMenu + `
     <div style="margin-bottom:16px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
@@ -9016,7 +9035,7 @@ function renderJugAnualesYear(year) {
         // is keyed by the full name shared with "Gráficos" (e.g. "Apertura AIFA A").
         const competenciaFull = t.nombre === 'Recopa' ? 'Recopa' : `${t.nombre} AIFA A`;
         const nav = TORNEO_NAV_MAP[`${year}|${competenciaFull}|A`] || TORNEO_NAV_MAP[`${year}|${competenciaFull}`];
-        const cardAttrs = nav ? `onclick="_setAnualesOrigin(${year}, false); ${nav.fn}" style="cursor:pointer;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px 14px;transition:border-color .15s,background .15s" onmouseover="this.style.background='rgba(255,255,255,0.07)';this.style.borderColor='rgba(245,158,11,0.35)'" onmouseout="this.style.background='rgba(255,255,255,0.04)';this.style.borderColor='rgba(255,255,255,0.07)'"`
+        const cardAttrs = nav ? `onclick="_navPush('Estadísticas Anuales', () => renderJugAnualesYear(${year})); ${nav.fn}" style="cursor:pointer;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px 14px;transition:border-color .15s,background .15s" onmouseover="this.style.background='rgba(255,255,255,0.07)';this.style.borderColor='rgba(245,158,11,0.35)'" onmouseout="this.style.background='rgba(255,255,255,0.04)';this.style.borderColor='rgba(255,255,255,0.07)'"`
           : `style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px 14px"`;
         return `<div ${cardAttrs}>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
@@ -9068,7 +9087,7 @@ function _anualesSourceB() {
 }
 
 function renderJugAnualesMenuB() {
-  const back = `<button class="torneo-back" onclick="showTab('jugadores', document.querySelectorAll('#main-nav button')[2])" style="margin-bottom:16px">← Estadísticas Jugadores</button>`;
+  const back = _volverBtnHtml('margin-bottom:16px');
   const years = [...new Set(_anualesSourceB().map(t => t.anio))].sort((a, b) => b - a);
   document.getElementById('jug-anuales-content').innerHTML = back + `
     <div style="margin-bottom:18px">
@@ -9077,7 +9096,7 @@ function renderJugAnualesMenuB() {
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;max-width:600px">
       ${years.map(y => `
-        <div onclick="renderJugAnualesYearB(${y})" style="cursor:pointer;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:22px 20px;text-align:center;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,0.09)';this.style.borderColor='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.04)';this.style.borderColor='rgba(255,255,255,0.1)'">
+        <div onclick="_navPush('Estadísticas Anuales', () => renderJugAnualesMenuB());renderJugAnualesYearB(${y})" style="cursor:pointer;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:22px 20px;text-align:center;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,0.09)';this.style.borderColor='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.04)';this.style.borderColor='rgba(255,255,255,0.1)'">
           <div style="font-size:2rem;margin-bottom:8px">📊</div>
           <div style="font-size:1.5rem;font-weight:900;color:#fff">${y}</div>
           <div style="font-size:0.72rem;color:var(--gris-texto);margin-top:4px">Ver temporada →</div>
@@ -9088,7 +9107,7 @@ function renderJugAnualesMenuB() {
 function renderJugAnualesYearB(year) {
   const yr = Number(year);
   const torneosYear = _anualesSourceB().filter(t => t.anio === yr);
-  const backMenu = `<button class="torneo-back" onclick="renderJugAnualesMenuB()" style="margin-bottom:16px">← Estadísticas Anuales</button>`;
+  const backMenu = _volverBtnHtml('margin-bottom:16px');
 
   if (!torneosYear.length) {
     document.getElementById('jug-anuales-content').innerHTML = backMenu +
@@ -9151,7 +9170,7 @@ function renderJugAnualesYearB(year) {
         // t.competencia here is already the full name (e.g. "Clausura AIFA C",
         // "Recopa") — same convention TORNEO_NAV_MAP is keyed by.
         const nav = TORNEO_NAV_MAP[`${year}|${t.competencia}|B`] || TORNEO_NAV_MAP[`${year}|${t.competencia}`];
-        const cardAttrs = nav ? `onclick="_setAnualesOrigin(${year}, true); ${nav.fn}" style="cursor:pointer;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px 14px;transition:border-color .15s,background .15s" onmouseover="this.style.background='rgba(255,255,255,0.07)';this.style.borderColor='rgba(245,158,11,0.35)'" onmouseout="this.style.background='rgba(255,255,255,0.04)';this.style.borderColor='rgba(255,255,255,0.07)'"`
+        const cardAttrs = nav ? `onclick="_navPush('Estadísticas Anuales', () => renderJugAnualesYearB(${year})); ${nav.fn}" style="cursor:pointer;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px 14px;transition:border-color .15s,background .15s" onmouseover="this.style.background='rgba(255,255,255,0.07)';this.style.borderColor='rgba(245,158,11,0.35)'" onmouseout="this.style.background='rgba(255,255,255,0.04)';this.style.borderColor='rgba(255,255,255,0.07)'"`
           : `style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px 14px"`;
         return `<div ${cardAttrs}>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
@@ -9458,7 +9477,7 @@ function _anualesBuildTable(year) {
 function renderDebuts() {
   const data = SEED_DEBUTS;
   const years = [...new Set(data.map(d => d.year))].sort();
-  const backBtn = `<button class="torneo-back" onclick="showTab('jugadores', document.querySelectorAll('#main-nav button')[2])" style="margin-bottom:20px">← Estadísticas Jugadores</button>`;
+  const backBtn = _volverBtnHtml('margin-bottom:20px');
 
   // ── helpers ──────────────────────────────────────────────────────────────
   function resClass(r) {
@@ -9677,7 +9696,7 @@ async function _loadInferioresA() {
 }
 
 function renderInferiores() {
-  const backBtn = `<button class="torneo-back" onclick="showTab('jugadores', document.querySelectorAll('#main-nav button')[2])" style="margin-bottom:20px">← Estadísticas Jugadores</button>`;
+  const backBtn = _volverBtnHtml('margin-bottom:20px');
 
   const categorias = (INFERIORES_LIVE && INFERIORES_LIVE.categorias.length) ? INFERIORES_LIVE.categorias : INFERIORES_DATA;
   const kpis = { ...INFERIORES_KPIS_FALLBACK, ...(INFERIORES_LIVE ? INFERIORES_LIVE.kpis : {}) };
@@ -9981,8 +10000,8 @@ function renderGraficos() {
       const esCopa  = /recopa|copa/i.test(t.competencia);
       const richBadge = rich ? `<div class="hist-tc-detail-badge">📊 Estadísticas completas</div>` : '';
       const clickFn = rich
-        ? rich.fn
-        : `grafDetalle(${JSON.stringify(t).replace(/"/g,'&quot;')})`;
+        ? `_navPushTorneosAntiguos(); ${rich.fn}`
+        : `_navPush('Torneos Antiguos', () => renderGraficos()); grafDetalle(${JSON.stringify(t).replace(/"/g,'&quot;')})`;
       const record = `<span class="hist-tc-v">${t.pg}V</span> - <span class="hist-tc-e">${t.pe}E</span> - <span class="hist-tc-d">${t.pp}D</span>`;
       const footer = esCopa
         ? `<div class="hist-tc-foot-copa">${t.pj} PJ&nbsp;&nbsp;•&nbsp;&nbsp;${record}</div>`
@@ -10016,7 +10035,7 @@ function renderGraficos() {
     const pct = v => t.pj ? ((v / t.pj) * 100).toFixed(0) + '%' : '—';
     container.innerHTML = `
       <div class="graf-detail-back">
-        <button class="torneo-back" onclick="renderGraficos()">← Historial de Torneos</button>
+        ${_volverBtnHtml()}
       </div>
       <div class="graf-detail-header">
         <div class="graf-detail-name">${cardIcon(t)} ${t.competencia} ${t.anio}</div>
