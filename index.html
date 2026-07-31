@@ -2974,9 +2974,41 @@ function pl(nombre) {
 let _ppReturnHash = '';
 function goToPlayer(nombre) {
   if (!nombre) return;
+  // Snapshot which top-level section is showing right now (not a live query
+  // — captured here, at open time) so the profile's own "← Volver" can get
+  // back to it later via the shared _navStack, same as every other section's
+  // back button. Without this, closing the profile only ever revealed
+  // whatever was rendered underneath at that moment — correct the first time,
+  // but wrong after a detour elsewhere (e.g. jumping to a match from inside
+  // the profile) changed the underlying view while the profile was "open".
+  const activeMainBtn = document.querySelector('#main-nav button.active');
+  const activeIdx = activeMainBtn ? [...document.querySelectorAll('#main-nav button')].indexOf(activeMainBtn) : -1;
+  _navPush('Volver', () => {
+    const btn = document.querySelectorAll('#main-nav button')[activeIdx];
+    if (activeIdx === 1) { showTab('posiciones', btn); return; }
+    if (activeIdx === 2) { showTab('jugadores', btn); return; }
+    if (activeIdx === 3) { showTab('historial', btn); return; }
+    if (activeIdx === 4) { showTab('graficos', btn); return; }
+    goBack();
+  });
   _ppReturnHash = location.hash;
   history.pushState(null, '', '#jugador/' + slugify(nombre));
   renderPlayerProfile(nombre);
+}
+// Reopens the profile after a match-detour (see the "Volver" push in
+// _ppStatRowHtml) WITHOUT going through goToPlayer — that would both
+// re-capture the wrong _ppReturnHash (the transient '#partido' marker, not
+// the real pre-profile page) and push a second, redundant "Volver" entry
+// pointing at the detour itself instead of the original section.
+function _ppReopenProfile(nombre) {
+  renderPlayerProfile(nombre);
+}
+// The profile's own back button: hides the overlay AND pops whatever
+// section was snapshotted when it was opened (see goToPlayer above) — so
+// closing it lands back on the right page even after a detour in between.
+function _ppVolver() {
+  closePlayerProfile();
+  volverAtras();
 }
 function closePlayerProfile(skipHistory) {
   document.getElementById('player-profile-overlay').style.display = 'none';
@@ -3572,7 +3604,7 @@ function _ppStatRowHtml(kind, p) {
     : p.fecha;
   const clickable = !!p.navKey && !!locator;
   const rowAttrs = clickable
-    ? `class="pp-match-row pp-match-row-link" onclick="_navPush('Perfil de Jugador', () => goToPlayer(window._ppCurrentNombre));goToMatchFecha('${p.navKey}', '${String(locator).replace(/'/g, "\\'")}')" title="Ver en Fecha a Fecha"`
+    ? `class="pp-match-row pp-match-row-link" onclick="_navPush('Perfil de Jugador', () => _ppReopenProfile(window._ppCurrentNombre));goToMatchFecha('${p.navKey}', '${String(locator).replace(/'/g, "\\'")}')" title="Ver en Fecha a Fecha"`
     : `class="pp-match-row"`;
   return `<div ${rowAttrs}>
     <div class="pp-match-main">
@@ -3913,7 +3945,7 @@ function renderPlayerProfile(nombre) {
 
   overlay.innerHTML = `
     <div class="pp-wrap">
-      <button class="volver-btn" onclick="closePlayerProfile()">← Volver</button>
+      <button class="volver-btn" onclick="_ppVolver()">← Volver</button>
       <div class="pp-header">
         <div class="pp-avatar">${initials}</div>
         <div>
