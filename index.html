@@ -2981,12 +2981,36 @@ function goToPlayer(nombre) {
   // whatever was rendered underneath at that moment — correct the first time,
   // but wrong after a detour elsewhere (e.g. jumping to a match from inside
   // the profile) changed the underlying view while the profile was "open".
+  //
+  // A player link can be opened from El Nido too — its own container
+  // (#tab-nido), entirely outside the #main-nav/.panel system (#main-nav is
+  // literally hidden while El Nido is showing, so "which button is active"
+  // is meaningless there and must be checked first) — and, within
+  // "Estadísticas Jugadores", from any of its 4 sub-tabs (Totales/Anuales/
+  // Debuts/Inferiores), which showTab('jugadores', ...) alone doesn't
+  // distinguish (it always lands on the picker menu).
+  const nidoEl = document.getElementById('tab-nido');
+  const isNido = !!nidoEl && nidoEl.style.display !== 'none' && nidoEl.classList.contains('active');
   const activeMainBtn = document.querySelector('#main-nav button.active');
   const activeIdx = activeMainBtn ? [...document.querySelectorAll('#main-nav button')].indexOf(activeMainBtn) : -1;
+  let activeJugSub = null;
+  if (activeIdx === 2) {
+    const found = JUG_SUB_IDS.find(id => {
+      const el = document.getElementById(id);
+      return el && el.style.display === 'block';
+    });
+    if (found) activeJugSub = found.replace('tab-jug-', '');
+  }
   _navPush('Volver', () => {
+    if (isNido) { openSection('nido'); return; }
     const btn = document.querySelectorAll('#main-nav button')[activeIdx];
+    if (activeIdx === 0) { showTab('resumen', btn); return; }
     if (activeIdx === 1) { showTab('posiciones', btn); return; }
-    if (activeIdx === 2) { showTab('jugadores', btn); return; }
+    if (activeIdx === 2) {
+      showTab('jugadores', btn);
+      if (activeJugSub) showJugSub(activeJugSub);
+      return;
+    }
     if (activeIdx === 3) { showTab('historial', btn); return; }
     if (activeIdx === 4) { showTab('graficos', btn); return; }
     goBack();
@@ -4079,6 +4103,7 @@ function volverAtras() {
   // según lo que esté visible ahora mismo, en vez de no hacer nada.
   const activeMainBtn = document.querySelector('#main-nav button.active');
   const idx = activeMainBtn ? [...document.querySelectorAll('#main-nav button')].indexOf(activeMainBtn) : -1;
+  if (idx === 0) { showTab('resumen', activeMainBtn); return; }
   if (idx === 1) { showTab('posiciones', activeMainBtn); return; }
   if (idx === 2) { showTab('jugadores', activeMainBtn); return; }
   if (idx === 3) { showTab('historial', activeMainBtn); return; }
