@@ -6500,7 +6500,6 @@ async function _loadHistoricoGeneric(key, dataObj, cfg) {
     }
 
     _historicoGenericLoaded[key] = true;
-    console.log(`[${key}] Loaded:`, dataObj.partidos.length, 'partidos,', dataObj.jugadores.length, 'jugadores,', dataObj.tabla.length, 'tabla');
   } catch(e) {
     console.error(`[${key}] Load failed:`, e.message || e);
   }
@@ -6626,7 +6625,6 @@ async function _loadBApt2024d() {
     } catch(e) { console.warn('Apt2024D parseMatches (basico):', e); }
 
     _bApt2024dLoaded = true;
-    console.log('[Apt2024D] Loaded:', DATA_B_2024D.partidos.length, 'partidos,', DATA_B_2024D.jugadores.length, 'jugadores,', DATA_B_2024D.tabla.length, 'tabla');
   } catch(e) {
     console.error('[Apt2024D] Load failed:', e.message || e);
   }
@@ -7627,9 +7625,7 @@ function _parsePartidosPorTorneos(rows) {
 async function _loadPartidosCache() {
   if (_partidosCache) return _partidosCache;
   try {
-    console.log('[Historial] Fetching Partidos Historial from A_MAIN:', GS.A_MAIN);
     const rows = await fetchProxy('Partidos Historial', null, GS.A_MAIN);
-    console.log('[Historial] Rows received:', rows ? rows.length : 'null', rows && rows[0]);
     if (!rows || rows.length < 5) throw new Error('empty response: ' + (rows ? rows.length : 0));
     const parsed = _parsePartidosPorTorneos(rows);
     // The 2023 Recopa match vs Regatas (2-2) sits in the sheet without a
@@ -7642,7 +7638,6 @@ async function _loadPartidosCache() {
       regatas2023.torneo = 'Recopa 2023';
       regatas2023.resultado = '2-2'; regatas2023.gf = 2; regatas2023.gc = 2;
     }
-    console.log('[Historial] Parsed matches:', parsed.length, parsed.slice(0,3));
     _partidosCache = parsed;
   } catch(e) {
     console.error('[Historial] Load failed:', e.message || e);
@@ -7694,7 +7689,6 @@ async function _loadHistorialResumenB() {
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const rows = parseCSV(await r.text());
     const { clubes, total } = _parseHistorialResumenB(rows);
-    console.log('[Historial B] Clubes:', clubes.length, 'Total:', total);
     return { clubes, total };
   } catch (e) {
     console.error('[Historial B] Load failed:', e.message || e);
@@ -7738,11 +7732,9 @@ async function _loadPartidosCacheB() {
   if (_partidosCacheB) return _partidosCacheB;
   try {
     const url = `https://docs.google.com/spreadsheets/d/${GS.B_HIST}/gviz/tq?tqx=out:csv&gid=345619863`;
-    console.log('[Historial B] Fetching by gid:', url);
     const r = await fetch(url, { mode: 'cors' });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const rows = parseCSV(await r.text());
-    console.log('[Historial B] Rows received:', rows ? rows.length : 'null', rows && rows[0]);
     if (!rows || rows.length < 5) throw new Error('empty: ' + (rows ? rows.length : 0));
     const parsed = _parsePartidosPorTorneos(rows);
     // The 2021 section (the sheet's oldest/first block) doesn't carry its
@@ -7758,7 +7750,6 @@ async function _loadPartidosCacheB() {
     parsed.forEach(m => {
       if (m.torneo === 'Sin torneo') { m.torneo = 'Apertura AIFA D 2021'; m.anio = m.anio || '2021'; }
     });
-    console.log('[Historial B] Parsed matches:', parsed.length, parsed.slice(0,3));
     _partidosCacheB = parsed;
   } catch(e) {
     console.error('[Historial B] Load failed:', e.message || e);
@@ -8627,14 +8618,12 @@ function _ensureJugTotalesB() {
 
 function _fetchJugB(tabName) {
   const EXCLUIR2 = ['jugador', 'team totals', 'totales', 'total'];
-  console.log('[B Totales] fetching tab:', tabName);
   return fetch(`${PROXY_URL}?tab=${encodeURIComponent(tabName)}&sheetId=${encodeURIComponent(GS.B_HIST)}`)
     .then(r => {
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.json();
     })
     .then(json => {
-      console.log('[B Totales] response:', Array.isArray(json) ? 'array[' + json.length + ']' : JSON.stringify(json).slice(0,120));
       if (!Array.isArray(json)) throw new Error(json?.error || 'not-array');
       const rows = json.filter(row => Array.isArray(row) && row.some(c => c !== '' && c !== null));
       if (rows.length < 2) throw new Error('empty (' + rows.length + ' rows)');
@@ -8644,7 +8633,6 @@ function _fetchJugB(tabName) {
         .filter(r => !EXCLUIR2.includes(r[JUG_COL_B.nombre]?.toLowerCase().trim()));
       _jugBData = _mergeDuplicatePlayerRows(parsedB, JUG_COL_B);
       _jugBSort = { col: JUG_COL_B.pj, asc: false };
-      console.log('[B Totales] loaded', _jugBData.length, 'players');
       _jugBRender();
     });
 }
@@ -11467,13 +11455,6 @@ async function loadLiveData() {
   // only fills in when the real source hasn't returned anything usable.
   const bClTablaRaw = ok(bClTabla);
   const bClTablaParsed = bClTablaRaw ? parseTablaSheet(bClTablaRaw) : [];
-  // Temporary diagnostic — remove once the "Banco Ciudad missing" report is
-  // confirmed fixed. Shows exactly what raw rows we got back for this range
-  // and what we parsed out of them, since the range/header logic looks
-  // correct on paper but the club keeps seeing rank 1 go missing.
-  console.log('[Tabla B diag] raw rows:', bClTablaRaw ? bClTablaRaw.length : 'FETCH FAILED',
-    bClTablaRaw ? bClTablaRaw.slice(0, 8) : '', '→ parsed', bClTablaParsed.length, 'teams:',
-    bClTablaParsed.map(t => t.pos + ' ' + t.equipo));
   if (bClTablaParsed.length >= 5) {
     DATA_B.tabla = bClTablaParsed;
   } else {
@@ -11557,7 +11538,6 @@ async function loadLiveData() {
         });
       }
       COPA_BLOCKS = blocks;
-      console.log('[Copas] Parsed titles:', Object.keys(blocks).join(', '));
     }
   } catch(e) { console.warn('parseCopaSheet:', e); }
 
@@ -11606,7 +11586,6 @@ async function loadLiveData() {
         });
         dataObj.apertura = det;
         dataObj.partidos = _deriveBasicFromDetailed(det);
-        console.log(`[${label}] Parsed:`, det.length, 'partidos');
       }
     } catch(e) { console.warn(`parseDetailedMatches (${label}):`, e); }
     if (plantelResult && ok(plantelResult)) {
@@ -11631,7 +11610,6 @@ async function loadLiveData() {
   _loadDedicatedCopaSheet(bRecopa21Det, bRecopa21Plantel, DATA_B_RECOPA2021, 'Recopa B 2021');
 
   const s = r => r.status === 'fulfilled' ? '✅' : '❌';
-  console.log(`Sheets — A_SIM:${s(aSim)} A_Basic:${s(aBasic)} A_Det:${s(aDet)} A_ClDet:${s(aClDet)} B_SIM:${s(bSim)} B_ApBasic:${s(bApBasic)} B_ApDet:${s(bApDet)} B_ClDet:${s(bClDet)} A_Hist:${s(aHist)} B_Hist:${s(bHist)} A25:${s(a25Det)}/${s(a25Global)}/${s(a25Tabla)} Copas:${s(copasSheet)}`);
 
   _refreshing = false;
   const now = new Date();
