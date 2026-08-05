@@ -11861,6 +11861,18 @@ async function loadLiveData() {
   // para que la próxima vez que se mire el ranking recalcule contra los
   // datos ya completos.
   if (window._nidoInvalidateVEDCache) window._nidoInvalidateVEDCache();
+  // El Nido vive fuera del sistema #main-nav/.panel (por eso no está en el
+  // mapa de refreshCurrentView() de abajo), así que sin esto el usuario
+  // tenía que interactuar con la tabla (cambiar de filtro, buscar, etc.)
+  // para disparar un re-render y recién ahí ver los números ya corregidos
+  // — podía sentirse como una espera larga. Si ya está a la vista, se
+  // refresca de una junto con el resto. Se salta si el buscador tiene el
+  // foco para no perder el cursor/posición mientras se está escribiendo.
+  const nidoTabEl = document.getElementById('tab-nido');
+  const nidoVisible = nidoTabEl && nidoTabEl.style.display !== 'none' && nidoTabEl.classList.contains('active');
+  const nidoSearchFocused = document.activeElement &&
+    (document.activeElement.id === 'nido-search' || document.activeElement.id === 'nido-search-mobile');
+  if (nidoVisible && !nidoSearchFocused && window.renderNido) window.renderNido();
   refreshCurrentView();
   renderLandingWidgets();
 }
