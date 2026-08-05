@@ -9166,6 +9166,70 @@ const SEED_ANUALES_PLAYERS_B = {
   ],
 };
 
+// Resumen de torneos 2026 (Primera A) calculado en vivo a partir de los datos
+// ya cargados (DATA_A_APERTURA2026, DATA_A, COPA_BLOCKS['Recopa 2026']) en
+// vez de hardcodear números como en los años ya cerrados (2023-2025) — la
+// temporada está en curso, así que un valor fijo quedaría desactualizado
+// apenas se juegue la siguiente fecha. Devuelve solo los torneos que ya
+// tienen al menos un partido cargado.
+function _anualesTorneo2026FromLiga(d, nombre, icon) {
+  const ligaMatches = (d?.apertura || []).filter(m => /^\d+$/.test(String(m.fecha)));
+  if (!ligaMatches.length) return null;
+  const numVal = v => (v === null || v === undefined || v === '' || v === '-') ? 0 : Number(v) || 0;
+  const jugs = _mergeRosterWithAggregated(d.jugadores, _aggregatePlayerStats(ligaMatches));
+  const own = (d.tabla || []).find(t => t.csb);
+  const byGoles = [...jugs].sort((a, b) => numVal(b.goles) - numVal(a.goles));
+  const byAsist = [...jugs].sort((a, b) => numVal(b.asist) - numVal(a.asist));
+  const byPJ    = [...jugs].sort((a, b) => (numVal(b.pj) || numVal(b.titular)) - (numVal(a.pj) || numVal(a.titular)));
+  const topG = byGoles[0], topA = byAsist[0], topPJ = byPJ[0];
+  return {
+    nombre, icon,
+    pos: own?.pos || '—',
+    pts: own ? numVal(own.pts) : null,
+    pj: own ? numVal(own.pj) : ligaMatches.filter(m => m.resultado !== null).length,
+    g:  own ? numVal(own.pg) : 0, e: own ? numVal(own.pe) : 0, p: own ? numVal(own.pp) : 0,
+    gf: own ? numVal(own.gf) : 0, gc: own ? numVal(own.gc) : 0,
+    maxGol:   topG && numVal(topG.goles) > 0 ? `${topG.nombre} (${numVal(topG.goles)})` : '',
+    maxAsist: topA && numVal(topA.asist) > 0 ? `${topA.nombre} (${numVal(topA.asist)})` : '',
+    maxPJ:    topPJ ? `${topPJ.nombre} (${numVal(topPJ.pj) || numVal(topPJ.titular)})` : '',
+  };
+}
+// Recopa 2026 (A) es un torneo de eliminación directa en curso — no tiene
+// tabla de posiciones, así que "pos" toma la Instancia (posCSB) del último
+// partido cargado, mismo dato que ya usan otras vistas ("🏅 Posición: X").
+function _anualesTorneo2026Recopa() {
+  const matches = COPA_BLOCKS['Recopa 2026'] || [];
+  const played = matches.filter(m => m.resultado !== null);
+  if (!played.length) return null;
+  const numVal = v => (v === null || v === undefined || v === '' || v === '-') ? 0 : Number(v) || 0;
+  const jugs = _aggregatePlayerStats(matches);
+  let g = 0, e = 0, p = 0, gf = 0, gc = 0;
+  played.forEach(m => {
+    gf += numVal(m.gf); gc += numVal(m.gc);
+    if (m.gf > m.gc) g++; else if (m.gf < m.gc) p++; else e++;
+  });
+  const byGoles = [...jugs].sort((a, b) => numVal(b.goles) - numVal(a.goles));
+  const byAsist = [...jugs].sort((a, b) => numVal(b.asist) - numVal(a.asist));
+  const byPJ    = [...jugs].sort((a, b) => numVal(b.pj) - numVal(a.pj));
+  const topG = byGoles[0], topA = byAsist[0], topPJ = byPJ[0];
+  return {
+    nombre: 'Recopa', icon: '🏆',
+    pos: played[played.length - 1].posCSB || '—',
+    pts: null,
+    pj: played.length, g, e, p, gf, gc,
+    maxGol:   topG && numVal(topG.goles) > 0 ? `${topG.nombre} (${numVal(topG.goles)})` : '',
+    maxAsist: topA && numVal(topA.asist) > 0 ? `${topA.nombre} (${numVal(topA.asist)})` : '',
+    maxPJ:    topPJ ? `${topPJ.nombre} (${numVal(topPJ.pj)})` : '',
+  };
+}
+function _anualesTorneos2026A() {
+  return [
+    _anualesTorneo2026FromLiga(DATA_A_APERTURA2026, 'Apertura', '🍂'),
+    _anualesTorneo2026FromLiga(DATA_A, 'Clausura', '🌸'),
+    _anualesTorneo2026Recopa(),
+  ].filter(Boolean);
+}
+
 const SEED_ANUALES = {
   '2023': {
     torneos: [
@@ -9225,12 +9289,16 @@ function renderJugAnualesYear(year) {
   _anualesSortAsc = false;
   const seed = SEED_ANUALES[year];
   if (!seed) return;
+  // 2026 está en curso — el resumen por torneo se calcula en vivo (ver
+  // _anualesTorneos2026A) en vez de leer el seed estático (que queda vacío
+  // a propósito, ya que esos números todavía no existen como "cerrados").
+  const torneos = year === '2026' ? _anualesTorneos2026A() : seed.torneos;
 
   // Totales del año: Liga + Copa juntos (antes solo sumaba los torneos de
   // liga — filter(t => t.pts !== null) excluía la Recopa por completo del
   // "Resumen del equipo", subestimando PJ/PG/PE/PP/GF/GC reales del año).
   const total = { pj: 0, g: 0, e: 0, p: 0, gf: 0, gc: 0 };
-  seed.torneos.forEach(t => { total.pj += t.pj; total.g += t.g; total.e += t.e; total.p += t.p; total.gf += t.gf; total.gc += t.gc; });
+  torneos.forEach(t => { total.pj += t.pj; total.g += t.g; total.e += t.e; total.p += t.p; total.gf += t.gf; total.gc += t.gc; });
   const pctG = Math.round(total.g / total.pj * 100);
   const pctE = Math.round(total.e / total.pj * 100);
   const pctP = 100 - pctG - pctE;
@@ -9270,7 +9338,7 @@ function renderJugAnualesYear(year) {
     <!-- BLOQUE 2: Rendimiento por torneo -->
     <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gris-texto);margin-bottom:8px">🏟️ Rendimiento por torneo</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-bottom:20px">
-      ${[...seed.torneos].sort((a, b) => _ppTorneoRank(a.nombre) - _ppTorneoRank(b.nombre)).map(t => {
+      ${!torneos.length ? `<div style="grid-column:1/-1;color:rgba(255,255,255,0.35);font-size:0.78rem;padding:12px 0">Todavía no hay partidos cargados en la temporada ${year}.</div>` : [...torneos].sort((a, b) => _ppTorneoRank(a.nombre) - _ppTorneoRank(b.nombre)).map(t => {
         const isLeague = t.pts !== null;
         const posColor = posStyle(t.pos);
         const posBg = posColor + '1f', posBorder = posColor + '59';
@@ -9280,7 +9348,13 @@ function renderJugAnualesYear(year) {
         // stores the short "Apertura"/"Clausura"/"Recopa" label, while the map
         // is keyed by the full name shared with "Gráficos" (e.g. "Apertura AIFA A").
         const competenciaFull = t.nombre === 'Recopa' ? 'Recopa' : `${t.nombre} AIFA A`;
-        const nav = TORNEO_NAV_MAP[`${year}|${competenciaFull}|A`] || TORNEO_NAV_MAP[`${year}|${competenciaFull}`];
+        // Clausura/Recopa 2026 (A) siguen activos en Torneos Actuales — no
+        // están en TORNEO_NAV_MAP (que solo cubre torneos ya archivados), así
+        // que su link va directo a showTorneo() en vez de showHistoricoTorneo().
+        const LIVE_2026_NAV_A = { Clausura: "showTorneo('apertura')", Recopa: "showTorneo('recopa')" };
+        const nav = (year === '2026' && LIVE_2026_NAV_A[t.nombre])
+          ? { fn: LIVE_2026_NAV_A[t.nombre] }
+          : (TORNEO_NAV_MAP[`${year}|${competenciaFull}|A`] || TORNEO_NAV_MAP[`${year}|${competenciaFull}`]);
         const cardAttrs = nav ? `onclick="_navPush('Estadísticas Anuales', () => renderJugAnualesYear(${year})); ${nav.fn}" style="cursor:pointer;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px 14px;transition:border-color .15s,background .15s" onmouseover="this.style.background='rgba(255,255,255,0.07)';this.style.borderColor='rgba(245,158,11,0.35)'" onmouseout="this.style.background='rgba(255,255,255,0.04)';this.style.borderColor='rgba(255,255,255,0.07)'"`
           : `style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px 14px"`;
         return `<div ${cardAttrs}>
@@ -9336,7 +9410,7 @@ function _anualesSourceB() {
 // seed estático todavía) — _anualesBuildRankingsB/_anualesBuildTableB
 // prefieren esto por año si está presente, si no caen al seed estático de
 // siempre. 2026 vive en una pestaña identificada por gid dentro de GS.B_HIST,
-// columnas I:N (sin columna de Posición, a diferencia de Primera A).
+// columnas I:O — mismo formato que Primera A (incluye Posición).
 let _anualesPlayersB = {};
 const ANUALES_LIVE_GID_B = { '2026': '333368377' };
 
@@ -9352,16 +9426,16 @@ function _anualesLoadPlayersB(year) {
   _anualesPlayersB[year] = [];
   _anualesBuildRankingsB(year);
   _anualesBuildTableB(year);
-  fetchGvizByGid(GS.B_HIST, ANUALES_LIVE_GID_B[year], 'I2:N60').then(rows => {
+  fetchGvizByGid(GS.B_HIST, ANUALES_LIVE_GID_B[year], 'I2:O60').then(rows => {
     if (!rows || rows.length < 2) return;
     const mapped = rows.slice(1).map(r => ({
       nombre:   String(r[0]||'').trim(),
-      pos:      '',
-      goles:    Number(r[1])||0,
-      asist:    Number(r[2])||0,
-      gmas:     Number(r[3])||0,
-      pj:       Number(r[4])||0,
-      promGmas: parseFloat(r[5])||0,
+      pos:      String(r[1]||'').trim(),
+      goles:    Number(r[2])||0,
+      asist:    Number(r[3])||0,
+      gmas:     Number(r[4])||0,
+      pj:       Number(r[5])||0,
+      promGmas: parseFloat(r[6])||0,
     })).filter(p => p.nombre);
     if (mapped.length > 0) {
       _anualesPlayersB[year] = mapped;
