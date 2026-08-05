@@ -4257,7 +4257,7 @@ function renderTorneosMenu() {
        </div>`;
   const cards = isA
     ? ligaCard + `<div class="torneo-card" onclick="_navPushTorneosActuales();showTorneo('recopa')">
-         <div class="torneo-card-icon">🏅</div>
+         <div class="torneo-card-icon">🏆</div>
          <div class="torneo-card-name">Recopa 2026</div>
          <div class="torneo-card-sub">Torneo copa · Temporada 2026</div>
        </div>`
@@ -4903,7 +4903,7 @@ function renderRecopa() {
           data-pj="${pj}" data-tit="${tit}" data-sup="${sup}" data-cit="${cit}"
           data-goles="${g}" data-asist="${a}" data-ga="${g+a}" data-tr="${tr}"
           data-pg="${pg}" data-pa="${pa}" data-pga="${pga}">
-        <td>${pos?`<span class="pos-badge" style="margin-right:6px">${pos}</span>`:''}${j.nombre}</td>
+        <td>${_plantelPosBadgeHtml(pos)}${j.nombre}</td>
         <td class="${pj>0?'':'num-zero'}">${z(pj)}</td><td class="${tit>0?'':'num-zero'}">${z(tit)}</td>
         <td class="${sup>0?'':'num-zero'}">${z(sup)}</td><td class="${g>0?'num-goles':'num-zero'}">${z(g)}</td>
         <td class="${a>0?'num-asist':'num-zero'}">${z(a)}</td><td class="${(g+a)>0?'num-ga':'num-zero'}">${z(g+a)}</td>
@@ -5062,7 +5062,7 @@ function renderRecopa() {
 
   document.getElementById('torneo-recopa-content').innerHTML = `
     ${_volverBtnHtml()}
-    <div class="section-title" style="margin-bottom:20px">🏅 ${name}</div>
+    <div class="section-title" style="margin-bottom:20px">🏆 ${name}</div>
 
     <nav class="ap-tab-nav">
       <button class="ap-tab-btn active" data-tab="rc-plantel"  onclick="rcSwitchTab('rc-plantel')"> <span class="ap-tab-icon">🌟</span> Plantel</button>
@@ -5286,11 +5286,11 @@ function _cdGoToFecha(tabFn, fechaFn, fecha) {
 // Mobile-only card view for Plantel (Torneos Actuales) — desktop keeps its
 // sortable `.ap-plantel-table` (hidden ≤768px via the `.mrow-desktop-only`
 // class added just on that wrapper, not shared CSS, so the other Plantel tab
-// copies elsewhere in the site are untouched). Position badge uses the same
-// POS_COLOR/POS_COLOR_B maps as El Nido/Estadísticas Totales for consistency.
-function _apPlantelMobileCardsHtml(rows, posColorMap) {
+// copies elsewhere in the site are untouched). Position badge uses
+// _plantelPosColor(), the same colors as El Nido, for consistency.
+function _apPlantelMobileCardsHtml(rows) {
   const cardsHtml = (rows || []).map(({ j, g, a, tit, cit, pj, pos }) => {
-    const pc = posColorMap[String(pos || '').toUpperCase()] || '#94a3b8';
+    const pc = _plantelPosColor(pos);
     return `
       <div class="mrow-card">
         <div class="mrow-top">
@@ -5514,7 +5514,7 @@ function renderTorneoApertura() {
           data-pj="${pj}" data-tit="${tit}" data-sup="${sup}" data-cit="${cit}"
           data-goles="${g}" data-asist="${a}" data-ga="${g+a}" data-tr="${tr}"
           data-pg="${pg}" data-pa="${pa}" data-pga="${pga}">
-        <td>${pos ? `<span class="pos-badge" style="margin-right:6px">${pos}</span>` : ''}${pl(j.nombre)}</td>
+        <td>${_plantelPosBadgeHtml(pos)}${pl(j.nombre)}</td>
         <td class="${pj  > 0 ? '' : 'num-zero'}">${z(pj)}</td>
         <td class="${tit > 0 ? '' : 'num-zero'}">${z(tit)}</td>
         <td class="${sup > 0 ? '' : 'num-zero'}">${z(sup)}</td>
@@ -5557,7 +5557,7 @@ function renderTorneoApertura() {
         ${thead}
         <tbody>${renderRows(defaultSorted)}</tbody>
       </table>
-    </div>${_apPlantelMobileCardsHtml(defaultSorted, isA ? POS_COLOR : POS_COLOR_B)}`;
+    </div>${_apPlantelMobileCardsHtml(defaultSorted)}`;
 
     // Sort state: null means default positional order
     window._apPlantelSortState = { col: null, asc: false };
@@ -5831,7 +5831,7 @@ function renderTorneoApertura2025A() {
           data-pj="${pj}" data-tit="${tit}" data-sup="${sup}" data-cit="${cit}"
           data-goles="${g}" data-asist="${a}" data-ga="${g+a}" data-tr="${tr}"
           data-pg="${pg}" data-pa="${pa}" data-pga="${pga}">
-        <td>${pos ? `<span class="pos-badge" style="margin-right:6px">${pos}</span>` : ''}${pl(j.nombre)}</td>
+        <td>${_plantelPosBadgeHtml(pos)}${pl(j.nombre)}</td>
         <td class="${pj>0?'':'num-zero'}">${z(pj)}</td>
         <td class="${tit>0?'':'num-zero'}">${z(tit)}</td>
         <td class="${sup>0?'':'num-zero'}">${z(sup)}</td>
@@ -5967,9 +5967,11 @@ function renderTorneoApertura2025A() {
     </div>` : `<div class="ap-standings-card"><div class="ap-card-title">📊 Tabla de Posiciones</div><div style="color:var(--gris-texto);font-size:0.82rem">Cargando…</div></div>`;
 
   // ── Tab 3: Fecha a Fecha ────────────────────────────────────────────────
-  const allFechas = partidos.map(m => ({ n: parseInt(m.fecha), played: m.resultado !== null })).sort((a,b) => a.n - b.n);
-  const fechaBtns = allFechas.map(f =>
-    `<button class="ap-fecha-btn ${f.played ? 'played' : 'pending'}" data-fecha="${f.n}" onclick="ap25SelectFecha(${f.n})">Fecha ${f.n}</button>`
+  const allFechas = partidos.map(m => ({ n: parseInt(m.fecha), played: m.resultado !== null, rival: m.rival })).sort((a,b) => a.n - b.n);
+  const fechaBtns = allFechas.map(f => `<div class="ap-fecha-btn-wrap">
+    <button class="ap-fecha-btn ${f.played ? 'played' : 'pending'}" data-fecha="${f.n}" onclick="ap25SelectFecha(${f.n})">Fecha ${f.n}</button>
+    <div class="ap-fecha-rival">${f.rival ? 'vs ' + f.rival : ''}</div>
+  </div>`
   ).join('');
 
   // ── Render shell ────────────────────────────────────────────────────────
@@ -6122,7 +6124,7 @@ function renderTorneoHistoricoGeneric(d, name, fechaLabels) {
           data-pj="${pj}" data-tit="${tit}" data-sup="${sup}" data-cit="${cit}"
           data-goles="${g}" data-asist="${a}" data-ga="${g+a}" data-tr="${tr}"
           data-pg="${pg}" data-pa="${pa}" data-pga="${pga}">
-        <td>${pos ? `<span class="pos-badge" style="margin-right:6px">${pos}</span>` : ''}${pl(j.nombre)}</td>
+        <td>${_plantelPosBadgeHtml(pos)}${pl(j.nombre)}</td>
         <td class="${pj>0?'':'num-zero'}">${z(pj)}</td>
         <td class="${tit>0?'':'num-zero'}">${z(tit)}</td>
         <td class="${sup>0?'':'num-zero'}">${z(sup)}</td>
@@ -6258,9 +6260,11 @@ function renderTorneoHistoricoGeneric(d, name, fechaLabels) {
     </div>` : `<div class="ap-standings-card"><div class="ap-card-title">📊 Tabla de Posiciones</div><div style="color:var(--gris-texto);font-size:0.82rem">Cargando…</div></div>`;
 
   // ── Tab 3: Fecha a Fecha ────────────────────────────────────────────────
-  const allFechas = partidos.map(m => ({ n: parseInt(m.fecha), played: m.resultado !== null })).sort((a,b) => a.n - b.n);
-  const fechaBtns = allFechas.map(f =>
-    `<button class="ap-fecha-btn ${f.played ? 'played' : 'pending'}" data-fecha="${f.n}" onclick="ghSelectFecha(${f.n})">${fechaLabels[f.n] || 'Fecha ' + f.n}</button>`
+  const allFechas = partidos.map(m => ({ n: parseInt(m.fecha), played: m.resultado !== null, rival: m.rival })).sort((a,b) => a.n - b.n);
+  const fechaBtns = allFechas.map(f => `<div class="ap-fecha-btn-wrap">
+    <button class="ap-fecha-btn ${f.played ? 'played' : 'pending'}" data-fecha="${f.n}" onclick="ghSelectFecha(${f.n})">${fechaLabels[f.n] || 'Fecha ' + f.n}</button>
+    <div class="ap-fecha-rival">${f.rival ? 'vs ' + f.rival : ''}</div>
+  </div>`
   ).join('');
 
   // ── Render shell ────────────────────────────────────────────────────────
@@ -6774,7 +6778,7 @@ function renderTorneoApt2024DB() {
             data-pj="${pj}" data-tit="${tit}" data-sup="${sup}" data-cit="${cit}"
             data-goles="${g}" data-asist="${a}" data-ga="${g+a}" data-tr="${tr}"
             data-pg="${pg}" data-pa="${pa}" data-pga="${pga}">
-          <td>${pos ? `<span class="pos-badge" style="margin-right:6px">${pos}</span>` : ''}${pl(j.nombre)}</td>
+          <td>${_plantelPosBadgeHtml(pos)}${pl(j.nombre)}</td>
           <td class="${pj>0?'':'num-zero'}">${z(pj)}</td>
           <td class="${tit>0?'':'num-zero'}">${z(tit)}</td>
           <td class="${sup>0?'':'num-zero'}">${z(sup)}</td>
@@ -6892,13 +6896,15 @@ function renderTorneoApt2024DB() {
         <div style="color:var(--gris-texto);font-size:0.82rem">${_bApt2024dLoaded ? 'Sin datos disponibles.' : 'Cargando…'}</div></div>`;
 
     // ── Tab 3: Fecha a Fecha ────────────────────────────────────────────
-    const allFechas = partidos.map(m => ({ n: parseInt(m.fecha), played: m.resultado !== null })).sort((a,b) => a.n - b.n);
+    const allFechas = partidos.map(m => ({ n: parseInt(m.fecha), played: m.resultado !== null, rival: m.rival })).sort((a,b) => a.n - b.n);
     // Fecha 16 was actually the tie-breaker decider match, not a regular
     // matchday — relabel it without changing the underlying fecha number
     // used for sorting/matching.
     const AP24D_FECHA_LABELS = { 16: 'Final Desempate' };
-    const fechaBtns = allFechas.map(f =>
-      `<button class="ap-fecha-btn ${f.played ? 'played' : 'pending'}" data-fecha="${f.n}" onclick="ap24dSelectFecha(${f.n})">${AP24D_FECHA_LABELS[f.n] || 'Fecha ' + f.n}</button>`
+    const fechaBtns = allFechas.map(f => `<div class="ap-fecha-btn-wrap">
+      <button class="ap-fecha-btn ${f.played ? 'played' : 'pending'}" data-fecha="${f.n}" onclick="ap24dSelectFecha(${f.n})">${AP24D_FECHA_LABELS[f.n] || 'Fecha ' + f.n}</button>
+      <div class="ap-fecha-rival">${f.rival ? 'vs ' + f.rival : ''}</div>
+    </div>`
     ).join('');
     const autoFecha = last ? last.fecha : (allFechas.length ? allFechas[0].n : null);
 
@@ -8264,6 +8270,19 @@ const JUG_COL = {
   gmas: 13, promGmas: 14, vallas: 15, vallasProm: 16
 };
 
+// Mismo código de colores que El Nido (ver posColor() dentro de su propio
+// IIFE) — usado en la columna de posición del Plantel, tanto en Torneos
+// Actuales como Antiguos, para que ambas vistas queden consistentes.
+function _plantelPosColor(pos) {
+  const C = { ARQ:'#a855f7', LI:'#22c55e', DEF:'#3b82f6', DFC:'#3b82f6', LD:'#22c55e', MC:'#f59e0b', DEL:'#ef4444' };
+  return C[String(pos || '').toUpperCase()] || '#6b7280';
+}
+function _plantelPosBadgeHtml(pos) {
+  if (!pos) return '';
+  const c = _plantelPosColor(pos);
+  return `<span class="pos-badge" style="background:${c}1a;color:${c};border-color:${c}66;margin-right:6px">${pos}</span>`;
+}
+
 const POS_COLOR = { ARQ:'#a855f7', LI:'#22c55e', DFC:'#3b82f6', LD:'#22c55e', MC:'#f59e0b', DEL:'#ef4444', DC:'#ef4444', ED:'#ef4444', EI:'#ef4444' };
 const POS_BG    = { ARQ:'rgba(168,85,247,0.18)', LI:'rgba(34,197,94,0.15)', DFC:'rgba(59,130,246,0.18)', LD:'rgba(34,197,94,0.15)', MC:'rgba(245,158,11,0.18)', DEL:'rgba(239,68,68,0.18)', DC:'rgba(239,68,68,0.18)', ED:'rgba(239,68,68,0.18)', EI:'rgba(239,68,68,0.18)' };
 
@@ -9162,7 +9181,11 @@ const SEED_ANUALES = {
       { nombre:'Clausura', icon:'🌸', pos:'5°',  pts:23, pj:15, g:7, e:2, p:6, gf:22, gc:18, maxGol:'Ramiro Hermida (7)', maxAsist:'Hermida / Vittar / Bello (3)',                    maxPJ:'Usandizaga, B. Elhaiek, F. Bello (15)' },
       { nombre:'Recopa',   icon:'🏆', pos:'Subcampeón', pts:null, pj:4, g:2, e:1, p:1, gf:9, gc:2, maxGol:'', maxAsist:'', maxPJ:'' },
     ]
-  }
+  },
+  // Temporada en curso — el resumen de torneos (Bloque 1/2 más abajo) se
+  // completará al cierre de cada torneo; los rankings de jugadores (Bloque 3)
+  // ya se alimentan en vivo vía _anualesLoadPlayers/ANUALES_LIVE_GID.
+  '2026': { torneos: [] },
 };
 
 let _anualesYear = null;
@@ -9303,6 +9326,45 @@ function _anualesSourceB() {
   return (DATA_B.graficos && DATA_B.graficos.length) ? DATA_B.graficos : SEED_GRAFICOS_B;
 }
 
+// Overlay sobre SEED_ANUALES_PLAYERS_B para años cargados en vivo (2026, sin
+// seed estático todavía) — _anualesBuildRankingsB/_anualesBuildTableB
+// prefieren esto por año si está presente, si no caen al seed estático de
+// siempre. 2026 vive en una pestaña identificada por gid dentro de GS.B_HIST,
+// columnas I:N (sin columna de Posición, a diferencia de Primera A).
+let _anualesPlayersB = {};
+const ANUALES_LIVE_GID_B = { '2026': '333368377' };
+
+function _anualesLoadPlayersB(year) {
+  if (_anualesPlayersB[year]) { _anualesBuildRankingsB(year); _anualesBuildTableB(year); return; }
+  if (SEED_ANUALES_PLAYERS_B[year]) {
+    _anualesPlayersB[year] = SEED_ANUALES_PLAYERS_B[year];
+    _anualesBuildRankingsB(year);
+    _anualesBuildTableB(year);
+    return;
+  }
+  if (!ANUALES_LIVE_GID_B[year]) return;
+  _anualesPlayersB[year] = [];
+  _anualesBuildRankingsB(year);
+  _anualesBuildTableB(year);
+  fetchGvizByGid(GS.B_HIST, ANUALES_LIVE_GID_B[year], 'I2:N60').then(rows => {
+    if (!rows || rows.length < 2) return;
+    const mapped = rows.slice(1).map(r => ({
+      nombre:   String(r[0]||'').trim(),
+      pos:      '',
+      goles:    Number(r[1])||0,
+      asist:    Number(r[2])||0,
+      gmas:     Number(r[3])||0,
+      pj:       Number(r[4])||0,
+      promGmas: parseFloat(r[5])||0,
+    })).filter(p => p.nombre);
+    if (mapped.length > 0) {
+      _anualesPlayersB[year] = mapped;
+      _anualesBuildRankingsB(year);
+      _anualesBuildTableB(year);
+    }
+  }).catch(() => {});
+}
+
 function renderJugAnualesMenuB() {
   const back = _volverBtnHtml('margin-bottom:16px');
   const years = [...new Set(_anualesSourceB().map(t => t.anio))].sort((a, b) => b - a);
@@ -9405,10 +9467,12 @@ function renderJugAnualesYearB(year) {
       }).join('')}
     </div>
 
-    ${SEED_ANUALES_PLAYERS_B[year] ? `
+    ${(SEED_ANUALES_PLAYERS_B[year] || ANUALES_LIVE_GID_B[year]) ? `
     <!-- BLOQUE 3: Rankings de la temporada -->
     <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gris-texto);margin-bottom:8px">🏅 Rankings de la temporada</div>
-    <div id="jug-anual-rankings-b" style="margin-bottom:20px"></div>
+    <div id="jug-anual-rankings-b" style="margin-bottom:20px">
+      <div style="color:var(--gris-texto);font-size:0.82rem">Cargando estadísticas de jugadores...</div>
+    </div>
 
     <!-- BLOQUE 4: Base de datos de jugadores -->
     <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gris-texto);margin-bottom:8px">👥 Todos los jugadores</div>
@@ -9417,16 +9481,17 @@ function renderJugAnualesYearB(year) {
         style="flex:1;min-width:150px;padding:7px 11px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:#fff;font-size:0.85rem;outline:none">
       <span id="jug-anual-count-b" style="color:var(--gris-texto);font-size:0.78rem;white-space:nowrap"></span>
     </div>
-    <div id="jug-anual-table-b" style="overflow-x:auto"></div>`
+    <div id="jug-anual-table-b" style="overflow-x:auto">
+      <div style="color:var(--gris-texto);font-size:0.82rem;padding:8px 0">Cargando tabla...</div>
+    </div>`
     : `<div style="font-size:0.72rem;color:rgba(255,255,255,0.35)">Rankings de jugadores por temporada no disponibles todavía para ${year} en Primera B.</div>`}`;
 
-  if (SEED_ANUALES_PLAYERS_B[year]) {
+  if (SEED_ANUALES_PLAYERS_B[year] || ANUALES_LIVE_GID_B[year]) {
     _anualesYearB = year;
     _anualesQueryB = '';
     _anualesSortColB = 1;
     _anualesSortAscB = false;
-    _anualesBuildRankingsB(year);
-    _anualesBuildTableB(year);
+    _anualesLoadPlayersB(year);
   }
 }
 
@@ -9451,7 +9516,7 @@ function _anualesSortB(col) {
 function _anualesBuildRankingsB(year) {
   const el = document.getElementById('jug-anual-rankings-b');
   if (!el) return;
-  const players = SEED_ANUALES_PLAYERS_B[year] || [];
+  const players = _anualesPlayersB[year] || SEED_ANUALES_PLAYERS_B[year] || [];
   if (!players.length) { el.innerHTML = '<div style="color:var(--gris-texto);font-size:0.82rem">Sin datos de jugadores.</div>'; return; }
 
   const top = (arr, key, n=5) => [...arr].sort((a,b) => b[key]-a[key]).slice(0,n).filter(p => p[key] > 0);
@@ -9490,7 +9555,7 @@ function _anualesBuildTableB(year) {
   const el = document.getElementById('jug-anual-table-b');
   const countEl = document.getElementById('jug-anual-count-b');
   if (!el) return;
-  const players = SEED_ANUALES_PLAYERS_B[year] || [];
+  const players = _anualesPlayersB[year] || SEED_ANUALES_PLAYERS_B[year] || [];
 
   const COLS = [
     { label:'Jugador',  key:'nombre',  color:'#fff',     isText: true },
@@ -9549,14 +9614,17 @@ function _anualesBuildTableB(year) {
   </table>`;
 }
 
+// 2026 vive en una pestaña identificada por gid (no por nombre de tab que
+// coincida literalmente con el año) dentro de GS.A_MAIN, mismas columnas I:O
+// que los años anteriores — ver fetchGvizByGid más abajo.
+const ANUALES_LIVE_GID = { '2026': '2135980915' };
+
 function _anualesLoadPlayers(year) {
   if (_anualesPlayers[year]) { _anualesBuildAll(year); return; }
   _anualesPlayers[year] = SEED_ANUALES_PLAYERS[year] || [];
   _anualesBuildAll(year);
 
-  const ranges = { '2023':'I2:O28', '2024':'I2:O33', '2025':'I2:O31' };
-  if (!ranges[year]) return;
-  fetchProxy(String(year), ranges[year]).then(rows => {
+  function applyRows(rows) {
     if (!rows || rows.length < 2) return;
     const mapped = rows.slice(1).map(r => ({
       nombre:   String(r[0]||'').trim(),
@@ -9571,7 +9639,16 @@ function _anualesLoadPlayers(year) {
       _anualesPlayers[year] = mapped;
       _anualesBuildAll(year);
     }
-  }).catch(() => {});
+  }
+
+  if (ANUALES_LIVE_GID[year]) {
+    fetchGvizByGid(GS.A_MAIN, ANUALES_LIVE_GID[year], 'I2:O60').then(applyRows).catch(() => {});
+    return;
+  }
+
+  const ranges = { '2023':'I2:O28', '2024':'I2:O33', '2025':'I2:O31' };
+  if (!ranges[year]) return;
+  fetchProxy(String(year), ranges[year]).then(applyRows).catch(() => {});
 }
 
 function _anualesFilter(q) {
