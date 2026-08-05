@@ -1730,6 +1730,8 @@
     .pp-ved-d { color:#ef4444; }
     .pp-record-note { font-size:0.62rem; color:#94a3b8; }
     .pp-record-favorito { font-size:0.8rem; color:#cbd5e1; padding-top:6px; border-top:1px solid #1e293b; }
+    #pp-record-body { transition:opacity .15s; }
+    #pp-record-body.pp-fading { opacity:0; }
     .pp-effectiveness { margin-top: 16px; }
     .pp-kpi-tab { cursor:pointer; transition:background .15s, border-color .15s; border:1px solid transparent; }
     .pp-kpi-tab:hover { background:rgba(255,255,255,0.04); }
@@ -3247,6 +3249,17 @@ function ppFilterMetrics(cat, btn) {
     pctEl.classList.add('pp-fading');
     setTimeout(() => { pctEl.textContent = c.efectividadGA.toFixed(0) + '%'; pctEl.classList.remove('pp-fading'); }, 150);
   }
+
+  // Récord V-E-D + Cliente Favorito — se recalculan sobre la misma categoría
+  // recién seleccionada (window._ppActiveCat ya quedó actualizado arriba).
+  const recordBodyEl = document.getElementById('pp-record-body');
+  if (recordBodyEl) {
+    recordBodyEl.classList.add('pp-fading');
+    setTimeout(() => {
+      recordBodyEl.innerHTML = _ppRecordCardInnerHtml(window._ppDetailLists.partidos || []);
+      recordBodyEl.classList.remove('pp-fading');
+    }, 150);
+  }
 }
 
 // ── Every tournament data source that carries a real Fecha a Fecha (.apertura
@@ -3737,6 +3750,22 @@ function _ppFavoritoCliente(partidos) {
   return { rivales: entries.filter(([, w]) => w === max).map(([rival]) => rival), wins: max };
 }
 
+// Inner markup of the "Récord de Resultados" card body — shared by the
+// initial render and ppFilterMetrics (so switching Totales/Primera A/Primera
+// B re-filters the V-E-D balance and el Cliente Favorito exactly like the
+// KPI metrics above it, instead of always showing the career-wide total).
+function _ppRecordCardInnerHtml(fullPartidos) {
+  const list = _ppFilterByCat(fullPartidos);
+  const record = _ppRecordVED(list);
+  const favCliente = _ppFavoritoCliente(list);
+  return `
+    <div class="pp-record-ved" id="pp-record-ved"><span class="pp-ved-v">${record.v}V</span> - <span class="pp-ved-e">${record.e}E</span> - <span class="pp-ved-d">${record.d}D</span></div>
+    <div class="pp-record-note">* Métrica calculada sobre los partidos cargados en la web</div>
+    <div class="pp-record-favorito" id="pp-record-favorito">👑 Cliente Favorito: ${favCliente
+      ? `<span class="pp-favorito-name">${favCliente.rivales.join(', ')}</span> (${favCliente.wins} Victoria${favCliente.wins !== 1 ? 's' : ''})`
+      : `<span style="color:rgba(255,255,255,0.4)">—</span>`}</div>`;
+}
+
 // G+A per rival, keeping the goles/asist split (not just the combined
 // total) — powers the "X G+A ➔ Y ⚽ + Z 🎯" breakdown in both the
 // "Mayor Impacto" micro-banner and the G+A "Resumen" tab.
@@ -4005,20 +4034,14 @@ function renderPlayerProfile(nombre) {
       <div class="pp-rank-col-right">${rightCol}</div>
     </div>` : '';
 
-  // Récord V-E-D + "Cliente Favorito" (rival con más derrotas frente al
-  // jugador) — sobre el historial completo de partidos jugados, sin filtro
-  // de categoría (a diferencia de las métricas de arriba, que sí se filtran
-  // por Totales/Primera A/Primera B).
-  const record = _ppRecordVED(s.partidos);
-  const favCliente = _ppFavoritoCliente(s.partidos);
+  // Récord V-E-D + "Cliente Favorito" — filtrado por la misma categoría
+  // activa (Totales/Primera A/Primera B) que las métricas de arriba, así
+  // que responde al cambio de pestaña igual que ellas (ver ppFilterMetrics,
+  // que llama a _ppRecordCardInnerHtml de nuevo con la categoría nueva).
   const recordCard = `
     <div class="card pp-record-card" style="margin-top:18px">
       <div class="card-label">Récord de Resultados</div>
-      <div class="pp-record-ved"><span class="pp-ved-v">${record.v}V</span> - <span class="pp-ved-e">${record.e}E</span> - <span class="pp-ved-d">${record.d}D</span></div>
-      <div class="pp-record-note">* Métrica calculada sobre los partidos cargados en la web</div>
-      <div class="pp-record-favorito">👑 Cliente Favorito: ${favCliente
-        ? `<span class="pp-favorito-name">${favCliente.rivales.join(', ')}</span> (${favCliente.wins} Victoria${favCliente.wins !== 1 ? 's' : ''})`
-        : `<span style="color:rgba(255,255,255,0.4)">—</span>`}</div>
+      <div id="pp-record-body">${_ppRecordCardInnerHtml(s.partidos)}</div>
     </div>`;
 
   overlay.innerHTML = `
