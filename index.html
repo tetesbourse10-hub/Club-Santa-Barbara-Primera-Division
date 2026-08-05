@@ -8274,7 +8274,13 @@ const JUG_COL = {
 // IIFE) — usado en la columna de posición del Plantel, tanto en Torneos
 // Actuales como Antiguos, para que ambas vistas queden consistentes.
 function _plantelPosColor(pos) {
-  const C = { ARQ:'#a855f7', LI:'#22c55e', DEF:'#3b82f6', DFC:'#3b82f6', LD:'#22c55e', MC:'#f59e0b', DEL:'#ef4444' };
+  const C = {
+    ARQ:'#a855f7',
+    LI:'#22c55e', LD:'#22c55e', DFI:'#22c55e', DFD:'#22c55e',
+    DEF:'#3b82f6', DFC:'#3b82f6',
+    MC:'#f59e0b', MCO:'#f59e0b',
+    DEL:'#ef4444', DC:'#ef4444', ED:'#ef4444', EI:'#ef4444',
+  };
   return C[String(pos || '').toUpperCase()] || '#6b7280';
 }
 function _plantelPosBadgeHtml(pos) {
@@ -8283,8 +8289,8 @@ function _plantelPosBadgeHtml(pos) {
   return `<span class="pos-badge" style="background:${c}1a;color:${c};border-color:${c}66;margin-right:6px">${pos}</span>`;
 }
 
-const POS_COLOR = { ARQ:'#a855f7', LI:'#22c55e', DFC:'#3b82f6', LD:'#22c55e', MC:'#f59e0b', DEL:'#ef4444', DC:'#ef4444', ED:'#ef4444', EI:'#ef4444' };
-const POS_BG    = { ARQ:'rgba(168,85,247,0.18)', LI:'rgba(34,197,94,0.15)', DFC:'rgba(59,130,246,0.18)', LD:'rgba(34,197,94,0.15)', MC:'rgba(245,158,11,0.18)', DEL:'rgba(239,68,68,0.18)', DC:'rgba(239,68,68,0.18)', ED:'rgba(239,68,68,0.18)', EI:'rgba(239,68,68,0.18)' };
+const POS_COLOR = { ARQ:'#a855f7', LI:'#22c55e', LD:'#22c55e', DFI:'#22c55e', DFD:'#22c55e', DEF:'#3b82f6', DFC:'#3b82f6', MC:'#f59e0b', MCO:'#f59e0b', DEL:'#ef4444', DC:'#ef4444', ED:'#ef4444', EI:'#ef4444' };
+const POS_BG    = { ARQ:'rgba(168,85,247,0.18)', LI:'rgba(34,197,94,0.15)', LD:'rgba(34,197,94,0.15)', DFI:'rgba(34,197,94,0.15)', DFD:'rgba(34,197,94,0.15)', DFC:'rgba(59,130,246,0.18)', MC:'rgba(245,158,11,0.18)', MCO:'rgba(245,158,11,0.18)', DEL:'rgba(239,68,68,0.18)', DC:'rgba(239,68,68,0.18)', ED:'rgba(239,68,68,0.18)', EI:'rgba(239,68,68,0.18)' };
 
 const JUG_TABS = [
   { key:'general',      label:'General',      cols:[JUG_COL.pj, JUG_COL.goles, JUG_COL.asist, JUG_COL.gmas] },
@@ -8628,8 +8634,8 @@ const JUG_COL_B = {
   promGol:12, promAsist:13, promGmas:14, vallas:15
 };
 
-const POS_COLOR_B = { ARQ:'#a855f7', LI:'#22c55e', DEF:'#3b82f6', DFC:'#3b82f6', LD:'#22c55e', MC:'#f59e0b', DEL:'#ef4444', DC:'#ef4444', ED:'#ef4444', EI:'#ef4444' };
-const POS_BG_B    = { ARQ:'rgba(168,85,247,0.18)', LI:'rgba(34,197,94,0.15)', DEF:'rgba(59,130,246,0.18)', DFC:'rgba(59,130,246,0.18)', LD:'rgba(34,197,94,0.15)', MC:'rgba(245,158,11,0.18)', DEL:'rgba(239,68,68,0.18)', DC:'rgba(239,68,68,0.18)', ED:'rgba(239,68,68,0.18)', EI:'rgba(239,68,68,0.18)' };
+const POS_COLOR_B = { ARQ:'#a855f7', LI:'#22c55e', LD:'#22c55e', DFI:'#22c55e', DFD:'#22c55e', DEF:'#3b82f6', DFC:'#3b82f6', MC:'#f59e0b', MCO:'#f59e0b', DEL:'#ef4444', DC:'#ef4444', ED:'#ef4444', EI:'#ef4444' };
+const POS_BG_B    = { ARQ:'rgba(168,85,247,0.18)', LI:'rgba(34,197,94,0.15)', LD:'rgba(34,197,94,0.15)', DFI:'rgba(34,197,94,0.15)', DFD:'rgba(34,197,94,0.15)', DEF:'rgba(59,130,246,0.18)', DFC:'rgba(59,130,246,0.18)', MC:'rgba(245,158,11,0.18)', MCO:'rgba(245,158,11,0.18)', DEL:'rgba(239,68,68,0.18)', DC:'rgba(239,68,68,0.18)', ED:'rgba(239,68,68,0.18)', EI:'rgba(239,68,68,0.18)' };
 
 const JUG_TABS_B = [
   { key:'general',       label:'General',       cols:[JUG_COL_B.pj, JUG_COL_B.goles, JUG_COL_B.asist, JUG_COL_B.gmas] },
@@ -11895,8 +11901,14 @@ async function loadLiveData() {
   }
 
   function posColor(pos) {
-    const C = { ARQ:'#a855f7', LI:'#22c55e', DEF:'#3b82f6', DFC:'#3b82f6', LD:'#22c55e', MC:'#f59e0b', DEL:'#ef4444' };
-    return C[pos] || '#6b7280';
+    const C = {
+      ARQ:'#a855f7',
+      LI:'#22c55e', LD:'#22c55e', DFI:'#22c55e', DFD:'#22c55e',
+      DEF:'#3b82f6', DFC:'#3b82f6',
+      MC:'#f59e0b', MCO:'#f59e0b',
+      DEL:'#ef4444', DC:'#ef4444', ED:'#ef4444', EI:'#ef4444',
+    };
+    return C[String(pos || '').toUpperCase()] || '#6b7280';
   }
 
   function teamBadge(t) {
