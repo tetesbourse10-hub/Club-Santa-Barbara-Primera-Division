@@ -1723,6 +1723,13 @@
     .pp-rank-pill { display:flex; align-items:center; gap:6px; padding:7px 12px; border-radius:999px; border:1px solid #1e2a3a; background:rgba(255,255,255,0.03); font-size:0.78rem; font-weight:800; color:#94a3b8; }
     .pp-rank-top { box-shadow: 0 0 0 1px rgba(255,255,255,0.02); }
     .pp-rank-label { color:var(--gris-texto); font-weight:600; font-size:0.74rem; }
+    .pp-record-card { display:flex; flex-direction:column; gap:8px; }
+    .pp-record-ved { font-size:1.3rem; font-weight:900; letter-spacing:-.01em; }
+    .pp-ved-v { color:#22c55e; }
+    .pp-ved-e { color:#eab308; }
+    .pp-ved-d { color:#ef4444; }
+    .pp-record-note { font-size:0.62rem; color:#94a3b8; }
+    .pp-record-favorito { font-size:0.8rem; color:#cbd5e1; padding-top:6px; border-top:1px solid #1e293b; }
     .pp-effectiveness { margin-top: 16px; }
     .pp-kpi-tab { cursor:pointer; transition:background .15s, border-color .15s; border:1px solid transparent; }
     .pp-kpi-tab:hover { background:rgba(255,255,255,0.04); }
@@ -3699,6 +3706,37 @@ function _ppFavoritoRival(list, key) {
   return _ppRivalTotals(list, key)[0] || null;
 }
 
+// Career V-E-D — resultado del EQUIPO en cada partido donde el jugador
+// efectivamente pisó la cancha (partidos ya viene filtrado a Titular/Suplente
+// que ingresó, ver _collectPlayerStats). No es un resultado "personal" del
+// jugador (no existe tal cosa en fútbol) sino el balance del club en su
+// participación — de ahí la leyenda aclaratoria en el perfil.
+function _ppRecordVED(partidos) {
+  let v = 0, e = 0, d = 0;
+  for (const p of partidos) {
+    if (p.gf == null || p.gc == null) continue;
+    if (p.gf > p.gc) v++;
+    else if (p.gf < p.gc) d++;
+    else e++;
+  }
+  return { v, e, d };
+}
+
+// "Cliente Favorito" — rival contra el cual el jugador acumula más
+// victorias (no total de partidos ni goles, a diferencia de las otras
+// banners "Favorito*" de arriba). Empate entre rivales -> se listan todos.
+function _ppFavoritoCliente(partidos) {
+  const wins = {};
+  for (const p of partidos) {
+    if (!p.rival || p.gf == null || p.gc == null || p.gf <= p.gc) continue;
+    wins[p.rival] = (wins[p.rival] || 0) + 1;
+  }
+  const entries = Object.entries(wins).sort((a, b) => b[1] - a[1]);
+  if (!entries.length) return null;
+  const max = entries[0][1];
+  return { rivales: entries.filter(([, w]) => w === max).map(([rival]) => rival), wins: max };
+}
+
 // G+A per rival, keeping the goles/asist split (not just the combined
 // total) — powers the "X G+A ➔ Y ⚽ + Z 🎯" breakdown in both the
 // "Mayor Impacto" micro-banner and the G+A "Resumen" tab.
@@ -3967,6 +4005,22 @@ function renderPlayerProfile(nombre) {
       <div class="pp-rank-col-right">${rightCol}</div>
     </div>` : '';
 
+  // Récord V-E-D + "Cliente Favorito" (rival con más derrotas frente al
+  // jugador) — sobre el historial completo de partidos jugados, sin filtro
+  // de categoría (a diferencia de las métricas de arriba, que sí se filtran
+  // por Totales/Primera A/Primera B).
+  const record = _ppRecordVED(s.partidos);
+  const favCliente = _ppFavoritoCliente(s.partidos);
+  const recordCard = `
+    <div class="card pp-record-card" style="margin-top:18px">
+      <div class="card-label">Récord de Resultados</div>
+      <div class="pp-record-ved"><span class="pp-ved-v">${record.v}V</span> - <span class="pp-ved-e">${record.e}E</span> - <span class="pp-ved-d">${record.d}D</span></div>
+      <div class="pp-record-note">* Métrica calculada sobre los partidos cargados en la web</div>
+      <div class="pp-record-favorito">👑 Cliente Favorito: ${favCliente
+        ? `<span class="pp-favorito-name">${favCliente.rivales.join(', ')}</span> (${favCliente.wins} Victoria${favCliente.wins !== 1 ? 's' : ''})`
+        : `<span style="color:rgba(255,255,255,0.4)">—</span>`}</div>
+    </div>`;
+
   overlay.innerHTML = `
     <div class="pp-wrap">
       <button class="volver-btn" onclick="_ppVolver()">← Volver</button>
@@ -3978,6 +4032,7 @@ function renderPlayerProfile(nombre) {
         </div>
       </div>
       ${rankings}
+      ${recordCard}
       <div class="card" style="margin-top:18px">
         <div class="pp-metrics-header">
           <div class="card-label">Métricas Totales</div>
@@ -7439,8 +7494,9 @@ function renderHistorial() {
   }
 
   // Mobile card view: club name + chevron on top (preserves the drilldown
-  // click), goal difference (Dif.) highlighted on the right since it's the
-  // single most useful at-a-glance number, secondary line with PJ/V/E/D/GF·GC.
+  // click), head-to-head record (PG−PP) highlighted on the right — más
+  // relevante en un vistazo que la diferencia de gol para saber "quién le
+  // gana a quién" —, secondary line with PJ/V/E/D/GF·GC.
   function buildMobileCards(rows) {
     if (!rows.length) return '';
     const cardsHtml = rows.map(r => `
@@ -7450,8 +7506,8 @@ function renderHistorial() {
             <div class="mrow-title-row"><div class="mrow-title">${r.rival}</div><span class="mrow-chevron">›</span></div>
           </div>
           <div class="mrow-highlight">
-            <div class="mrow-highlight-val ${balClass(r.dif)}">${sign(r.dif)}</div>
-            <div class="mrow-highlight-label">Dif.</div>
+            <div class="mrow-highlight-val ${balClass(r.dh)}">${r.dh === 0 ? '=' : sign(r.dh)}</div>
+            <div class="mrow-highlight-label">PJ</div>
           </div>
         </div>
         <div class="mrow-secondary">
