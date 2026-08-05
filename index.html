@@ -11911,6 +11911,20 @@ async function loadLiveData() {
     return C[String(pos || '').toUpperCase()] || '#6b7280';
   }
 
+  // V-E-D (PG/PE/PP) por jugador para la vista de ranking "Partidos Jugados"
+  // — mismo cálculo que la tarjeta "Récord de Resultados" del perfil
+  // (_collectPlayerStats + _ppRecordVED, ambas top-level), para que los dos
+  // lugares muestren siempre el mismo número. Memoizado porque recorrer todos
+  // los partidos de cada jugador es costoso y esta tabla lista ~100 a la vez.
+  const _nidoVEDCache = {};
+  function _nidoGetVED(nombre) {
+    const key = normName(nombre);
+    if (_nidoVEDCache[key]) return _nidoVEDCache[key];
+    const ved = _ppRecordVED(_collectPlayerStats(nombre).partidos);
+    _nidoVEDCache[key] = ved;
+    return ved;
+  }
+
   function teamBadge(t) {
     const lbl = t === 'a' ? '1ra A' : '1ra B';
     const bg  = t === 'a' ? 'rgba(234,179,8,0.15)' : 'rgba(59,130,246,0.15)';
@@ -11975,6 +11989,10 @@ async function loadLiveData() {
     const isRankMode = !!_nidoRank;
     const rankMeta   = isRankMode ? RANK_METRICS.find(m => m.key === _nidoRank) : null;
     const promSwap   = isRankMode ? PROM_MAP[_nidoRank] : null; // non-null only for prom rankings
+    // Filtro "Partidos Jugados": columnas propias (PJ, PG, PE, PP, G, A, G+A)
+    // en vez del set fijo de siempre — pedido explícito para no mezclar
+    // Títulos/Vallas con el desglose de resultados en esta vista.
+    const isPjRank   = _nidoRank === 'pj';
 
     const TH  = `padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:#6b7280;white-space:nowrap;letter-spacing:.06em;`;
     const THS = TH + `cursor:pointer;user-select:none;`;
@@ -11985,7 +12003,18 @@ async function loadLiveData() {
       : _nidoSort.col;
 
     // Build column list, swapping the affected column header when in prom-rank mode
-    const cols = [
+    const cols = isPjRank ? [
+      { key: 'nombre',  label: 'JUGADOR' },
+      { key: 'pos',     label: 'POS',     center: true },
+      { key: 'teams',   label: 'EQUIPO',  noSort: true },
+      { key: 'pj',      label: 'PJ',      center: true },
+      { key: 'pg',      label: 'PG',      center: true, noSort: true },
+      { key: 'pe',      label: 'PE',      center: true, noSort: true },
+      { key: 'pp',      label: 'PP',      center: true, noSort: true },
+      { key: 'goles',   label: 'G',       center: true },
+      { key: 'asist',   label: 'A',       center: true },
+      { key: 'gmas',    label: 'G+A',     center: true },
+    ] : [
       { key: 'nombre',  label: 'JUGADOR' },
       { key: 'pos',     label: 'POS',     center: true },
       { key: 'teams',   label: 'EQUIPO',  noSort: true },
@@ -12063,23 +12092,28 @@ async function loadLiveData() {
         return raw;
       };
 
+      const ved = isPjRank ? _nidoGetVED(p.nombre) : null;
+
       return `<tr style="background:${bg};border-bottom:${borderBottom};transition:background .15s;">
         ${posCell}
         <td style="padding:9px 14px;font-size:13px;color:#f3f4f6;white-space:nowrap;">${nombreCell}</td>
         <td style="padding:9px 14px;text-align:center;"><span style="padding:3px 8px;border-radius:6px;background:${pBg};color:${pColor};font-size:11px;font-weight:700;letter-spacing:.04em;">${p.pos || '—'}</span></td>
         <td style="padding:9px 14px;white-space:nowrap;">${teamBadges}</td>
         ${td('pj',     p.pj)}
+        ${isPjRank ? td('pg', ved.v) : ''}
+        ${isPjRank ? td('pe', ved.e) : ''}
+        ${isPjRank ? td('pp', ved.d) : ''}
         ${td('goles',  fmt(p.goles,  'promGol'))}
         ${td('asist',  fmt(p.asist,  'promAsist'))}
         ${td('gmas',   fmt(p.gmas,   'promGmas'))}
-        ${td('titulos',p.titulos || 0)}
-        ${td('vallas', fmt(p.vallas, 'vallasProm'))}
+        ${!isPjRank ? td('titulos', p.titulos || 0) : ''}
+        ${!isPjRank ? td('vallas', fmt(p.vallas, 'vallasProm')) : ''}
       </tr>`;
     }).join('');
 
     const totalDs = activeDataset().length;
     const showing  = rows.length;
-    const colspan  = isRankMode ? 10 : 9;
+    const colspan  = isPjRank ? 11 : (isRankMode ? 10 : 9);
 
     const desktopHtml = `<div class="nido-desktop-only" style="border-radius:12px;border:1px solid rgba(255,255,255,0.09);overflow:hidden;">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:rgba(255,255,255,0.03);border-bottom:1px solid rgba(255,255,255,0.07);">
@@ -12093,14 +12127,19 @@ async function loadLiveData() {
       </div>
     </div>`;
 
-    return desktopHtml + _renderNidoMobileCards(rows, activeColKey, promSwap);
+    return desktopHtml + _renderNidoMobileCards(rows, activeColKey, promSwap, isPjRank);
   }
 
-  const NIDO_COL_LABELS = { pj:'PJ', goles:'Goles', asist:'Asist.', gmas:'G+A', titulos:'Títulos', vallas:'Vallas' };
+  const NIDO_COL_LABELS = { pj:'PJ', goles:'Goles', asist:'Asist.', gmas:'G+A', titulos:'Títulos', vallas:'Vallas', pg:'PG', pe:'PE', pp:'PP' };
   // Same per-column value (raw vs. promedio-swapped) the desktop table's
   // `td()`/`fmt()` helpers compute, reused here so mobile shows identical
-  // numbers — just laid out as a card instead of a table row.
+  // numbers — just laid out as a card instead of a table row. pg/pe/pp no
+  // viven en `p` — se resuelven vía _nidoGetVED (misma cache que el desktop).
   function _nidoStatValue(p, key, promSwap) {
+    if (key === 'pg' || key === 'pe' || key === 'pp') {
+      const ved = _nidoGetVED(p.nombre);
+      return key === 'pg' ? ved.v : key === 'pe' ? ved.e : ved.d;
+    }
     const raw = key === 'titulos' ? (p.titulos || 0) : p[key];
     const promFieldByKey = { goles: 'promGol', asist: 'promAsist', gmas: 'promGmas', vallas: 'vallasProm' };
     const promField = promFieldByKey[key];
@@ -12115,7 +12154,7 @@ async function loadLiveData() {
   // sync from the exact same renderTable() call. Capped at
   // _nidoMobileVisible with a "Cargar más" button instead of rendering all
   // ~103 players at once.
-  function _renderNidoMobileCards(rows, activeColKey, promSwap) {
+  function _renderNidoMobileCards(rows, activeColKey, promSwap, isPjRank) {
     const total = rows.length;
     const visible = rows.slice(0, _nidoMobileVisible);
 
@@ -12123,8 +12162,11 @@ async function loadLiveData() {
       const rankColor = i === 0 ? '#eab308' : i === 1 ? '#cbd5e1' : i === 2 ? '#d6a87c' : '#6b7280';
       const pColor = posColor(p.pos);
       const teamBadges = p.teams.map(teamBadge).join('');
-      const secondaryKeys = ['pj', 'goles', 'asist', 'titulos', 'vallas']
-        .filter(k => k !== activeColKey).slice(0, 4);
+      // Filtro "Partidos Jugados": desglose PG/PE/PP + G/A/G+A en vez de
+      // Títulos/Vallas — mismas columnas nuevas que el desktop.
+      const secondaryKeys = isPjRank
+        ? ['pg', 'pe', 'pp', 'goles', 'asist', 'gmas']
+        : ['pj', 'goles', 'asist', 'titulos', 'vallas'].filter(k => k !== activeColKey).slice(0, 4);
       const secondaryHtml = secondaryKeys.map(k => `
         <div class="nido-card-stat">
           <span class="nido-card-stat-val">${_nidoStatValue(p, k, promSwap)}</span>
