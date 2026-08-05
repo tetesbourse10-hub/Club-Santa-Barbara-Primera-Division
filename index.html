@@ -11854,6 +11854,13 @@ async function loadLiveData() {
   if (timeEl) timeEl.textContent = `Última actualización: ${hhmm}`;
   if (statusEl) { statusEl.textContent = ''; statusEl.className = ''; }
   _swrSave();
+  // El Nido cachea PG/PE/PP por jugador (_nidoVEDCache) — si esa cache se
+  // llegó a poblar ANTES de que terminara esta carga (alguna de las muchas
+  // fuentes de partidos que arriba recién terminaron de resolver), quedaría
+  // con conteos incompletos para siempre. Se invalida en cada carga/refresco
+  // para que la próxima vez que se mire el ranking recalcule contra los
+  // datos ya completos.
+  if (window._nidoInvalidateVEDCache) window._nidoInvalidateVEDCache();
   refreshCurrentView();
   renderLandingWidgets();
 }
@@ -11995,7 +12002,17 @@ async function loadLiveData() {
   // (_collectPlayerStats + _ppRecordVED, ambas top-level), para que los dos
   // lugares muestren siempre el mismo número. Memoizado porque recorrer todos
   // los partidos de cada jugador es costoso y esta tabla lista ~100 a la vez.
-  const _nidoVEDCache = {};
+  //
+  // La cache se invalida entera cada vez que loadLiveData() termina (ver
+  // window._nidoInvalidateVEDCache, llamado desde loadLiveData) — sin esto,
+  // si la tabla se llega a ver ANTES de que terminen de cargar todas las
+  // fuentes de partidos que usa _collectAllMatchesForPlayer (Torneos
+  // Antiguos, copas, etc. — cada una carga en paralelo y a su propio ritmo),
+  // el primer cálculo quedaba memoizado para siempre con un conteo
+  // incompleto, mientras que el perfil del jugador (que jamás cachea, siempre
+  // recalcula desde cero) sí terminaba reflejando el total real una vez
+  // cargado todo — de ahí el desfase reportado entre ambas vistas.
+  let _nidoVEDCache = {};
   function _nidoGetVED(nombre) {
     const key = normName(nombre);
     if (_nidoVEDCache[key]) return _nidoVEDCache[key];
@@ -12448,6 +12465,10 @@ async function loadLiveData() {
     const pool = team === 'b' ? _nidoDataB : team === 'a' ? _nidoDataA : (_nidoMerged || []);
     return pool.find(p => normName(p.nombre) === normName(nombre)) || null;
   };
+
+  // Llamado desde loadLiveData() al terminar cada carga/refresco — ver el
+  // comentario en _nidoVEDCache más arriba.
+  window._nidoInvalidateVEDCache = function() { _nidoVEDCache = {}; };
 
   window._nidoTeam = function(t) { _nidoTeam = t; _nidoMobileVisible = 15; _renderNidoContent(); };
   window._nidoPosToggle = function() { _nidoPosOpen = !_nidoPosOpen; _renderNidoContent(); };
