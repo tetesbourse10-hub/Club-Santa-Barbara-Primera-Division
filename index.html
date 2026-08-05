@@ -623,6 +623,25 @@
       }
       .nido-mobile-summary { font-size: 12px; color: #6b7280; }
 
+      /* Sub-selector propio del filtro "Partidos Jugados" — solo se muestra
+         cuando ese es el ranking activo (es el único que se desglosa en
+         columnas propias PG/PE/PP en desktop; ver isPjRank). */
+      .nido-pj-subsort { margin-bottom: 10px; }
+      .nido-pj-subsort-label {
+        font-size: 0.68rem; color: #6b7280; text-transform: uppercase;
+        letter-spacing: .04em; margin-bottom: 6px;
+      }
+      .nido-pj-subsort-chips { display: flex; gap: 6px; }
+      .nido-pj-chip {
+        flex: 1; padding: 7px 0; border-radius: 8px; border: none; cursor: pointer;
+        font-size: 0.78rem; font-weight: 700; text-align: center; font-family: inherit;
+      }
+      .nido-pj-chip.active { background: #fac775; color: #1a1206; }
+      .nido-pj-chip-pj:not(.active) { background: rgba(245,158,11,0.12); color: var(--dorado); }
+      .nido-pj-chip-pg:not(.active) { background: rgba(151,196,89,0.12);  color: #97c459; }
+      .nido-pj-chip-pe:not(.active) { background: rgba(250,199,117,0.12); color: #fac775; }
+      .nido-pj-chip-pp:not(.active) { background: rgba(240,149,149,0.12); color: #f09595; }
+
       .nido-mobile-cards { display: flex; flex-direction: column; gap: 10px; }
       .nido-card {
         display: flex; gap: 12px; align-items: flex-start;
@@ -643,6 +662,20 @@
       .nido-card-stat { display: flex; flex-direction: column; }
       .nido-card-stat-val { font-size: 0.82rem; font-weight: 700; color: #cbd5e1; }
       .nido-card-stat-label { font-size: 0.62rem; color: #6b7280; text-transform: uppercase; letter-spacing: .04em; }
+
+      /* Card del filtro "Partidos Jugados" — PG/PE/PP siempre juntos (dan
+         contexto completo del récord sin importar cuál esté resaltado
+         arriba) + G/A/G+A como línea de contexto chica debajo. */
+      .nido-pj-badges { display: flex; gap: 6px; margin-top: 9px; }
+      .nido-pj-badge { flex: 1; padding: 5px 4px; border-radius: 8px; text-align: center; font-size: 0.72rem; font-weight: 700; }
+      .nido-pj-badge-pg { background: rgba(151,196,89,0.12);  color: #97c459; }
+      .nido-pj-badge-pe { background: rgba(250,199,117,0.12); color: #fac775; }
+      .nido-pj-badge-pp { background: rgba(240,149,149,0.12); color: #f09595; }
+      .nido-pj-extra {
+        display: flex; gap: 14px; margin-top: 9px; padding-top: 9px;
+        border-top: 1px solid rgba(255,255,255,0.08);
+        font-size: 0.78rem; color: #94a3b8;
+      }
 
       .nido-load-more {
         margin-top: 4px; padding: 10px; border-radius: 8px; width: 100%;
@@ -12293,25 +12326,61 @@ async function loadLiveData() {
   // sync from the exact same renderTable() call. Capped at
   // _nidoMobileVisible with a "Cargar más" button instead of rendering all
   // ~103 players at once.
+  // Tarjeta propia para el filtro "Partidos Jugados" — medalla top-3, PG/PE/PP
+  // siempre visibles juntos (con fondo tenue de su color) para dar contexto
+  // completo del récord sin importar cuál esté resaltado arriba, y G/A/G+A
+  // como línea de contexto chica debajo de una separación sutil.
+  function _renderNidoPjCard(p, i, activeColKey) {
+    const rankColor = i === 0 ? '#eab308' : i === 1 ? '#cbd5e1' : i === 2 ? '#d6a87c' : '#6b7280';
+    const pColor = posColor(p.pos);
+    const teamBadges = p.teams.map(teamBadge).join('');
+    const ved = _nidoGetVED(p.nombre);
+    const activeVal = activeColKey === 'pg' ? ved.v
+      : activeColKey === 'pe' ? ved.e
+      : activeColKey === 'pp' ? ved.d
+      : p[activeColKey]; // 'pj' (default) o, si se llega vía desktop, 'goles'/'asist'/'gmas'
+    return `
+      <div class="nido-card" onclick="goToPlayer('${p.nombre.replace(/'/g, "\\'")}')">
+        <div class="nido-card-rank" style="color:${rankColor}">${i < 3 ? PODIO[i].medal : i + 1}</div>
+        <div class="nido-card-body">
+          <div class="nido-card-top">
+            <div>
+              <div class="nido-card-name">${pl(p.nombre)}</div>
+              <div class="nido-card-badges">
+                <span class="nido-card-pos" style="background:${pColor}1a;border-color:${pColor}59;color:${pColor}">${p.pos || '—'}</span>
+                ${teamBadges}
+              </div>
+            </div>
+            <div class="nido-card-value">${activeVal}</div>
+          </div>
+          <div class="nido-pj-badges">
+            <div class="nido-pj-badge nido-pj-badge-pg">${ved.v} PG</div>
+            <div class="nido-pj-badge nido-pj-badge-pe">${ved.e} PE</div>
+            <div class="nido-pj-badge nido-pj-badge-pp">${ved.d} PP</div>
+          </div>
+          <div class="nido-pj-extra">
+            <span>${p.goles} G</span>
+            <span>${p.asist} A</span>
+            <span>${p.gmas} G+A</span>
+          </div>
+        </div>
+      </div>`;
+  }
+
   function _renderNidoMobileCards(rows, activeColKey, promSwap, isPjRank) {
     const total = rows.length;
     const visible = rows.slice(0, _nidoMobileVisible);
 
     const cardsHtml = visible.map((p, i) => {
+      if (isPjRank) return _renderNidoPjCard(p, i, activeColKey);
+
       const rankColor = i === 0 ? '#eab308' : i === 1 ? '#cbd5e1' : i === 2 ? '#d6a87c' : '#6b7280';
       const pColor = posColor(p.pos);
       const teamBadges = p.teams.map(teamBadge).join('');
-      // Filtro "Partidos Jugados": desglose PG/PE/PP + G/A/G+A en vez de
-      // Títulos/Vallas — mismas columnas nuevas que el desktop. Excluye
-      // activeColKey (ya se muestra grande arriba) para no duplicarla, igual
-      // que el resto de las secciones.
-      const secondaryKeys = isPjRank
-        ? ['pj', 'pg', 'pe', 'pp', 'goles', 'asist', 'gmas'].filter(k => k !== activeColKey)
-        : ['pj', 'goles', 'asist', 'titulos', 'vallas'].filter(k => k !== activeColKey).slice(0, 4);
-      const nidoStatColor = k => isPjRank ? ({ pg: '#22c55e', pe: '#eab308', pp: '#ef4444' }[k] || '') : '';
+      const secondaryKeys = ['pj', 'goles', 'asist', 'titulos', 'vallas'].filter(k => k !== activeColKey).slice(0, 4);
       const secondaryHtml = secondaryKeys.map(k => `
         <div class="nido-card-stat">
-          <span class="nido-card-stat-val"${nidoStatColor(k) ? ` style="color:${nidoStatColor(k)}"` : ''}>${_nidoStatValue(p, k, promSwap)}</span>
+          <span class="nido-card-stat-val">${_nidoStatValue(p, k, promSwap)}</span>
           <span class="nido-card-stat-label">${NIDO_COL_LABELS[k]}</span>
         </div>`).join('');
       return `
@@ -12320,7 +12389,7 @@ async function loadLiveData() {
           <div class="nido-card-body">
             <div class="nido-card-top">
               <div class="nido-card-name">${pl(p.nombre)}</div>
-              <div class="nido-card-value"${nidoStatColor(activeColKey) ? ` style="color:${nidoStatColor(activeColKey)}"` : ''}>${_nidoStatValue(p, activeColKey, promSwap)}</div>
+              <div class="nido-card-value">${_nidoStatValue(p, activeColKey, promSwap)}</div>
             </div>
             <div class="nido-card-badges">
               <span class="nido-card-pos" style="background:${pColor}1a;border-color:${pColor}59;color:${pColor}">${p.pos || '—'}</span>
@@ -12426,6 +12495,16 @@ async function loadLiveData() {
             ${RANK_METRICS.map(m => `<option value="${m.key}" ${(_nidoRank || _nidoSort.col) === m.key ? 'selected' : ''}>${m.label}</option>`).join('')}
           </select>
         </div>
+        ${_nidoRank === 'pj' ? `
+        <div class="nido-pj-subsort">
+          <div class="nido-pj-subsort-label">Ordenar "Partidos Jugados" por</div>
+          <div class="nido-pj-subsort-chips">
+            ${['pj', 'pg', 'pe', 'pp'].map(col => {
+              const active = _nidoPjSort.col === col;
+              return `<button class="nido-pj-chip nido-pj-chip-${col}${active ? ' active' : ''}" onclick="window._nidoPjSortBy('${col}')">${col.toUpperCase()}</button>`;
+            }).join('')}
+          </div>
+        </div>` : ''}
         <input id="nido-search-mobile" type="text" class="nido-mobile-search" placeholder="Buscar jugador…" value="${_nidoQuery}"
           oninput="window._nidoSearch(this.value)" />
         <div class="nido-mobile-summary">Ranking por ${(RANK_METRICS.find(m => m.key === (_nidoRank || _nidoSort.col)) || {}).label || 'Partidos Jugados'} · ${filteredData().length} jugadores</div>
