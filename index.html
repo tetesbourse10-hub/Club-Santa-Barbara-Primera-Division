@@ -11211,7 +11211,7 @@ function renderLandingCardStats() {
         }).join('');
         _softSetHtml(footEl, `<span class="lc-foot-results">${pills}</span>${own ? `<span class="lc-foot-pts">${own.pts} pts</span>` : ''}`);
       } else {
-        _softSetHtml(footEl, `<span>Sin partidos jugados</span>`);
+        _softSetHtml(footEl, `<span>Sin partidos jugados</span>${own ? `<span class="lc-foot-pts">${own.pts} pts</span>` : ''}`);
       }
     }
   });
@@ -11802,6 +11802,11 @@ async function loadLiveData() {
   let _nidoPos     = 'todas';
   let _nidoPosOpen = false;
   let _nidoMobileVisible = 15; // mobile card list "cargar más" — reset on any filter change
+  // Sub-orden propio del filtro "Partidos Jugados" (PJ/PG/PE/PP/G/A/G+A) —
+  // clickeable de mayor a menor como cualquier otra columna, pero sin salir
+  // del modo ranking (a diferencia de _nidoSort/window._nidoSort, que sí
+  // resetea _nidoRank a null en cualquier click de columna).
+  let _nidoPjSort  = { col: 'pj', asc: false };
 
   const POSICIONES = ['ARQ', 'LI', 'LD', 'DFC', 'MC', 'DEL'];
   const normPos = p => String(p || '').trim().toUpperCase();
@@ -11934,7 +11939,25 @@ async function loadLiveData() {
 
   const NUMERIC_COLS = ['pj','goles','asist','gmas','titulos','promGol','promAsist','promGmas','vallas','vallasProm'];
 
+  // Valor comparable para el sub-orden del filtro "Partidos Jugados" — pg/pe/pp
+  // no viven en `p`, se resuelven vía _nidoGetVED (misma cache que la tabla).
+  function _nidoPjSortValue(p, col) {
+    if (col === 'pg' || col === 'pe' || col === 'pp') {
+      const ved = _nidoGetVED(p.nombre);
+      return col === 'pg' ? ved.v : col === 'pe' ? ved.e : ved.d;
+    }
+    return p[col] || 0; // pj, goles, asist, gmas
+  }
+
   function sortData(data) {
+    if (_nidoRank === 'pj') {
+      const { col, asc } = _nidoPjSort;
+      return [...data].sort((a, b) => {
+        const va = _nidoPjSortValue(a, col), vb = _nidoPjSortValue(b, col);
+        const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+        return asc ? cmp : -cmp;
+      });
+    }
     const col = _nidoRank || _nidoSort.col;
     const asc  = _nidoRank ? false : _nidoSort.asc;
     return [...data].sort((a, b) => {
@@ -11959,9 +11982,10 @@ async function loadLiveData() {
   }
 
   function thArrow(col) {
-    const activeCol = _nidoRank || _nidoSort.col;
+    const isPjRank = _nidoRank === 'pj';
+    const activeCol = isPjRank ? _nidoPjSort.col : (_nidoRank || _nidoSort.col);
     if (activeCol !== col) return `<span style="opacity:0.25;font-size:9px;margin-left:3px;">⇅</span>`;
-    const isAsc = _nidoRank ? false : _nidoSort.asc;
+    const isAsc = isPjRank ? _nidoPjSort.asc : (_nidoRank ? false : _nidoSort.asc);
     return `<span style="font-size:9px;margin-left:3px;color:#eab308;">${isAsc ? '▲' : '▼'}</span>`;
   }
 
@@ -11997,23 +12021,31 @@ async function loadLiveData() {
     const TH  = `padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:#6b7280;white-space:nowrap;letter-spacing:.06em;`;
     const THS = TH + `cursor:pointer;user-select:none;`;
 
-    // Which column key is the active ranking column (for visual highlight)
-    const activeColKey = isRankMode
-      ? (promSwap ? promSwap.replaces : _nidoRank)
-      : _nidoSort.col;
+    // Which column key is the active ranking column (for visual highlight) —
+    // dentro de "Partidos Jugados" sigue el sub-orden propio (_nidoPjSort),
+    // no siempre PJ, para que el usuario vea resaltada la columna que
+    // realmente está ordenando (PG/PE/PP/G/A/G+A), igual que en el resto de
+    // las secciones de ranking.
+    const activeColKey = isPjRank
+      ? _nidoPjSort.col
+      : isRankMode
+        ? (promSwap ? promSwap.replaces : _nidoRank)
+        : _nidoSort.col;
 
-    // Build column list, swapping the affected column header when in prom-rank mode
+    // Build column list, swapping the affected column header when in prom-rank mode.
+    // pjSort:true marca las columnas que deben ordenar vía window._nidoPjSortBy
+    // (mantiene el modo ranking) en vez de window._nidoSort (que lo resetea).
     const cols = isPjRank ? [
       { key: 'nombre',  label: 'JUGADOR' },
       { key: 'pos',     label: 'POS',     center: true },
       { key: 'teams',   label: 'EQUIPO',  noSort: true },
-      { key: 'pj',      label: 'PJ',      center: true },
-      { key: 'pg',      label: 'PG',      center: true, noSort: true },
-      { key: 'pe',      label: 'PE',      center: true, noSort: true },
-      { key: 'pp',      label: 'PP',      center: true, noSort: true },
-      { key: 'goles',   label: 'G',       center: true },
-      { key: 'asist',   label: 'A',       center: true },
-      { key: 'gmas',    label: 'G+A',     center: true },
+      { key: 'pj',      label: 'PJ',      center: true, pjSort: true },
+      { key: 'pg',      label: 'PG',      center: true, pjSort: true },
+      { key: 'pe',      label: 'PE',      center: true, pjSort: true },
+      { key: 'pp',      label: 'PP',      center: true, pjSort: true },
+      { key: 'goles',   label: 'G',       center: true, pjSort: true },
+      { key: 'asist',   label: 'A',       center: true, pjSort: true },
+      { key: 'gmas',    label: 'G+A',     center: true, pjSort: true },
     ] : [
       { key: 'nombre',  label: 'JUGADOR' },
       { key: 'pos',     label: 'POS',     center: true },
@@ -12035,7 +12067,8 @@ async function loadLiveData() {
         const hl = isActive && isRankMode
           ? `color:#a5b4fc;border-bottom:2px solid rgba(99,102,241,0.6);`
           : isActive ? 'color:#d1d5db;' : '';
-        return `<th style="${THS}${align}${hl}" onclick="window._nidoSort('${c.key}')">${c.label}${thArrow(c.key)}</th>`;
+        const sortFn = c.pjSort ? `window._nidoPjSortBy('${c.key}')` : `window._nidoSort('${c.key}')`;
+        return `<th style="${THS}${align}${hl}" onclick="${sortFn}">${c.label}${thArrow(c.key)}</th>`;
       }).join('')
     }</tr></thead>`;
 
@@ -12072,14 +12105,17 @@ async function loadLiveData() {
         ? `<span style="font-weight:700;">${pl(p.nombre)}</span>`
         : pl(p.nombre);
 
-      // Helper: td — active ranking column highlights the value text only (no bg)
-      const td = (colKey, value) => {
+      // Helper: td — active ranking column highlights the value text only (no bg).
+      // colorOverride (PG/PE/PP: verde/amarillo/rojo) gana siempre sobre el
+      // resaltado de columna activa, para que W/D/L se distingan a simple
+      // vista sin importar si esa columna es la que ordena la tabla o no.
+      const td = (colKey, value, colorOverride) => {
         const isActiveCol = isRankMode && activeColKey === colKey;
-        const col2 = isActiveCol ? cellColor : statColor;
+        const col2 = colorOverride || (isActiveCol ? cellColor : statColor);
         const fw   = isActiveCol ? '700' : '600';
         const wrap = isActiveCol
           ? `<span style="display:inline-block;padding:2px 8px;border-radius:999px;background:rgba(99,102,241,0.18);border:1px solid rgba(99,102,241,0.35);color:${col2};font-weight:${fw};">${value}</span>`
-          : value;
+          : (colorOverride ? `<span style="color:${colorOverride};font-weight:700;">${value}</span>` : value);
         return `<td style="padding:9px 14px;text-align:center;font-size:13px;font-weight:600;color:${statColor};">${wrap}</td>`;
       };
 
@@ -12100,9 +12136,9 @@ async function loadLiveData() {
         <td style="padding:9px 14px;text-align:center;"><span style="padding:3px 8px;border-radius:6px;background:${pBg};color:${pColor};font-size:11px;font-weight:700;letter-spacing:.04em;">${p.pos || '—'}</span></td>
         <td style="padding:9px 14px;white-space:nowrap;">${teamBadges}</td>
         ${td('pj',     p.pj)}
-        ${isPjRank ? td('pg', ved.v) : ''}
-        ${isPjRank ? td('pe', ved.e) : ''}
-        ${isPjRank ? td('pp', ved.d) : ''}
+        ${isPjRank ? td('pg', ved.v, '#22c55e') : ''}
+        ${isPjRank ? td('pe', ved.e, '#eab308') : ''}
+        ${isPjRank ? td('pp', ved.d, '#ef4444') : ''}
         ${td('goles',  fmt(p.goles,  'promGol'))}
         ${td('asist',  fmt(p.asist,  'promAsist'))}
         ${td('gmas',   fmt(p.gmas,   'promGmas'))}
@@ -12163,13 +12199,16 @@ async function loadLiveData() {
       const pColor = posColor(p.pos);
       const teamBadges = p.teams.map(teamBadge).join('');
       // Filtro "Partidos Jugados": desglose PG/PE/PP + G/A/G+A en vez de
-      // Títulos/Vallas — mismas columnas nuevas que el desktop.
+      // Títulos/Vallas — mismas columnas nuevas que el desktop. Excluye
+      // activeColKey (ya se muestra grande arriba) para no duplicarla, igual
+      // que el resto de las secciones.
       const secondaryKeys = isPjRank
-        ? ['pg', 'pe', 'pp', 'goles', 'asist', 'gmas']
+        ? ['pj', 'pg', 'pe', 'pp', 'goles', 'asist', 'gmas'].filter(k => k !== activeColKey)
         : ['pj', 'goles', 'asist', 'titulos', 'vallas'].filter(k => k !== activeColKey).slice(0, 4);
+      const nidoStatColor = k => isPjRank ? ({ pg: '#22c55e', pe: '#eab308', pp: '#ef4444' }[k] || '') : '';
       const secondaryHtml = secondaryKeys.map(k => `
         <div class="nido-card-stat">
-          <span class="nido-card-stat-val">${_nidoStatValue(p, k, promSwap)}</span>
+          <span class="nido-card-stat-val"${nidoStatColor(k) ? ` style="color:${nidoStatColor(k)}"` : ''}>${_nidoStatValue(p, k, promSwap)}</span>
           <span class="nido-card-stat-label">${NIDO_COL_LABELS[k]}</span>
         </div>`).join('');
       return `
@@ -12178,7 +12217,7 @@ async function loadLiveData() {
           <div class="nido-card-body">
             <div class="nido-card-top">
               <div class="nido-card-name">${pl(p.nombre)}</div>
-              <div class="nido-card-value">${_nidoStatValue(p, activeColKey, promSwap)}</div>
+              <div class="nido-card-value"${nidoStatColor(activeColKey) ? ` style="color:${nidoStatColor(activeColKey)}"` : ''}>${_nidoStatValue(p, activeColKey, promSwap)}</div>
             </div>
             <div class="nido-card-badges">
               <span class="nido-card-pos" style="background:${pColor}1a;border-color:${pColor}59;color:${pColor}">${p.pos || '—'}</span>
@@ -12357,6 +12396,16 @@ async function loadLiveData() {
   window._nidoRankMode = function(m) {
     _nidoRank = m;
     if (m) _nidoSort = { col: m, asc: false };
+    if (m === 'pj') _nidoPjSort = { col: 'pj', asc: false };
+    _nidoMobileVisible = 15;
+    _renderNidoContent();
+  };
+  // Ordena dentro del filtro "Partidos Jugados" (PJ/PG/PE/PP/G/A/G+A) sin
+  // salir del modo ranking — a diferencia de window._nidoSort, que resetea
+  // _nidoRank a null en cualquier click de columna.
+  window._nidoPjSortBy = function(col) {
+    if (_nidoPjSort.col === col) _nidoPjSort.asc = !_nidoPjSort.asc;
+    else { _nidoPjSort = { col, asc: false }; }
     _nidoMobileVisible = 15;
     _renderNidoContent();
   };
