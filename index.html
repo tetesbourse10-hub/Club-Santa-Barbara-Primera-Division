@@ -318,6 +318,18 @@
     }
     .section-title::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--dorado), transparent); }
 
+    /* Switch Primera A / Primera B junto al título de Resumen — ver
+       _resumenSwitchCategory(). */
+    .resumen-cat-switch {
+      display: flex; background: #141d2e; border-radius: 999px; padding: 3px; gap: 2px; flex-shrink: 0;
+    }
+    .resumen-cat-btn {
+      border: none; background: transparent; cursor: pointer; font-family: inherit;
+      font-size: 0.75rem; font-weight: 700; padding: 6px 14px; border-radius: 999px;
+      color: #8a94ab; white-space: nowrap; transition: background .18s, color .18s;
+    }
+    .resumen-cat-btn.active { background: #412402; color: #fac775; }
+
     .cards { display: grid; gap: 14px; }
     .cards-4 { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
     .cards-3 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
@@ -7127,6 +7139,21 @@ function rankLabel(i) {
   return i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '';
 }
 
+// Switch Primera A/B sin salir de Resumen ni pasar por la landing — mismo
+// side-effect (currentData + badge del header) que ya hacen openSection()/
+// goToMatchFecha() en otros puntos de entrada, seguido de un re-render de
+// Resumen: como todo el contenido de la pestaña (históricas, títulos,
+// récords, TOP 5, últimos partidos, mini tabla) se genera dentro de la
+// misma renderResumen(), un solo llamado alcanza para refrescar todo.
+function _resumenSwitchCategory(cat) {
+  const target = cat === 'a' ? DATA_A : DATA_B;
+  if (currentData === target) return;
+  currentData = target;
+  const badge = document.getElementById('section-badge');
+  if (badge) { badge.textContent = currentData.badge; badge.className = 'header-section-badge ' + currentData.badgeClass; }
+  renderResumen();
+}
+
 function renderResumen() {
   const d = currentData;
   const isA = d === DATA_A;
@@ -7212,7 +7239,13 @@ function renderResumen() {
 
   const container = document.getElementById('resumen-content');
   container.innerHTML = `
-    <div class="section-title" style="margin-bottom:16px">${isA ? '🏆' : '⚽'} Resumen – ${d.nombre}</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+      <div class="section-title" style="margin-bottom:0">${isA ? '🏆' : '⚽'} Resumen – ${d.nombre}</div>
+      <div class="resumen-cat-switch">
+        <button class="resumen-cat-btn${isA ? ' active' : ''}" onclick="_resumenSwitchCategory('a')">Primera A</button>
+        <button class="resumen-cat-btn${isA ? '' : ' active'}" onclick="_resumenSwitchCategory('b')">Primera B</button>
+      </div>
+    </div>
 
     <!-- Estadísticas históricas + columna derecha -->
     <div class="resumen-grid">
