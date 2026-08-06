@@ -1187,7 +1187,16 @@
       color: var(--dorado); background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.25);
       border-radius: 999px; padding: 1px 7px; white-space: nowrap;
     }
-    .ultimo-rival { font-size: 0.88rem; font-weight: 700; color: #e2e8f0; }
+    .ultimo-rival { font-size: 0.88rem; font-weight: 700; color: #e2e8f0; display: flex; align-items: center; gap: 6px; }
+    /* Círculo de iniciales para el club rival — ver _rivalAvatarHtml(). Mismo
+       lenguaje visual dorado que .pp-avatar (jugadores) y .hd-club-avatar
+       (detalle de Historial vs Clubes), a escala reducida para listas. */
+    .rival-avatar {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+      background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.3);
+      color: var(--dorado); font-size: 0.58rem; font-weight: 800; letter-spacing: 0;
+    }
     .ultimo-local { font-size: 0.65rem; color: #475569; font-weight: 500; }
     .ultimo-resultado {
       font-size: 1.15rem; font-weight: 900; letter-spacing: .04em; white-space: nowrap; text-align: right;
@@ -1466,7 +1475,7 @@
     .cd-row-clickable:hover .cd-td-fecha { color:#60a5fa; }
     .cd-table td { padding:11px 14px; vertical-align:top; }
     .cd-td-fecha { font-weight:800; color:#e2e8f0; white-space:nowrap; font-size:0.82rem; }
-    .cd-rival-name { font-weight:700; color:#f1f5f9; }
+    .cd-rival-name { font-weight:700; color:#f1f5f9; display:flex; align-items:center; gap:6px; }
     .cd-cond { font-size:0.72rem; color:var(--gris-texto); margin-top:2px; }
     .cd-badge { display:inline-block; padding:4px 11px; border-radius:999px; font-weight:800; font-size:0.8rem; white-space:nowrap; }
     .cd-badge-win  { background:rgba(34,197,94,0.14);  color:#4ade80; border:1px solid rgba(34,197,94,0.3); }
@@ -3011,6 +3020,18 @@ function pl(nombre) {
   if (!clean) return nombre;
   const capBadge = isCap ? ' <span class="pl-cap-badge" title="Capitán">C</span>' : '';
   return `<a href="javascript:void(0)" class="pl-link" onclick="event.stopPropagation();goToPlayer('${clean.replace(/'/g, "\\'")}')">${clean}</a>${capBadge}`;
+}
+
+// Círculo con las iniciales del club rival (2-3 letras) — mismo patrón visual
+// que ya se usa para jugadores (.pp-avatar) y en el detalle de Historial vs
+// Clubes (.hd-club-avatar), reutilizado como badge chico a la izquierda de
+// cada listado de rival (Últimos Partidos, Centro de Datos, Historial vs
+// Clubes en su vista de lista).
+function _rivalInitials(nombre) {
+  return String(nombre || '').trim().split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 3).join('').toUpperCase();
+}
+function _rivalAvatarHtml(nombre) {
+  return `<span class="rival-avatar">${_rivalInitials(nombre)}</span>`;
 }
 
 let _ppReturnHash = '';
@@ -5411,7 +5432,7 @@ function _cdMobileCardsHtml(rows, opts) {
         <div class="mrow-top">
           <div class="mrow-top-main">
             <div class="mrow-eyebrow">${_cdFechaLabel(m.fecha, isCopaRow)}</div>
-            <div class="mrow-title-row"><div class="mrow-title">${m.rival}</div></div>
+            <div class="mrow-title-row">${_rivalAvatarHtml(m.rival)}<div class="mrow-title">${m.rival}</div></div>
             <div class="mrow-meta" style="color:${condColor}">${condLabel}</div>
           </div>
           <div class="mrow-highlight">${_cdResultadoBadge(m)}</div>
@@ -5455,7 +5476,7 @@ function buildCentroDatosHtml(matches, opts) {
     return `<tr${trAttrs}>
       <td class="cd-td-fecha">${_cdFechaLabel(m.fecha, isCopaRow)}</td>
       <td class="cd-td-rival">
-        <div class="cd-rival-name">${m.rival}</div>
+        <div class="cd-rival-name">${_rivalAvatarHtml(m.rival)}${m.rival}</div>
         <div class="cd-cond">${_cdCondicion(m.local)}</div>
       </td>
       <td class="cd-td-res">${_cdResultadoBadge(m)}</td>
@@ -7315,7 +7336,7 @@ function renderResumen() {
               return `<div class="ultimo-card ultimo-card-link ${res}" onclick="goToMatchFecha('${p._navKey}', '${fechaArg}')" title="Ver en Fecha a Fecha">
                 <div class="ultimo-fecha">${fechaLabel}<span class="ultimo-torneo-badge">${p._torneoLabel}</span></div>
                 <div>
-                  <div class="ultimo-rival">vs ${p.rival}</div>
+                  <div class="ultimo-rival">${_rivalAvatarHtml(p.rival)}vs ${p.rival}</div>
                   <div class="ultimo-local">${p.local || ''}</div>
                 </div>
                 <div class="ultimo-resultado ${res}">${p.resultado}</div>
@@ -7584,7 +7605,7 @@ function renderHistorial() {
     }).join('');
     const tbody = rows.map(r => `
       <tr onclick="histDrilldown('${r.rival.replace(/'/g,"\\'")}')">
-        <td>${r.rival}<span class="hist-rival-arrow">›</span></td>
+        <td><span style="display:inline-flex;align-items:center;gap:6px;vertical-align:middle">${_rivalAvatarHtml(r.rival)}${r.rival}</span><span class="hist-rival-arrow">›</span></td>
         <td class="hist-td-pj">${r.pj}</td>
         <td class="hist-td-win">${r.pg}</td>
         <td class="hist-td-draw">${r.pe}</td>
@@ -7607,7 +7628,7 @@ function renderHistorial() {
       <div class="mrow-card clickable" onclick="histDrilldown('${r.rival.replace(/'/g,"\\'")}')">
         <div class="mrow-top">
           <div class="mrow-top-main">
-            <div class="mrow-title-row"><div class="mrow-title">${r.rival}</div><span class="mrow-chevron">›</span></div>
+            <div class="mrow-title-row">${_rivalAvatarHtml(r.rival)}<div class="mrow-title">${r.rival}</div><span class="mrow-chevron">›</span></div>
           </div>
           <div class="mrow-highlight">
             <div class="mrow-highlight-val ${balClass(r.dh)}">${r.dh === 0 ? '=' : sign(r.dh)}</div>
