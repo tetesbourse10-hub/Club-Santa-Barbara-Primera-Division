@@ -3373,21 +3373,45 @@ function _ppCopaMatchesForKey(key) {
   return [];
 }
 
-// Flat list of every match (across every source above, plus the centralized
-// Primera A copas in COPA_BLOCKS) where this player appears in .jugadores.
-function _collectAllMatchesForPlayer(target) {
-  const rows = _allPlayerTorneoSources()
-    .flatMap(({ d, equipo, navKey, torneo, cat }) => (d.apertura || []).map(m => ({ m, torneo, equipo, navKey, cat })));
-  // COPA_BLOCKS is Primera A's centralized copas sheet — always cat 'a'.
+// Índice normName(jugador) -> matches, construido UNA sola vez por carga de
+// datos en vez de recorrer TODOS los partidos de TODAS las fuentes en cada
+// llamada — antes _collectAllMatchesForPlayer volvía a armar y filtrar la
+// lista completa (cientos de partidos) por cada jugador consultado, lo que
+// hacía notoriamente lento tanto abrir un perfil como pintar el ranking de
+// "Partidos Jugados" de El Nido (~100 jugadores, uno por uno). Se invalida
+// en loadLiveData() (ver _invalidatePlayerMatchIndex) cada vez que cambian
+// los datos de origen.
+let _playerMatchIndex = null;
+function _buildPlayerMatchIndex() {
+  const index = new Map();
+  // Mismo orden que antes: COPA_BLOCKS primero, así el dedupe de más abajo
+  // (_ppDedupeCopaMatches) sigue prefiriendo esa copia ante un choque.
   const copaRows = Object.entries(COPA_BLOCKS)
     .flatMap(([title, matches]) => (matches || []).map(m =>
       ({ m, torneo: title, equipo: null, navKey: PP_COPA_BLOCKS_NAVKEY[title] || null, cat: 'a' })));
-  // COPA_BLOCKS rows go FIRST so the dedupe step below (which keeps the
-  // first occurrence per rival/año/tipo-de-copa) prefers this — the properly
-  // linked — copy over any duplicate parked in a dedicated copasDedicadas
-  // source (e.g. DATA_A_RECOPA2025) when both represent the same match.
-  return [...copaRows, ...rows]
-    .filter(({ m }) => (m.jugadores || []).some(j => normName(j.nombre) === target));
+  const rows = _allPlayerTorneoSources()
+    .flatMap(({ d, equipo, navKey, torneo, cat }) => (d.apertura || []).map(m => ({ m, torneo, equipo, navKey, cat })));
+  for (const entry of [...copaRows, ...rows]) {
+    const seen = new Set(); // un jugador puede aparecer una sola vez por partido, igual que el .some() original
+    for (const j of (entry.m.jugadores || [])) {
+      if (!j.nombre) continue;
+      const key = normName(j.nombre);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      let arr = index.get(key);
+      if (!arr) { arr = []; index.set(key, arr); }
+      arr.push(entry);
+    }
+  }
+  return index;
+}
+function _invalidatePlayerMatchIndex() { _playerMatchIndex = null; }
+
+// Flat list of every match (across every source above, plus the centralized
+// Primera A copas in COPA_BLOCKS) where this player appears in .jugadores.
+function _collectAllMatchesForPlayer(target) {
+  if (!_playerMatchIndex) _playerMatchIndex = _buildPlayerMatchIndex();
+  return _playerMatchIndex.get(target) || [];
 }
 
 // Títulos list: there's no per-player "which titles" data source anywhere in
@@ -3413,39 +3437,19 @@ function _collectPlayerTitulos(cTitulosA, cTitulosB) {
 // player played both. The current squad sheets (DATA_A/DATA_B, always loaded
 // regardless of the active section) supply the titular/suplente breakdown and
 // the fecha-a-fecha match log.
-function _collectPlayerStats(nombre) {
+// Historial completo de partidos jugados de un jugador (Fecha a Fecha),
+// extraído de _collectPlayerStats para poder reutilizarse SOLO, sin cargar
+// también los cálculos de ranking/career-totals que trae el resto de esa
+// función — El Nido lo usa para el récord V-E-D del ranking "Partidos
+// Jugados" (_nidoGetVED), donde ese trabajo extra sería puro desperdicio
+// corrido una vez por cada uno de los ~100 jugadores listados.
+// Memoizado por jugador — se invalida junto con _playerMatchIndex en
+// loadLiveData() (ver _invalidatePlayerMatchIndex).
+let _playerPartidosCache = {};
+function _invalidatePlayerPartidosCache() { _playerPartidosCache = {}; }
+function _buildPlayerPartidos(nombre) {
   const target = normName(nombre);
-
-  const nidoA = window._nidoFindPlayer ? window._nidoFindPlayer(nombre, 'a') : null;
-  const nidoB = window._nidoFindPlayer ? window._nidoFindPlayer(nombre, 'b') : null;
-  const poolA = window._nidoGetTeamData ? window._nidoGetTeamData('a') : [];
-  const poolB = window._nidoGetTeamData ? window._nidoGetTeamData('b') : [];
-  const merged = window._nidoGetMerged ? window._nidoGetMerged() : [];
-  const nidoReady = (poolA && poolA.length > 0) || (poolB && poolB.length > 0);
-  const hasA = !!nidoA, hasB = !!nidoB;
-
-  function rankInPool(pool, metricFn) {
-    const ranked = pool
-      .map(p => ({ nombre: p.nombre, v: metricFn(p) || 0 }))
-      .sort((a, b) => b.v - a.v);
-    const idx = ranked.findIndex(p => normName(p.nombre) === target);
-    return { pos: idx >= 0 ? idx + 1 : null, total: ranked.length };
-  }
-  function rankSet(pool) {
-    return {
-      goles: rankInPool(pool, p => p.goles),
-      asist: rankInPool(pool, p => p.asist),
-      pj:    rankInPool(pool, p => p.pj),
-    };
-  }
-  // Fallback while El Nido loads: rank within whichever local plantel is on screen.
-  const fallbackPool = (currentData && currentData.jugadores) || [];
-  const rankA   = nidoReady ? (hasA ? rankSet(poolA) : null) : (currentData === DATA_A ? rankSet(fallbackPool.map(p=>({nombre:p.nombre,goles:p.goles,asist:p.asist,pj:p.pj||p.citado}))) : null);
-  const rankB   = nidoReady ? (hasB ? rankSet(poolB) : null) : (currentData === DATA_B ? rankSet(fallbackPool.map(p=>({nombre:p.nombre,goles:p.goles,asist:p.asist,pj:p.pj||p.citado}))) : null);
-  // General/histórico ranking always compares against the full unified A+B roster
-  // (every player who ever appears in either category), not only double-team players.
-  const rankGen = nidoReady && merged.length ? rankSet(merged) : null;
-
+  if (_playerPartidosCache[target]) return _playerPartidosCache[target];
   // Fecha a fecha — every tournament/season currently loaded on the site
   // (live + archived + Torneos Antiguos + every copa), not just the 2 live +
   // 2 archived ones. Each row keeps its source team so the profile can
@@ -3494,6 +3498,44 @@ function _collectPlayerStats(nombre) {
     .sort((a, b) => (parseInt(b.anio) || 0) - (parseInt(a.anio) || 0)
       || _ppTorneoRank(a.torneo) - _ppTorneoRank(b.torneo)
       || (parseInt(b.fecha) || 0) - (parseInt(a.fecha) || 0));
+  _playerPartidosCache[target] = partidos;
+  return partidos;
+}
+
+function _collectPlayerStats(nombre) {
+  const target = normName(nombre);
+
+  const nidoA = window._nidoFindPlayer ? window._nidoFindPlayer(nombre, 'a') : null;
+  const nidoB = window._nidoFindPlayer ? window._nidoFindPlayer(nombre, 'b') : null;
+  const poolA = window._nidoGetTeamData ? window._nidoGetTeamData('a') : [];
+  const poolB = window._nidoGetTeamData ? window._nidoGetTeamData('b') : [];
+  const merged = window._nidoGetMerged ? window._nidoGetMerged() : [];
+  const nidoReady = (poolA && poolA.length > 0) || (poolB && poolB.length > 0);
+  const hasA = !!nidoA, hasB = !!nidoB;
+
+  function rankInPool(pool, metricFn) {
+    const ranked = pool
+      .map(p => ({ nombre: p.nombre, v: metricFn(p) || 0 }))
+      .sort((a, b) => b.v - a.v);
+    const idx = ranked.findIndex(p => normName(p.nombre) === target);
+    return { pos: idx >= 0 ? idx + 1 : null, total: ranked.length };
+  }
+  function rankSet(pool) {
+    return {
+      goles: rankInPool(pool, p => p.goles),
+      asist: rankInPool(pool, p => p.asist),
+      pj:    rankInPool(pool, p => p.pj),
+    };
+  }
+  // Fallback while El Nido loads: rank within whichever local plantel is on screen.
+  const fallbackPool = (currentData && currentData.jugadores) || [];
+  const rankA   = nidoReady ? (hasA ? rankSet(poolA) : null) : (currentData === DATA_A ? rankSet(fallbackPool.map(p=>({nombre:p.nombre,goles:p.goles,asist:p.asist,pj:p.pj||p.citado}))) : null);
+  const rankB   = nidoReady ? (hasB ? rankSet(poolB) : null) : (currentData === DATA_B ? rankSet(fallbackPool.map(p=>({nombre:p.nombre,goles:p.goles,asist:p.asist,pj:p.pj||p.citado}))) : null);
+  // General/histórico ranking always compares against the full unified A+B roster
+  // (every player who ever appears in either category), not only double-team players.
+  const rankGen = nidoReady && merged.length ? rankSet(merged) : null;
+
+  const partidos = _buildPlayerPartidos(nombre);
 
   // Slices of the same match list for the clickable Goles/Asistencias/Rojas
   // stat tabs — no separate data source, just filtered views of `partidos`.
@@ -11887,12 +11929,14 @@ async function loadLiveData() {
   if (timeEl) timeEl.textContent = `Última actualización: ${hhmm}`;
   if (statusEl) { statusEl.textContent = ''; statusEl.className = ''; }
   _swrSave();
-  // El Nido cachea PG/PE/PP por jugador (_nidoVEDCache) — si esa cache se
-  // llegó a poblar ANTES de que terminara esta carga (alguna de las muchas
-  // fuentes de partidos que arriba recién terminaron de resolver), quedaría
-  // con conteos incompletos para siempre. Se invalida en cada carga/refresco
-  // para que la próxima vez que se mire el ranking recalcule contra los
-  // datos ya completos.
+  // El índice de partidos por jugador y las caches derivadas (partidos
+  // construidos por jugador, V-E-D del ranking "Partidos Jugados") se
+  // invalidan en cada carga/refresco — si se llegaron a poblar ANTES de que
+  // terminara esta carga (alguna de las muchas fuentes de partidos que
+  // arriba recién terminaron de resolver), quedarían con conteos
+  // incompletos para siempre.
+  _invalidatePlayerMatchIndex();
+  _invalidatePlayerPartidosCache();
   if (window._nidoInvalidateVEDCache) window._nidoInvalidateVEDCache();
   // El Nido vive fuera del sistema #main-nav/.panel (por eso no está en el
   // mapa de refreshCurrentView() de abajo), así que sin esto el usuario
@@ -12043,12 +12087,23 @@ async function loadLiveData() {
   }
 
   // V-E-D (PG/PE/PP) por jugador para la vista de ranking "Partidos Jugados"
-  // — mismo cálculo que la tarjeta "Récord de Resultados" del perfil
-  // (_collectPlayerStats + _ppRecordVED, ambas top-level), para que los dos
-  // lugares muestren siempre el mismo número. Memoizado porque recorrer todos
-  // los partidos de cada jugador es costoso y esta tabla lista ~100 a la vez.
+  // — misma fuente que la tarjeta "Récord de Resultados" del perfil
+  // (_buildPlayerPartidos + _ppRecordVED, ambas top-level), para que los dos
+  // lugares muestren siempre el mismo número. Usa _buildPlayerPartidos en vez
+  // de pasar por _collectPlayerStats completo — evita repetir los cálculos de
+  // ranking/career-totals que esa función también hace y que acá no hacen
+  // falta, corridos uno por uno para los ~100 jugadores de la tabla.
   //
-  // La cache se invalida entera cada vez que loadLiveData() termina (ver
+  // Se filtra por el plantel activo (_nidoTeam) igual que el resto de la fila
+  // (p.pj/p.goles/etc. ya vienen de _nidoDataA/_nidoDataB cuando hay un
+  // plantel específico seleccionado) — antes PG/PE/PP siempre mostraba el
+  // acumulado A+B sin importar el filtro, lo que ni siquiera sumaba contra el
+  // PJ ya filtrado de esa misma fila.
+  //
+  // Memoizado (por jugador + plantel) porque recorrer el historial de cada
+  // uno sigue teniendo trabajo propio (armar/filtrar/ordenar su lista de
+  // partidos) aun con _buildPlayerPartidos ya cacheado. La cache se invalida
+  // entera cada vez que loadLiveData() termina (ver
   // window._nidoInvalidateVEDCache, llamado desde loadLiveData) — sin esto,
   // si la tabla se llega a ver ANTES de que terminen de cargar todas las
   // fuentes de partidos que usa _collectAllMatchesForPlayer (Torneos
@@ -12059,9 +12114,12 @@ async function loadLiveData() {
   // cargado todo — de ahí el desfase reportado entre ambas vistas.
   let _nidoVEDCache = {};
   function _nidoGetVED(nombre) {
-    const key = normName(nombre);
+    const key = normName(nombre) + '|' + _nidoTeam;
     if (_nidoVEDCache[key]) return _nidoVEDCache[key];
-    const ved = _ppRecordVED(_collectPlayerStats(nombre).partidos);
+    let partidos = _buildPlayerPartidos(nombre);
+    if (_nidoTeam === 'a') partidos = partidos.filter(p => p.categoria === 'Primera A');
+    else if (_nidoTeam === 'b') partidos = partidos.filter(p => p.categoria === 'Primera B');
+    const ved = _ppRecordVED(partidos);
     _nidoVEDCache[key] = ved;
     return ved;
   }
