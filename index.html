@@ -7267,15 +7267,15 @@ function renderResumen() {
     <!-- TOP 5 histórico -->
     <div class="top10-grid">
       <div class="top10-card">
-        <div class="top10-header">👟 TOP 5 – Más partidos</div>
+        <div class="top10-header" style="color:#fac775;border-bottom-color:#fac775">👟 TOP 5 – Más partidos</div>
         ${byPartidos.map((j,i) => top10Row(j, i)).join('')}
       </div>
       <div class="top10-card">
-        <div class="top10-header">⚽ TOP 5 – Máximos goleadores</div>
+        <div class="top10-header" style="color:#ef9f27;border-bottom-color:#ef9f27">⚽ TOP 5 – Máximos goleadores</div>
         ${byGoles.map((j,i) => top10Row(j, i)).join('')}
       </div>
       <div class="top10-card">
-        <div class="top10-header">🎯 TOP 5 – Máximos asistidores</div>
+        <div class="top10-header" style="color:#85b7eb;border-bottom-color:#85b7eb">🎯 TOP 5 – Máximos asistidores</div>
         ${byAsist.map((j,i) => top10Row(j, i)).join('')}
       </div>
     </div>
