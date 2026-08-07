@@ -133,15 +133,23 @@ async function main() {
       const s = window._collectPlayerStats(nombre);
       const logros = window._ppComputeTopLogros(nombre);
       const posColor = window._plantelPosColor(s.pos);
+      // Mismo cálculo que usa el perfil del jugador para su "Récord de
+      // Resultados" (PG/PE/PP) — ver _buildPlayerPartidos + _ppRecordVED,
+      // ambas top-level en index.html.
+      const partidos = window._buildPlayerPartidos(nombre);
+      const ved = window._ppRecordVED(partidos);
 
       const svg = buildShareCardSvg({
         nombre: s.nombre, pos: s.pos, posColor,
         goles: s.goles, asist: s.asist, pj: s.pj,
         gmas: s.goles + s.asist, titulos: s.titulos, promGol: s.promGol,
+        pg: ved.v, pe: ved.e, pp: ved.d,
         hasA: s.hasA, hasB: s.hasB, logros,
       });
 
-      const png = new Resvg(svg, { fitTo: { mode: 'width', value: 1200 } }).render().asPng();
+      // El SVG ya nace a 1200x630 (tamaño estándar Open Graph) — se renderiza
+      // 1:1, sin reescalar.
+      const png = new Resvg(svg).render().asPng();
       fs.writeFileSync(path.join(ogDir, `${slug}.png`), png);
 
       const title = `${s.nombre} — Club Santa Bárbara`;
