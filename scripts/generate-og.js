@@ -63,7 +63,12 @@ function buildPlayerPageHtml({ title, description, image, url, redirectTarget })
   <meta name="twitter:title" content="${escapeHtml(title)}" />
   <meta name="twitter:description" content="${escapeHtml(description)}" />
   <meta name="twitter:image" content="${escapeHtml(image)}" />
-  <meta http-equiv="refresh" content="0; url=${escapeHtml(redirectTarget)}" />
+  <!-- OJO: a propósito NO hay <meta http-equiv="refresh">. Los bots de
+       preview (Facebook/WhatsApp) SÍ siguen ese redirect (a diferencia del
+       script de abajo, que ignoran por no correr JS) — y como el destino es
+       #jugador/:slug (un hash, que el servidor nunca ve), terminan leyendo
+       los meta og: genéricos de la home en vez de los de este jugador. El
+       redirect real para usuarios humanos queda solo en el script. -->
   <script>location.replace(${JSON.stringify(redirectTarget)});</script>
 </head>
 <body>
