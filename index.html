@@ -4403,19 +4403,29 @@ function renderPlayerProfile(nombre) {
   }
 }
 
-window.addEventListener('popstate', () => {
+// Busca un jugador por el slug en location.hash (#jugador/slug) en todos los
+// pools disponibles y, si lo encuentra, abre su perfil. Devuelve true/false
+// según si lo encontró — la usan tanto el popstate de abajo (navegación
+// atrás/adelante dentro del SPA) como el chequeo de deep link al final del
+// archivo (entrar directo a la página con el hash ya puesto, ver ahí el
+// porqué hace falta por separado).
+function _tryOpenPlayerFromHash() {
   const m = location.hash.match(/^#jugador\/(.+)$/);
-  if (m) {
-    const pools = [
-      (currentData && currentData.jugadores) || [],
-      DATA_A.jugadores || [], DATA_B.jugadores || [],
-      window._nidoGetMerged ? window._nidoGetMerged() : [],
-    ];
-    for (const pool of pools) {
-      const found = pool.find(p => slugify(p.nombre) === m[1]);
-      if (found) { renderPlayerProfile(found.nombre); return; }
-    }
+  if (!m) return false;
+  const pools = [
+    (currentData && currentData.jugadores) || [],
+    DATA_A.jugadores || [], DATA_B.jugadores || [],
+    window._nidoGetMerged ? window._nidoGetMerged() : [],
+  ];
+  for (const pool of pools) {
+    const found = pool.find(p => slugify(p.nombre) === m[1]);
+    if (found) { renderPlayerProfile(found.nombre); return true; }
   }
+  return false;
+}
+
+window.addEventListener('popstate', () => {
+  if (_tryOpenPlayerFromHash()) return;
   closePlayerProfile(true);
 });
 
@@ -12993,6 +13003,20 @@ if (window.__OG_BUILD__) {
     refreshCurrentView();
   }
   loadLiveData();
+  if (location.hash) {
+    // Deep link directo: alguien entra por /jugador/:slug, que redirige acá
+    // con el hash ya puesto (ver scripts/generate-og.js). El listener de
+    // popstate de arriba NO alcanza a correr en este caso — popstate solo
+    // dispara con navegación atrás/adelante dentro del SPA, nunca en la
+    // carga inicial de la página — así que sin esto, entrar por un link
+    // compartido (ej. desde el botón "Compartir" del perfil) mostraba
+    // directamente la home en vez del perfil del jugador. Se espera a que
+    // El Nido esté cargado por si el jugador buscado solo aparece en ese
+    // pool y no en los datos ya horneados de DATA_A/DATA_B.
+    (window._nidoEnsureLoaded ? window._nidoEnsureLoaded() : Promise.resolve())
+      .then(_tryOpenPlayerFromHash)
+      .catch(_tryOpenPlayerFromHash);
+  }
   setInterval(loadLiveData, 60 * 1000); // auto-refresh every 60s
   document.addEventListener('visibilitychange', () => { if (!document.hidden) loadLiveData(); });
   window.addEventListener('focus', loadLiveData);
