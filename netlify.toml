@@ -1,0 +1,27 @@
+[build]
+  publish = "."
+  functions = "netlify/functions"
+
+[functions]
+  # esbuild no puede empaquetar los binarios nativos de chromium/resvg —
+  # se instalan como node_modules normales y quedan afuera del bundle.
+  node_bundler = "esbuild"
+  external_node_modules = ["@sparticuz/chromium", "puppeteer-core"]
+
+[functions.og-image]
+  # Chromium headless puede tardar varios segundos en frío; el default de
+  # Netlify (10s) no alcanza para el primer request de cada jugador.
+  timeout = 26
+
+[functions.jugador]
+  timeout = 26
+
+[[redirects]]
+  from = "/jugador/*"
+  to = "/.netlify/functions/jugador"
+  status = 200
+
+[[redirects]]
+  from = "/jugador-img/*"
+  to = "/.netlify/functions/og-image"
+  status = 200
