@@ -12217,13 +12217,19 @@ async function loadLiveData() {
   // — podía sentirse como una espera larga. Si ya está a la vista, se
   // refresca de una junto con el resto. Se salta si el buscador tiene el
   // foco para no perder el cursor/posición mientras se está escribiendo.
-  const nidoTabEl = document.getElementById('tab-nido');
-  const nidoVisible = nidoTabEl && nidoTabEl.style.display !== 'none' && nidoTabEl.classList.contains('active');
-  const nidoSearchFocused = document.activeElement &&
-    (document.activeElement.id === 'nido-search' || document.activeElement.id === 'nido-search-mobile');
-  if (nidoVisible && !nidoSearchFocused && window.renderNido) window.renderNido();
-  refreshCurrentView();
-  renderLandingWidgets();
+  // window.__OG_BUILD__ lo prende scripts/generate-og.js antes de correr este
+  // mismo script dentro de jsdom (sin Chart.js ni canvas real) solo para
+  // recalcular stats de build time — ahí no hay nada visual que pintar, así
+  // que se saltan los re-renders (que sí asumen un navegador real).
+  if (!window.__OG_BUILD__) {
+    const nidoTabEl = document.getElementById('tab-nido');
+    const nidoVisible = nidoTabEl && nidoTabEl.style.display !== 'none' && nidoTabEl.classList.contains('active');
+    const nidoSearchFocused = document.activeElement &&
+      (document.activeElement.id === 'nido-search' || document.activeElement.id === 'nido-search-mobile');
+    if (nidoVisible && !nidoSearchFocused && window.renderNido) window.renderNido();
+    refreshCurrentView();
+    renderLandingWidgets();
+  }
 }
 
 // ──────────────────────────────────────────────
@@ -12966,20 +12972,31 @@ new MutationObserver(muts => {
   if (found) _initTabNavFades();
 }).observe(document.body, { childList: true, subtree: true });
 
-_paintLandingSkeletons(); // shimmer placeholders in case there's no fresh-enough cache to instant-render below
-if (_swrHydrate()) {
-  // Cache was fresh enough (<15 min old, see SWR_CACHE_MAX_AGE_MS) — paint it
-  // right now instead of waiting on the fetch below. loadLiveData() still
-  // runs immediately after exactly as before; when it resolves, the soft-
-  // update helpers above skip the repaint if nothing actually changed, or
-  // fade smoothly into whatever did.
-  renderLandingWidgets();
-  refreshCurrentView();
+// window.__OG_BUILD__ (ver el guard homólogo dentro de loadLiveData más
+// arriba) lo prende scripts/generate-og.js para reusar este mismo script en
+// jsdom solo para recalcular stats en build time — ahí no hay pantalla real
+// ni Chart.js, así que todo lo que pinta/anima queda afuera; solo importa
+// que loadLiveData() corra y complete su fetch de datos.
+if (window.__OG_BUILD__) {
+  // scripts/generate-og.js llama a window.loadLiveData() él mismo y espera
+  // esa promesa — no hace falta (ni conviene: sería una segunda carga en
+  // paralelo) dispararla acá también.
+} else {
+  _paintLandingSkeletons(); // shimmer placeholders in case there's no fresh-enough cache to instant-render below
+  if (_swrHydrate()) {
+    // Cache was fresh enough (<15 min old, see SWR_CACHE_MAX_AGE_MS) — paint it
+    // right now instead of waiting on the fetch below. loadLiveData() still
+    // runs immediately after exactly as before; when it resolves, the soft-
+    // update helpers above skip the repaint if nothing actually changed, or
+    // fade smoothly into whatever did.
+    renderLandingWidgets();
+    refreshCurrentView();
+  }
+  loadLiveData();
+  setInterval(loadLiveData, 60 * 1000); // auto-refresh every 60s
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) loadLiveData(); });
+  window.addEventListener('focus', loadLiveData);
 }
-loadLiveData();
-setInterval(loadLiveData, 60 * 1000); // auto-refresh every 60s
-document.addEventListener('visibilitychange', () => { if (!document.hidden) loadLiveData(); });
-window.addEventListener('focus', loadLiveData);
 </script>
 </body>
 </html>

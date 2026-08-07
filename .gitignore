@@ -1,0 +1,4 @@
+node_modules/
+# Generados por scripts/generate-og.js en cada build — no se versionan.
+/og/
+/jugador/

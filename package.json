@@ -1,10 +1,13 @@
 {
   "name": "club-santa-barbara-primera-division",
   "private": true,
-  "description": "Sitio estático de Club Santa Bárbara. Las funciones en netlify/functions/ generan previews (og:image) por jugador para /jugador/:slug usando un Chromium headless contra el sitio en vivo — ver netlify/functions/_shared.js.",
+  "description": "Sitio estático de Club Santa Bárbara. scripts/generate-og.js genera, en build time, un PNG + página estática de preview (og:image) por jugador para /jugador/:slug — ver ese archivo para el detalle.",
+  "scripts": {
+    "build": "node scripts/generate-og.js"
+  },
   "dependencies": {
-    "@netlify/blobs": "^8.1.0",
-    "@sparticuz/chromium": "^123.0.1",
-    "puppeteer-core": "^22.15.0"
+    "jsdom": "^24.1.1",
+    "satori": "^0.10.13",
+    "@resvg/resvg-js": "^2.6.2"
   }
 }
