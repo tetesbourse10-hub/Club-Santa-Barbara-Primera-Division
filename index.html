@@ -6,6 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Club Santa Bárbara</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- Captura la tarjeta de "Compartir" del perfil de jugador como imagen — ver _ppShareCard(). -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
@@ -1762,6 +1764,52 @@
     .pp-wrap { max-width: 1400px; margin: 0 auto; padding: 24px 24px 60px; }
     .pp-header { display:flex; align-items:center; gap:16px; margin-bottom: 18px; }
     .pp-avatar { width:64px; height:64px; border-radius:50%; background:rgba(245,158,11,0.12); border:2px solid rgba(245,158,11,0.4); display:flex; align-items:center; justify-content:center; font-size:1.2rem; font-weight:900; color:var(--dorado); flex-shrink:0; }
+
+    /* ── Tarjeta "Compartir" del perfil de jugador — ver _ppShareCard()/
+       _ppBuildShareCardHtml(). El botón real que dispara la captura vive en
+       .pp-share-trigger-btn (siempre visible en el perfil); .pp-share-card
+       es la tarjeta que se arma fuera de pantalla solo para capturarse como
+       imagen (nunca se muestra tal cual en la página). ── */
+    .pp-share-trigger-btn {
+      display:inline-flex; align-items:center; gap:7px; margin-bottom:20px; margin-left:8px;
+      background:#412402; color:#fac775; border:none; border-radius:8px;
+      padding:7px 15px; font-size:0.78rem; font-weight:700; cursor:pointer; font-family:inherit;
+      transition:background .15s;
+    }
+    .pp-share-trigger-btn:hover { background:#4f2c03; }
+    .pp-share-trigger-btn:disabled { opacity:.6; cursor:default; }
+
+    .pp-share-card {
+      position:fixed; top:0; left:-9999px; width:420px; box-sizing:border-box;
+      font-family:'Inter', sans-serif; padding:24px; border-radius:12px; color:#fff;
+      background:linear-gradient(160deg, #0d1a12 0%, #0b1220 65%);
+    }
+    .pp-share-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; }
+    .pp-share-club { display:flex; align-items:center; gap:8px; font-size:0.95rem; font-weight:800; color:#fff; }
+    .pp-share-club-icon { font-size:1.2rem; }
+    .pp-share-season-badge { background:#412402; color:#fac775; font-size:0.68rem; font-weight:800; padding:4px 11px; border-radius:999px; letter-spacing:.03em; }
+
+    .pp-share-identity { display:flex; align-items:center; gap:14px; margin-bottom:22px; }
+    .pp-share-avatar { width:56px; height:56px; border-radius:50%; background:#412402; color:#fac775; display:flex; align-items:center; justify-content:center; font-size:1.1rem; font-weight:900; flex-shrink:0; }
+    .pp-share-name { font-size:1.15rem; font-weight:900; color:#fff; line-height:1.25; }
+    .pp-share-badges { display:flex; gap:6px; margin-top:5px; flex-wrap:wrap; }
+    .pp-share-pos-badge { font-size:0.66rem; font-weight:800; padding:2px 9px; border-radius:6px; letter-spacing:.03em; }
+    .pp-share-team-badge { font-size:0.66rem; font-weight:700; padding:2px 9px; border-radius:6px; background:rgba(255,255,255,0.08); color:#cbd5e1; }
+
+    .pp-share-logros { display:flex; flex-direction:column; gap:7px; margin-bottom:20px; }
+    .pp-share-logro { display:flex; align-items:center; gap:8px; font-size:0.76rem; font-weight:700; padding:8px 11px; border-radius:8px; }
+
+    .pp-share-stats-main { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:16px; }
+    .pp-share-stat-card { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:12px 8px; text-align:center; }
+    .pp-share-stat-val { font-size:1.5rem; font-weight:900; line-height:1; margin-bottom:4px; }
+    .pp-share-stat-label { font-size:0.6rem; color:#8a94ab; text-transform:uppercase; letter-spacing:.05em; font-weight:700; }
+
+    .pp-share-stats-secondary { display:flex; justify-content:space-around; margin-bottom:22px; }
+    .pp-share-stat-sec { text-align:center; }
+    .pp-share-stat-sec-val { font-size:0.85rem; font-weight:800; color:#e2e8f0; }
+    .pp-share-stat-sec-label { font-size:0.6rem; color:#6b7280; text-transform:uppercase; letter-spacing:.04em; margin-top:2px; }
+
+    .pp-share-cta { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; box-sizing:border-box; background:#412402; color:#fac775; border:none; border-radius:8px; padding:12px; font-size:0.85rem; font-weight:800; font-family:inherit; }
     .pp-name { font-size:1.4rem; font-weight:900; color:#fff; line-height:1.15; }
     .pp-pos { font-size:0.82rem; color:var(--gris-texto); margin-top:2px; font-weight:600; }
     .pp-rank-layout { display:flex; gap:28px; flex-wrap:wrap; align-items:flex-start; margin-bottom: 4px; }
@@ -4050,6 +4098,151 @@ window.ppFilterTipo = function(kind, tipo) {
   _ppRenderDetailPanel(kind);
 };
 
+// ── Tarjeta "Compartir" del perfil de jugador ───────────────────────────────
+// Colores por categoría — mismo criterio en toda la tarjeta: si se agrega una
+// categoría nueva al ranking histórico, sumarla acá con su propio color.
+const PP_LOGRO_META = {
+  goles:   { icon: '⚽', text: 'Goleador Histórico del Club',                  color: '#fac775' },
+  asist:   { icon: '🎯', text: 'Asistidor Histórico del Club',                 color: '#97c459' },
+  pj:      { icon: '📋', text: 'en Partidos Jugados Histórico del Club',       color: '#85b7eb' },
+  gmas:    { icon: '🔥', text: 'en G+A Histórico del Club',                    color: '#a855f7' },
+  titulos: { icon: '🏆', text: 'en Títulos Histórico del Club',                color: '#fbbf24' },
+};
+
+// Busca en qué categorías del ranking histórico UNIFICADO (A+B combinado —
+// mismo pool que usa El Nido) el jugador entra en el TOP 5. Máximo 4 logros
+// para no saturar la tarjeta en jugadores muy históricos, priorizando el
+// mejor puesto primero.
+function _ppComputeTopLogros(nombre) {
+  const merged = window._nidoGetMerged ? window._nidoGetMerged() : [];
+  if (!merged.length) return [];
+  const target = normName(nombre);
+  const logros = [];
+  for (const key of ['goles', 'asist', 'pj', 'gmas', 'titulos']) {
+    const ranked = [...merged].sort((a, b) => (b[key] || 0) - (a[key] || 0));
+    const idx = ranked.findIndex(p => normName(p.nombre) === target);
+    if (idx >= 0 && idx < 5) logros.push({ key, pos: idx + 1, ...PP_LOGRO_META[key] });
+  }
+  logros.sort((a, b) => a.pos - b.pos);
+  return logros.slice(0, 4);
+}
+
+// Ícono de compartir (equivalente a "share-2") como SVG inline — evita sumar
+// una librería de íconos completa solo para este botón.
+function _ppShareIconSvg() {
+  return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.6" y1="10.5" x2="15.4" y2="6.5"></line><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"></line></svg>`;
+}
+
+// Arma el HTML de la tarjeta que se captura como imagen — nunca se muestra
+// tal cual en la página (ver _ppShareCard, que la monta fuera de pantalla
+// solo para el momento de la captura).
+function _ppBuildShareCardHtml(nombre) {
+  const s = _collectPlayerStats(nombre);
+  const initials = s.nombre.trim().split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+  const posColor = _plantelPosColor(s.pos);
+  const logros = _ppComputeTopLogros(nombre);
+  const logroByKey = {};
+  logros.forEach(l => { logroByKey[l.key] = l; });
+  const gmas = s.goles + s.asist;
+
+  const teamBadges = [
+    s.hasA ? '<span class="pp-share-team-badge">1ra A</span>' : '',
+    s.hasB ? '<span class="pp-share-team-badge">1ra B</span>' : '',
+  ].join('');
+
+  const logrosHtml = logros.length ? `
+    <div class="pp-share-logros">
+      ${logros.map(l => `
+        <div class="pp-share-logro" style="background:${l.color}1f;color:${l.color}">
+          <span>${l.icon}</span><span>${l.pos}° ${l.text}</span>
+        </div>`).join('')}
+    </div>` : '';
+
+  // El número de cada card principal toma el color de su logro correspondiente
+  // si el jugador está en el TOP 5 de esa categoría; blanco estándar si no.
+  const statCard = (val, label, key) => {
+    const color = logroByKey[key] ? logroByKey[key].color : '#fff';
+    return `<div class="pp-share-stat-card">
+      <div class="pp-share-stat-val" style="color:${color}">${val}</div>
+      <div class="pp-share-stat-label">${label}</div>
+    </div>`;
+  };
+
+  return `
+    <div class="pp-share-header">
+      <div class="pp-share-club"><span class="pp-share-club-icon">🛡️</span> Club Santa Bárbara</div>
+      <div class="pp-share-season-badge">Temporada 2026</div>
+    </div>
+    <div class="pp-share-identity">
+      <div class="pp-share-avatar">${initials}</div>
+      <div>
+        <div class="pp-share-name">${s.nombre}</div>
+        <div class="pp-share-badges">
+          <span class="pp-share-pos-badge" style="background:${posColor}1f;color:${posColor}">${s.pos || '—'}</span>
+          ${teamBadges}
+        </div>
+      </div>
+    </div>
+    ${logrosHtml}
+    <div class="pp-share-stats-main">
+      ${statCard(s.goles, 'Goles', 'goles')}
+      ${statCard(s.asist, 'Asistencias', 'asist')}
+      ${statCard(s.pj, 'PJ', 'pj')}
+    </div>
+    <div class="pp-share-stats-secondary">
+      <div class="pp-share-stat-sec"><div class="pp-share-stat-sec-val">${gmas}</div><div class="pp-share-stat-sec-label">G+A</div></div>
+      <div class="pp-share-stat-sec"><div class="pp-share-stat-sec-val">${s.titulos}</div><div class="pp-share-stat-sec-label">Títulos</div></div>
+      <div class="pp-share-stat-sec"><div class="pp-share-stat-sec-val">${s.promGol.toFixed(2).replace('.', ',')}</div><div class="pp-share-stat-sec-label">Prom. Goles</div></div>
+    </div>
+    <button class="pp-share-cta" type="button">${_ppShareIconSvg()}<span>Compartir</span></button>`;
+}
+
+// Arma la tarjeta fuera de pantalla, la captura con html2canvas y comparte
+// (Web Share API con archivo) o descarga el PNG resultante si el navegador
+// no soporta compartir archivos.
+async function _ppShareCard(nombre, btnEl) {
+  if (typeof html2canvas === 'undefined') {
+    alert('No se pudo cargar el generador de imágenes. Probá de nuevo en unos segundos.');
+    return;
+  }
+  const originalHtml = btnEl ? btnEl.innerHTML : null;
+  if (btnEl) { btnEl.disabled = true; btnEl.innerHTML = 'Generando…'; }
+
+  const container = document.createElement('div');
+  container.className = 'pp-share-card';
+  container.innerHTML = _ppBuildShareCardHtml(nombre);
+  document.body.appendChild(container);
+
+  try {
+    const canvas = await html2canvas(container, { backgroundColor: null, scale: 2 });
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    if (!blob) throw new Error('No se pudo generar la imagen.');
+    const fileName = `${slugify(nombre)}-club-santa-barbara.png`;
+    const file = new File([blob], fileName, { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: `${nombre} — Club Santa Bárbara`, text: `Perfil de ${nombre} en Club Santa Bárbara` });
+    } else {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }
+  } catch (e) {
+    // AbortError = el usuario cerró la hoja de compartir sin elegir nada — no es un error real.
+    if (e && e.name !== 'AbortError') {
+      console.error('Error generando la imagen para compartir:', e);
+      alert('No se pudo generar la imagen. Probá de nuevo.');
+    }
+  } finally {
+    container.remove();
+    if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = originalHtml; }
+  }
+}
+
 function renderPlayerProfile(nombre) {
   // Stashed so a match row's "Volver" (via _navPush, see _ppStatRowHtml) can
   // reopen this exact profile regardless of which player it belongs to.
@@ -4162,6 +4355,7 @@ function renderPlayerProfile(nombre) {
   overlay.innerHTML = `
     <div class="pp-wrap">
       <button class="volver-btn" onclick="_ppVolver()">← Volver</button>
+      <button class="pp-share-trigger-btn" onclick="_ppShareCard('${s.nombre.replace(/'/g, "\\'")}', this)">${_ppShareIconSvg()}<span>Compartir</span></button>
       <div class="pp-header">
         <div class="pp-avatar">${initials}</div>
         <div>
