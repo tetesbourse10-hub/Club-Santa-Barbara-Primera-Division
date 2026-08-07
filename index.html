@@ -3415,6 +3415,13 @@ function _ppCopaMatchesForKey(key) {
 // en loadLiveData() (ver _invalidatePlayerMatchIndex) cada vez que cambian
 // los datos de origen.
 let _playerMatchIndex = null;
+// true una vez que loadLiveData() completó al menos una vez — hasta entonces,
+// cualquier V-E-D calculado (El Nido, perfil de jugador) puede estar
+// incompleto porque todavía no llegaron todas las fuentes de partidos. Se
+// usa para mostrar un estado de "cargando…" en vez de un número que después
+// cambia solo, en los lugares donde eso resultaba confuso (ver
+// _renderNidoPjCard/renderTable en El Nido).
+let _matchDataReadyOnce = false;
 function _buildPlayerMatchIndex() {
   const index = new Map();
   // Mismo orden que antes: COPA_BLOCKS primero, así el dedupe de más abajo
@@ -12003,6 +12010,9 @@ async function loadLiveData() {
   _invalidatePlayerMatchIndex();
   _invalidatePlayerPartidosCache();
   if (window._nidoInvalidateVEDCache) window._nidoInvalidateVEDCache();
+  // Recién ahora (después de invalidar) hay una carga completa disponible
+  // para calcular V-E-D con confianza — ver _matchDataReadyOnce.
+  _matchDataReadyOnce = true;
   // El Nido vive fuera del sistema #main-nav/.panel (por eso no está en el
   // mapa de refreshCurrentView() de abajo), así que sin esto el usuario
   // tenía que interactuar con la tabla (cambiar de filtro, buscar, etc.)
@@ -12387,7 +12397,11 @@ async function loadLiveData() {
         return raw;
       };
 
-      const ved = isPjRank ? _nidoGetVED(p.nombre) : null;
+      // Antes de que loadLiveData() complete al menos una vez, PG/PE/PP
+      // pueden estar incompletos (ver _matchDataReadyOnce) — se evita incluso
+      // calcularlos y se muestra un placeholder de carga en su lugar, en vez
+      // de un número que cambia solo apenas termina la carga real.
+      const ved = isPjRank && _matchDataReadyOnce ? _nidoGetVED(p.nombre) : null;
 
       return `<tr style="background:${bg};border-bottom:${borderBottom};transition:background .15s;">
         ${posCell}
@@ -12395,9 +12409,9 @@ async function loadLiveData() {
         <td style="padding:9px 14px;text-align:center;"><span style="padding:3px 8px;border-radius:6px;background:${pBg};color:${pColor};font-size:11px;font-weight:700;letter-spacing:.04em;">${p.pos || '—'}</span></td>
         <td style="padding:9px 14px;white-space:nowrap;">${teamBadges}</td>
         ${td('pj',     p.pj)}
-        ${isPjRank ? td('pg', ved.v, '#22c55e') : ''}
-        ${isPjRank ? td('pe', ved.e, '#eab308') : ''}
-        ${isPjRank ? td('pp', ved.d, '#ef4444') : ''}
+        ${isPjRank ? td('pg', ved ? ved.v : '…', ved ? '#22c55e' : '#6b7280') : ''}
+        ${isPjRank ? td('pe', ved ? ved.e : '…', ved ? '#eab308' : '#6b7280') : ''}
+        ${isPjRank ? td('pp', ved ? ved.d : '…', ved ? '#ef4444' : '#6b7280') : ''}
         ${td('goles',  fmt(p.goles,  'promGol'))}
         ${td('asist',  fmt(p.asist,  'promAsist'))}
         ${td('gmas',   fmt(p.gmas,   'promGmas'))}
@@ -12416,6 +12430,7 @@ async function loadLiveData() {
           Mostrando <strong style="color:#c0c8d8;font-weight:600;">${showing}</strong> de <strong style="color:#c0c8d8;font-weight:600;">${totalDs}</strong> jugadores
         </span>
         ${isRankMode ? `<span style="font-size:11px;color:#eab308;font-weight:600;letter-spacing:.05em;">RANKING — ${rankMeta?.label || ''}</span>` : ''}
+        ${isPjRank && !_matchDataReadyOnce ? `<span style="font-size:11px;color:#6b7280;">⏳ Cargando PG/PE/PP…</span>` : ''}
       </div>
       <div style="overflow-x:auto;">
         <table style="width:100%;border-collapse:collapse;">${thead}<tbody>${tbody || `<tr><td colspan="${colspan}" style="padding:32px;text-align:center;color:#4b5563;">Sin resultados</td></tr>`}</tbody></table>
@@ -12457,8 +12472,12 @@ async function loadLiveData() {
     const rankColor = i === 0 ? '#eab308' : i === 1 ? '#cbd5e1' : i === 2 ? '#d6a87c' : '#6b7280';
     const pColor = posColor(p.pos);
     const teamBadges = p.teams.map(teamBadge).join('');
-    const ved = _nidoGetVED(p.nombre);
-    const activeVal = activeColKey === 'pg' ? ved.v
+    // Ver _matchDataReadyOnce: antes de la primera carga completa, PG/PE/PP
+    // pueden estar incompletos — se muestra un placeholder de carga en vez
+    // de calcularlos y mostrar un número que cambia solo después.
+    const ved = _matchDataReadyOnce ? _nidoGetVED(p.nombre) : null;
+    const activeVal = !ved && (activeColKey === 'pg' || activeColKey === 'pe' || activeColKey === 'pp') ? '…'
+      : activeColKey === 'pg' ? ved.v
       : activeColKey === 'pe' ? ved.e
       : activeColKey === 'pp' ? ved.d
       : p[activeColKey]; // 'pj' (default) o, si se llega vía desktop, 'goles'/'asist'/'gmas'
@@ -12477,9 +12496,9 @@ async function loadLiveData() {
             <div class="nido-card-value">${activeVal}</div>
           </div>
           <div class="nido-pj-badges">
-            <div class="nido-pj-badge nido-pj-badge-pg">${ved.v} PG</div>
-            <div class="nido-pj-badge nido-pj-badge-pe">${ved.e} PE</div>
-            <div class="nido-pj-badge nido-pj-badge-pp">${ved.d} PP</div>
+            <div class="nido-pj-badge nido-pj-badge-pg">${ved ? ved.v : '…'} PG</div>
+            <div class="nido-pj-badge nido-pj-badge-pe">${ved ? ved.e : '…'} PE</div>
+            <div class="nido-pj-badge nido-pj-badge-pp">${ved ? ved.d : '…'} PP</div>
           </div>
           <div class="nido-pj-extra">
             <span>${p.goles} G</span>
