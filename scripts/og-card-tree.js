@@ -1,9 +1,17 @@
-// Árbol de elementos (formato satori, similar a JSX/React) que reproduce a
-// mano el diseño visual de .pp-share-card (ver index.html). satori no puede
-// leer clases CSS de una hoja de estilos — solo estilos inline — así que
-// esta es una segunda expresión del mismo diseño, pensada para cambiar poco
-// (colores/layout ya definidos, no contenido). Si el diseño de la tarjeta
-// cambia en index.html, hay que replicar el cambio acá también.
+// Arma el SVG de la tarjeta de preview de un jugador a mano, en paralelo al
+// diseño visual de .pp-share-card (ver index.html). No usa satori: satori
+// exige un archivo de fuente embebido explícito para dibujar cualquier
+// texto (no hay forma de pedirle que use "la fuente que haya en la
+// máquina"), y eso significaba tener que conseguir y comitear un .ttf de
+// Inter. Acá en cambio se arma el SVG directo con font-family genérica
+// ("Arial, Helvetica, sans-serif") y es resvg (@resvg/resvg-js) quien la
+// resuelve contra las fuentes instaladas en la máquina de build — sin
+// depender de ningún archivo propio.
+//
+// Por la misma razón se evitan emojis en el texto: si la máquina de build
+// no tiene una fuente de emoji instalada, se dibujan como un cuadrado
+// vacío ("tofu"). El escudo/iconos quedan como formas simples en vez de
+// caracteres emoji.
 
 function hexAlpha(hex, alpha) {
   const h = String(hex || '#ffffff').replace('#', '');
@@ -13,84 +21,96 @@ function hexAlpha(hex, alpha) {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
-function el(type, props, ...children) {
-  return { type, props: { ...props, children: children.flat().filter(x => x !== null && x !== undefined && x !== false) } };
+function escapeXml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;',
+  }[c]));
 }
 
-function buildShareCardTree({ nombre, pos, posColor, goles, asist, pj, gmas, titulos, promGol, hasA, hasB, logros }) {
+const FONT = 'Arial, Helvetica, sans-serif';
+
+function buildShareCardSvg({ nombre, pos, posColor, goles, asist, pj, gmas, titulos, promGol, hasA, hasB, logros }) {
+  const W = 600, H = 800, PAD = 32;
+  const initials = String(nombre || '').trim().split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase();
   const colorFor = (key) => {
     const l = (logros || []).find(x => x.key === key);
     return l ? l.color : '#ffffff';
   };
-
-  const logroRow = (l) => el('div', {
-    style: {
-      display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px',
-      borderRadius: 10, background: hexAlpha(l.color, 0.15), color: l.color,
-      fontSize: 15, fontWeight: 700, marginBottom: 6,
-    },
-  }, el('span', {}, l.icon), el('span', {}, `${l.pos}° ${l.text}`));
-
-  const statCard = (val, label, key) => el('div', {
-    style: {
-      display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1,
-      background: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: '16px 0',
-    },
-  },
-    el('div', { style: { display: 'flex', fontSize: 32, fontWeight: 900, color: colorFor(key) } }, String(val)),
-    el('div', { style: { display: 'flex', fontSize: 12, color: '#8a94ab', marginTop: 4, fontWeight: 600 } }, label)
-  );
-
-  const statSec = (val, label) => el('div', {
-    style: { display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 },
-  },
-    el('div', { style: { display: 'flex', fontSize: 18, fontWeight: 800, color: '#fff' } }, String(val)),
-    el('div', { style: { display: 'flex', fontSize: 11, color: '#8a94ab', marginTop: 2 } }, label)
-  );
-
-  const teamBadge = (label) => el('div', {
-    style: {
-      display: 'flex', background: 'rgba(255,255,255,0.08)', color: '#cbd5e1',
-      borderRadius: 8, padding: '4px 10px', fontSize: 13, fontWeight: 700,
-    },
-  }, label);
-
-  const initials = String(nombre || '').trim().split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase();
   const logrosList = (logros || []).slice(0, 4);
+  const parts = [];
+  let y = PAD;
 
-  return el('div', {
-    style: {
-      display: 'flex', flexDirection: 'column', width: 600, height: 800, padding: 32,
-      backgroundColor: '#0b1220',
-      backgroundImage: 'linear-gradient(160deg, #0d1a12 0%, #0b1220 65%)',
-      fontFamily: 'Inter', color: '#fff',
-    },
-  },
-    el('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 } },
-      el('div', { style: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, fontWeight: 700, color: '#fff' } },
-        el('span', { style: { display: 'flex', fontSize: 20 } }, '🛡️'),
-        el('span', { style: { display: 'flex' } }, 'Club Santa Bárbara')),
-      el('div', { style: { display: 'flex', background: '#412402', color: '#fac775', borderRadius: 999, padding: '6px 14px', fontSize: 13, fontWeight: 700 } }, 'Temporada 2026')
-    ),
-    el('div', { style: { display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 } },
-      el('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'center', width: 72, height: 72, borderRadius: 36, background: '#412402', color: '#fac775', fontSize: 26, fontWeight: 900 } }, initials),
-      el('div', { style: { display: 'flex', flexDirection: 'column', gap: 8 } },
-        el('div', { style: { display: 'flex', fontSize: 24, fontWeight: 800, color: '#fff' } }, nombre),
-        el('div', { style: { display: 'flex', gap: 8 } },
-          el('div', { style: { display: 'flex', background: hexAlpha(posColor, 0.15), color: posColor, borderRadius: 8, padding: '4px 10px', fontSize: 13, fontWeight: 700 } }, pos || '—'),
-          hasA ? teamBadge('1ra A') : null,
-          hasB ? teamBadge('1ra B') : null,
-        )
-      )
-    ),
-    logrosList.length ? el('div', { style: { display: 'flex', flexDirection: 'column', marginBottom: 20 } }, ...logrosList.map(logroRow)) : null,
-    el('div', { style: { display: 'flex', gap: 12, marginBottom: 20 } },
-      statCard(goles, 'Goles', 'goles'), statCard(asist, 'Asistencias', 'asist'), statCard(pj, 'PJ', 'pj')
-    ),
-    el('div', { style: { display: 'flex', gap: 12 } },
-      statSec(gmas, 'G+A'), statSec(titulos, 'Títulos'), statSec(String(promGol.toFixed(2)).replace('.', ','), 'Prom. Goles')
-    ),
-  );
+  // Header: nombre del club + badge de temporada.
+  parts.push(`<text x="${PAD}" y="${y + 20}" font-family="${FONT}" font-size="18" font-weight="700" fill="#ffffff">Club Santa Bárbara</text>`);
+  const badgeW = 150;
+  parts.push(`<rect x="${W - PAD - badgeW}" y="${y}" width="${badgeW}" height="30" rx="15" fill="#412402" />`);
+  parts.push(`<text x="${W - PAD - badgeW / 2}" y="${y + 20}" font-family="${FONT}" font-size="14" font-weight="700" fill="#fac775" text-anchor="middle">Temporada 2026</text>`);
+  y += 30 + 34;
+
+  // Identidad: avatar con iniciales + nombre + badges de posición/plantel.
+  const avatarR = 36, avatarCx = PAD + avatarR, avatarCy = y + avatarR;
+  parts.push(`<circle cx="${avatarCx}" cy="${avatarCy}" r="${avatarR}" fill="#412402" />`);
+  parts.push(`<text x="${avatarCx}" y="${avatarCy + 9}" font-family="${FONT}" font-size="26" font-weight="900" fill="#fac775" text-anchor="middle">${escapeXml(initials)}</text>`);
+  const nameX = PAD + avatarR * 2 + 16;
+  parts.push(`<text x="${nameX}" y="${y + 28}" font-family="${FONT}" font-size="24" font-weight="800" fill="#ffffff">${escapeXml(nombre)}</text>`);
+  let bx = nameX;
+  const posLabel = pos || '—';
+  const posW = Math.max(40, 20 + posLabel.length * 9);
+  parts.push(`<rect x="${bx}" y="${y + 42}" width="${posW}" height="26" rx="8" fill="${hexAlpha(posColor, 0.18)}" />`);
+  parts.push(`<text x="${bx + posW / 2}" y="${y + 59}" font-family="${FONT}" font-size="13" font-weight="700" fill="${posColor}" text-anchor="middle">${escapeXml(posLabel)}</text>`);
+  bx += posW + 8;
+  if (hasA) {
+    const w = 54;
+    parts.push(`<rect x="${bx}" y="${y + 42}" width="${w}" height="26" rx="8" fill="rgba(255,255,255,0.08)" />`);
+    parts.push(`<text x="${bx + w / 2}" y="${y + 59}" font-family="${FONT}" font-size="13" font-weight="700" fill="#cbd5e1" text-anchor="middle">1ra A</text>`);
+    bx += w + 8;
+  }
+  if (hasB) {
+    const w = 54;
+    parts.push(`<rect x="${bx}" y="${y + 42}" width="${w}" height="26" rx="8" fill="rgba(255,255,255,0.08)" />`);
+    parts.push(`<text x="${bx + w / 2}" y="${y + 59}" font-family="${FONT}" font-size="13" font-weight="700" fill="#cbd5e1" text-anchor="middle">1ra B</text>`);
+    bx += w + 8;
+  }
+  y += avatarR * 2 + 20;
+
+  // Logros destacados (hasta 4, ya vienen ordenados/limitados desde
+  // _ppComputeTopLogros).
+  for (const l of logrosList) {
+    const rowH = 38;
+    parts.push(`<rect x="${PAD}" y="${y}" width="${W - PAD * 2}" height="${rowH}" rx="10" fill="${hexAlpha(l.color, 0.15)}" />`);
+    parts.push(`<text x="${PAD + 14}" y="${y + 25}" font-family="${FONT}" font-size="15" font-weight="700" fill="${l.color}">${l.pos}° ${escapeXml(l.text)}</text>`);
+    y += rowH + 6;
+  }
+  y += 10;
+
+  // Stats principales (3 cards).
+  const cardGap = 12, cardW = (W - PAD * 2 - cardGap * 2) / 3, cardH = 90;
+  [[goles, 'Goles', 'goles'], [asist, 'Asistencias', 'asist'], [pj, 'PJ', 'pj']].forEach(([val, label, key], i) => {
+    const cx = PAD + i * (cardW + cardGap);
+    parts.push(`<rect x="${cx}" y="${y}" width="${cardW}" height="${cardH}" rx="12" fill="rgba(255,255,255,0.04)" />`);
+    parts.push(`<text x="${cx + cardW / 2}" y="${y + 46}" font-family="${FONT}" font-size="32" font-weight="900" fill="${colorFor(key)}" text-anchor="middle">${escapeXml(String(val))}</text>`);
+    parts.push(`<text x="${cx + cardW / 2}" y="${y + 68}" font-family="${FONT}" font-size="12" font-weight="600" fill="#8a94ab" text-anchor="middle">${escapeXml(label)}</text>`);
+  });
+  y += cardH + 20;
+
+  // Stats secundarias (texto, sin card).
+  const secW = (W - PAD * 2) / 3;
+  [[gmas, 'G+A'], [titulos, 'Títulos'], [String(promGol.toFixed(2)).replace('.', ','), 'Prom. Goles']].forEach(([val, label], i) => {
+    const cx = PAD + i * secW + secW / 2;
+    parts.push(`<text x="${cx}" y="${y + 18}" font-family="${FONT}" font-size="18" font-weight="800" fill="#ffffff" text-anchor="middle">${escapeXml(String(val))}</text>`);
+    parts.push(`<text x="${cx}" y="${y + 34}" font-family="${FONT}" font-size="11" font-weight="600" fill="#8a94ab" text-anchor="middle">${escapeXml(label)}</text>`);
+  });
+
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="70%" y2="100%">
+      <stop offset="0%" stop-color="#0d1a12" />
+      <stop offset="65%" stop-color="#0b1220" />
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="${W}" height="${H}" rx="12" fill="url(#bg)" />
+${parts.map(p => '  ' + p).join('\n')}
+</svg>`;
 }
 
-module.exports = { buildShareCardTree, hexAlpha };
+module.exports = { buildShareCardSvg, hexAlpha, escapeXml };

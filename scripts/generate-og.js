@@ -23,25 +23,22 @@
 // visual y dejan correr solo el fetch/cálculo de datos.
 //
 // El dibujo de la tarjeta en sí (para el PNG) NO reusa el HTML/CSS del
-// sitio — satori solo entiende estilos inline, no clases de una hoja de
-// estilos — así que vive aparte en scripts/og-card-tree.js, a mano,
-// replicando el mismo diseño visual.
+// sitio — se arma un SVG a mano en scripts/og-card-tree.js, con
+// font-family genérica; es resvg quien la resuelve contra las fuentes
+// instaladas en la máquina de build, sin depender de ningún .ttf propio
+// (ver el comentario al principio de ese archivo).
 
 const fs = require('fs');
 const path = require('path');
 const { JSDOM } = require('jsdom');
-const satori = require('satori').default || require('satori');
 const { Resvg } = require('@resvg/resvg-js');
-const { buildShareCardTree } = require('./og-card-tree');
+const { buildShareCardSvg } = require('./og-card-tree');
 
 const ROOT = path.join(__dirname, '..');
 // En Netlify, URL/DEPLOY_PRIME_URL están seteadas en cada build (esta última
 // es la del Deploy Preview de la rama, justo lo que hace falta para poder
 // probar esto en una rama separada antes de mergear a producción).
 const SITE_URL = (process.env.DEPLOY_PRIME_URL || process.env.URL || 'https://clubsantabarbara.netlify.app').replace(/\/$/, '');
-
-const FONT_REGULAR_PATH = path.join(ROOT, 'assets/fonts/Inter-Regular.ttf');
-const FONT_BOLD_PATH = path.join(ROOT, 'assets/fonts/Inter-Bold.ttf');
 
 function escapeHtml(s) {
   return String(s || '').replace(/[&<>"']/g, c => ({
@@ -76,17 +73,6 @@ function buildPlayerPageHtml({ title, description, image, url, redirectTarget })
 }
 
 async function main() {
-  if (!fs.existsSync(FONT_REGULAR_PATH) || !fs.existsSync(FONT_BOLD_PATH)) {
-    console.error(
-      `Faltan las fuentes para generar las imágenes de preview.\n` +
-      `Descargá "Inter" (https://fonts.google.com/specimen/Inter) y guardá:\n` +
-      `  ${FONT_REGULAR_PATH}  (peso Regular/400)\n` +
-      `  ${FONT_BOLD_PATH}     (peso Bold/700 o superior)\n` +
-      `satori (la librería que dibuja el PNG) necesita el archivo de fuente real, no puede usar una fuente del sistema.`
-    );
-    process.exit(1);
-  }
-
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   const scripts = [...html.matchAll(/<script(?![^>]*src)[^>]*>([\s\S]*?)<\/script>/g)].map(m => m[1]);
   const combinedScript = scripts.join('\n;\n');
@@ -114,15 +100,6 @@ async function main() {
   }
   console.log(`${merged.length} jugadores encontrados. Generando previews…`);
 
-  const fontRegular = fs.readFileSync(FONT_REGULAR_PATH);
-  const fontBold = fs.readFileSync(FONT_BOLD_PATH);
-  const fonts = [
-    { name: 'Inter', data: fontRegular, weight: 400, style: 'normal' },
-    { name: 'Inter', data: fontBold, weight: 700, style: 'normal' },
-    { name: 'Inter', data: fontBold, weight: 800, style: 'normal' },
-    { name: 'Inter', data: fontBold, weight: 900, style: 'normal' },
-  ];
-
   const ogDir = path.join(ROOT, 'og');
   const jugadorDir = path.join(ROOT, 'jugador');
   fs.mkdirSync(ogDir, { recursive: true });
@@ -140,14 +117,13 @@ async function main() {
       const logros = window._ppComputeTopLogros(nombre);
       const posColor = window._plantelPosColor(s.pos);
 
-      const tree = buildShareCardTree({
+      const svg = buildShareCardSvg({
         nombre: s.nombre, pos: s.pos, posColor,
         goles: s.goles, asist: s.asist, pj: s.pj,
         gmas: s.goles + s.asist, titulos: s.titulos, promGol: s.promGol,
         hasA: s.hasA, hasB: s.hasB, logros,
       });
 
-      const svg = await satori(tree, { width: 600, height: 800, fonts });
       const png = new Resvg(svg, { fitTo: { mode: 'width', value: 1200 } }).render().asPng();
       fs.writeFileSync(path.join(ogDir, `${slug}.png`), png);
 
