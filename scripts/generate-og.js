@@ -94,9 +94,21 @@ async function main() {
   console.log('Corriendo loadLiveData()…');
   await window.loadLiveData();
 
+  // El pool de jugadores de El Nido (_nidoMerged, detrás de _nidoGetMerged)
+  // NO se llena como parte de loadLiveData() — es un fetch totalmente
+  // aparte (fetchProxy('Jugadores Estadisticas', ...)) que en el sitio real
+  // solo se dispara cuando el usuario abre la pestaña El Nido o un perfil
+  // de jugador (ver _nidoLoad()/window._nidoEnsureLoaded en index.html).
+  // Acá no hay usuario ni click, así que hay que pedirlo explícitamente.
+  console.log('Cargando pool de jugadores de El Nido (_nidoEnsureLoaded)…');
+  if (!window._nidoEnsureLoaded) {
+    throw new Error('window._nidoEnsureLoaded no está definido — ¿cambió el nombre del export en index.html?');
+  }
+  await window._nidoEnsureLoaded();
+
   const merged = window._nidoGetMerged ? window._nidoGetMerged() : [];
   if (!merged.length) {
-    throw new Error('window._nidoGetMerged() vino vacío después de loadLiveData() — revisar que el build tenga acceso de red a Google Sheets.');
+    throw new Error('window._nidoGetMerged() vino vacío después de loadLiveData() + _nidoEnsureLoaded() — revisar que el build tenga acceso de red a Google Sheets (incluido el proxy de Apps Script que usa _nidoLoad).');
   }
   console.log(`${merged.length} jugadores encontrados. Generando previews…`);
 
