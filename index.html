@@ -11584,7 +11584,18 @@ async function loadLiveData() {
     // which would shift every row index after the first blank row and corrupt
     // the row-number math. GViz-by-tab-name doesn't drop anything.
     fetchCSVFallback(GS.B_HIST, 'APERTURA 2026 AIFA B', 'A21:J550'),
-    fetchProxy('Estadisticas Historicas', null, GS.A_MAIN),
+    // Antes iba directo al proxy de Apps Script (fetchProxy sola, sin
+    // carrera) — la única de las ~32 peticiones de esta carga con ese
+    // patrón. Como el proxy tiene arranque en frío conocido (ver el propio
+    // comentario de fetchCSV más abajo), esta era la candidata más probable
+    // a ser la más lenta de todas, frenando toda la carga aunque el resto ya
+    // hubiera terminado. Ahora corre la misma carrera proxy+GViz que ya usan
+    // las demás — fetchCSV descarta automáticamente una respuesta vacía y
+    // espera a la otra fuente, así que no hay riesgo de perder datos si el
+    // lookup por nombre de tab en GViz llega a fallar silenciosamente (como
+    // ya se documentó que pasa con el equivalente de Primera B, línea de
+    // abajo).
+    fetchCSV(GS.A_MAIN, 'Estadisticas Historicas', null),
     fetchGvizByGid(GS.B_HIST, 1913593241), // "Estadísticas Históricas" — by gid, tab-name fetch silently returns empty
     fetchCSV(GS.A_MAIN, 'Apertura 2026', 'L3:X33'),  // global player stats table
     fetchCSV(GS.A_MAIN, 'Apertura 2026', 'L37:V53'), // standings table
