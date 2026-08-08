@@ -1,0 +1,6 @@
+[build]
+  publish = "."
+  # Genera og/<slug>.png + jugador/<slug>/index.html para cada jugador antes
+  # de publicar — ver scripts/generate-og.js. Nada de esto corre en runtime
+  # por visita: es un paso más del build, como cualquier otro.
+  command = "npm install && npm run build"

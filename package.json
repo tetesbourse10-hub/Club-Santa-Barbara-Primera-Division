@@ -1,0 +1,13 @@
+{
+  "name": "club-santa-barbara-primera-division",
+  "private": true,
+  "description": "Sitio estático de Club Santa Bárbara. scripts/generate-og.js genera, en build time, un PNG + página estática de preview (og:image) por jugador para /jugador/:slug — ver ese archivo para el detalle.",
+  "scripts": {
+    "build": "node scripts/generate-og.js"
+  },
+  "dependencies": {
+    "jsdom": "^24.1.1",
+    "@resvg/resvg-js": "^2.6.2",
+    "wawoff2": "^2.0.1"
+  }
+}

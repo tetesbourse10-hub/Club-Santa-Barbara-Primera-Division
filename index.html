@@ -5,6 +5,13 @@
   <link rel="icon" type="image/webp" href="logo-csb.webp" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Club Santa Bárbara</title>
+  <!-- Meta OG por defecto (home / fallback). Las páginas /jugador/:slug las
+       sobreescriben server-side — ver netlify/functions/jugador.js. -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Club Santa Bárbara" />
+  <meta property="og:title" content="Club Santa Bárbara" />
+  <meta property="og:description" content="Estadísticas, resultados y jugadores de Club Santa Bárbara — Primera A y Primera B." />
+  <meta property="og:image" content="/logo-csb.webp" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
@@ -318,6 +325,18 @@
     }
     .section-title::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--dorado), transparent); }
 
+    /* Switch Primera A / Primera B junto al título de Resumen — ver
+       _resumenSwitchCategory(). */
+    .resumen-cat-switch {
+      display: flex; background: #141d2e; border-radius: 999px; padding: 3px; gap: 2px; flex-shrink: 0;
+    }
+    .resumen-cat-btn {
+      border: none; background: transparent; cursor: pointer; font-family: inherit;
+      font-size: 0.75rem; font-weight: 700; padding: 6px 14px; border-radius: 999px;
+      color: #8a94ab; white-space: nowrap; transition: background .18s, color .18s;
+    }
+    .resumen-cat-btn.active { background: #412402; color: #fac775; }
+
     .cards { display: grid; gap: 14px; }
     .cards-4 { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
     .cards-3 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
@@ -623,6 +642,25 @@
       }
       .nido-mobile-summary { font-size: 12px; color: #6b7280; }
 
+      /* Sub-selector propio del filtro "Partidos Jugados" — solo se muestra
+         cuando ese es el ranking activo (es el único que se desglosa en
+         columnas propias PG/PE/PP en desktop; ver isPjRank). */
+      .nido-pj-subsort { margin-bottom: 10px; }
+      .nido-pj-subsort-label {
+        font-size: 0.68rem; color: #6b7280; text-transform: uppercase;
+        letter-spacing: .04em; margin-bottom: 6px;
+      }
+      .nido-pj-subsort-chips { display: flex; gap: 6px; }
+      .nido-pj-chip {
+        flex: 1; padding: 7px 0; border-radius: 8px; border: none; cursor: pointer;
+        font-size: 0.78rem; font-weight: 700; text-align: center; font-family: inherit;
+      }
+      .nido-pj-chip.active { background: #fac775; color: #1a1206; }
+      .nido-pj-chip-pj:not(.active) { background: rgba(245,158,11,0.12); color: var(--dorado); }
+      .nido-pj-chip-pg:not(.active) { background: rgba(151,196,89,0.12);  color: #97c459; }
+      .nido-pj-chip-pe:not(.active) { background: rgba(250,199,117,0.12); color: #fac775; }
+      .nido-pj-chip-pp:not(.active) { background: rgba(240,149,149,0.12); color: #f09595; }
+
       .nido-mobile-cards { display: flex; flex-direction: column; gap: 10px; }
       .nido-card {
         display: flex; gap: 12px; align-items: flex-start;
@@ -634,6 +672,7 @@
       .nido-card-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
       .nido-card-name { font-size: 0.92rem; font-weight: 700; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .nido-card-value { font-size: 1.3rem; font-weight: 900; color: var(--dorado); flex-shrink: 0; }
+      .nido-card-value-label { font-size: 0.62rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: .03em; margin-left: 2px; }
       .nido-card-badges { display: flex; gap: 6px; margin-top: 5px; flex-wrap: wrap; align-items: center; }
       .nido-card-pos { display: inline-block; font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 6px; border: 1px solid; letter-spacing: .03em; }
       .nido-card-stats {
@@ -643,6 +682,20 @@
       .nido-card-stat { display: flex; flex-direction: column; }
       .nido-card-stat-val { font-size: 0.82rem; font-weight: 700; color: #cbd5e1; }
       .nido-card-stat-label { font-size: 0.62rem; color: #6b7280; text-transform: uppercase; letter-spacing: .04em; }
+
+      /* Card del filtro "Partidos Jugados" — PG/PE/PP siempre juntos (dan
+         contexto completo del récord sin importar cuál esté resaltado
+         arriba) + G/A/G+A como línea de contexto chica debajo. */
+      .nido-pj-badges { display: flex; gap: 6px; margin-top: 9px; }
+      .nido-pj-badge { flex: 1; padding: 5px 4px; border-radius: 8px; text-align: center; font-size: 0.72rem; font-weight: 700; }
+      .nido-pj-badge-pg { background: rgba(151,196,89,0.12);  color: #97c459; }
+      .nido-pj-badge-pe { background: rgba(250,199,117,0.12); color: #fac775; }
+      .nido-pj-badge-pp { background: rgba(240,149,149,0.12); color: #f09595; }
+      .nido-pj-extra {
+        display: flex; gap: 14px; margin-top: 9px; padding-top: 9px;
+        border-top: 1px solid rgba(255,255,255,0.08);
+        font-size: 0.78rem; color: #94a3b8;
+      }
 
       .nido-load-more {
         margin-top: 4px; padding: 10px; border-radius: 8px; width: 100%;
@@ -1154,7 +1207,16 @@
       color: var(--dorado); background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.25);
       border-radius: 999px; padding: 1px 7px; white-space: nowrap;
     }
-    .ultimo-rival { font-size: 0.88rem; font-weight: 700; color: #e2e8f0; }
+    .ultimo-rival { font-size: 0.88rem; font-weight: 700; color: #e2e8f0; display: flex; align-items: center; gap: 6px; }
+    /* Círculo de iniciales para el club rival — ver _rivalAvatarHtml(). Mismo
+       lenguaje visual dorado que .pp-avatar (jugadores) y .hd-club-avatar
+       (detalle de Historial vs Clubes), a escala reducida para listas. */
+    .rival-avatar {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+      background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.3);
+      color: var(--dorado); font-size: 0.58rem; font-weight: 800; letter-spacing: 0;
+    }
     .ultimo-local { font-size: 0.65rem; color: #475569; font-weight: 500; }
     .ultimo-resultado {
       font-size: 1.15rem; font-weight: 900; letter-spacing: .04em; white-space: nowrap; text-align: right;
@@ -1433,7 +1495,7 @@
     .cd-row-clickable:hover .cd-td-fecha { color:#60a5fa; }
     .cd-table td { padding:11px 14px; vertical-align:top; }
     .cd-td-fecha { font-weight:800; color:#e2e8f0; white-space:nowrap; font-size:0.82rem; }
-    .cd-rival-name { font-weight:700; color:#f1f5f9; }
+    .cd-rival-name { font-weight:700; color:#f1f5f9; display:flex; align-items:center; gap:6px; }
     .cd-cond { font-size:0.72rem; color:var(--gris-texto); margin-top:2px; }
     .cd-badge { display:inline-block; padding:4px 11px; border-radius:999px; font-weight:800; font-size:0.8rem; white-space:nowrap; }
     .cd-badge-win  { background:rgba(34,197,94,0.14);  color:#4ade80; border:1px solid rgba(34,197,94,0.3); }
@@ -1708,6 +1770,54 @@
     .pp-wrap { max-width: 1400px; margin: 0 auto; padding: 24px 24px 60px; }
     .pp-header { display:flex; align-items:center; gap:16px; margin-bottom: 18px; }
     .pp-avatar { width:64px; height:64px; border-radius:50%; background:rgba(245,158,11,0.12); border:2px solid rgba(245,158,11,0.4); display:flex; align-items:center; justify-content:center; font-size:1.2rem; font-weight:900; color:var(--dorado); flex-shrink:0; }
+
+    /* ── Tarjeta "Compartir" del perfil de jugador — ver _ppShareCard()/
+       _ppBuildShareCardHtml(). .pp-share-trigger-btn es el botón real
+       (siempre visible en el perfil) que comparte/copia el link a
+       /jugador/:slug. .pp-share-card es el diseño de la tarjeta de preview:
+       en el sitio en vivo nunca se monta (el share es solo de link); la
+       reusa un Chromium headless server-side para generar la imagen og:image
+       — ver netlify/functions/_shared.js. ── */
+    .pp-share-trigger-btn {
+      display:inline-flex; align-items:center; gap:7px; margin-bottom:20px; margin-left:8px;
+      background:#412402; color:#fac775; border:none; border-radius:8px;
+      padding:7px 15px; font-size:0.78rem; font-weight:700; cursor:pointer; font-family:inherit;
+      transition:background .15s;
+    }
+    .pp-share-trigger-btn:hover { background:#4f2c03; }
+    .pp-share-trigger-btn:disabled { opacity:.6; cursor:default; }
+
+    .pp-share-card {
+      position:fixed; top:0; left:-9999px; width:420px; box-sizing:border-box;
+      font-family:'Inter', sans-serif; padding:24px; border-radius:12px; color:#fff;
+      background:linear-gradient(160deg, #0d1a12 0%, #0b1220 65%);
+    }
+    .pp-share-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; }
+    .pp-share-club { display:flex; align-items:center; gap:8px; font-size:0.95rem; font-weight:800; color:#fff; }
+    .pp-share-club-icon { font-size:1.2rem; }
+    .pp-share-season-badge { background:#412402; color:#fac775; font-size:0.68rem; font-weight:800; padding:4px 11px; border-radius:999px; letter-spacing:.03em; }
+
+    .pp-share-identity { display:flex; align-items:center; gap:14px; margin-bottom:22px; }
+    .pp-share-avatar { width:56px; height:56px; border-radius:50%; background:#412402; color:#fac775; display:flex; align-items:center; justify-content:center; font-size:1.1rem; font-weight:900; flex-shrink:0; }
+    .pp-share-name { font-size:1.15rem; font-weight:900; color:#fff; line-height:1.25; }
+    .pp-share-badges { display:flex; gap:6px; margin-top:5px; flex-wrap:wrap; }
+    .pp-share-pos-badge { font-size:0.66rem; font-weight:800; padding:2px 9px; border-radius:6px; letter-spacing:.03em; }
+    .pp-share-team-badge { font-size:0.66rem; font-weight:700; padding:2px 9px; border-radius:6px; background:rgba(255,255,255,0.08); color:#cbd5e1; }
+
+    .pp-share-logros { display:flex; flex-direction:column; gap:7px; margin-bottom:20px; }
+    .pp-share-logro { display:flex; align-items:center; gap:8px; font-size:0.76rem; font-weight:700; padding:8px 11px; border-radius:8px; }
+
+    .pp-share-stats-main { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:16px; }
+    .pp-share-stat-card { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:12px 8px; text-align:center; }
+    .pp-share-stat-val { font-size:1.5rem; font-weight:900; line-height:1; margin-bottom:4px; }
+    .pp-share-stat-label { font-size:0.6rem; color:#8a94ab; text-transform:uppercase; letter-spacing:.05em; font-weight:700; }
+
+    .pp-share-stats-secondary { display:flex; justify-content:space-around; margin-bottom:22px; }
+    .pp-share-stat-sec { text-align:center; }
+    .pp-share-stat-sec-val { font-size:0.85rem; font-weight:800; color:#e2e8f0; }
+    .pp-share-stat-sec-label { font-size:0.6rem; color:#6b7280; text-transform:uppercase; letter-spacing:.04em; margin-top:2px; }
+
+    .pp-share-cta { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; box-sizing:border-box; background:#412402; color:#fac775; border:none; border-radius:8px; padding:12px; font-size:0.85rem; font-weight:800; font-family:inherit; }
     .pp-name { font-size:1.4rem; font-weight:900; color:#fff; line-height:1.15; }
     .pp-pos { font-size:0.82rem; color:var(--gris-texto); margin-top:2px; font-weight:600; }
     .pp-rank-layout { display:flex; gap:28px; flex-wrap:wrap; align-items:flex-start; margin-bottom: 4px; }
@@ -1723,6 +1833,17 @@
     .pp-rank-pill { display:flex; align-items:center; gap:6px; padding:7px 12px; border-radius:999px; border:1px solid #1e2a3a; background:rgba(255,255,255,0.03); font-size:0.78rem; font-weight:800; color:#94a3b8; }
     .pp-rank-top { box-shadow: 0 0 0 1px rgba(255,255,255,0.02); }
     .pp-rank-label { color:var(--gris-texto); font-weight:600; font-size:0.74rem; }
+    .pp-record-card { display:flex; flex-direction:column; gap:8px; }
+    .pp-record-ved { font-size:1.3rem; font-weight:900; letter-spacing:-.01em; }
+    .pp-record-loading { font-size:0.95rem; font-weight:700; color:var(--gris-texto); animation: pp-record-pulse 1.4s ease-in-out infinite; }
+    @keyframes pp-record-pulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+    .pp-ved-v { color:#22c55e; }
+    .pp-ved-e { color:#eab308; }
+    .pp-ved-d { color:#ef4444; }
+    .pp-record-note { font-size:0.62rem; color:#94a3b8; }
+    .pp-record-favorito { font-size:0.8rem; color:#cbd5e1; padding-top:6px; border-top:1px solid #1e293b; }
+    #pp-record-body { transition:opacity .15s; }
+    #pp-record-body.pp-fading { opacity:0; }
     .pp-effectiveness { margin-top: 16px; }
     .pp-kpi-tab { cursor:pointer; transition:background .15s, border-color .15s; border:1px solid transparent; }
     .pp-kpi-tab:hover { background:rgba(255,255,255,0.04); }
@@ -2971,6 +3092,18 @@ function pl(nombre) {
   return `<a href="javascript:void(0)" class="pl-link" onclick="event.stopPropagation();goToPlayer('${clean.replace(/'/g, "\\'")}')">${clean}</a>${capBadge}`;
 }
 
+// Círculo con las iniciales del club rival (2-3 letras) — mismo patrón visual
+// que ya se usa para jugadores (.pp-avatar) y en el detalle de Historial vs
+// Clubes (.hd-club-avatar), reutilizado como badge chico a la izquierda de
+// cada listado de rival (Últimos Partidos, Centro de Datos, Historial vs
+// Clubes en su vista de lista).
+function _rivalInitials(nombre) {
+  return String(nombre || '').trim().split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 3).join('').toUpperCase();
+}
+function _rivalAvatarHtml(nombre) {
+  return `<span class="rival-avatar">${_rivalInitials(nombre)}</span>`;
+}
+
 let _ppReturnHash = '';
 function goToPlayer(nombre) {
   if (!nombre) return;
@@ -3240,6 +3373,17 @@ function ppFilterMetrics(cat, btn) {
     pctEl.classList.add('pp-fading');
     setTimeout(() => { pctEl.textContent = c.efectividadGA.toFixed(0) + '%'; pctEl.classList.remove('pp-fading'); }, 150);
   }
+
+  // Récord V-E-D + Cliente Favorito — se recalculan sobre la misma categoría
+  // recién seleccionada (window._ppActiveCat ya quedó actualizado arriba).
+  const recordBodyEl = document.getElementById('pp-record-body');
+  if (recordBodyEl) {
+    recordBodyEl.classList.add('pp-fading');
+    setTimeout(() => {
+      recordBodyEl.innerHTML = _ppRecordCardInnerHtml(window._ppDetailLists.partidos || []);
+      recordBodyEl.classList.remove('pp-fading');
+    }, 150);
+  }
 }
 
 // ── Every tournament data source that carries a real Fecha a Fecha (.apertura
@@ -3320,21 +3464,52 @@ function _ppCopaMatchesForKey(key) {
   return [];
 }
 
-// Flat list of every match (across every source above, plus the centralized
-// Primera A copas in COPA_BLOCKS) where this player appears in .jugadores.
-function _collectAllMatchesForPlayer(target) {
-  const rows = _allPlayerTorneoSources()
-    .flatMap(({ d, equipo, navKey, torneo, cat }) => (d.apertura || []).map(m => ({ m, torneo, equipo, navKey, cat })));
-  // COPA_BLOCKS is Primera A's centralized copas sheet — always cat 'a'.
+// Índice normName(jugador) -> matches, construido UNA sola vez por carga de
+// datos en vez de recorrer TODOS los partidos de TODAS las fuentes en cada
+// llamada — antes _collectAllMatchesForPlayer volvía a armar y filtrar la
+// lista completa (cientos de partidos) por cada jugador consultado, lo que
+// hacía notoriamente lento tanto abrir un perfil como pintar el ranking de
+// "Partidos Jugados" de El Nido (~100 jugadores, uno por uno). Se invalida
+// en loadLiveData() (ver _invalidatePlayerMatchIndex) cada vez que cambian
+// los datos de origen.
+let _playerMatchIndex = null;
+// true una vez que loadLiveData() completó al menos una vez — hasta entonces,
+// cualquier V-E-D calculado (El Nido, perfil de jugador) puede estar
+// incompleto porque todavía no llegaron todas las fuentes de partidos. Se
+// usa para mostrar un estado de "cargando…" en vez de un número que después
+// cambia solo, en los lugares donde eso resultaba confuso (ver
+// _renderNidoPjCard/renderTable en El Nido).
+let _matchDataReadyOnce = false;
+function _buildPlayerMatchIndex() {
+  const index = new Map();
+  // Mismo orden que antes: COPA_BLOCKS primero, así el dedupe de más abajo
+  // (_ppDedupeCopaMatches) sigue prefiriendo esa copia ante un choque.
   const copaRows = Object.entries(COPA_BLOCKS)
     .flatMap(([title, matches]) => (matches || []).map(m =>
       ({ m, torneo: title, equipo: null, navKey: PP_COPA_BLOCKS_NAVKEY[title] || null, cat: 'a' })));
-  // COPA_BLOCKS rows go FIRST so the dedupe step below (which keeps the
-  // first occurrence per rival/año/tipo-de-copa) prefers this — the properly
-  // linked — copy over any duplicate parked in a dedicated copasDedicadas
-  // source (e.g. DATA_A_RECOPA2025) when both represent the same match.
-  return [...copaRows, ...rows]
-    .filter(({ m }) => (m.jugadores || []).some(j => normName(j.nombre) === target));
+  const rows = _allPlayerTorneoSources()
+    .flatMap(({ d, equipo, navKey, torneo, cat }) => (d.apertura || []).map(m => ({ m, torneo, equipo, navKey, cat })));
+  for (const entry of [...copaRows, ...rows]) {
+    const seen = new Set(); // un jugador puede aparecer una sola vez por partido, igual que el .some() original
+    for (const j of (entry.m.jugadores || [])) {
+      if (!j.nombre) continue;
+      const key = normName(j.nombre);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      let arr = index.get(key);
+      if (!arr) { arr = []; index.set(key, arr); }
+      arr.push(entry);
+    }
+  }
+  return index;
+}
+function _invalidatePlayerMatchIndex() { _playerMatchIndex = null; }
+
+// Flat list of every match (across every source above, plus the centralized
+// Primera A copas in COPA_BLOCKS) where this player appears in .jugadores.
+function _collectAllMatchesForPlayer(target) {
+  if (!_playerMatchIndex) _playerMatchIndex = _buildPlayerMatchIndex();
+  return _playerMatchIndex.get(target) || [];
 }
 
 // Títulos list: there's no per-player "which titles" data source anywhere in
@@ -3360,39 +3535,19 @@ function _collectPlayerTitulos(cTitulosA, cTitulosB) {
 // player played both. The current squad sheets (DATA_A/DATA_B, always loaded
 // regardless of the active section) supply the titular/suplente breakdown and
 // the fecha-a-fecha match log.
-function _collectPlayerStats(nombre) {
+// Historial completo de partidos jugados de un jugador (Fecha a Fecha),
+// extraído de _collectPlayerStats para poder reutilizarse SOLO, sin cargar
+// también los cálculos de ranking/career-totals que trae el resto de esa
+// función — El Nido lo usa para el récord V-E-D del ranking "Partidos
+// Jugados" (_nidoGetVED), donde ese trabajo extra sería puro desperdicio
+// corrido una vez por cada uno de los ~100 jugadores listados.
+// Memoizado por jugador — se invalida junto con _playerMatchIndex en
+// loadLiveData() (ver _invalidatePlayerMatchIndex).
+let _playerPartidosCache = {};
+function _invalidatePlayerPartidosCache() { _playerPartidosCache = {}; }
+function _buildPlayerPartidos(nombre) {
   const target = normName(nombre);
-
-  const nidoA = window._nidoFindPlayer ? window._nidoFindPlayer(nombre, 'a') : null;
-  const nidoB = window._nidoFindPlayer ? window._nidoFindPlayer(nombre, 'b') : null;
-  const poolA = window._nidoGetTeamData ? window._nidoGetTeamData('a') : [];
-  const poolB = window._nidoGetTeamData ? window._nidoGetTeamData('b') : [];
-  const merged = window._nidoGetMerged ? window._nidoGetMerged() : [];
-  const nidoReady = (poolA && poolA.length > 0) || (poolB && poolB.length > 0);
-  const hasA = !!nidoA, hasB = !!nidoB;
-
-  function rankInPool(pool, metricFn) {
-    const ranked = pool
-      .map(p => ({ nombre: p.nombre, v: metricFn(p) || 0 }))
-      .sort((a, b) => b.v - a.v);
-    const idx = ranked.findIndex(p => normName(p.nombre) === target);
-    return { pos: idx >= 0 ? idx + 1 : null, total: ranked.length };
-  }
-  function rankSet(pool) {
-    return {
-      goles: rankInPool(pool, p => p.goles),
-      asist: rankInPool(pool, p => p.asist),
-      pj:    rankInPool(pool, p => p.pj),
-    };
-  }
-  // Fallback while El Nido loads: rank within whichever local plantel is on screen.
-  const fallbackPool = (currentData && currentData.jugadores) || [];
-  const rankA   = nidoReady ? (hasA ? rankSet(poolA) : null) : (currentData === DATA_A ? rankSet(fallbackPool.map(p=>({nombre:p.nombre,goles:p.goles,asist:p.asist,pj:p.pj||p.citado}))) : null);
-  const rankB   = nidoReady ? (hasB ? rankSet(poolB) : null) : (currentData === DATA_B ? rankSet(fallbackPool.map(p=>({nombre:p.nombre,goles:p.goles,asist:p.asist,pj:p.pj||p.citado}))) : null);
-  // General/histórico ranking always compares against the full unified A+B roster
-  // (every player who ever appears in either category), not only double-team players.
-  const rankGen = nidoReady && merged.length ? rankSet(merged) : null;
-
+  if (_playerPartidosCache[target]) return _playerPartidosCache[target];
   // Fecha a fecha — every tournament/season currently loaded on the site
   // (live + archived + Torneos Antiguos + every copa), not just the 2 live +
   // 2 archived ones. Each row keeps its source team so the profile can
@@ -3441,6 +3596,44 @@ function _collectPlayerStats(nombre) {
     .sort((a, b) => (parseInt(b.anio) || 0) - (parseInt(a.anio) || 0)
       || _ppTorneoRank(a.torneo) - _ppTorneoRank(b.torneo)
       || (parseInt(b.fecha) || 0) - (parseInt(a.fecha) || 0));
+  _playerPartidosCache[target] = partidos;
+  return partidos;
+}
+
+function _collectPlayerStats(nombre) {
+  const target = normName(nombre);
+
+  const nidoA = window._nidoFindPlayer ? window._nidoFindPlayer(nombre, 'a') : null;
+  const nidoB = window._nidoFindPlayer ? window._nidoFindPlayer(nombre, 'b') : null;
+  const poolA = window._nidoGetTeamData ? window._nidoGetTeamData('a') : [];
+  const poolB = window._nidoGetTeamData ? window._nidoGetTeamData('b') : [];
+  const merged = window._nidoGetMerged ? window._nidoGetMerged() : [];
+  const nidoReady = (poolA && poolA.length > 0) || (poolB && poolB.length > 0);
+  const hasA = !!nidoA, hasB = !!nidoB;
+
+  function rankInPool(pool, metricFn) {
+    const ranked = pool
+      .map(p => ({ nombre: p.nombre, v: metricFn(p) || 0 }))
+      .sort((a, b) => b.v - a.v);
+    const idx = ranked.findIndex(p => normName(p.nombre) === target);
+    return { pos: idx >= 0 ? idx + 1 : null, total: ranked.length };
+  }
+  function rankSet(pool) {
+    return {
+      goles: rankInPool(pool, p => p.goles),
+      asist: rankInPool(pool, p => p.asist),
+      pj:    rankInPool(pool, p => p.pj),
+    };
+  }
+  // Fallback while El Nido loads: rank within whichever local plantel is on screen.
+  const fallbackPool = (currentData && currentData.jugadores) || [];
+  const rankA   = nidoReady ? (hasA ? rankSet(poolA) : null) : (currentData === DATA_A ? rankSet(fallbackPool.map(p=>({nombre:p.nombre,goles:p.goles,asist:p.asist,pj:p.pj||p.citado}))) : null);
+  const rankB   = nidoReady ? (hasB ? rankSet(poolB) : null) : (currentData === DATA_B ? rankSet(fallbackPool.map(p=>({nombre:p.nombre,goles:p.goles,asist:p.asist,pj:p.pj||p.citado}))) : null);
+  // General/histórico ranking always compares against the full unified A+B roster
+  // (every player who ever appears in either category), not only double-team players.
+  const rankGen = nidoReady && merged.length ? rankSet(merged) : null;
+
+  const partidos = _buildPlayerPartidos(nombre);
 
   // Slices of the same match list for the clickable Goles/Asistencias/Rojas
   // stat tabs — no separate data source, just filtered views of `partidos`.
@@ -3699,6 +3892,63 @@ function _ppFavoritoRival(list, key) {
   return _ppRivalTotals(list, key)[0] || null;
 }
 
+// Career V-E-D — resultado del EQUIPO en cada partido donde el jugador
+// efectivamente pisó la cancha (partidos ya viene filtrado a Titular/Suplente
+// que ingresó, ver _collectPlayerStats). No es un resultado "personal" del
+// jugador (no existe tal cosa en fútbol) sino el balance del club en su
+// participación — de ahí la leyenda aclaratoria en el perfil.
+function _ppRecordVED(partidos) {
+  let v = 0, e = 0, d = 0;
+  for (const p of partidos) {
+    if (p.gf == null || p.gc == null) continue;
+    if (p.gf > p.gc) v++;
+    else if (p.gf < p.gc) d++;
+    else e++;
+  }
+  return { v, e, d };
+}
+
+// "Cliente Favorito" — rival contra el cual el jugador acumula más
+// victorias (no total de partidos ni goles, a diferencia de las otras
+// banners "Favorito*" de arriba). Empate entre rivales -> se listan todos.
+function _ppFavoritoCliente(partidos) {
+  const wins = {};
+  for (const p of partidos) {
+    if (!p.rival || p.gf == null || p.gc == null || p.gf <= p.gc) continue;
+    wins[p.rival] = (wins[p.rival] || 0) + 1;
+  }
+  const entries = Object.entries(wins).sort((a, b) => b[1] - a[1]);
+  if (!entries.length) return null;
+  const max = entries[0][1];
+  return { rivales: entries.filter(([, w]) => w === max).map(([rival]) => rival), wins: max };
+}
+
+// Inner markup of the "Récord de Resultados" card body — shared by the
+// initial render and ppFilterMetrics (so switching Totales/Primera A/Primera
+// B re-filters the V-E-D balance and el Cliente Favorito exactly like the
+// KPI metrics above it, instead of always showing the career-wide total).
+function _ppRecordCardInnerHtml(fullPartidos) {
+  // Mientras no terminó de cargar Torneos Antiguos, fullPartidos puede ser
+  // un subconjunto de la carrera real — mostrar el V-E-D calculado sobre
+  // eso sería mostrar un número que después cambia solo, sin avisar. Se
+  // prefiere un estado de carga claro (ver _ppEnsureAllHistoricoLoaded,
+  // que dispara un re-render de todo el perfil apenas termina).
+  if (!_ppHistoricoReady) {
+    return `
+      <div class="pp-record-ved pp-record-loading" id="pp-record-ved">Calculando récord…</div>
+      <div class="pp-nido-loading">⏳ Terminando de cargar el historial completo del jugador</div>`;
+  }
+  const list = _ppFilterByCat(fullPartidos);
+  const record = _ppRecordVED(list);
+  const favCliente = _ppFavoritoCliente(list);
+  return `
+    <div class="pp-record-ved" id="pp-record-ved"><span class="pp-ved-v">${record.v}V</span> - <span class="pp-ved-e">${record.e}E</span> - <span class="pp-ved-d">${record.d}D</span></div>
+    <div class="pp-record-note">* Métrica calculada sobre los partidos cargados en la web</div>
+    <div class="pp-record-favorito" id="pp-record-favorito">👑 Cliente Favorito: ${favCliente
+      ? `<span class="pp-favorito-name">${favCliente.rivales.join(', ')}</span> (${favCliente.wins} Victoria${favCliente.wins !== 1 ? 's' : ''})`
+      : `<span style="color:rgba(255,255,255,0.4)">—</span>`}</div>`;
+}
+
 // G+A per rival, keeping the goles/asist split (not just the combined
 // total) — powers the "X G+A ➔ Y ⚽ + Z 🎯" breakdown in both the
 // "Mayor Impacto" micro-banner and the G+A "Resumen" tab.
@@ -3819,13 +4069,25 @@ function _ppDetailPanelBodyHtml(kind, fullList) {
 function _ppRenderDetailPanel(kind) {
   const panel = document.getElementById('pp-detail-panel');
   if (!panel) return;
+  // Todo kind salvo 'titulos' sale de _buildPlayerPartidos (Fecha a Fecha de
+  // cada torneo) — mientras Torneos Antiguos no terminó de precargar (ver
+  // _ppEnsureAllHistoricoLoaded), esa lista puede estar incompleta. Mismo
+  // criterio que _ppRecordCardInnerHtml: mostrar "cargando" en vez de un
+  // conteo parcial que después salta solo.
+  if (kind !== 'titulos' && !_ppHistoricoReady) {
+    panel.innerHTML = `
+      <div class="pp-detail-header">${PP_DETAIL_LABELS[kind]}</div>
+      <div class="pp-record-loading" style="padding:16px 0;">Cargando historial completo…</div>`;
+    return;
+  }
   const list = (window._ppDetailLists && window._ppDetailLists[kind]) || [];
   // Totales/Partidos (kind='partidos', cat='total') pulls its PJ count from El
-  // Nido's own accumulated sheet (source of truth for career totals), while
-  // this list is built by walking every tournament's Fecha a Fecha table — if
-  // some historical season's detail data isn't fully loaded/parsed yet the
-  // list can undercount vs. that total. Surface the gap instead of silently
-  // showing an incomplete list as if it were the whole story.
+  // Nido's own accumulated sheet (source of truth for career totals), mientras
+  // que esta lista sale de recorrer el Fecha a Fecha de cada torneo — incluso
+  // con _ppHistoricoReady, si alguna temporada puntual falló al parsear (no
+  // por timing, un problema real y persistente) puede seguir sin coincidir.
+  // Con _ppHistoricoReady ya en true esto deja de ser un problema de
+  // timing, así que si sigue apareciendo es una señal real de que revisar.
   const isTotalPartidos = kind === 'partidos' && (window._ppActiveCat || 'total') === 'total';
   const gapNote = isTotalPartidos && window._ppCareerPJ > list.length
     ? `<div class="pp-data-gap-note">⚠️ Mostrando ${list.length} de ${window._ppCareerPJ} partidos de la carrera — algunos torneos antiguos aún no tienen su Fecha a Fecha cargada.</div>`
@@ -3867,6 +4129,147 @@ window.ppFilterTipo = function(kind, tipo) {
   (window._ppTipoFilter || (window._ppTipoFilter = {}))[kind] = tipo;
   _ppRenderDetailPanel(kind);
 };
+
+// ── Tarjeta "Compartir" del perfil de jugador ───────────────────────────────
+// Colores por categoría — mismo criterio en toda la tarjeta: si se agrega una
+// categoría nueva al ranking histórico, sumarla acá con su propio color.
+const PP_LOGRO_META = {
+  goles:   { icon: '⚽', text: 'Goleador Histórico del Club',                  color: '#fac775' },
+  asist:   { icon: '🎯', text: 'Asistidor Histórico del Club',                 color: '#97c459' },
+  pj:      { icon: '📋', text: 'en Partidos Jugados Histórico del Club',       color: '#85b7eb' },
+  gmas:    { icon: '🔥', text: 'en G+A Histórico del Club',                    color: '#af9ec6' },
+  titulos: { icon: '🏆', text: 'en Títulos Histórico del Club',                color: '#fbbf24' },
+};
+
+// Busca en qué categorías del ranking histórico UNIFICADO (A+B combinado —
+// mismo pool que usa El Nido) el jugador entra en el TOP 5. Máximo 4 logros
+// para no saturar la tarjeta en jugadores muy históricos, priorizando el
+// mejor puesto primero.
+function _ppComputeTopLogros(nombre) {
+  const merged = window._nidoGetMerged ? window._nidoGetMerged() : [];
+  if (!merged.length) return [];
+  const target = normName(nombre);
+  const logros = [];
+  for (const key of ['goles', 'asist', 'pj', 'gmas', 'titulos']) {
+    const ranked = [...merged].sort((a, b) => (b[key] || 0) - (a[key] || 0));
+    const idx = ranked.findIndex(p => normName(p.nombre) === target);
+    if (idx >= 0 && idx < 5) logros.push({ key, pos: idx + 1, ...PP_LOGRO_META[key] });
+  }
+  logros.sort((a, b) => a.pos - b.pos);
+  return logros.slice(0, 4);
+}
+
+// Ícono de compartir (equivalente a "share-2") como SVG inline — evita sumar
+// una librería de íconos completa solo para este botón.
+function _ppShareIconSvg() {
+  return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.6" y1="10.5" x2="15.4" y2="6.5"></line><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"></line></svg>`;
+}
+
+// Arma el HTML de la tarjeta que sirve como imagen de preview (og:image) de
+// /jugador/:slug. Nunca se monta en el DOM del sitio público en vivo — la
+// usa un Chromium headless server-side (netlify/functions/_shared.js) que
+// navega hasta acá, inyecta este HTML dentro de un contenedor y lo
+// fotografía. Mantenerla accesible como función global (no un IIFE) es
+// justamente lo que le permite a ese proceso reusarla tal cual.
+function _ppBuildShareCardHtml(nombre) {
+  const s = _collectPlayerStats(nombre);
+  const initials = s.nombre.trim().split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+  const posColor = _plantelPosColor(s.pos);
+  const logros = _ppComputeTopLogros(nombre);
+  const logroByKey = {};
+  logros.forEach(l => { logroByKey[l.key] = l; });
+  const gmas = s.goles + s.asist;
+
+  const teamBadges = [
+    s.hasA ? '<span class="pp-share-team-badge">1ra A</span>' : '',
+    s.hasB ? '<span class="pp-share-team-badge">1ra B</span>' : '',
+  ].join('');
+
+  const logrosHtml = logros.length ? `
+    <div class="pp-share-logros">
+      ${logros.map(l => `
+        <div class="pp-share-logro" style="background:${l.color}1f;color:${l.color}">
+          <span>${l.icon}</span><span>${l.pos}° ${l.text}</span>
+        </div>`).join('')}
+    </div>` : '';
+
+  // El número de cada card principal toma el color de su logro correspondiente
+  // si el jugador está en el TOP 5 de esa categoría; blanco estándar si no.
+  const statCard = (val, label, key) => {
+    const color = logroByKey[key] ? logroByKey[key].color : '#fff';
+    return `<div class="pp-share-stat-card">
+      <div class="pp-share-stat-val" style="color:${color}">${val}</div>
+      <div class="pp-share-stat-label">${label}</div>
+    </div>`;
+  };
+
+  return `
+    <div class="pp-share-header">
+      <div class="pp-share-club"><span class="pp-share-club-icon">🛡️</span> Club Santa Bárbara</div>
+      <div class="pp-share-season-badge">Temporada 2026</div>
+    </div>
+    <div class="pp-share-identity">
+      <div class="pp-share-avatar">${initials}</div>
+      <div>
+        <div class="pp-share-name">${s.nombre}</div>
+        <div class="pp-share-badges">
+          <span class="pp-share-pos-badge" style="background:${posColor}1f;color:${posColor}">${s.pos || '—'}</span>
+          ${teamBadges}
+        </div>
+      </div>
+    </div>
+    ${logrosHtml}
+    <div class="pp-share-stats-main">
+      ${statCard(s.goles, 'Goles', 'goles')}
+      ${statCard(s.asist, 'Asistencias', 'asist')}
+      ${statCard(s.pj, 'PJ', 'pj')}
+    </div>
+    <div class="pp-share-stats-secondary">
+      <div class="pp-share-stat-sec"><div class="pp-share-stat-sec-val">${gmas}</div><div class="pp-share-stat-sec-label">G+A</div></div>
+      <div class="pp-share-stat-sec"><div class="pp-share-stat-sec-val">${s.titulos}</div><div class="pp-share-stat-sec-label">Títulos</div></div>
+      <div class="pp-share-stat-sec"><div class="pp-share-stat-sec-val">${s.promGol.toFixed(2).replace('.', ',')}</div><div class="pp-share-stat-sec-label">Prom. Goles</div></div>
+    </div>
+    <button class="pp-share-cta" type="button">${_ppShareIconSvg()}<span>Compartir</span></button>`;
+}
+
+// Comparte el LINK al perfil (no una imagen adjunta): la preview con imagen
+// la arma Netlify server-side (ver netlify/functions/) leyendo esta misma
+// _ppBuildShareCardHtml vía un navegador headless, así el share es instantáneo
+// y no depende de generar nada en el dispositivo del usuario.
+async function _ppShareCard(nombre, btnEl) {
+  const url = `${location.origin}/jugador/${slugify(nombre)}`;
+  const shareData = {
+    title: `${nombre} — Club Santa Bárbara`,
+    text: `Mirá el perfil de ${nombre} en Club Santa Bárbara`,
+    url,
+  };
+  if (navigator.share && (!navigator.canShare || navigator.canShare(shareData))) {
+    try {
+      await navigator.share(shareData);
+      return;
+    } catch (e) {
+      // AbortError = el usuario cerró la hoja de compartir sin elegir nada — no es un error real.
+      if (e && e.name === 'AbortError') return;
+      // Cualquier otro error (ej. share no soportado en la práctica pese a existir el API):
+      // caemos al copiado al portapapeles debajo.
+    }
+  }
+  _ppCopyLinkFallback(url, btnEl);
+}
+
+function _ppCopyLinkFallback(url, btnEl) {
+  const showCopied = () => {
+    if (!btnEl) return;
+    const original = btnEl.innerHTML;
+    btnEl.innerHTML = '¡Link copiado!';
+    setTimeout(() => { btnEl.innerHTML = original; }, 2000);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(showCopied).catch(() => { prompt('Copiá el link:', url); });
+  } else {
+    prompt('Copiá el link:', url);
+  }
+}
 
 function renderPlayerProfile(nombre) {
   // Stashed so a match row's "Volver" (via _navPush, see _ppStatRowHtml) can
@@ -3967,9 +4370,20 @@ function renderPlayerProfile(nombre) {
       <div class="pp-rank-col-right">${rightCol}</div>
     </div>` : '';
 
+  // Récord V-E-D + "Cliente Favorito" — filtrado por la misma categoría
+  // activa (Totales/Primera A/Primera B) que las métricas de arriba, así
+  // que responde al cambio de pestaña igual que ellas (ver ppFilterMetrics,
+  // que llama a _ppRecordCardInnerHtml de nuevo con la categoría nueva).
+  const recordCard = `
+    <div class="card pp-record-card" style="margin-top:18px">
+      <div class="card-label">Récord de Resultados</div>
+      <div id="pp-record-body">${_ppRecordCardInnerHtml(s.partidos)}</div>
+    </div>`;
+
   overlay.innerHTML = `
     <div class="pp-wrap">
       <button class="volver-btn" onclick="_ppVolver()">← Volver</button>
+      <button class="pp-share-trigger-btn" onclick="_ppShareCard('${s.nombre.replace(/'/g, "\\'")}', this)">${_ppShareIconSvg()}<span>Compartir</span></button>
       <div class="pp-header">
         <div class="pp-avatar">${initials}</div>
         <div>
@@ -3978,6 +4392,7 @@ function renderPlayerProfile(nombre) {
         </div>
       </div>
       ${rankings}
+      ${recordCard}
       <div class="card" style="margin-top:18px">
         <div class="pp-metrics-header">
           <div class="card-label">Métricas Totales</div>
@@ -4013,19 +4428,29 @@ function renderPlayerProfile(nombre) {
   }
 }
 
-window.addEventListener('popstate', () => {
+// Busca un jugador por el slug en location.hash (#jugador/slug) en todos los
+// pools disponibles y, si lo encuentra, abre su perfil. Devuelve true/false
+// según si lo encontró — la usan tanto el popstate de abajo (navegación
+// atrás/adelante dentro del SPA) como el chequeo de deep link al final del
+// archivo (entrar directo a la página con el hash ya puesto, ver ahí el
+// porqué hace falta por separado).
+function _tryOpenPlayerFromHash() {
   const m = location.hash.match(/^#jugador\/(.+)$/);
-  if (m) {
-    const pools = [
-      (currentData && currentData.jugadores) || [],
-      DATA_A.jugadores || [], DATA_B.jugadores || [],
-      window._nidoGetMerged ? window._nidoGetMerged() : [],
-    ];
-    for (const pool of pools) {
-      const found = pool.find(p => slugify(p.nombre) === m[1]);
-      if (found) { renderPlayerProfile(found.nombre); return; }
-    }
+  if (!m) return false;
+  const pools = [
+    (currentData && currentData.jugadores) || [],
+    DATA_A.jugadores || [], DATA_B.jugadores || [],
+    window._nidoGetMerged ? window._nidoGetMerged() : [],
+  ];
+  for (const pool of pools) {
+    const found = pool.find(p => slugify(p.nombre) === m[1]);
+    if (found) { renderPlayerProfile(found.nombre); return true; }
   }
+  return false;
+}
+
+window.addEventListener('popstate', () => {
+  if (_tryOpenPlayerFromHash()) return;
   closePlayerProfile(true);
 });
 
@@ -4179,7 +4604,7 @@ function renderTorneosMenu() {
        </div>`;
   const cards = isA
     ? ligaCard + `<div class="torneo-card" onclick="_navPushTorneosActuales();showTorneo('recopa')">
-         <div class="torneo-card-icon">🏅</div>
+         <div class="torneo-card-icon">🏆</div>
          <div class="torneo-card-name">Recopa 2026</div>
          <div class="torneo-card-sub">Torneo copa · Temporada 2026</div>
        </div>`
@@ -4825,7 +5250,7 @@ function renderRecopa() {
           data-pj="${pj}" data-tit="${tit}" data-sup="${sup}" data-cit="${cit}"
           data-goles="${g}" data-asist="${a}" data-ga="${g+a}" data-tr="${tr}"
           data-pg="${pg}" data-pa="${pa}" data-pga="${pga}">
-        <td>${pos?`<span class="pos-badge" style="margin-right:6px">${pos}</span>`:''}${j.nombre}</td>
+        <td>${_plantelPosBadgeHtml(pos)}${j.nombre}</td>
         <td class="${pj>0?'':'num-zero'}">${z(pj)}</td><td class="${tit>0?'':'num-zero'}">${z(tit)}</td>
         <td class="${sup>0?'':'num-zero'}">${z(sup)}</td><td class="${g>0?'num-goles':'num-zero'}">${z(g)}</td>
         <td class="${a>0?'num-asist':'num-zero'}">${z(a)}</td><td class="${(g+a)>0?'num-ga':'num-zero'}">${z(g+a)}</td>
@@ -4984,7 +5409,7 @@ function renderRecopa() {
 
   document.getElementById('torneo-recopa-content').innerHTML = `
     ${_volverBtnHtml()}
-    <div class="section-title" style="margin-bottom:20px">🏅 ${name}</div>
+    <div class="section-title" style="margin-bottom:20px">🏆 ${name}</div>
 
     <nav class="ap-tab-nav">
       <button class="ap-tab-btn active" data-tab="rc-plantel"  onclick="rcSwitchTab('rc-plantel')"> <span class="ap-tab-icon">🌟</span> Plantel</button>
@@ -5208,11 +5633,11 @@ function _cdGoToFecha(tabFn, fechaFn, fecha) {
 // Mobile-only card view for Plantel (Torneos Actuales) — desktop keeps its
 // sortable `.ap-plantel-table` (hidden ≤768px via the `.mrow-desktop-only`
 // class added just on that wrapper, not shared CSS, so the other Plantel tab
-// copies elsewhere in the site are untouched). Position badge uses the same
-// POS_COLOR/POS_COLOR_B maps as El Nido/Estadísticas Totales for consistency.
-function _apPlantelMobileCardsHtml(rows, posColorMap) {
+// copies elsewhere in the site are untouched). Position badge uses
+// _plantelPosColor(), the same colors as El Nido, for consistency.
+function _apPlantelMobileCardsHtml(rows) {
   const cardsHtml = (rows || []).map(({ j, g, a, tit, cit, pj, pos }) => {
-    const pc = posColorMap[String(pos || '').toUpperCase()] || '#94a3b8';
+    const pc = _plantelPosColor(pos);
     return `
       <div class="mrow-card">
         <div class="mrow-top">
@@ -5258,7 +5683,7 @@ function _cdMobileCardsHtml(rows, opts) {
         <div class="mrow-top">
           <div class="mrow-top-main">
             <div class="mrow-eyebrow">${_cdFechaLabel(m.fecha, isCopaRow)}</div>
-            <div class="mrow-title-row"><div class="mrow-title">${m.rival}</div></div>
+            <div class="mrow-title-row">${_rivalAvatarHtml(m.rival)}<div class="mrow-title">${m.rival}</div></div>
             <div class="mrow-meta" style="color:${condColor}">${condLabel}</div>
           </div>
           <div class="mrow-highlight">${_cdResultadoBadge(m)}</div>
@@ -5302,7 +5727,7 @@ function buildCentroDatosHtml(matches, opts) {
     return `<tr${trAttrs}>
       <td class="cd-td-fecha">${_cdFechaLabel(m.fecha, isCopaRow)}</td>
       <td class="cd-td-rival">
-        <div class="cd-rival-name">${m.rival}</div>
+        <div class="cd-rival-name">${_rivalAvatarHtml(m.rival)}${m.rival}</div>
         <div class="cd-cond">${_cdCondicion(m.local)}</div>
       </td>
       <td class="cd-td-res">${_cdResultadoBadge(m)}</td>
@@ -5436,7 +5861,7 @@ function renderTorneoApertura() {
           data-pj="${pj}" data-tit="${tit}" data-sup="${sup}" data-cit="${cit}"
           data-goles="${g}" data-asist="${a}" data-ga="${g+a}" data-tr="${tr}"
           data-pg="${pg}" data-pa="${pa}" data-pga="${pga}">
-        <td>${pos ? `<span class="pos-badge" style="margin-right:6px">${pos}</span>` : ''}${pl(j.nombre)}</td>
+        <td>${_plantelPosBadgeHtml(pos)}${pl(j.nombre)}</td>
         <td class="${pj  > 0 ? '' : 'num-zero'}">${z(pj)}</td>
         <td class="${tit > 0 ? '' : 'num-zero'}">${z(tit)}</td>
         <td class="${sup > 0 ? '' : 'num-zero'}">${z(sup)}</td>
@@ -5479,7 +5904,7 @@ function renderTorneoApertura() {
         ${thead}
         <tbody>${renderRows(defaultSorted)}</tbody>
       </table>
-    </div>${_apPlantelMobileCardsHtml(defaultSorted, isA ? POS_COLOR : POS_COLOR_B)}`;
+    </div>${_apPlantelMobileCardsHtml(defaultSorted)}`;
 
     // Sort state: null means default positional order
     window._apPlantelSortState = { col: null, asc: false };
@@ -5753,7 +6178,7 @@ function renderTorneoApertura2025A() {
           data-pj="${pj}" data-tit="${tit}" data-sup="${sup}" data-cit="${cit}"
           data-goles="${g}" data-asist="${a}" data-ga="${g+a}" data-tr="${tr}"
           data-pg="${pg}" data-pa="${pa}" data-pga="${pga}">
-        <td>${pos ? `<span class="pos-badge" style="margin-right:6px">${pos}</span>` : ''}${pl(j.nombre)}</td>
+        <td>${_plantelPosBadgeHtml(pos)}${pl(j.nombre)}</td>
         <td class="${pj>0?'':'num-zero'}">${z(pj)}</td>
         <td class="${tit>0?'':'num-zero'}">${z(tit)}</td>
         <td class="${sup>0?'':'num-zero'}">${z(sup)}</td>
@@ -5889,9 +6314,11 @@ function renderTorneoApertura2025A() {
     </div>` : `<div class="ap-standings-card"><div class="ap-card-title">📊 Tabla de Posiciones</div><div style="color:var(--gris-texto);font-size:0.82rem">Cargando…</div></div>`;
 
   // ── Tab 3: Fecha a Fecha ────────────────────────────────────────────────
-  const allFechas = partidos.map(m => ({ n: parseInt(m.fecha), played: m.resultado !== null })).sort((a,b) => a.n - b.n);
-  const fechaBtns = allFechas.map(f =>
-    `<button class="ap-fecha-btn ${f.played ? 'played' : 'pending'}" data-fecha="${f.n}" onclick="ap25SelectFecha(${f.n})">Fecha ${f.n}</button>`
+  const allFechas = partidos.map(m => ({ n: parseInt(m.fecha), played: m.resultado !== null, rival: m.rival })).sort((a,b) => a.n - b.n);
+  const fechaBtns = allFechas.map(f => `<div class="ap-fecha-btn-wrap">
+    <button class="ap-fecha-btn ${f.played ? 'played' : 'pending'}" data-fecha="${f.n}" onclick="ap25SelectFecha(${f.n})">Fecha ${f.n}</button>
+    <div class="ap-fecha-rival">${f.rival ? 'vs ' + f.rival : ''}</div>
+  </div>`
   ).join('');
 
   // ── Render shell ────────────────────────────────────────────────────────
@@ -6044,7 +6471,7 @@ function renderTorneoHistoricoGeneric(d, name, fechaLabels) {
           data-pj="${pj}" data-tit="${tit}" data-sup="${sup}" data-cit="${cit}"
           data-goles="${g}" data-asist="${a}" data-ga="${g+a}" data-tr="${tr}"
           data-pg="${pg}" data-pa="${pa}" data-pga="${pga}">
-        <td>${pos ? `<span class="pos-badge" style="margin-right:6px">${pos}</span>` : ''}${pl(j.nombre)}</td>
+        <td>${_plantelPosBadgeHtml(pos)}${pl(j.nombre)}</td>
         <td class="${pj>0?'':'num-zero'}">${z(pj)}</td>
         <td class="${tit>0?'':'num-zero'}">${z(tit)}</td>
         <td class="${sup>0?'':'num-zero'}">${z(sup)}</td>
@@ -6180,9 +6607,11 @@ function renderTorneoHistoricoGeneric(d, name, fechaLabels) {
     </div>` : `<div class="ap-standings-card"><div class="ap-card-title">📊 Tabla de Posiciones</div><div style="color:var(--gris-texto);font-size:0.82rem">Cargando…</div></div>`;
 
   // ── Tab 3: Fecha a Fecha ────────────────────────────────────────────────
-  const allFechas = partidos.map(m => ({ n: parseInt(m.fecha), played: m.resultado !== null })).sort((a,b) => a.n - b.n);
-  const fechaBtns = allFechas.map(f =>
-    `<button class="ap-fecha-btn ${f.played ? 'played' : 'pending'}" data-fecha="${f.n}" onclick="ghSelectFecha(${f.n})">${fechaLabels[f.n] || 'Fecha ' + f.n}</button>`
+  const allFechas = partidos.map(m => ({ n: parseInt(m.fecha), played: m.resultado !== null, rival: m.rival })).sort((a,b) => a.n - b.n);
+  const fechaBtns = allFechas.map(f => `<div class="ap-fecha-btn-wrap">
+    <button class="ap-fecha-btn ${f.played ? 'played' : 'pending'}" data-fecha="${f.n}" onclick="ghSelectFecha(${f.n})">${fechaLabels[f.n] || 'Fecha ' + f.n}</button>
+    <div class="ap-fecha-rival">${f.rival ? 'vs ' + f.rival : ''}</div>
+  </div>`
   ).join('');
 
   // ── Render shell ────────────────────────────────────────────────────────
@@ -6390,6 +6819,14 @@ function _moveCopaMatches(dataObj, targetObj, predicate) {
 // matches/goles never showed up in a player's profile unless someone had
 // already opened "Apertura AIFA D 2024" earlier in the session.
 let _ppHistoricoPreloadPromise = null;
+// Se prende recién cuando TODAS las temporadas de Torneos Antiguos
+// terminaron de resolver (éxito o falla, ver Promise.allSettled abajo) —
+// hasta entonces, _ppRecordCardInnerHtml/_ppRenderDetailPanel muestran un
+// estado de carga en vez de un número parcial (Récord de Resultados y
+// Fecha a Fecha dependen de esta misma lista de partidos, y sin esto se
+// veía primero un PJ chico que después, unos segundos más tarde, saltaba
+// al valor real — un número "incorrecto" visible aunque fuera transitorio).
+let _ppHistoricoReady = false;
 function _ppEnsureAllHistoricoLoaded() {
   if (_ppHistoricoPreloadPromise) return _ppHistoricoPreloadPromise;
   const pending = Object.entries(HISTORICO_GENERIC).filter(([key]) => !_historicoGenericLoaded[key]);
@@ -6399,7 +6836,7 @@ function _ppEnsureAllHistoricoLoaded() {
   _ppHistoricoPreloadPromise = Promise.allSettled([
     ...pending.map(([key, cfg]) => _loadHistoricoGeneric(key, cfg.d, cfg)),
     _loadBApt2024d(),
-  ]);
+  ]).then(results => { _ppHistoricoReady = true; return results; });
   return _ppHistoricoPreloadPromise;
 }
 
@@ -6696,7 +7133,7 @@ function renderTorneoApt2024DB() {
             data-pj="${pj}" data-tit="${tit}" data-sup="${sup}" data-cit="${cit}"
             data-goles="${g}" data-asist="${a}" data-ga="${g+a}" data-tr="${tr}"
             data-pg="${pg}" data-pa="${pa}" data-pga="${pga}">
-          <td>${pos ? `<span class="pos-badge" style="margin-right:6px">${pos}</span>` : ''}${pl(j.nombre)}</td>
+          <td>${_plantelPosBadgeHtml(pos)}${pl(j.nombre)}</td>
           <td class="${pj>0?'':'num-zero'}">${z(pj)}</td>
           <td class="${tit>0?'':'num-zero'}">${z(tit)}</td>
           <td class="${sup>0?'':'num-zero'}">${z(sup)}</td>
@@ -6814,13 +7251,15 @@ function renderTorneoApt2024DB() {
         <div style="color:var(--gris-texto);font-size:0.82rem">${_bApt2024dLoaded ? 'Sin datos disponibles.' : 'Cargando…'}</div></div>`;
 
     // ── Tab 3: Fecha a Fecha ────────────────────────────────────────────
-    const allFechas = partidos.map(m => ({ n: parseInt(m.fecha), played: m.resultado !== null })).sort((a,b) => a.n - b.n);
+    const allFechas = partidos.map(m => ({ n: parseInt(m.fecha), played: m.resultado !== null, rival: m.rival })).sort((a,b) => a.n - b.n);
     // Fecha 16 was actually the tie-breaker decider match, not a regular
     // matchday — relabel it without changing the underlying fecha number
     // used for sorting/matching.
     const AP24D_FECHA_LABELS = { 16: 'Final Desempate' };
-    const fechaBtns = allFechas.map(f =>
-      `<button class="ap-fecha-btn ${f.played ? 'played' : 'pending'}" data-fecha="${f.n}" onclick="ap24dSelectFecha(${f.n})">${AP24D_FECHA_LABELS[f.n] || 'Fecha ' + f.n}</button>`
+    const fechaBtns = allFechas.map(f => `<div class="ap-fecha-btn-wrap">
+      <button class="ap-fecha-btn ${f.played ? 'played' : 'pending'}" data-fecha="${f.n}" onclick="ap24dSelectFecha(${f.n})">${AP24D_FECHA_LABELS[f.n] || 'Fecha ' + f.n}</button>
+      <div class="ap-fecha-rival">${f.rival ? 'vs ' + f.rival : ''}</div>
+    </div>`
     ).join('');
     const autoFecha = last ? last.fecha : (allFechas.length ? allFechas[0].n : null);
 
@@ -6947,6 +7386,21 @@ function rankLabel(i) {
   return i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '';
 }
 
+// Switch Primera A/B sin salir de Resumen ni pasar por la landing — mismo
+// side-effect (currentData + badge del header) que ya hacen openSection()/
+// goToMatchFecha() en otros puntos de entrada, seguido de un re-render de
+// Resumen: como todo el contenido de la pestaña (históricas, títulos,
+// récords, TOP 5, últimos partidos, mini tabla) se genera dentro de la
+// misma renderResumen(), un solo llamado alcanza para refrescar todo.
+function _resumenSwitchCategory(cat) {
+  const target = cat === 'a' ? DATA_A : DATA_B;
+  if (currentData === target) return;
+  currentData = target;
+  const badge = document.getElementById('section-badge');
+  if (badge) { badge.textContent = currentData.badge; badge.className = 'header-section-badge ' + currentData.badgeClass; }
+  renderResumen();
+}
+
 function renderResumen() {
   const d = currentData;
   const isA = d === DATA_A;
@@ -7032,7 +7486,13 @@ function renderResumen() {
 
   const container = document.getElementById('resumen-content');
   container.innerHTML = `
-    <div class="section-title" style="margin-bottom:16px">${isA ? '🏆' : '⚽'} Resumen – ${d.nombre}</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+      <div class="section-title" style="margin-bottom:0">${isA ? '🏆' : '⚽'} Resumen – ${d.nombre}</div>
+      <div class="resumen-cat-switch">
+        <button class="resumen-cat-btn${isA ? ' active' : ''}" onclick="_resumenSwitchCategory('a')">Primera A</button>
+        <button class="resumen-cat-btn${isA ? '' : ' active'}" onclick="_resumenSwitchCategory('b')">Primera B</button>
+      </div>
+    </div>
 
     <!-- Estadísticas históricas + columna derecha -->
     <div class="resumen-grid">
@@ -7108,15 +7568,15 @@ function renderResumen() {
     <!-- TOP 5 histórico -->
     <div class="top10-grid">
       <div class="top10-card">
-        <div class="top10-header">👟 TOP 5 – Más partidos</div>
+        <div class="top10-header" style="color:#fac775;border-bottom-color:#fac775">👟 TOP 5 – Más partidos</div>
         ${byPartidos.map((j,i) => top10Row(j, i)).join('')}
       </div>
       <div class="top10-card">
-        <div class="top10-header">⚽ TOP 5 – Máximos goleadores</div>
+        <div class="top10-header" style="color:#22c55e;border-bottom-color:#22c55e">⚽ TOP 5 – Máximos goleadores</div>
         ${byGoles.map((j,i) => top10Row(j, i)).join('')}
       </div>
       <div class="top10-card">
-        <div class="top10-header">🎯 TOP 5 – Máximos asistidores</div>
+        <div class="top10-header" style="color:#85b7eb;border-bottom-color:#85b7eb">🎯 TOP 5 – Máximos asistidores</div>
         ${byAsist.map((j,i) => top10Row(j, i)).join('')}
       </div>
     </div>
@@ -7156,7 +7616,7 @@ function renderResumen() {
               return `<div class="ultimo-card ultimo-card-link ${res}" onclick="goToMatchFecha('${p._navKey}', '${fechaArg}')" title="Ver en Fecha a Fecha">
                 <div class="ultimo-fecha">${fechaLabel}<span class="ultimo-torneo-badge">${p._torneoLabel}</span></div>
                 <div>
-                  <div class="ultimo-rival">vs ${p.rival}</div>
+                  <div class="ultimo-rival">${_rivalAvatarHtml(p.rival)}vs ${p.rival}</div>
                   <div class="ultimo-local">${p.local || ''}</div>
                 </div>
                 <div class="ultimo-resultado ${res}">${p.resultado}</div>
@@ -7425,7 +7885,7 @@ function renderHistorial() {
     }).join('');
     const tbody = rows.map(r => `
       <tr onclick="histDrilldown('${r.rival.replace(/'/g,"\\'")}')">
-        <td>${r.rival}<span class="hist-rival-arrow">›</span></td>
+        <td><span style="display:inline-flex;align-items:center;gap:6px;vertical-align:middle">${_rivalAvatarHtml(r.rival)}${r.rival}</span><span class="hist-rival-arrow">›</span></td>
         <td class="hist-td-pj">${r.pj}</td>
         <td class="hist-td-win">${r.pg}</td>
         <td class="hist-td-draw">${r.pe}</td>
@@ -7439,19 +7899,20 @@ function renderHistorial() {
   }
 
   // Mobile card view: club name + chevron on top (preserves the drilldown
-  // click), goal difference (Dif.) highlighted on the right since it's the
-  // single most useful at-a-glance number, secondary line with PJ/V/E/D/GF·GC.
+  // click), head-to-head record (PG−PP) highlighted on the right — más
+  // relevante en un vistazo que la diferencia de gol para saber "quién le
+  // gana a quién" —, secondary line with PJ/V/E/D/GF·GC.
   function buildMobileCards(rows) {
     if (!rows.length) return '';
     const cardsHtml = rows.map(r => `
       <div class="mrow-card clickable" onclick="histDrilldown('${r.rival.replace(/'/g,"\\'")}')">
         <div class="mrow-top">
           <div class="mrow-top-main">
-            <div class="mrow-title-row"><div class="mrow-title">${r.rival}</div><span class="mrow-chevron">›</span></div>
+            <div class="mrow-title-row">${_rivalAvatarHtml(r.rival)}<div class="mrow-title">${r.rival}</div><span class="mrow-chevron">›</span></div>
           </div>
           <div class="mrow-highlight">
-            <div class="mrow-highlight-val ${balClass(r.dif)}">${sign(r.dif)}</div>
-            <div class="mrow-highlight-label">Dif.</div>
+            <div class="mrow-highlight-val ${balClass(r.dh)}">${r.dh === 0 ? '=' : sign(r.dh)}</div>
+            <div class="mrow-highlight-label">PJ</div>
           </div>
         </div>
         <div class="mrow-secondary">
@@ -8185,8 +8646,27 @@ const JUG_COL = {
   gmas: 13, promGmas: 14, vallas: 15, vallasProm: 16
 };
 
-const POS_COLOR = { ARQ:'#a855f7', LI:'#22c55e', DFC:'#3b82f6', LD:'#22c55e', MC:'#f59e0b', DEL:'#ef4444', DC:'#ef4444', ED:'#ef4444', EI:'#ef4444' };
-const POS_BG    = { ARQ:'rgba(168,85,247,0.18)', LI:'rgba(34,197,94,0.15)', DFC:'rgba(59,130,246,0.18)', LD:'rgba(34,197,94,0.15)', MC:'rgba(245,158,11,0.18)', DEL:'rgba(239,68,68,0.18)', DC:'rgba(239,68,68,0.18)', ED:'rgba(239,68,68,0.18)', EI:'rgba(239,68,68,0.18)' };
+// Mismo código de colores que El Nido (ver posColor() dentro de su propio
+// IIFE) — usado en la columna de posición del Plantel, tanto en Torneos
+// Actuales como Antiguos, para que ambas vistas queden consistentes.
+function _plantelPosColor(pos) {
+  const C = {
+    ARQ:'#a855f7',
+    LI:'#22c55e', LD:'#22c55e', DFI:'#22c55e', DFD:'#22c55e',
+    DEF:'#3b82f6', DFC:'#3b82f6',
+    MC:'#f59e0b', MCO:'#f59e0b',
+    DEL:'#ef4444', DC:'#ef4444', ED:'#ef4444', EI:'#ef4444',
+  };
+  return C[String(pos || '').toUpperCase()] || '#6b7280';
+}
+function _plantelPosBadgeHtml(pos) {
+  if (!pos) return '';
+  const c = _plantelPosColor(pos);
+  return `<span class="pos-badge" style="background:${c}1a;color:${c};border-color:${c}66;margin-right:6px">${pos}</span>`;
+}
+
+const POS_COLOR = { ARQ:'#a855f7', LI:'#22c55e', LD:'#22c55e', DFI:'#22c55e', DFD:'#22c55e', DEF:'#3b82f6', DFC:'#3b82f6', MC:'#f59e0b', MCO:'#f59e0b', DEL:'#ef4444', DC:'#ef4444', ED:'#ef4444', EI:'#ef4444' };
+const POS_BG    = { ARQ:'rgba(168,85,247,0.18)', LI:'rgba(34,197,94,0.15)', LD:'rgba(34,197,94,0.15)', DFI:'rgba(34,197,94,0.15)', DFD:'rgba(34,197,94,0.15)', DFC:'rgba(59,130,246,0.18)', MC:'rgba(245,158,11,0.18)', MCO:'rgba(245,158,11,0.18)', DEL:'rgba(239,68,68,0.18)', DC:'rgba(239,68,68,0.18)', ED:'rgba(239,68,68,0.18)', EI:'rgba(239,68,68,0.18)' };
 
 const JUG_TABS = [
   { key:'general',      label:'General',      cols:[JUG_COL.pj, JUG_COL.goles, JUG_COL.asist, JUG_COL.gmas] },
@@ -8309,7 +8789,7 @@ function renderJugadoresTotales() {
         style="flex:1;min-width:160px;padding:7px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:#fff;font-size:0.85rem;outline:none">
       <div id="jug-tab-row" class="jtot-tabrow"></div>
     </div>
-    <div class="table-wrap" id="jug-totales-wrap" style="overflow-x:auto;position:relative">
+    <div class="table-wrap" id="jug-totales-wrap" style="overflow:auto;max-height:640px;position:relative">
       <div style="color:var(--gris-texto);padding:24px;text-align:center">Cargando...</div>
     </div>`;
 
@@ -8460,13 +8940,24 @@ function _jugTotalBuild() {
   const medalBg     = ['rgba(251,191,36,0.08)', 'rgba(148,163,184,0.06)', 'rgba(180,120,60,0.06)'];
   const medals      = ['🥇', '🥈', '🥉'];
 
+  // El wrapper (#jug-totales-wrap/-b, ver overflow:auto;max-height:640px más
+  // abajo) es su propio panel con scroll acotado — no la página entera —
+  // porque la tabla también scrollea horizontalmente (overflow-x), y un
+  // ancestro con overflow-x:auto termina forzando overflow-y:auto también
+  // (así lo resuelve la spec de CSS Overflow), lo que rompe el "sticky"
+  // relativo a la ventana: sin una altura fija, ese div nunca scrollea de
+  // verdad y el header no se despega. Por eso top:0 acá es relativo a ESTE
+  // panel, no al header fijo del sitio. Las primeras 2 columnas (#, Jugador)
+  // ya eran sticky en horizontal (left) — sumarles top también las deja
+  // fijas en las DOS direcciones (la esquina superior-izquierda), por eso
+  // llevan un z-index más alto que el resto.
   const ths = `
-    <th style="position:sticky;left:0;z-index:2;background:var(--azul-card);min-width:44px;width:44px;text-align:center;padding:10px 8px;font-size:0.65rem;color:var(--gris-texto);border-bottom:1px solid rgba(255,255,255,0.08)">#</th>
-    <th style="position:sticky;left:44px;z-index:2;background:var(--azul-card);min-width:200px;padding:10px 12px;font-size:0.65rem;color:var(--gris-texto);border-bottom:1px solid rgba(255,255,255,0.08);cursor:pointer" onclick="_jugTotalSort(${JUG_COL.nombre})">Jugador</th>
+    <th style="position:sticky;left:0;top:0;z-index:22;background:var(--azul-card);min-width:44px;width:44px;text-align:center;padding:10px 8px;font-size:0.65rem;color:var(--gris-texto);border-bottom:1px solid rgba(255,255,255,0.08)">#</th>
+    <th style="position:sticky;left:44px;top:0;z-index:22;background:var(--azul-card);min-width:200px;padding:10px 12px;font-size:0.65rem;color:var(--gris-texto);border-bottom:1px solid rgba(255,255,255,0.08);cursor:pointer" onclick="_jugTotalSort(${JUG_COL.nombre})">Jugador</th>
     ${activeCols.map(ci => {
       const m = COL_META[ci] || { label: _jugTotalesCols[ci], icon: '', color: '#94a3b8' };
       const active = _jugTotalesSort.col === ci;
-      return `<th onclick="_jugTotalSort(${ci})" style="cursor:pointer;user-select:none;min-width:72px;padding:10px 12px;font-size:0.65rem;color:${active ? m.color : 'var(--gris-texto)'};text-align:center;white-space:nowrap;border-bottom:1px solid rgba(255,255,255,0.08)">
+      return `<th onclick="_jugTotalSort(${ci})" style="cursor:pointer;user-select:none;min-width:72px;padding:10px 12px;font-size:0.65rem;color:${active ? m.color : 'var(--gris-texto)'};text-align:center;white-space:nowrap;border-bottom:1px solid rgba(255,255,255,0.08);position:sticky;top:0;z-index:20;background:var(--azul-card);">
         ${m.icon} ${m.label}${active ? `<span style="font-size:0.7em;margin-left:3px">${_jugTotalesSort.asc ? '▲' : '▼'}</span>` : ''}
       </th>`;
     }).join('')}`;
@@ -8530,8 +9021,8 @@ const JUG_COL_B = {
   promGol:12, promAsist:13, promGmas:14, vallas:15
 };
 
-const POS_COLOR_B = { ARQ:'#a855f7', LI:'#22c55e', DEF:'#3b82f6', DFC:'#3b82f6', LD:'#22c55e', MC:'#f59e0b', DEL:'#ef4444', DC:'#ef4444', ED:'#ef4444', EI:'#ef4444' };
-const POS_BG_B    = { ARQ:'rgba(168,85,247,0.18)', LI:'rgba(34,197,94,0.15)', DEF:'rgba(59,130,246,0.18)', DFC:'rgba(59,130,246,0.18)', LD:'rgba(34,197,94,0.15)', MC:'rgba(245,158,11,0.18)', DEL:'rgba(239,68,68,0.18)', DC:'rgba(239,68,68,0.18)', ED:'rgba(239,68,68,0.18)', EI:'rgba(239,68,68,0.18)' };
+const POS_COLOR_B = { ARQ:'#a855f7', LI:'#22c55e', LD:'#22c55e', DFI:'#22c55e', DFD:'#22c55e', DEF:'#3b82f6', DFC:'#3b82f6', MC:'#f59e0b', MCO:'#f59e0b', DEL:'#ef4444', DC:'#ef4444', ED:'#ef4444', EI:'#ef4444' };
+const POS_BG_B    = { ARQ:'rgba(168,85,247,0.18)', LI:'rgba(34,197,94,0.15)', LD:'rgba(34,197,94,0.15)', DFI:'rgba(34,197,94,0.15)', DFD:'rgba(34,197,94,0.15)', DEF:'rgba(59,130,246,0.18)', DFC:'rgba(59,130,246,0.18)', MC:'rgba(245,158,11,0.18)', MCO:'rgba(245,158,11,0.18)', DEL:'rgba(239,68,68,0.18)', DC:'rgba(239,68,68,0.18)', ED:'rgba(239,68,68,0.18)', EI:'rgba(239,68,68,0.18)' };
 
 const JUG_TABS_B = [
   { key:'general',       label:'General',       cols:[JUG_COL_B.pj, JUG_COL_B.goles, JUG_COL_B.asist, JUG_COL_B.gmas] },
@@ -8590,7 +9081,7 @@ function renderJugadoresTotalesB() {
         style="flex:1;min-width:160px;padding:7px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:#fff;font-size:0.85rem;outline:none">
       <div id="jug-tab-row-b" class="jtot-tabrow"></div>
     </div>
-    <div class="table-wrap" id="jug-totales-wrap-b" style="overflow-x:auto;position:relative">
+    <div class="table-wrap" id="jug-totales-wrap-b" style="overflow:auto;max-height:640px;position:relative">
       <div style="color:var(--gris-texto);padding:24px;text-align:center">Cargando...</div>
     </div>`;
 
@@ -8740,13 +9231,17 @@ function _jugBBuild() {
   const medalBg     = ['rgba(251,191,36,0.08)', 'rgba(148,163,184,0.06)', 'rgba(180,120,60,0.06)'];
   const medals      = ['🥇', '🥈', '🥉'];
 
+  // top:0 = alto del header fijo del sitio (.header, position:sticky;top:0
+  // ahí). Las primeras 2 columnas (#, Jugador) ya eran sticky en horizontal
+  // (left) — sumarles top también las deja fijas en las DOS direcciones,
+  // por eso llevan un z-index más alto que el resto.
   const ths = `
-    <th style="position:sticky;left:0;z-index:2;background:var(--azul-card);min-width:44px;width:44px;text-align:center;padding:10px 8px;font-size:0.65rem;color:var(--gris-texto);border-bottom:1px solid rgba(255,255,255,0.08)">#</th>
-    <th style="position:sticky;left:44px;z-index:2;background:var(--azul-card);min-width:200px;padding:10px 12px;font-size:0.65rem;color:var(--gris-texto);border-bottom:1px solid rgba(255,255,255,0.08);cursor:pointer" onclick="_jugBSortCol(${JUG_COL_B.nombre})">Jugador</th>
+    <th style="position:sticky;left:0;top:0;z-index:22;background:var(--azul-card);min-width:44px;width:44px;text-align:center;padding:10px 8px;font-size:0.65rem;color:var(--gris-texto);border-bottom:1px solid rgba(255,255,255,0.08)">#</th>
+    <th style="position:sticky;left:44px;top:0;z-index:22;background:var(--azul-card);min-width:200px;padding:10px 12px;font-size:0.65rem;color:var(--gris-texto);border-bottom:1px solid rgba(255,255,255,0.08);cursor:pointer" onclick="_jugBSortCol(${JUG_COL_B.nombre})">Jugador</th>
     ${activeCols.map(ci => {
       const m = COL_META_B[ci] || { label: _jugBCols[ci], icon: '', color: '#94a3b8' };
       const active = _jugBSort.col === ci;
-      return `<th onclick="_jugBSortCol(${ci})" style="cursor:pointer;user-select:none;min-width:72px;padding:10px 12px;font-size:0.65rem;color:${active ? m.color : 'var(--gris-texto)'};text-align:center;white-space:nowrap;border-bottom:1px solid rgba(255,255,255,0.08)">
+      return `<th onclick="_jugBSortCol(${ci})" style="cursor:pointer;user-select:none;min-width:72px;padding:10px 12px;font-size:0.65rem;color:${active ? m.color : 'var(--gris-texto)'};text-align:center;white-space:nowrap;border-bottom:1px solid rgba(255,255,255,0.08);position:sticky;top:0;z-index:20;background:var(--azul-card);">
         ${m.icon} ${m.label}${active ? `<span style="font-size:0.7em;margin-left:3px">${_jugBSort.asc ? '▲' : '▼'}</span>` : ''}
       </th>`;
     }).join('')}`;
@@ -9062,6 +9557,70 @@ const SEED_ANUALES_PLAYERS_B = {
   ],
 };
 
+// Resumen de torneos 2026 (Primera A) calculado en vivo a partir de los datos
+// ya cargados (DATA_A_APERTURA2026, DATA_A, COPA_BLOCKS['Recopa 2026']) en
+// vez de hardcodear números como en los años ya cerrados (2023-2025) — la
+// temporada está en curso, así que un valor fijo quedaría desactualizado
+// apenas se juegue la siguiente fecha. Devuelve solo los torneos que ya
+// tienen al menos un partido cargado.
+function _anualesTorneo2026FromLiga(d, nombre, icon) {
+  const ligaMatches = (d?.apertura || []).filter(m => /^\d+$/.test(String(m.fecha)));
+  if (!ligaMatches.length) return null;
+  const numVal = v => (v === null || v === undefined || v === '' || v === '-') ? 0 : Number(v) || 0;
+  const jugs = _mergeRosterWithAggregated(d.jugadores, _aggregatePlayerStats(ligaMatches));
+  const own = (d.tabla || []).find(t => t.csb);
+  const byGoles = [...jugs].sort((a, b) => numVal(b.goles) - numVal(a.goles));
+  const byAsist = [...jugs].sort((a, b) => numVal(b.asist) - numVal(a.asist));
+  const byPJ    = [...jugs].sort((a, b) => (numVal(b.pj) || numVal(b.titular)) - (numVal(a.pj) || numVal(a.titular)));
+  const topG = byGoles[0], topA = byAsist[0], topPJ = byPJ[0];
+  return {
+    nombre, icon,
+    pos: own?.pos || '—',
+    pts: own ? numVal(own.pts) : null,
+    pj: own ? numVal(own.pj) : ligaMatches.filter(m => m.resultado !== null).length,
+    g:  own ? numVal(own.pg) : 0, e: own ? numVal(own.pe) : 0, p: own ? numVal(own.pp) : 0,
+    gf: own ? numVal(own.gf) : 0, gc: own ? numVal(own.gc) : 0,
+    maxGol:   topG && numVal(topG.goles) > 0 ? `${topG.nombre} (${numVal(topG.goles)})` : '',
+    maxAsist: topA && numVal(topA.asist) > 0 ? `${topA.nombre} (${numVal(topA.asist)})` : '',
+    maxPJ:    topPJ ? `${topPJ.nombre} (${numVal(topPJ.pj) || numVal(topPJ.titular)})` : '',
+  };
+}
+// Recopa 2026 (A) es un torneo de eliminación directa en curso — no tiene
+// tabla de posiciones, así que "pos" toma la Instancia (posCSB) del último
+// partido cargado, mismo dato que ya usan otras vistas ("🏅 Posición: X").
+function _anualesTorneo2026Recopa() {
+  const matches = COPA_BLOCKS['Recopa 2026'] || [];
+  const played = matches.filter(m => m.resultado !== null);
+  if (!played.length) return null;
+  const numVal = v => (v === null || v === undefined || v === '' || v === '-') ? 0 : Number(v) || 0;
+  const jugs = _aggregatePlayerStats(matches);
+  let g = 0, e = 0, p = 0, gf = 0, gc = 0;
+  played.forEach(m => {
+    gf += numVal(m.gf); gc += numVal(m.gc);
+    if (m.gf > m.gc) g++; else if (m.gf < m.gc) p++; else e++;
+  });
+  const byGoles = [...jugs].sort((a, b) => numVal(b.goles) - numVal(a.goles));
+  const byAsist = [...jugs].sort((a, b) => numVal(b.asist) - numVal(a.asist));
+  const byPJ    = [...jugs].sort((a, b) => numVal(b.pj) - numVal(a.pj));
+  const topG = byGoles[0], topA = byAsist[0], topPJ = byPJ[0];
+  return {
+    nombre: 'Recopa', icon: '🏆',
+    pos: played[played.length - 1].posCSB || '—',
+    pts: null,
+    pj: played.length, g, e, p, gf, gc,
+    maxGol:   topG && numVal(topG.goles) > 0 ? `${topG.nombre} (${numVal(topG.goles)})` : '',
+    maxAsist: topA && numVal(topA.asist) > 0 ? `${topA.nombre} (${numVal(topA.asist)})` : '',
+    maxPJ:    topPJ ? `${topPJ.nombre} (${numVal(topPJ.pj)})` : '',
+  };
+}
+function _anualesTorneos2026A() {
+  return [
+    _anualesTorneo2026FromLiga(DATA_A_APERTURA2026, 'Apertura', '🍂'),
+    _anualesTorneo2026FromLiga(DATA_A, 'Clausura', '🌸'),
+    _anualesTorneo2026Recopa(),
+  ].filter(Boolean);
+}
+
 const SEED_ANUALES = {
   '2023': {
     torneos: [
@@ -9083,7 +9642,11 @@ const SEED_ANUALES = {
       { nombre:'Clausura', icon:'🌸', pos:'5°',  pts:23, pj:15, g:7, e:2, p:6, gf:22, gc:18, maxGol:'Ramiro Hermida (7)', maxAsist:'Hermida / Vittar / Bello (3)',                    maxPJ:'Usandizaga, B. Elhaiek, F. Bello (15)' },
       { nombre:'Recopa',   icon:'🏆', pos:'Subcampeón', pts:null, pj:4, g:2, e:1, p:1, gf:9, gc:2, maxGol:'', maxAsist:'', maxPJ:'' },
     ]
-  }
+  },
+  // Temporada en curso — el resumen de torneos (Bloque 1/2 más abajo) se
+  // completará al cierre de cada torneo; los rankings de jugadores (Bloque 3)
+  // ya se alimentan en vivo vía _anualesLoadPlayers/ANUALES_LIVE_GID.
+  '2026': { torneos: [] },
 };
 
 let _anualesYear = null;
@@ -9117,12 +9680,16 @@ function renderJugAnualesYear(year) {
   _anualesSortAsc = false;
   const seed = SEED_ANUALES[year];
   if (!seed) return;
+  // 2026 está en curso — el resumen por torneo se calcula en vivo (ver
+  // _anualesTorneos2026A) en vez de leer el seed estático (que queda vacío
+  // a propósito, ya que esos números todavía no existen como "cerrados").
+  const torneos = year === '2026' ? _anualesTorneos2026A() : seed.torneos;
 
   // Totales del año: Liga + Copa juntos (antes solo sumaba los torneos de
   // liga — filter(t => t.pts !== null) excluía la Recopa por completo del
   // "Resumen del equipo", subestimando PJ/PG/PE/PP/GF/GC reales del año).
   const total = { pj: 0, g: 0, e: 0, p: 0, gf: 0, gc: 0 };
-  seed.torneos.forEach(t => { total.pj += t.pj; total.g += t.g; total.e += t.e; total.p += t.p; total.gf += t.gf; total.gc += t.gc; });
+  torneos.forEach(t => { total.pj += t.pj; total.g += t.g; total.e += t.e; total.p += t.p; total.gf += t.gf; total.gc += t.gc; });
   const pctG = Math.round(total.g / total.pj * 100);
   const pctE = Math.round(total.e / total.pj * 100);
   const pctP = 100 - pctG - pctE;
@@ -9162,7 +9729,7 @@ function renderJugAnualesYear(year) {
     <!-- BLOQUE 2: Rendimiento por torneo -->
     <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gris-texto);margin-bottom:8px">🏟️ Rendimiento por torneo</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-bottom:20px">
-      ${[...seed.torneos].sort((a, b) => _ppTorneoRank(a.nombre) - _ppTorneoRank(b.nombre)).map(t => {
+      ${!torneos.length ? `<div style="grid-column:1/-1;color:rgba(255,255,255,0.35);font-size:0.78rem;padding:12px 0">Todavía no hay partidos cargados en la temporada ${year}.</div>` : [...torneos].sort((a, b) => _ppTorneoRank(a.nombre) - _ppTorneoRank(b.nombre)).map(t => {
         const isLeague = t.pts !== null;
         const posColor = posStyle(t.pos);
         const posBg = posColor + '1f', posBorder = posColor + '59';
@@ -9172,7 +9739,13 @@ function renderJugAnualesYear(year) {
         // stores the short "Apertura"/"Clausura"/"Recopa" label, while the map
         // is keyed by the full name shared with "Gráficos" (e.g. "Apertura AIFA A").
         const competenciaFull = t.nombre === 'Recopa' ? 'Recopa' : `${t.nombre} AIFA A`;
-        const nav = TORNEO_NAV_MAP[`${year}|${competenciaFull}|A`] || TORNEO_NAV_MAP[`${year}|${competenciaFull}`];
+        // Clausura/Recopa 2026 (A) siguen activos en Torneos Actuales — no
+        // están en TORNEO_NAV_MAP (que solo cubre torneos ya archivados), así
+        // que su link va directo a showTorneo() en vez de showHistoricoTorneo().
+        const LIVE_2026_NAV_A = { Clausura: "showTorneo('apertura')", Recopa: "showTorneo('recopa')" };
+        const nav = (year === '2026' && LIVE_2026_NAV_A[t.nombre])
+          ? { fn: LIVE_2026_NAV_A[t.nombre] }
+          : (TORNEO_NAV_MAP[`${year}|${competenciaFull}|A`] || TORNEO_NAV_MAP[`${year}|${competenciaFull}`]);
         const cardAttrs = nav ? `onclick="_navPush('Estadísticas Anuales', () => renderJugAnualesYear(${year})); ${nav.fn}" style="cursor:pointer;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px 14px;transition:border-color .15s,background .15s" onmouseover="this.style.background='rgba(255,255,255,0.07)';this.style.borderColor='rgba(245,158,11,0.35)'" onmouseout="this.style.background='rgba(255,255,255,0.04)';this.style.borderColor='rgba(255,255,255,0.07)'"`
           : `style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px 14px"`;
         return `<div ${cardAttrs}>
@@ -9210,7 +9783,7 @@ function renderJugAnualesYear(year) {
         style="flex:1;min-width:150px;padding:7px 11px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:#fff;font-size:0.85rem;outline:none">
       <span id="jug-anual-count" style="color:var(--gris-texto);font-size:0.78rem;white-space:nowrap"></span>
     </div>
-    <div id="jug-anual-table" style="overflow-x:auto">
+    <div id="jug-anual-table" style="overflow:auto;max-height:640px;">
       <div style="color:var(--gris-texto);font-size:0.82rem;padding:8px 0">Cargando tabla...</div>
     </div>`;
 
@@ -9222,6 +9795,45 @@ function renderJugAnualesYear(year) {
 // so team-level year totals always reflect Primera B's own sheet.
 function _anualesSourceB() {
   return (DATA_B.graficos && DATA_B.graficos.length) ? DATA_B.graficos : SEED_GRAFICOS_B;
+}
+
+// Overlay sobre SEED_ANUALES_PLAYERS_B para años cargados en vivo (2026, sin
+// seed estático todavía) — _anualesBuildRankingsB/_anualesBuildTableB
+// prefieren esto por año si está presente, si no caen al seed estático de
+// siempre. 2026 vive en una pestaña identificada por gid dentro de GS.B_HIST,
+// columnas I:O — mismo formato que Primera A (incluye Posición).
+let _anualesPlayersB = {};
+const ANUALES_LIVE_GID_B = { '2026': '333368377' };
+
+function _anualesLoadPlayersB(year) {
+  if (_anualesPlayersB[year]) { _anualesBuildRankingsB(year); _anualesBuildTableB(year); return; }
+  if (SEED_ANUALES_PLAYERS_B[year]) {
+    _anualesPlayersB[year] = SEED_ANUALES_PLAYERS_B[year];
+    _anualesBuildRankingsB(year);
+    _anualesBuildTableB(year);
+    return;
+  }
+  if (!ANUALES_LIVE_GID_B[year]) return;
+  _anualesPlayersB[year] = [];
+  _anualesBuildRankingsB(year);
+  _anualesBuildTableB(year);
+  fetchGvizByGid(GS.B_HIST, ANUALES_LIVE_GID_B[year], 'I2:O60').then(rows => {
+    if (!rows || rows.length < 2) return;
+    const mapped = rows.slice(1).map(r => ({
+      nombre:   String(r[0]||'').trim(),
+      pos:      String(r[1]||'').trim(),
+      goles:    Number(r[2])||0,
+      asist:    Number(r[3])||0,
+      gmas:     Number(r[4])||0,
+      pj:       Number(r[5])||0,
+      promGmas: parseFloat(r[6])||0,
+    })).filter(p => p.nombre);
+    if (mapped.length > 0) {
+      _anualesPlayersB[year] = mapped;
+      _anualesBuildRankingsB(year);
+      _anualesBuildTableB(year);
+    }
+  }).catch(() => {});
 }
 
 function renderJugAnualesMenuB() {
@@ -9326,10 +9938,12 @@ function renderJugAnualesYearB(year) {
       }).join('')}
     </div>
 
-    ${SEED_ANUALES_PLAYERS_B[year] ? `
+    ${(SEED_ANUALES_PLAYERS_B[year] || ANUALES_LIVE_GID_B[year]) ? `
     <!-- BLOQUE 3: Rankings de la temporada -->
     <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gris-texto);margin-bottom:8px">🏅 Rankings de la temporada</div>
-    <div id="jug-anual-rankings-b" style="margin-bottom:20px"></div>
+    <div id="jug-anual-rankings-b" style="margin-bottom:20px">
+      <div style="color:var(--gris-texto);font-size:0.82rem">Cargando estadísticas de jugadores...</div>
+    </div>
 
     <!-- BLOQUE 4: Base de datos de jugadores -->
     <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gris-texto);margin-bottom:8px">👥 Todos los jugadores</div>
@@ -9338,16 +9952,17 @@ function renderJugAnualesYearB(year) {
         style="flex:1;min-width:150px;padding:7px 11px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:#fff;font-size:0.85rem;outline:none">
       <span id="jug-anual-count-b" style="color:var(--gris-texto);font-size:0.78rem;white-space:nowrap"></span>
     </div>
-    <div id="jug-anual-table-b" style="overflow-x:auto"></div>`
+    <div id="jug-anual-table-b" style="overflow:auto;max-height:640px;">
+      <div style="color:var(--gris-texto);font-size:0.82rem;padding:8px 0">Cargando tabla...</div>
+    </div>`
     : `<div style="font-size:0.72rem;color:rgba(255,255,255,0.35)">Rankings de jugadores por temporada no disponibles todavía para ${year} en Primera B.</div>`}`;
 
-  if (SEED_ANUALES_PLAYERS_B[year]) {
+  if (SEED_ANUALES_PLAYERS_B[year] || ANUALES_LIVE_GID_B[year]) {
     _anualesYearB = year;
     _anualesQueryB = '';
     _anualesSortColB = 1;
     _anualesSortAscB = false;
-    _anualesBuildRankingsB(year);
-    _anualesBuildTableB(year);
+    _anualesLoadPlayersB(year);
   }
 }
 
@@ -9372,7 +9987,7 @@ function _anualesSortB(col) {
 function _anualesBuildRankingsB(year) {
   const el = document.getElementById('jug-anual-rankings-b');
   if (!el) return;
-  const players = SEED_ANUALES_PLAYERS_B[year] || [];
+  const players = _anualesPlayersB[year] || SEED_ANUALES_PLAYERS_B[year] || [];
   if (!players.length) { el.innerHTML = '<div style="color:var(--gris-texto);font-size:0.82rem">Sin datos de jugadores.</div>'; return; }
 
   const top = (arr, key, n=5) => [...arr].sort((a,b) => b[key]-a[key]).slice(0,n).filter(p => p[key] > 0);
@@ -9411,7 +10026,7 @@ function _anualesBuildTableB(year) {
   const el = document.getElementById('jug-anual-table-b');
   const countEl = document.getElementById('jug-anual-count-b');
   if (!el) return;
-  const players = SEED_ANUALES_PLAYERS_B[year] || [];
+  const players = _anualesPlayersB[year] || SEED_ANUALES_PLAYERS_B[year] || [];
 
   const COLS = [
     { label:'Jugador',  key:'nombre',  color:'#fff',     isText: true },
@@ -9435,7 +10050,7 @@ function _anualesBuildTableB(year) {
 
   const ths = COLS.map((c, i) => {
     const active = _anualesSortColB === i;
-    return `<th onclick="_anualesSortB(${i})" style="cursor:pointer;user-select:none;padding:9px 10px;font-size:0.65rem;color:${active ? c.color : 'var(--gris-texto)'};text-align:${i===0?'left':'center'};white-space:nowrap;border-bottom:1px solid rgba(255,255,255,0.08)">
+    return `<th onclick="_anualesSortB(${i})" style="cursor:pointer;user-select:none;padding:9px 10px;font-size:0.65rem;color:${active ? c.color : 'var(--gris-texto)'};text-align:${i===0?'left':'center'};white-space:nowrap;border-bottom:1px solid rgba(255,255,255,0.08);position:sticky;top:0;z-index:20;background:var(--azul-card);">
       ${c.label}${active ? `<span style="margin-left:2px;font-size:.7em">${_anualesSortAscB?'▲':'▼'}</span>` : ''}
     </th>`;
   }).join('');
@@ -9470,14 +10085,17 @@ function _anualesBuildTableB(year) {
   </table>`;
 }
 
+// 2026 vive en una pestaña identificada por gid (no por nombre de tab que
+// coincida literalmente con el año) dentro de GS.A_MAIN, mismas columnas I:O
+// que los años anteriores — ver fetchGvizByGid más abajo.
+const ANUALES_LIVE_GID = { '2026': '2135980915' };
+
 function _anualesLoadPlayers(year) {
   if (_anualesPlayers[year]) { _anualesBuildAll(year); return; }
   _anualesPlayers[year] = SEED_ANUALES_PLAYERS[year] || [];
   _anualesBuildAll(year);
 
-  const ranges = { '2023':'I2:O28', '2024':'I2:O33', '2025':'I2:O31' };
-  if (!ranges[year]) return;
-  fetchProxy(String(year), ranges[year]).then(rows => {
+  function applyRows(rows) {
     if (!rows || rows.length < 2) return;
     const mapped = rows.slice(1).map(r => ({
       nombre:   String(r[0]||'').trim(),
@@ -9492,7 +10110,16 @@ function _anualesLoadPlayers(year) {
       _anualesPlayers[year] = mapped;
       _anualesBuildAll(year);
     }
-  }).catch(() => {});
+  }
+
+  if (ANUALES_LIVE_GID[year]) {
+    fetchGvizByGid(GS.A_MAIN, ANUALES_LIVE_GID[year], 'I2:O60').then(applyRows).catch(() => {});
+    return;
+  }
+
+  const ranges = { '2023':'I2:O28', '2024':'I2:O33', '2025':'I2:O31' };
+  if (!ranges[year]) return;
+  fetchProxy(String(year), ranges[year]).then(applyRows).catch(() => {});
 }
 
 function _anualesFilter(q) {
@@ -9577,7 +10204,7 @@ function _anualesBuildTable(year) {
 
   const ths = COLS.map((c, i) => {
     const active = _anualesSortCol === i;
-    return `<th onclick="_anualesSort(${i})" style="cursor:pointer;user-select:none;padding:9px 10px;font-size:0.65rem;color:${active ? c.color : 'var(--gris-texto)'};text-align:${i===0?'left':'center'};white-space:nowrap;border-bottom:1px solid rgba(255,255,255,0.08)">
+    return `<th onclick="_anualesSort(${i})" style="cursor:pointer;user-select:none;padding:9px 10px;font-size:0.65rem;color:${active ? c.color : 'var(--gris-texto)'};text-align:${i===0?'left':'center'};white-space:nowrap;border-bottom:1px solid rgba(255,255,255,0.08);position:sticky;top:0;z-index:20;background:var(--azul-card);">
       ${c.label}${active ? `<span style="margin-left:2px;font-size:.7em">${_anualesSortAsc?'▲':'▼'}</span>` : ''}
     </th>`;
   }).join('');
@@ -10209,7 +10836,11 @@ const GS = {
   A_SIM:  '1rgxxVfIOskO0qXSU_Yw6b9VvYYmMCxVr1sYZc6Hxv40',
   B_MAIN: '1fiw1Wd_KdE-l0ekbk6yuVy9gkvMLQ3X8k4poe9i0qkg',
   B_HIST: '1XaLSM8pfsCgbB5L0I13eE7NWdadYFJU-_A-MYudJU34',
-  B_SIM:  '1i9akFUzKsgrKB01lrFJdjE0djmImr64IqsnlLuMHsGI',
+  // B_SIM ('1i9akFUzKsgrKB01lrFJdjE0djmImr64IqsnlLuMHsGI') se sacó — era un
+  // fallback a una hoja "simulador" vieja para la tabla de posiciones B que
+  // devolvía 503 el 100% de las veces (nunca podía disparar de verdad, solo
+  // generaba un request roto reintentado en loop). Ver el comentario en
+  // loadLiveData(), sección "PRIMERA B — Clausura AIFA B 2026".
 };
 
 const PROXY_URL = 'https://script.google.com/macros/s/AKfycbzDmI2fgAZEONfC7gwuwazmR-GVPd4ISVTQiBBEU7324Sn8Pp6YGxnZwsrwe5J8ghE8/exec';
@@ -11049,7 +11680,7 @@ function renderLandingCardStats() {
         }).join('');
         _softSetHtml(footEl, `<span class="lc-foot-results">${pills}</span>${own ? `<span class="lc-foot-pts">${own.pts} pts</span>` : ''}`);
       } else {
-        _softSetHtml(footEl, `<span>Sin partidos jugados</span>`);
+        _softSetHtml(footEl, `<span>Sin partidos jugados</span>${own ? `<span class="lc-foot-pts">${own.pts} pts</span>` : ''}`);
       }
     }
   });
@@ -11165,24 +11796,61 @@ function refreshCurrentView() {
 // even though it eventually succeeds. Whichever source answers first wins;
 // if the fastest answer comes back empty (the known silent-empty-result bug
 // on some tab names) we wait for the other source instead of trusting it.
+// Antes esta función SIEMPRE disparaba fetchCSVFallback (gviz directo) y
+// fetchProxy (Apps Script) en paralelo y se quedaba con lo primero que
+// llegara no-vacío — confirmado en Network que eso duplicaba literalmente
+// cada request de este tipo, y que el proxy (con arranque en frío conocido)
+// suele tardar bastante más que el directo. Ahora intenta el camino rápido
+// (directo) primero, y solo escala al proxy si hace falta — si el directo
+// tira error, o si "tuvo éxito" pero volvió vacío (el gviz de Google puede
+// devolver un array vacío en vez de un error para ciertos nombres de tab
+// que no resuelven bien, sin avisar) — así el proxy queda como lo que
+// siempre tuvo que ser: un último recurso, no una carrera permanente.
 async function fetchCSV(id, tab, range) {
-  const jobs = [fetchCSVFallback(id, tab, range)];
-  if (tab) jobs.push(fetchProxy(tab, range, id));
-  return new Promise((resolve, reject) => {
-    let pending = jobs.length;
-    let bestEmpty = undefined;
-    let lastErr = null;
-    jobs.forEach(job => {
-      job.then(val => {
-        if (val && val.length) { resolve(val); return; }
-        if (bestEmpty === undefined) bestEmpty = val;
-        if (--pending === 0) resolve(bestEmpty);
-      }).catch(err => {
-        lastErr = err;
-        if (--pending === 0) { bestEmpty !== undefined ? resolve(bestEmpty) : reject(lastErr); }
-      });
-    });
-  });
+  let direct;
+  try {
+    direct = await fetchCSVFallback(id, tab, range);
+    if (direct && direct.length) return direct;
+  } catch (directErr) {
+    if (!tab) throw directErr;
+    return fetchProxy(tab, range, id);
+  }
+  // direct resolvió pero vino vacío — sin `tab` no hay a qué escalar (el
+  // proxy lo necesita), así que no queda otra que devolver el vacío tal cual.
+  if (!tab) return direct;
+  try {
+    const proxied = await fetchProxy(tab, range, id);
+    if (proxied && proxied.length) return proxied;
+  } catch (proxyErr) {
+    // El directo al menos "funcionó" (vacío, pero sin tirar error) — se
+    // devuelve eso en vez de propagar el error del proxy.
+  }
+  return direct;
+}
+
+// Corta el reintento indefinido de una fuente que viene fallando siempre —
+// loadLiveData() se dispara cada 60s (setInterval) y también cada vez que
+// la pestaña recupera el foco, así que una fuente rota de fondo (gid
+// equivocado, hoja movida/borrada, cuota de Google agotada, lo que sea)
+// terminaba reintentándose para siempre mientras el usuario tuviera la
+// página abierta. Después de maxAttempts fallos CONSECUTIVOS se deja de
+// pedir esa fuente puntual — el resto de loadLiveData() sigue refrescando
+// normal — hasta que la página se recargue. Se resetea a la primera vez
+// que un intento funciona.
+const _sourceFailureCounts = {};
+async function fetchWithRetryCap(key, fetchFn, maxAttempts = 3) {
+  if ((_sourceFailureCounts[key] || 0) >= maxAttempts) return [];
+  try {
+    const result = await fetchFn();
+    _sourceFailureCounts[key] = 0;
+    return result;
+  } catch (e) {
+    _sourceFailureCounts[key] = (_sourceFailureCounts[key] || 0) + 1;
+    if (_sourceFailureCounts[key] === maxAttempts) {
+      console.warn(`"${key}" falló ${maxAttempts} veces seguidas — se deja de reintentar hasta recargar la página.`);
+    }
+    throw e;
+  }
 }
 
 let _refreshing = false;
@@ -11193,12 +11861,21 @@ async function loadLiveData() {
   if (statusEl) { statusEl.textContent = 'Actualizando…'; statusEl.className = 'loading'; }
 
   // Fetch each section as a targeted range so parsers receive exactly the right rows
-  const [aSim, aBasic, aDet, bSim, bApBasic, bApDet, aHist, bHist, aGlobal, aTabla,
+  const [aSim, aBasic, aDet, bApBasic, bApDet, aHist, bHist, aGlobal, aTabla,
          a25Det, a25Global, a25Tabla, a25Basico, bApGlobal, bApTabla,
          bClDet, bClGlobal, bClTabla, aClDet, aClGlobal, aClTabla, aClBasic, copasSheet, copasBasicSheet, bRecopaSheet,
          bSupercopa25Det, bSupercopa25Plantel, bRecopa24Det, bRecopa24Plantel,
          bRecopa21Det, bRecopa21Plantel] = await Promise.allSettled([
-    fetchCSV(GS.A_SIM),
+    // Antes: fetchCSV(GS.A_SIM) — sin tab/range, csvUrl() arma la URL sin
+    // &sheet= ni &gid=, pidiéndole a gviz "la hoja que corresponda" de forma
+    // ambigua. Confirmado en Network que esa misma forma de URL sin
+    // parámetros le devuelve 503 + redirect a accounts.google.com/
+    // ServiceLogin a Google en vez del CSV — un comportamiento conocido de
+    // gviz con requests así de ambiguos, no un tema de permisos (el doc ya
+    // está compartido "cualquiera con el enlace"). gid=0 = la primera hoja
+    // del documento, que es la que
+    // siempre se buscó implícitamente acá — ahora se lo decimos explícito.
+    fetchWithRetryCap('A_SIM', () => fetchGvizByGid(GS.A_SIM, 0, null)),
     // The 'Apertura 2026' tab name stopped resolving to useful data (the club
     // moved/restructured that block onto its own gid, same one the detailed
     // Fecha a Fecha below now uses) — both the basic table (Observaciones,
@@ -11208,7 +11885,6 @@ async function loadLiveData() {
     // "disappeared") — the club moved/restructured that block onto its own
     // gid. Fetched directly by gid now, club-confirmed range.
     fetchGvizByGid(GS.A_MAIN, 2018022084, 'A22:J524'), // fecha-a-fecha + positions
-    fetchCSV(GS.B_SIM),
     // ── Apertura AIFA B 2026 (finished, archived into DATA_B_APERTURA2026) ──
     fetchCSV(GS.B_HIST, 'APERTURA 2026 AIFA B', 'A1:Z18'),
     // NOTE: this one is fetchCSVFallback (GViz only), NOT the racing fetchCSV()
@@ -11219,7 +11895,18 @@ async function loadLiveData() {
     // which would shift every row index after the first blank row and corrupt
     // the row-number math. GViz-by-tab-name doesn't drop anything.
     fetchCSVFallback(GS.B_HIST, 'APERTURA 2026 AIFA B', 'A21:J550'),
-    fetchProxy('Estadisticas Historicas', null, GS.A_MAIN),
+    // Antes iba directo al proxy de Apps Script (fetchProxy sola, sin
+    // carrera) — la única de las ~32 peticiones de esta carga con ese
+    // patrón. Como el proxy tiene arranque en frío conocido (ver el propio
+    // comentario de fetchCSV más abajo), esta era la candidata más probable
+    // a ser la más lenta de todas, frenando toda la carga aunque el resto ya
+    // hubiera terminado. Ahora corre la misma carrera proxy+GViz que ya usan
+    // las demás — fetchCSV descarta automáticamente una respuesta vacía y
+    // espera a la otra fuente, así que no hay riesgo de perder datos si el
+    // lookup por nombre de tab en GViz llega a fallar silenciosamente (como
+    // ya se documentó que pasa con el equivalente de Primera B, línea de
+    // abajo).
+    fetchCSV(GS.A_MAIN, 'Estadisticas Historicas', null),
     fetchGvizByGid(GS.B_HIST, 1913593241), // "Estadísticas Históricas" — by gid, tab-name fetch silently returns empty
     fetchCSV(GS.A_MAIN, 'Apertura 2026', 'L3:X33'),  // global player stats table
     fetchCSV(GS.A_MAIN, 'Apertura 2026', 'L37:V53'), // standings table
@@ -11447,20 +12134,22 @@ async function loadLiveData() {
   }
 
   // PRIMERA B — Clausura AIFA B 2026 (live season, own new sheet tab → DATA_B).
-  // bClTabla is the real standings source (the club's own dedicated gid);
-  // bSim is a legacy/simulator sheet from before that tab existed. Both used
-  // to be able to write DATA_B.tabla with only assignment order deciding the
-  // winner — if the real fetch ever failed silently, the stale simulador
-  // data would stick around with no indication anything was wrong. Now bSim
-  // only fills in when the real source hasn't returned anything usable.
+  // bClTabla es la fuente real de la tabla de posiciones (el gid propio del
+  // club). Hasta acá tenía un fallback a B_SIM ("1i9akFUzKsgrKB01lrFJdjE0
+  // djmImr64IqsnlLuMHsGI") — una hoja "simulador" vieja, de antes de que
+  // este tab propio existiera. Se saca por completo: confirmado que ese
+  // fetch devuelve 503 el 100% de las veces, así que el fallback nunca
+  // podía disparar de verdad — solo generaba un request roto reintentado
+  // en loop sin ningún beneficio. Si bClTabla llega a fallar ahora,
+  // DATA_B.tabla simplemente queda con lo que tenía (dato stale de la
+  // carga anterior) en vez de un fallback que de todas formas nunca
+  // funcionaba.
   const bClTablaRaw = ok(bClTabla);
   const bClTablaParsed = bClTablaRaw ? parseTablaSheet(bClTablaRaw) : [];
   if (bClTablaParsed.length >= 5) {
     DATA_B.tabla = bClTablaParsed;
   } else {
-    console.warn(`Tabla B (Clausura 2026): fetch ${ok(bClTabla) ? 'succeeded but parsed ' + bClTablaParsed.length + ' rows' : 'FAILED'} — falling back to B_SIM`);
-    const bSimTbl = ok(bSim) ? parseSimStandings(ok(bSim), 5) : [];
-    if (bSimTbl.length >= 5) DATA_B.tabla = bSimTbl;
+    console.warn(`Tabla B (Clausura 2026): fetch ${ok(bClTabla) ? 'succeeded but parsed ' + bClTablaParsed.length + ' rows' : 'FAILED'}`);
   }
   _fillCopasPorPosicion(DATA_B.tabla, COPAS_POR_POSICION_B);
 
@@ -11618,8 +12307,38 @@ async function loadLiveData() {
   if (timeEl) timeEl.textContent = `Última actualización: ${hhmm}`;
   if (statusEl) { statusEl.textContent = ''; statusEl.className = ''; }
   _swrSave();
-  refreshCurrentView();
-  renderLandingWidgets();
+  // El índice de partidos por jugador y las caches derivadas (partidos
+  // construidos por jugador, V-E-D del ranking "Partidos Jugados") se
+  // invalidan en cada carga/refresco — si se llegaron a poblar ANTES de que
+  // terminara esta carga (alguna de las muchas fuentes de partidos que
+  // arriba recién terminaron de resolver), quedarían con conteos
+  // incompletos para siempre.
+  _invalidatePlayerMatchIndex();
+  _invalidatePlayerPartidosCache();
+  if (window._nidoInvalidateVEDCache) window._nidoInvalidateVEDCache();
+  // Recién ahora (después de invalidar) hay una carga completa disponible
+  // para calcular V-E-D con confianza — ver _matchDataReadyOnce.
+  _matchDataReadyOnce = true;
+  // El Nido vive fuera del sistema #main-nav/.panel (por eso no está en el
+  // mapa de refreshCurrentView() de abajo), así que sin esto el usuario
+  // tenía que interactuar con la tabla (cambiar de filtro, buscar, etc.)
+  // para disparar un re-render y recién ahí ver los números ya corregidos
+  // — podía sentirse como una espera larga. Si ya está a la vista, se
+  // refresca de una junto con el resto. Se salta si el buscador tiene el
+  // foco para no perder el cursor/posición mientras se está escribiendo.
+  // window.__OG_BUILD__ lo prende scripts/generate-og.js antes de correr este
+  // mismo script dentro de jsdom (sin Chart.js ni canvas real) solo para
+  // recalcular stats de build time — ahí no hay nada visual que pintar, así
+  // que se saltan los re-renders (que sí asumen un navegador real).
+  if (!window.__OG_BUILD__) {
+    const nidoTabEl = document.getElementById('tab-nido');
+    const nidoVisible = nidoTabEl && nidoTabEl.style.display !== 'none' && nidoTabEl.classList.contains('active');
+    const nidoSearchFocused = document.activeElement &&
+      (document.activeElement.id === 'nido-search' || document.activeElement.id === 'nido-search-mobile');
+    if (nidoVisible && !nidoSearchFocused && window.renderNido) window.renderNido();
+    refreshCurrentView();
+    renderLandingWidgets();
+  }
 }
 
 // ──────────────────────────────────────────────
@@ -11635,11 +12354,22 @@ async function loadLiveData() {
   let _nidoTeam    = 'todos';
   let _nidoSort    = { col: 'pj', asc: false };
   let _nidoQuery   = '';
-  let _nidoRank    = null;
+  // Arranca en 'pj', no null, para que coincida con _nidoSort de arriba: la
+  // vista inicial YA está ordenada por Partidos Jugados, así que isPjRank
+  // (_nidoRank === 'pj') tiene que ser true desde el primer render — si no,
+  // las columnas PG/PE/PP (desktop) y los mini-badges (mobile) quedaban
+  // ausentes hasta que el usuario cambiaba de ranking y volvía a "Partidos
+  // Jugados" (ahí sí, window._nidoRankMode('pj') seteaba _nidoRank a mano).
+  let _nidoRank    = 'pj';
   let _nidoLoading = false;
   let _nidoPos     = 'todas';
   let _nidoPosOpen = false;
   let _nidoMobileVisible = 15; // mobile card list "cargar más" — reset on any filter change
+  // Sub-orden propio del filtro "Partidos Jugados" (PJ/PG/PE/PP/G/A/G+A) —
+  // clickeable de mayor a menor como cualquier otra columna, pero sin salir
+  // del modo ranking (a diferencia de _nidoSort/window._nidoSort, que sí
+  // resetea _nidoRank a null en cualquier click de columna).
+  let _nidoPjSort  = { col: 'pj', asc: false };
 
   const POSICIONES = ['ARQ', 'LI', 'LD', 'DFC', 'MC', 'DEL'];
   const normPos = p => String(p || '').trim().toUpperCase();
@@ -11739,8 +12469,52 @@ async function loadLiveData() {
   }
 
   function posColor(pos) {
-    const C = { ARQ:'#a855f7', LI:'#22c55e', DEF:'#3b82f6', DFC:'#3b82f6', LD:'#22c55e', MC:'#f59e0b', DEL:'#ef4444' };
-    return C[pos] || '#6b7280';
+    const C = {
+      ARQ:'#a855f7',
+      LI:'#22c55e', LD:'#22c55e', DFI:'#22c55e', DFD:'#22c55e',
+      DEF:'#3b82f6', DFC:'#3b82f6',
+      MC:'#f59e0b', MCO:'#f59e0b',
+      DEL:'#ef4444', DC:'#ef4444', ED:'#ef4444', EI:'#ef4444',
+    };
+    return C[String(pos || '').toUpperCase()] || '#6b7280';
+  }
+
+  // V-E-D (PG/PE/PP) por jugador para la vista de ranking "Partidos Jugados"
+  // — misma fuente que la tarjeta "Récord de Resultados" del perfil
+  // (_buildPlayerPartidos + _ppRecordVED, ambas top-level), para que los dos
+  // lugares muestren siempre el mismo número. Usa _buildPlayerPartidos en vez
+  // de pasar por _collectPlayerStats completo — evita repetir los cálculos de
+  // ranking/career-totals que esa función también hace y que acá no hacen
+  // falta, corridos uno por uno para los ~100 jugadores de la tabla.
+  //
+  // Se filtra por el plantel activo (_nidoTeam) igual que el resto de la fila
+  // (p.pj/p.goles/etc. ya vienen de _nidoDataA/_nidoDataB cuando hay un
+  // plantel específico seleccionado) — antes PG/PE/PP siempre mostraba el
+  // acumulado A+B sin importar el filtro, lo que ni siquiera sumaba contra el
+  // PJ ya filtrado de esa misma fila.
+  //
+  // Memoizado (por jugador + plantel) porque recorrer el historial de cada
+  // uno sigue teniendo trabajo propio (armar/filtrar/ordenar su lista de
+  // partidos) aun con _buildPlayerPartidos ya cacheado. La cache se invalida
+  // entera cada vez que loadLiveData() termina (ver
+  // window._nidoInvalidateVEDCache, llamado desde loadLiveData) — sin esto,
+  // si la tabla se llega a ver ANTES de que terminen de cargar todas las
+  // fuentes de partidos que usa _collectAllMatchesForPlayer (Torneos
+  // Antiguos, copas, etc. — cada una carga en paralelo y a su propio ritmo),
+  // el primer cálculo quedaba memoizado para siempre con un conteo
+  // incompleto, mientras que el perfil del jugador (que jamás cachea, siempre
+  // recalcula desde cero) sí terminaba reflejando el total real una vez
+  // cargado todo — de ahí el desfase reportado entre ambas vistas.
+  let _nidoVEDCache = {};
+  function _nidoGetVED(nombre) {
+    const key = normName(nombre) + '|' + _nidoTeam;
+    if (_nidoVEDCache[key]) return _nidoVEDCache[key];
+    let partidos = _buildPlayerPartidos(nombre);
+    if (_nidoTeam === 'a') partidos = partidos.filter(p => p.categoria === 'Primera A');
+    else if (_nidoTeam === 'b') partidos = partidos.filter(p => p.categoria === 'Primera B');
+    const ved = _ppRecordVED(partidos);
+    _nidoVEDCache[key] = ved;
+    return ved;
   }
 
   function teamBadge(t) {
@@ -11752,7 +12526,25 @@ async function loadLiveData() {
 
   const NUMERIC_COLS = ['pj','goles','asist','gmas','titulos','promGol','promAsist','promGmas','vallas','vallasProm'];
 
+  // Valor comparable para el sub-orden del filtro "Partidos Jugados" — pg/pe/pp
+  // no viven en `p`, se resuelven vía _nidoGetVED (misma cache que la tabla).
+  function _nidoPjSortValue(p, col) {
+    if (col === 'pg' || col === 'pe' || col === 'pp') {
+      const ved = _nidoGetVED(p.nombre);
+      return col === 'pg' ? ved.v : col === 'pe' ? ved.e : ved.d;
+    }
+    return p[col] || 0; // pj, goles, asist, gmas
+  }
+
   function sortData(data) {
+    if (_nidoRank === 'pj') {
+      const { col, asc } = _nidoPjSort;
+      return [...data].sort((a, b) => {
+        const va = _nidoPjSortValue(a, col), vb = _nidoPjSortValue(b, col);
+        const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+        return asc ? cmp : -cmp;
+      });
+    }
     const col = _nidoRank || _nidoSort.col;
     const asc  = _nidoRank ? false : _nidoSort.asc;
     return [...data].sort((a, b) => {
@@ -11777,9 +12569,10 @@ async function loadLiveData() {
   }
 
   function thArrow(col) {
-    const activeCol = _nidoRank || _nidoSort.col;
+    const isPjRank = _nidoRank === 'pj';
+    const activeCol = isPjRank ? _nidoPjSort.col : (_nidoRank || _nidoSort.col);
     if (activeCol !== col) return `<span style="opacity:0.25;font-size:9px;margin-left:3px;">⇅</span>`;
-    const isAsc = _nidoRank ? false : _nidoSort.asc;
+    const isAsc = isPjRank ? _nidoPjSort.asc : (_nidoRank ? false : _nidoSort.asc);
     return `<span style="font-size:9px;margin-left:3px;color:#eab308;">${isAsc ? '▲' : '▼'}</span>`;
   }
 
@@ -11807,17 +12600,47 @@ async function loadLiveData() {
     const isRankMode = !!_nidoRank;
     const rankMeta   = isRankMode ? RANK_METRICS.find(m => m.key === _nidoRank) : null;
     const promSwap   = isRankMode ? PROM_MAP[_nidoRank] : null; // non-null only for prom rankings
+    // Filtro "Partidos Jugados": columnas propias (PJ, PG, PE, PP, G, A, G+A)
+    // en vez del set fijo de siempre — pedido explícito para no mezclar
+    // Títulos/Vallas con el desglose de resultados en esta vista.
+    const isPjRank   = _nidoRank === 'pj';
 
-    const TH  = `padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:#6b7280;white-space:nowrap;letter-spacing:.06em;`;
+    // El wrapper de abajo (overflow:auto;max-height:640px) es su propio
+    // panel con scroll acotado, no la página entera — la tabla también
+    // scrollea horizontalmente, y un ancestro con overflow-x:auto termina
+    // forzando overflow-y:auto también (así lo resuelve la spec de CSS
+    // Overflow), lo que rompe un "sticky" pensado relativo a la ventana:
+    // sin una altura fija ese div nunca scrollea de verdad y el header no
+    // se despega. Por eso top:0 acá es relativo a ESTE panel.
+    const TH  = `padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:#6b7280;white-space:nowrap;letter-spacing:.06em;position:sticky;top:0;z-index:20;background:var(--azul-card);`;
     const THS = TH + `cursor:pointer;user-select:none;`;
 
-    // Which column key is the active ranking column (for visual highlight)
-    const activeColKey = isRankMode
-      ? (promSwap ? promSwap.replaces : _nidoRank)
-      : _nidoSort.col;
+    // Which column key is the active ranking column (for visual highlight) —
+    // dentro de "Partidos Jugados" sigue el sub-orden propio (_nidoPjSort),
+    // no siempre PJ, para que el usuario vea resaltada la columna que
+    // realmente está ordenando (PG/PE/PP/G/A/G+A), igual que en el resto de
+    // las secciones de ranking.
+    const activeColKey = isPjRank
+      ? _nidoPjSort.col
+      : isRankMode
+        ? (promSwap ? promSwap.replaces : _nidoRank)
+        : _nidoSort.col;
 
-    // Build column list, swapping the affected column header when in prom-rank mode
-    const cols = [
+    // Build column list, swapping the affected column header when in prom-rank mode.
+    // pjSort:true marca las columnas que deben ordenar vía window._nidoPjSortBy
+    // (mantiene el modo ranking) en vez de window._nidoSort (que lo resetea).
+    const cols = isPjRank ? [
+      { key: 'nombre',  label: 'JUGADOR' },
+      { key: 'pos',     label: 'POS',     center: true },
+      { key: 'teams',   label: 'EQUIPO',  noSort: true },
+      { key: 'pj',      label: 'PJ',      center: true, pjSort: true },
+      { key: 'pg',      label: 'PG',      center: true, pjSort: true },
+      { key: 'pe',      label: 'PE',      center: true, pjSort: true },
+      { key: 'pp',      label: 'PP',      center: true, pjSort: true },
+      { key: 'goles',   label: 'G',       center: true, pjSort: true },
+      { key: 'asist',   label: 'A',       center: true, pjSort: true },
+      { key: 'gmas',    label: 'G+A',     center: true, pjSort: true },
+    ] : [
       { key: 'nombre',  label: 'JUGADOR' },
       { key: 'pos',     label: 'POS',     center: true },
       { key: 'teams',   label: 'EQUIPO',  noSort: true },
@@ -11838,7 +12661,8 @@ async function loadLiveData() {
         const hl = isActive && isRankMode
           ? `color:#a5b4fc;border-bottom:2px solid rgba(99,102,241,0.6);`
           : isActive ? 'color:#d1d5db;' : '';
-        return `<th style="${THS}${align}${hl}" onclick="window._nidoSort('${c.key}')">${c.label}${thArrow(c.key)}</th>`;
+        const sortFn = c.pjSort ? `window._nidoPjSortBy('${c.key}')` : `window._nidoSort('${c.key}')`;
+        return `<th style="${THS}${align}${hl}" onclick="${sortFn}">${c.label}${thArrow(c.key)}</th>`;
       }).join('')
     }</tr></thead>`;
 
@@ -11875,14 +12699,17 @@ async function loadLiveData() {
         ? `<span style="font-weight:700;">${pl(p.nombre)}</span>`
         : pl(p.nombre);
 
-      // Helper: td — active ranking column highlights the value text only (no bg)
-      const td = (colKey, value) => {
+      // Helper: td — active ranking column highlights the value text only (no bg).
+      // colorOverride (PG/PE/PP: verde/amarillo/rojo) gana siempre sobre el
+      // resaltado de columna activa, para que W/D/L se distingan a simple
+      // vista sin importar si esa columna es la que ordena la tabla o no.
+      const td = (colKey, value, colorOverride) => {
         const isActiveCol = isRankMode && activeColKey === colKey;
-        const col2 = isActiveCol ? cellColor : statColor;
+        const col2 = colorOverride || (isActiveCol ? cellColor : statColor);
         const fw   = isActiveCol ? '700' : '600';
         const wrap = isActiveCol
           ? `<span style="display:inline-block;padding:2px 8px;border-radius:999px;background:rgba(99,102,241,0.18);border:1px solid rgba(99,102,241,0.35);color:${col2};font-weight:${fw};">${value}</span>`
-          : value;
+          : (colorOverride ? `<span style="color:${colorOverride};font-weight:700;">${value}</span>` : value);
         return `<td style="padding:9px 14px;text-align:center;font-size:13px;font-weight:600;color:${statColor};">${wrap}</td>`;
       };
 
@@ -11895,44 +12722,71 @@ async function loadLiveData() {
         return raw;
       };
 
+      // Antes de que loadLiveData() complete al menos una vez, PG/PE/PP
+      // pueden estar incompletos (ver _matchDataReadyOnce) — se evita incluso
+      // calcularlos y se muestra un placeholder de carga en su lugar, en vez
+      // de un número que cambia solo apenas termina la carga real.
+      const ved = isPjRank && _matchDataReadyOnce ? _nidoGetVED(p.nombre) : null;
+
       return `<tr style="background:${bg};border-bottom:${borderBottom};transition:background .15s;">
         ${posCell}
         <td style="padding:9px 14px;font-size:13px;color:#f3f4f6;white-space:nowrap;">${nombreCell}</td>
         <td style="padding:9px 14px;text-align:center;"><span style="padding:3px 8px;border-radius:6px;background:${pBg};color:${pColor};font-size:11px;font-weight:700;letter-spacing:.04em;">${p.pos || '—'}</span></td>
         <td style="padding:9px 14px;white-space:nowrap;">${teamBadges}</td>
         ${td('pj',     p.pj)}
+        ${isPjRank ? td('pg', ved ? ved.v : '…', ved ? '#22c55e' : '#6b7280') : ''}
+        ${isPjRank ? td('pe', ved ? ved.e : '…', ved ? '#eab308' : '#6b7280') : ''}
+        ${isPjRank ? td('pp', ved ? ved.d : '…', ved ? '#ef4444' : '#6b7280') : ''}
         ${td('goles',  fmt(p.goles,  'promGol'))}
         ${td('asist',  fmt(p.asist,  'promAsist'))}
         ${td('gmas',   fmt(p.gmas,   'promGmas'))}
-        ${td('titulos',p.titulos || 0)}
-        ${td('vallas', fmt(p.vallas, 'vallasProm'))}
+        ${!isPjRank ? td('titulos', p.titulos || 0) : ''}
+        ${!isPjRank ? td('vallas', fmt(p.vallas, 'vallasProm')) : ''}
       </tr>`;
     }).join('');
 
     const totalDs = activeDataset().length;
     const showing  = rows.length;
-    const colspan  = isRankMode ? 10 : 9;
+    const colspan  = isPjRank ? 11 : (isRankMode ? 10 : 9);
 
-    const desktopHtml = `<div class="nido-desktop-only" style="border-radius:12px;border:1px solid rgba(255,255,255,0.09);overflow:hidden;">
+    // overflow:hidden acá rompería el sticky header de abajo: cualquier
+    // overflow != visible (aunque sea "hidden", sin barra de scroll visible)
+    // hace que el navegador calcule el "position:sticky" contra ESTE
+    // contenedor en vez de contra la ventana, y como este div nunca
+    // scrollea internamente (crece con el contenido), el header dejaría de
+    // pegarse al hacer scroll de la página. Se saca overflow:hidden; el
+    // borde redondeado se pierde en las esquinas superiores de la tabla,
+    // cambio aceptado a cambio de que el sticky funcione.
+    const desktopHtml = `<div class="nido-desktop-only" style="border-radius:12px;border:1px solid rgba(255,255,255,0.09);">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:rgba(255,255,255,0.03);border-bottom:1px solid rgba(255,255,255,0.07);">
         <span style="font-size:12px;color:#6b7280;">
           Mostrando <strong style="color:#c0c8d8;font-weight:600;">${showing}</strong> de <strong style="color:#c0c8d8;font-weight:600;">${totalDs}</strong> jugadores
         </span>
         ${isRankMode ? `<span style="font-size:11px;color:#eab308;font-weight:600;letter-spacing:.05em;">RANKING — ${rankMeta?.label || ''}</span>` : ''}
+        ${isPjRank && !_matchDataReadyOnce ? `<span style="font-size:11px;color:#6b7280;">⏳ Cargando PG/PE/PP…</span>` : ''}
       </div>
-      <div style="overflow-x:auto;">
+      <div style="overflow:auto;max-height:640px;">
         <table style="width:100%;border-collapse:collapse;">${thead}<tbody>${tbody || `<tr><td colspan="${colspan}" style="padding:32px;text-align:center;color:#4b5563;">Sin resultados</td></tr>`}</tbody></table>
       </div>
     </div>`;
 
-    return desktopHtml + _renderNidoMobileCards(rows, activeColKey, promSwap);
+    return desktopHtml + _renderNidoMobileCards(rows, activeColKey, promSwap, isPjRank);
   }
 
-  const NIDO_COL_LABELS = { pj:'PJ', goles:'Goles', asist:'Asist.', gmas:'G+A', titulos:'Títulos', vallas:'Vallas' };
+  const NIDO_COL_LABELS = { pj:'PJ', goles:'Goles', asist:'Asist.', gmas:'G+A', titulos:'Títulos', vallas:'Vallas', pg:'PG', pe:'PE', pp:'PP' };
+  // Sufijo corto para el número grande de cada card en mobile (.nido-card-value)
+  // — sin esto el valor quedaba "desnudo" (un número solo, sin decir de qué
+  // métrica se trata) cada vez que se rankeaba por algo que no fuera PG/PE/PP.
+  const NIDO_VALUE_LABEL = { pj: 'PJ', goles: 'G', asist: 'A', gmas: 'G+A', titulos: 'Tít.', vallas: 'VI', pg: 'PG', pe: 'PE', pp: 'PP' };
   // Same per-column value (raw vs. promedio-swapped) the desktop table's
   // `td()`/`fmt()` helpers compute, reused here so mobile shows identical
-  // numbers — just laid out as a card instead of a table row.
+  // numbers — just laid out as a card instead of a table row. pg/pe/pp no
+  // viven en `p` — se resuelven vía _nidoGetVED (misma cache que el desktop).
   function _nidoStatValue(p, key, promSwap) {
+    if (key === 'pg' || key === 'pe' || key === 'pp') {
+      const ved = _nidoGetVED(p.nombre);
+      return key === 'pg' ? ved.v : key === 'pe' ? ved.e : ved.d;
+    }
     const raw = key === 'titulos' ? (p.titulos || 0) : p[key];
     const promFieldByKey = { goles: 'promGol', asist: 'promAsist', gmas: 'promGmas', vallas: 'vallasProm' };
     const promField = promFieldByKey[key];
@@ -11947,16 +12801,63 @@ async function loadLiveData() {
   // sync from the exact same renderTable() call. Capped at
   // _nidoMobileVisible with a "Cargar más" button instead of rendering all
   // ~103 players at once.
-  function _renderNidoMobileCards(rows, activeColKey, promSwap) {
+  // Tarjeta propia para el filtro "Partidos Jugados" — medalla top-3, PG/PE/PP
+  // siempre visibles juntos (con fondo tenue de su color) para dar contexto
+  // completo del récord sin importar cuál esté resaltado arriba, y G/A/G+A
+  // como línea de contexto chica debajo de una separación sutil.
+  function _renderNidoPjCard(p, i, activeColKey) {
+    const rankColor = i === 0 ? '#eab308' : i === 1 ? '#cbd5e1' : i === 2 ? '#d6a87c' : '#6b7280';
+    const pColor = posColor(p.pos);
+    const teamBadges = p.teams.map(teamBadge).join('');
+    // Ver _matchDataReadyOnce: antes de la primera carga completa, PG/PE/PP
+    // pueden estar incompletos — se muestra un placeholder de carga en vez
+    // de calcularlos y mostrar un número que cambia solo después.
+    const ved = _matchDataReadyOnce ? _nidoGetVED(p.nombre) : null;
+    const activeVal = !ved && (activeColKey === 'pg' || activeColKey === 'pe' || activeColKey === 'pp') ? '…'
+      : activeColKey === 'pg' ? ved.v
+      : activeColKey === 'pe' ? ved.e
+      : activeColKey === 'pp' ? ved.d
+      : p[activeColKey]; // 'pj' (default) o, si se llega vía desktop, 'goles'/'asist'/'gmas'
+    const activeValLabel = NIDO_VALUE_LABEL[activeColKey] || '';
+    return `
+      <div class="nido-card" onclick="goToPlayer('${p.nombre.replace(/'/g, "\\'")}')">
+        <div class="nido-card-rank" style="color:${rankColor}">${i < 3 ? PODIO[i].medal : i + 1}</div>
+        <div class="nido-card-body">
+          <div class="nido-card-top">
+            <div>
+              <div class="nido-card-name">${pl(p.nombre)}</div>
+              <div class="nido-card-badges">
+                <span class="nido-card-pos" style="background:${pColor}1a;border-color:${pColor}59;color:${pColor}">${p.pos || '—'}</span>
+                ${teamBadges}
+              </div>
+            </div>
+            <div class="nido-card-value">${activeVal}${activeValLabel ? `<span class="nido-card-value-label">${activeValLabel}</span>` : ''}</div>
+          </div>
+          <div class="nido-pj-badges">
+            <div class="nido-pj-badge nido-pj-badge-pg">${ved ? ved.v : '…'} PG</div>
+            <div class="nido-pj-badge nido-pj-badge-pe">${ved ? ved.e : '…'} PE</div>
+            <div class="nido-pj-badge nido-pj-badge-pp">${ved ? ved.d : '…'} PP</div>
+          </div>
+          <div class="nido-pj-extra">
+            <span>${p.goles} G</span>
+            <span>${p.asist} A</span>
+            <span>${p.gmas} G+A</span>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function _renderNidoMobileCards(rows, activeColKey, promSwap, isPjRank) {
     const total = rows.length;
     const visible = rows.slice(0, _nidoMobileVisible);
 
     const cardsHtml = visible.map((p, i) => {
+      if (isPjRank) return _renderNidoPjCard(p, i, activeColKey);
+
       const rankColor = i === 0 ? '#eab308' : i === 1 ? '#cbd5e1' : i === 2 ? '#d6a87c' : '#6b7280';
       const pColor = posColor(p.pos);
       const teamBadges = p.teams.map(teamBadge).join('');
-      const secondaryKeys = ['pj', 'goles', 'asist', 'titulos', 'vallas']
-        .filter(k => k !== activeColKey).slice(0, 4);
+      const secondaryKeys = ['pj', 'goles', 'asist', 'titulos', 'vallas'].filter(k => k !== activeColKey).slice(0, 4);
       const secondaryHtml = secondaryKeys.map(k => `
         <div class="nido-card-stat">
           <span class="nido-card-stat-val">${_nidoStatValue(p, k, promSwap)}</span>
@@ -11968,7 +12869,7 @@ async function loadLiveData() {
           <div class="nido-card-body">
             <div class="nido-card-top">
               <div class="nido-card-name">${pl(p.nombre)}</div>
-              <div class="nido-card-value">${_nidoStatValue(p, activeColKey, promSwap)}</div>
+              <div class="nido-card-value">${_nidoStatValue(p, activeColKey, promSwap)}<span class="nido-card-value-label">${promSwap ? promSwap.header.replace('PROM.', 'Prom.') : (NIDO_VALUE_LABEL[activeColKey] || '')}</span></div>
             </div>
             <div class="nido-card-badges">
               <span class="nido-card-pos" style="background:${pColor}1a;border-color:${pColor}59;color:${pColor}">${p.pos || '—'}</span>
@@ -12074,6 +12975,16 @@ async function loadLiveData() {
             ${RANK_METRICS.map(m => `<option value="${m.key}" ${(_nidoRank || _nidoSort.col) === m.key ? 'selected' : ''}>${m.label}</option>`).join('')}
           </select>
         </div>
+        ${_nidoRank === 'pj' ? `
+        <div class="nido-pj-subsort">
+          <div class="nido-pj-subsort-label">Ordenar "Partidos Jugados" por</div>
+          <div class="nido-pj-subsort-chips">
+            ${['pj', 'pg', 'pe', 'pp'].map(col => {
+              const active = _nidoPjSort.col === col;
+              return `<button class="nido-pj-chip nido-pj-chip-${col}${active ? ' active' : ''}" onclick="window._nidoPjSortBy('${col}')">${col.toUpperCase()}</button>`;
+            }).join('')}
+          </div>
+        </div>` : ''}
         <input id="nido-search-mobile" type="text" class="nido-mobile-search" placeholder="Buscar jugador…" value="${_nidoQuery}"
           oninput="window._nidoSearch(this.value)" />
         <div class="nido-mobile-summary">Ranking por ${(RANK_METRICS.find(m => m.key === (_nidoRank || _nidoSort.col)) || {}).label || 'Partidos Jugados'} · ${filteredData().length} jugadores</div>
@@ -12126,6 +13037,10 @@ async function loadLiveData() {
     return pool.find(p => normName(p.nombre) === normName(nombre)) || null;
   };
 
+  // Llamado desde loadLiveData() al terminar cada carga/refresco — ver el
+  // comentario en _nidoVEDCache más arriba.
+  window._nidoInvalidateVEDCache = function() { _nidoVEDCache = {}; };
+
   window._nidoTeam = function(t) { _nidoTeam = t; _nidoMobileVisible = 15; _renderNidoContent(); };
   window._nidoPosToggle = function() { _nidoPosOpen = !_nidoPosOpen; _renderNidoContent(); };
   window._nidoPosSelect = function(p) { _nidoPos = p; _nidoPosOpen = false; _nidoMobileVisible = 15; _renderNidoContent(); };
@@ -12147,6 +13062,16 @@ async function loadLiveData() {
   window._nidoRankMode = function(m) {
     _nidoRank = m;
     if (m) _nidoSort = { col: m, asc: false };
+    if (m === 'pj') _nidoPjSort = { col: 'pj', asc: false };
+    _nidoMobileVisible = 15;
+    _renderNidoContent();
+  };
+  // Ordena dentro del filtro "Partidos Jugados" (PJ/PG/PE/PP/G/A/G+A) sin
+  // salir del modo ranking — a diferencia de window._nidoSort, que resetea
+  // _nidoRank a null en cualquier click de columna.
+  window._nidoPjSortBy = function(col) {
+    if (_nidoPjSort.col === col) _nidoPjSort.asc = !_nidoPjSort.asc;
+    else { _nidoPjSort = { col, asc: false }; }
     _nidoMobileVisible = 15;
     _renderNidoContent();
   };
@@ -12182,20 +13107,45 @@ new MutationObserver(muts => {
   if (found) _initTabNavFades();
 }).observe(document.body, { childList: true, subtree: true });
 
-_paintLandingSkeletons(); // shimmer placeholders in case there's no fresh-enough cache to instant-render below
-if (_swrHydrate()) {
-  // Cache was fresh enough (<15 min old, see SWR_CACHE_MAX_AGE_MS) — paint it
-  // right now instead of waiting on the fetch below. loadLiveData() still
-  // runs immediately after exactly as before; when it resolves, the soft-
-  // update helpers above skip the repaint if nothing actually changed, or
-  // fade smoothly into whatever did.
-  renderLandingWidgets();
-  refreshCurrentView();
+// window.__OG_BUILD__ (ver el guard homólogo dentro de loadLiveData más
+// arriba) lo prende scripts/generate-og.js para reusar este mismo script en
+// jsdom solo para recalcular stats en build time — ahí no hay pantalla real
+// ni Chart.js, así que todo lo que pinta/anima queda afuera; solo importa
+// que loadLiveData() corra y complete su fetch de datos.
+if (window.__OG_BUILD__) {
+  // scripts/generate-og.js llama a window.loadLiveData() él mismo y espera
+  // esa promesa — no hace falta (ni conviene: sería una segunda carga en
+  // paralelo) dispararla acá también.
+} else {
+  _paintLandingSkeletons(); // shimmer placeholders in case there's no fresh-enough cache to instant-render below
+  if (_swrHydrate()) {
+    // Cache was fresh enough (<15 min old, see SWR_CACHE_MAX_AGE_MS) — paint it
+    // right now instead of waiting on the fetch below. loadLiveData() still
+    // runs immediately after exactly as before; when it resolves, the soft-
+    // update helpers above skip the repaint if nothing actually changed, or
+    // fade smoothly into whatever did.
+    renderLandingWidgets();
+    refreshCurrentView();
+  }
+  loadLiveData();
+  if (location.hash) {
+    // Deep link directo: alguien entra por /jugador/:slug, que redirige acá
+    // con el hash ya puesto (ver scripts/generate-og.js). El listener de
+    // popstate de arriba NO alcanza a correr en este caso — popstate solo
+    // dispara con navegación atrás/adelante dentro del SPA, nunca en la
+    // carga inicial de la página — así que sin esto, entrar por un link
+    // compartido (ej. desde el botón "Compartir" del perfil) mostraba
+    // directamente la home en vez del perfil del jugador. Se espera a que
+    // El Nido esté cargado por si el jugador buscado solo aparece en ese
+    // pool y no en los datos ya horneados de DATA_A/DATA_B.
+    (window._nidoEnsureLoaded ? window._nidoEnsureLoaded() : Promise.resolve())
+      .then(_tryOpenPlayerFromHash)
+      .catch(_tryOpenPlayerFromHash);
+  }
+  setInterval(loadLiveData, 60 * 1000); // auto-refresh every 60s
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) loadLiveData(); });
+  window.addEventListener('focus', loadLiveData);
 }
-loadLiveData();
-setInterval(loadLiveData, 60 * 1000); // auto-refresh every 60s
-document.addEventListener('visibilitychange', () => { if (!document.hidden) loadLiveData(); });
-window.addEventListener('focus', loadLiveData);
 </script>
 </body>
 </html>
