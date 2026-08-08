@@ -4,65 +4,78 @@
 // sea que tenga la máquina de build — que es exactamente el bug original
 // (texto en una fuente serif/default en vez de Inter).
 //
-// Versión anterior de este archivo pedía la API CSS2 de Google Fonts con
-// un User-Agent viejo, apostando a que Google respondiera con TTF en vez
-// de WOFF2 para clientes "sin soporte moderno" — es un truco conocido,
-// pero resultó frágil: Google puede (y en la práctica lo hizo) devolver
-// WOFF2 igual, rompiendo el build entero por depender de una decisión de
-// content-negotiation que no controlamos.
-//
-// Ahora en cambio se pide el CSS2 tal cual (sin fingir ningún User-Agent
-// especial — Google le sirve WOFF2 a cualquier cliente moderno, siempre,
-// de forma confiable) y el WOFF2 se descomprime acá mismo con `wawoff2`
-// (decodificador puro JS) a TTF/OTF crudo, que es lo único que resvg
-// puede usar. Así no dependemos de ninguna decisión del lado de Google.
+// Historial de por qué esto terminó así: la API CSS2 de Google Fonts
+// decide qué formato de fuente devolver (woff2 vs. truetype) según el
+// header User-Agent del pedido — pero qué UA produce qué formato resultó
+// bastante menos predecible de lo que documentación/tutoriales sugieren:
+// un User-Agent viejo (Chrome 24) devolvió woff2 en vez de truetype; sin
+// ningún User-Agent (default de fetch) tampoco devolvió woff2. En vez de
+// seguir adivinando un cuarto User-Agent "correcto", el parser ahora
+// acepta CUALQUIERA de los dos formatos que venga en la respuesta —
+// truetype se usa tal cual, woff2 se descomprime acá con `wawoff2`
+// (decodificador puro JS) — así que no importa cuál termine sirviendo
+// Google para el User-Agent que mandemos, el build no se rompe por eso.
+// Se manda igual un User-Agent de navegador moderno (el más probable para
+// conseguir woff2, más liviano de bajar) pero ya no es una apuesta de la
+// que dependa todo.
 const wawoff2 = require('wawoff2');
 
 const FONT_CSS_URL = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap';
+const MODERN_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
 // Separado de fetchInterFonts() para poder testearlo con un CSS de
-// muestra, sin red — ver unit_test_fetch_font.js.
-function parseWoff2UrlsByWeight(css) {
-  const fontUrlsByWeight = {};
+// muestra, sin red — ver unit_test_fetch_font.js. Devuelve, por peso,
+// { url, format } — format es 'woff2' o 'truetype', lo que haya ofrecido
+// ese @font-face (se prueban ambos formatos por bloque; si un bloque
+// ofreciera los dos — no pasa en la práctica, cada @font-face trae un solo
+// src — woff2 gana por ser el que menos hay que procesar después).
+function parseFontUrlsByWeight(css) {
+  const fontsByWeight = {};
   for (const block of css.split('@font-face').slice(1)) {
     const weightMatch = block.match(/font-weight:\s*(\d+)/);
-    const urlMatch = block.match(/url\((https:\/\/fonts\.gstatic\.com\/[^)]+)\)\s*format\('woff2'\)/);
-    if (!weightMatch || !urlMatch) continue;
-    fontUrlsByWeight[weightMatch[1]] = urlMatch[1];
+    if (!weightMatch) continue;
+    const weight = weightMatch[1];
+    const woff2Match = block.match(/url\((https:\/\/fonts\.gstatic\.com\/[^)]+)\)\s*format\('woff2'\)/);
+    const ttfMatch = block.match(/url\((https:\/\/fonts\.gstatic\.com\/[^)]+)\)\s*format\('truetype'\)/);
+    if (woff2Match) fontsByWeight[weight] = { url: woff2Match[1], format: 'woff2' };
+    else if (ttfMatch) fontsByWeight[weight] = { url: ttfMatch[1], format: 'truetype' };
   }
-  return fontUrlsByWeight;
+  return fontsByWeight;
 }
 
-async function downloadAndDecompress(url) {
+async function downloadFont({ url, format }) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`No se pudo descargar ${url} (status ${res.status}).`);
-  const woff2Buffer = Buffer.from(await res.arrayBuffer());
-  const ttfBuffer = await wawoff2.decompress(woff2Buffer);
-  return Buffer.from(ttfBuffer);
+  const buffer = Buffer.from(await res.arrayBuffer());
+  if (format === 'woff2') {
+    const ttfBuffer = await wawoff2.decompress(buffer);
+    return Buffer.from(ttfBuffer);
+  }
+  return buffer; // truetype: resvg lo puede usar tal cual, sin procesar.
 }
 
 async function fetchInterFonts() {
-  const cssRes = await fetch(FONT_CSS_URL);
+  const cssRes = await fetch(FONT_CSS_URL, { headers: { 'User-Agent': MODERN_UA } });
   if (!cssRes.ok) {
     throw new Error(`No se pudo descargar el CSS de Google Fonts para Inter (status ${cssRes.status}).`);
   }
   const css = await cssRes.text();
-  const fontUrlsByWeight = parseWoff2UrlsByWeight(css);
+  const fontsByWeight = parseFontUrlsByWeight(css);
 
-  if (!fontUrlsByWeight['400'] || !fontUrlsByWeight['700']) {
+  if (!fontsByWeight['400'] || !fontsByWeight['700']) {
     throw new Error(
-      'No se encontraron URLs de Inter 400/700 en formato woff2 en la respuesta de Google Fonts ' +
+      'No se encontraron URLs de Inter 400/700 (ni woff2 ni truetype) en la respuesta de Google Fonts ' +
       '(¿cambió el formato de la respuesta de la API?). ' +
-      `Pesos encontrados: ${Object.keys(fontUrlsByWeight).join(', ') || 'ninguno'}.`
+      `Pesos encontrados: ${Object.keys(fontsByWeight).join(', ') || 'ninguno'}.`
     );
   }
 
   const [regular, bold] = await Promise.all([
-    downloadAndDecompress(fontUrlsByWeight['400']),
-    downloadAndDecompress(fontUrlsByWeight['700']),
+    downloadFont(fontsByWeight['400']),
+    downloadFont(fontsByWeight['700']),
   ]);
 
   return { regular, bold };
 }
 
-module.exports = { fetchInterFonts, parseWoff2UrlsByWeight };
+module.exports = { fetchInterFonts, parseFontUrlsByWeight };
