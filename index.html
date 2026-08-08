@@ -1835,6 +1835,8 @@
     .pp-rank-label { color:var(--gris-texto); font-weight:600; font-size:0.74rem; }
     .pp-record-card { display:flex; flex-direction:column; gap:8px; }
     .pp-record-ved { font-size:1.3rem; font-weight:900; letter-spacing:-.01em; }
+    .pp-record-loading { font-size:0.95rem; font-weight:700; color:var(--gris-texto); animation: pp-record-pulse 1.4s ease-in-out infinite; }
+    @keyframes pp-record-pulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
     .pp-ved-v { color:#22c55e; }
     .pp-ved-e { color:#eab308; }
     .pp-ved-d { color:#ef4444; }
@@ -3926,6 +3928,16 @@ function _ppFavoritoCliente(partidos) {
 // B re-filters the V-E-D balance and el Cliente Favorito exactly like the
 // KPI metrics above it, instead of always showing the career-wide total).
 function _ppRecordCardInnerHtml(fullPartidos) {
+  // Mientras no terminó de cargar Torneos Antiguos, fullPartidos puede ser
+  // un subconjunto de la carrera real — mostrar el V-E-D calculado sobre
+  // eso sería mostrar un número que después cambia solo, sin avisar. Se
+  // prefiere un estado de carga claro (ver _ppEnsureAllHistoricoLoaded,
+  // que dispara un re-render de todo el perfil apenas termina).
+  if (!_ppHistoricoReady) {
+    return `
+      <div class="pp-record-ved pp-record-loading" id="pp-record-ved">Calculando récord…</div>
+      <div class="pp-nido-loading">⏳ Terminando de cargar el historial completo del jugador</div>`;
+  }
   const list = _ppFilterByCat(fullPartidos);
   const record = _ppRecordVED(list);
   const favCliente = _ppFavoritoCliente(list);
@@ -4057,13 +4069,25 @@ function _ppDetailPanelBodyHtml(kind, fullList) {
 function _ppRenderDetailPanel(kind) {
   const panel = document.getElementById('pp-detail-panel');
   if (!panel) return;
+  // Todo kind salvo 'titulos' sale de _buildPlayerPartidos (Fecha a Fecha de
+  // cada torneo) — mientras Torneos Antiguos no terminó de precargar (ver
+  // _ppEnsureAllHistoricoLoaded), esa lista puede estar incompleta. Mismo
+  // criterio que _ppRecordCardInnerHtml: mostrar "cargando" en vez de un
+  // conteo parcial que después salta solo.
+  if (kind !== 'titulos' && !_ppHistoricoReady) {
+    panel.innerHTML = `
+      <div class="pp-detail-header">${PP_DETAIL_LABELS[kind]}</div>
+      <div class="pp-record-loading" style="padding:16px 0;">Cargando historial completo…</div>`;
+    return;
+  }
   const list = (window._ppDetailLists && window._ppDetailLists[kind]) || [];
   // Totales/Partidos (kind='partidos', cat='total') pulls its PJ count from El
-  // Nido's own accumulated sheet (source of truth for career totals), while
-  // this list is built by walking every tournament's Fecha a Fecha table — if
-  // some historical season's detail data isn't fully loaded/parsed yet the
-  // list can undercount vs. that total. Surface the gap instead of silently
-  // showing an incomplete list as if it were the whole story.
+  // Nido's own accumulated sheet (source of truth for career totals), mientras
+  // que esta lista sale de recorrer el Fecha a Fecha de cada torneo — incluso
+  // con _ppHistoricoReady, si alguna temporada puntual falló al parsear (no
+  // por timing, un problema real y persistente) puede seguir sin coincidir.
+  // Con _ppHistoricoReady ya en true esto deja de ser un problema de
+  // timing, así que si sigue apareciendo es una señal real de que revisar.
   const isTotalPartidos = kind === 'partidos' && (window._ppActiveCat || 'total') === 'total';
   const gapNote = isTotalPartidos && window._ppCareerPJ > list.length
     ? `<div class="pp-data-gap-note">⚠️ Mostrando ${list.length} de ${window._ppCareerPJ} partidos de la carrera — algunos torneos antiguos aún no tienen su Fecha a Fecha cargada.</div>`
@@ -6795,6 +6819,14 @@ function _moveCopaMatches(dataObj, targetObj, predicate) {
 // matches/goles never showed up in a player's profile unless someone had
 // already opened "Apertura AIFA D 2024" earlier in the session.
 let _ppHistoricoPreloadPromise = null;
+// Se prende recién cuando TODAS las temporadas de Torneos Antiguos
+// terminaron de resolver (éxito o falla, ver Promise.allSettled abajo) —
+// hasta entonces, _ppRecordCardInnerHtml/_ppRenderDetailPanel muestran un
+// estado de carga en vez de un número parcial (Récord de Resultados y
+// Fecha a Fecha dependen de esta misma lista de partidos, y sin esto se
+// veía primero un PJ chico que después, unos segundos más tarde, saltaba
+// al valor real — un número "incorrecto" visible aunque fuera transitorio).
+let _ppHistoricoReady = false;
 function _ppEnsureAllHistoricoLoaded() {
   if (_ppHistoricoPreloadPromise) return _ppHistoricoPreloadPromise;
   const pending = Object.entries(HISTORICO_GENERIC).filter(([key]) => !_historicoGenericLoaded[key]);
@@ -6804,7 +6836,7 @@ function _ppEnsureAllHistoricoLoaded() {
   _ppHistoricoPreloadPromise = Promise.allSettled([
     ...pending.map(([key, cfg]) => _loadHistoricoGeneric(key, cfg.d, cfg)),
     _loadBApt2024d(),
-  ]);
+  ]).then(results => { _ppHistoricoReady = true; return results; });
   return _ppHistoricoPreloadPromise;
 }
 
