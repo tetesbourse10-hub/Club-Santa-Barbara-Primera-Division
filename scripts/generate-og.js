@@ -23,16 +23,20 @@
 // visual y dejan correr solo el fetch/cálculo de datos.
 //
 // El dibujo de la tarjeta en sí (para el PNG) NO reusa el HTML/CSS del
-// sitio — se arma un SVG a mano en scripts/og-card-tree.js, con
-// font-family genérica; es resvg quien la resuelve contra las fuentes
-// instaladas en la máquina de build, sin depender de ningún .ttf propio
-// (ver el comentario al principio de ese archivo).
+// sitio — se arma un SVG a mano en scripts/og-card-tree.js. El SVG declara
+// font-family "Inter", pero resvg (el motor que rasteriza a PNG) no hereda
+// nada del sitio ni tiene fuentes de sistema garantizadas en la máquina de
+// build — así que scripts/fetch-font.js baja el .ttf real de Inter
+// (Regular + Bold) desde Google Fonts acá abajo, y se lo pasamos a resvg
+// como buffer explícito (con loadSystemFonts:false) antes de renderizar
+// cada imagen.
 
 const fs = require('fs');
 const path = require('path');
 const { JSDOM } = require('jsdom');
 const { Resvg } = require('@resvg/resvg-js');
 const { buildShareCardSvg } = require('./og-card-tree');
+const { fetchInterFonts } = require('./fetch-font');
 
 const ROOT = path.join(__dirname, '..');
 // En Netlify, URL/DEPLOY_PRIME_URL están seteadas en cada build (esta última
@@ -115,14 +119,44 @@ async function main() {
   if (!merged.length) {
     throw new Error('window._nidoGetMerged() vino vacío después de loadLiveData() + _nidoEnsureLoaded() — revisar que el build tenga acceso de red a Google Sheets (incluido el proxy de Apps Script que usa _nidoLoad).');
   }
-  console.log(`${merged.length} jugadores encontrados. Generando previews…`);
+  console.log(`${merged.length} jugadores encontrados.`);
 
+  // El PG/PE/PP de la tarjeta sale de _buildPlayerPartidos(nombre), que arma
+  // el historial partido a partido recorriendo _allPlayerTorneoSources() —
+  // eso incluye las temporadas viejas de "Torneos Antiguos" (HISTORICO_GENERIC,
+  // ~14 temporadas) más un par de fuentes "bespoke" (ver index.html). ESAS
+  // fuentes NO se cargan como parte de loadLiveData(): son lazy, y en el
+  // sitio real solo se disparan cuando un usuario de verdad hace click en
+  // "Torneos Antiguos" y abre esa temporada puntual. Acá no hay clicks de
+  // nadie, así que sin este paso, cualquier jugador con partidos en esas
+  // temporadas viejas terminaba con un PG/PE/PP incompleto (no sumaba el PJ
+  // real) — la causa real del bug reportado, no un simple "falta un await".
+  console.log('Cargando temporadas viejas de Torneos Antiguos (necesarias para PG/PE/PP completo)…');
+  const historicoKeys = Object.keys(window.HISTORICO_GENERIC || {});
+  const historicoResults = await Promise.allSettled(
+    historicoKeys.map(key => {
+      const cfg = window.HISTORICO_GENERIC[key];
+      return window._loadHistoricoGeneric(key, cfg.d, cfg);
+    })
+  );
+  historicoResults.forEach((r, i) => {
+    if (r.status === 'rejected') console.error(`  ✗ Error cargando temporada histórica "${historicoKeys[i]}":`, r.reason && r.reason.message);
+  });
+  if (window._loadBApt2024d) {
+    await window._loadBApt2024d().catch(e => console.error('  ✗ Error cargando Apertura AIFA D 2024:', e.message));
+  }
+
+  console.log('Descargando la fuente Inter (Regular + Bold) para las imágenes…');
+  const fonts = await fetchInterFonts();
+
+  console.log('Generando previews…');
   const ogDir = path.join(ROOT, 'og');
   const jugadorDir = path.join(ROOT, 'jugador');
   fs.mkdirSync(ogDir, { recursive: true });
   fs.mkdirSync(jugadorDir, { recursive: true });
 
   let ok = 0, failed = 0;
+  let vedMismatches = 0;
   const seenSlugs = new Set();
   for (const p of merged) {
     const nombre = p.nombre;
@@ -139,6 +173,23 @@ async function main() {
       const partidos = window._buildPlayerPartidos(nombre);
       const ved = window._ppRecordVED(partidos);
 
+      // Validación explícita en vez de generar igual con datos parciales:
+      // campos requeridos ausentes son un bug real (falla el build, no un
+      // player individual) — un PG/PE/PP que no suma el PJ total es la
+      // señal exacta del bug que motivó todo este chequeo, así que se
+      // loguea fuerte por jugador y al final se resume cuántos casos hubo.
+      const requiredFields = { goles: s.goles, asist: s.asist, pj: s.pj, pg: ved.v, pe: ved.e, pp: ved.d };
+      for (const [field, val] of Object.entries(requiredFields)) {
+        if (val === undefined || val === null || Number.isNaN(val)) {
+          throw new Error(`Campo requerido "${field}" vino ${val} para "${nombre}" — datos incompletos, no se genera la imagen con esto a medias.`);
+        }
+      }
+      const vedSum = ved.v + ved.e + ved.d;
+      if (vedSum !== s.pj) {
+        vedMismatches++;
+        console.error(`  ⚠ "${nombre}": PG+PE+PP (${vedSum}) no coincide con PJ (${s.pj}) — partidos sin resultado registrado en alguna fuente, o alguna temporada histórica no cargó bien.`);
+      }
+
       const svg = buildShareCardSvg({
         nombre: s.nombre, pos: s.pos, posColor,
         goles: s.goles, asist: s.asist, pj: s.pj,
@@ -149,8 +200,18 @@ async function main() {
         hasA: s.hasA, hasB: s.hasB, logros,
       });
 
-      // El SVG ya nace a 1080x1350 (formato 4:5) — se renderiza 1:1, sin reescalar.
-      const png = new Resvg(svg).render().asPng();
+      // El SVG ya nace a 1080x1350 (formato 4:5) — se renderiza 1:1, sin
+      // reescalar. loadSystemFonts:false fuerza a resvg a usar SOLO estos
+      // buffers (nunca lo que tenga instalado la máquina de build) — así
+      // el resultado es siempre Inter, determinístico, sin depender de qué
+      // fuentes tenga ese runner en particular.
+      const png = new Resvg(svg, {
+        font: {
+          fontBuffers: [fonts.regular, fonts.bold],
+          loadSystemFonts: false,
+          defaultFontFamily: 'Inter',
+        },
+      }).render().asPng();
       fs.writeFileSync(path.join(ogDir, `${slug}.png`), png);
 
       const title = `${s.nombre} — Club Santa Bárbara`;
@@ -170,7 +231,7 @@ async function main() {
     }
   }
 
-  console.log(`Listo: ${ok} jugadores generados, ${failed} con error.`);
+  console.log(`Listo: ${ok} jugadores generados, ${failed} con error, ${vedMismatches} con PG+PE+PP ≠ PJ (ver advertencias arriba).`);
   window.close();
   if (ok === 0 && failed > 0) process.exit(1);
 }

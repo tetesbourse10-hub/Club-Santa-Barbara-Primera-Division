@@ -2,12 +2,14 @@
 // (4:5), en paralelo al diseño visual de .pp-share-card (ver index.html).
 //
 // No usa satori: satori exige un archivo de fuente embebido explícito para
-// dibujar cualquier texto (no hay forma de pedirle que use "la fuente que
-// haya en la máquina"). Acá en cambio se arma el SVG directo con
-// font-family "Inter" (la misma que usa el resto del sitio, ver
-// --font-family en el <style> de index.html) seguida de la misma cadena de
-// fallback (Segoe UI, system-ui, sans-serif) — es resvg (@resvg/resvg-js)
-// quien la resuelve contra las fuentes instaladas en la máquina de build.
+// dibujar cualquier texto igual que resvg, así que no evitaba el problema,
+// solo lo movía de lugar. Acá se arma el SVG directo con font-family
+// "Inter" (la misma que usa el resto del sitio, ver --font-family en el
+// <style> de index.html) — quien la resuelve de verdad es resvg
+// (@resvg/resvg-js) en scripts/generate-og.js, al que se le pasa el .ttf
+// real de Inter como buffer (bajado en build time por
+// scripts/fetch-font.js) con loadSystemFonts:false, así el resultado no
+// depende de qué fuentes tenga instaladas la máquina de build.
 //
 // Distribución vertical: en vez de espaciados fijos entre secciones, se
 // calcula la altura de cada bloque (header, identidad, logros, récord,
