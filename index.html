@@ -672,6 +672,7 @@
       .nido-card-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
       .nido-card-name { font-size: 0.92rem; font-weight: 700; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .nido-card-value { font-size: 1.3rem; font-weight: 900; color: var(--dorado); flex-shrink: 0; }
+      .nido-card-value-label { font-size: 0.62rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: .03em; margin-left: 2px; }
       .nido-card-badges { display: flex; gap: 6px; margin-top: 5px; flex-wrap: wrap; align-items: center; }
       .nido-card-pos { display: inline-block; font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 6px; border: 1px solid; letter-spacing: .03em; }
       .nido-card-stats {
@@ -12747,7 +12748,7 @@ async function loadLiveData() {
                 ${teamBadges}
               </div>
             </div>
-            <div class="nido-card-value">${activeVal} ${activeValLabel}</div>
+            <div class="nido-card-value">${activeVal}${activeValLabel ? `<span class="nido-card-value-label">${activeValLabel}</span>` : ''}</div>
           </div>
           <div class="nido-pj-badges">
             <div class="nido-pj-badge nido-pj-badge-pg">${ved ? ved.v : '…'} PG</div>
@@ -12785,7 +12786,7 @@ async function loadLiveData() {
           <div class="nido-card-body">
             <div class="nido-card-top">
               <div class="nido-card-name">${pl(p.nombre)}</div>
-              <div class="nido-card-value">${_nidoStatValue(p, activeColKey, promSwap)} ${promSwap ? promSwap.header.replace('PROM.', 'Prom.') : (NIDO_VALUE_LABEL[activeColKey] || '')}</div>
+              <div class="nido-card-value">${_nidoStatValue(p, activeColKey, promSwap)}<span class="nido-card-value-label">${promSwap ? promSwap.header.replace('PROM.', 'Prom.') : (NIDO_VALUE_LABEL[activeColKey] || '')}</span></div>
             </div>
             <div class="nido-card-badges">
               <span class="nido-card-pos" style="background:${pColor}1a;border-color:${pColor}59;color:${pColor}">${p.pos || '—'}</span>
