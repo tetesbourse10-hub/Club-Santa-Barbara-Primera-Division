@@ -8756,7 +8756,7 @@ function renderJugadoresTotales() {
         style="flex:1;min-width:160px;padding:7px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:#fff;font-size:0.85rem;outline:none">
       <div id="jug-tab-row" class="jtot-tabrow"></div>
     </div>
-    <div class="table-wrap" id="jug-totales-wrap" style="overflow-x:auto;position:relative">
+    <div class="table-wrap" id="jug-totales-wrap" style="overflow:auto;max-height:640px;position:relative">
       <div style="color:var(--gris-texto);padding:24px;text-align:center">Cargando...</div>
     </div>`;
 
@@ -8907,18 +8907,24 @@ function _jugTotalBuild() {
   const medalBg     = ['rgba(251,191,36,0.08)', 'rgba(148,163,184,0.06)', 'rgba(180,120,60,0.06)'];
   const medals      = ['🥇', '🥈', '🥉'];
 
-  // top:60px = alto del header fijo del sitio (.header, position:sticky;top:0
-  // ahí) — así el encabezado de la tabla queda pegado justo debajo. Las
-  // primeras 2 columnas (#, Jugador) ya eran sticky en horizontal (left) —
-  // sumarles top también las deja fijas en las DOS direcciones (la esquina
-  // superior-izquierda), por eso llevan un z-index más alto que el resto.
+  // El wrapper (#jug-totales-wrap/-b, ver overflow:auto;max-height:640px más
+  // abajo) es su propio panel con scroll acotado — no la página entera —
+  // porque la tabla también scrollea horizontalmente (overflow-x), y un
+  // ancestro con overflow-x:auto termina forzando overflow-y:auto también
+  // (así lo resuelve la spec de CSS Overflow), lo que rompe el "sticky"
+  // relativo a la ventana: sin una altura fija, ese div nunca scrollea de
+  // verdad y el header no se despega. Por eso top:0 acá es relativo a ESTE
+  // panel, no al header fijo del sitio. Las primeras 2 columnas (#, Jugador)
+  // ya eran sticky en horizontal (left) — sumarles top también las deja
+  // fijas en las DOS direcciones (la esquina superior-izquierda), por eso
+  // llevan un z-index más alto que el resto.
   const ths = `
-    <th style="position:sticky;left:0;top:60px;z-index:22;background:var(--azul-card);min-width:44px;width:44px;text-align:center;padding:10px 8px;font-size:0.65rem;color:var(--gris-texto);border-bottom:1px solid rgba(255,255,255,0.08)">#</th>
-    <th style="position:sticky;left:44px;top:60px;z-index:22;background:var(--azul-card);min-width:200px;padding:10px 12px;font-size:0.65rem;color:var(--gris-texto);border-bottom:1px solid rgba(255,255,255,0.08);cursor:pointer" onclick="_jugTotalSort(${JUG_COL.nombre})">Jugador</th>
+    <th style="position:sticky;left:0;top:0;z-index:22;background:var(--azul-card);min-width:44px;width:44px;text-align:center;padding:10px 8px;font-size:0.65rem;color:var(--gris-texto);border-bottom:1px solid rgba(255,255,255,0.08)">#</th>
+    <th style="position:sticky;left:44px;top:0;z-index:22;background:var(--azul-card);min-width:200px;padding:10px 12px;font-size:0.65rem;color:var(--gris-texto);border-bottom:1px solid rgba(255,255,255,0.08);cursor:pointer" onclick="_jugTotalSort(${JUG_COL.nombre})">Jugador</th>
     ${activeCols.map(ci => {
       const m = COL_META[ci] || { label: _jugTotalesCols[ci], icon: '', color: '#94a3b8' };
       const active = _jugTotalesSort.col === ci;
-      return `<th onclick="_jugTotalSort(${ci})" style="cursor:pointer;user-select:none;min-width:72px;padding:10px 12px;font-size:0.65rem;color:${active ? m.color : 'var(--gris-texto)'};text-align:center;white-space:nowrap;border-bottom:1px solid rgba(255,255,255,0.08);position:sticky;top:60px;z-index:20;background:var(--azul-card);">
+      return `<th onclick="_jugTotalSort(${ci})" style="cursor:pointer;user-select:none;min-width:72px;padding:10px 12px;font-size:0.65rem;color:${active ? m.color : 'var(--gris-texto)'};text-align:center;white-space:nowrap;border-bottom:1px solid rgba(255,255,255,0.08);position:sticky;top:0;z-index:20;background:var(--azul-card);">
         ${m.icon} ${m.label}${active ? `<span style="font-size:0.7em;margin-left:3px">${_jugTotalesSort.asc ? '▲' : '▼'}</span>` : ''}
       </th>`;
     }).join('')}`;
@@ -9042,7 +9048,7 @@ function renderJugadoresTotalesB() {
         style="flex:1;min-width:160px;padding:7px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:#fff;font-size:0.85rem;outline:none">
       <div id="jug-tab-row-b" class="jtot-tabrow"></div>
     </div>
-    <div class="table-wrap" id="jug-totales-wrap-b" style="overflow-x:auto;position:relative">
+    <div class="table-wrap" id="jug-totales-wrap-b" style="overflow:auto;max-height:640px;position:relative">
       <div style="color:var(--gris-texto);padding:24px;text-align:center">Cargando...</div>
     </div>`;
 
@@ -9192,17 +9198,17 @@ function _jugBBuild() {
   const medalBg     = ['rgba(251,191,36,0.08)', 'rgba(148,163,184,0.06)', 'rgba(180,120,60,0.06)'];
   const medals      = ['🥇', '🥈', '🥉'];
 
-  // top:60px = alto del header fijo del sitio (.header, position:sticky;top:0
+  // top:0 = alto del header fijo del sitio (.header, position:sticky;top:0
   // ahí). Las primeras 2 columnas (#, Jugador) ya eran sticky en horizontal
   // (left) — sumarles top también las deja fijas en las DOS direcciones,
   // por eso llevan un z-index más alto que el resto.
   const ths = `
-    <th style="position:sticky;left:0;top:60px;z-index:22;background:var(--azul-card);min-width:44px;width:44px;text-align:center;padding:10px 8px;font-size:0.65rem;color:var(--gris-texto);border-bottom:1px solid rgba(255,255,255,0.08)">#</th>
-    <th style="position:sticky;left:44px;top:60px;z-index:22;background:var(--azul-card);min-width:200px;padding:10px 12px;font-size:0.65rem;color:var(--gris-texto);border-bottom:1px solid rgba(255,255,255,0.08);cursor:pointer" onclick="_jugBSortCol(${JUG_COL_B.nombre})">Jugador</th>
+    <th style="position:sticky;left:0;top:0;z-index:22;background:var(--azul-card);min-width:44px;width:44px;text-align:center;padding:10px 8px;font-size:0.65rem;color:var(--gris-texto);border-bottom:1px solid rgba(255,255,255,0.08)">#</th>
+    <th style="position:sticky;left:44px;top:0;z-index:22;background:var(--azul-card);min-width:200px;padding:10px 12px;font-size:0.65rem;color:var(--gris-texto);border-bottom:1px solid rgba(255,255,255,0.08);cursor:pointer" onclick="_jugBSortCol(${JUG_COL_B.nombre})">Jugador</th>
     ${activeCols.map(ci => {
       const m = COL_META_B[ci] || { label: _jugBCols[ci], icon: '', color: '#94a3b8' };
       const active = _jugBSort.col === ci;
-      return `<th onclick="_jugBSortCol(${ci})" style="cursor:pointer;user-select:none;min-width:72px;padding:10px 12px;font-size:0.65rem;color:${active ? m.color : 'var(--gris-texto)'};text-align:center;white-space:nowrap;border-bottom:1px solid rgba(255,255,255,0.08);position:sticky;top:60px;z-index:20;background:var(--azul-card);">
+      return `<th onclick="_jugBSortCol(${ci})" style="cursor:pointer;user-select:none;min-width:72px;padding:10px 12px;font-size:0.65rem;color:${active ? m.color : 'var(--gris-texto)'};text-align:center;white-space:nowrap;border-bottom:1px solid rgba(255,255,255,0.08);position:sticky;top:0;z-index:20;background:var(--azul-card);">
         ${m.icon} ${m.label}${active ? `<span style="font-size:0.7em;margin-left:3px">${_jugBSort.asc ? '▲' : '▼'}</span>` : ''}
       </th>`;
     }).join('')}`;
@@ -9744,7 +9750,7 @@ function renderJugAnualesYear(year) {
         style="flex:1;min-width:150px;padding:7px 11px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:#fff;font-size:0.85rem;outline:none">
       <span id="jug-anual-count" style="color:var(--gris-texto);font-size:0.78rem;white-space:nowrap"></span>
     </div>
-    <div id="jug-anual-table" style="overflow-x:auto">
+    <div id="jug-anual-table" style="overflow:auto;max-height:640px;">
       <div style="color:var(--gris-texto);font-size:0.82rem;padding:8px 0">Cargando tabla...</div>
     </div>`;
 
@@ -9913,7 +9919,7 @@ function renderJugAnualesYearB(year) {
         style="flex:1;min-width:150px;padding:7px 11px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:#fff;font-size:0.85rem;outline:none">
       <span id="jug-anual-count-b" style="color:var(--gris-texto);font-size:0.78rem;white-space:nowrap"></span>
     </div>
-    <div id="jug-anual-table-b" style="overflow-x:auto">
+    <div id="jug-anual-table-b" style="overflow:auto;max-height:640px;">
       <div style="color:var(--gris-texto);font-size:0.82rem;padding:8px 0">Cargando tabla...</div>
     </div>`
     : `<div style="font-size:0.72rem;color:rgba(255,255,255,0.35)">Rankings de jugadores por temporada no disponibles todavía para ${year} en Primera B.</div>`}`;
@@ -10011,7 +10017,7 @@ function _anualesBuildTableB(year) {
 
   const ths = COLS.map((c, i) => {
     const active = _anualesSortColB === i;
-    return `<th onclick="_anualesSortB(${i})" style="cursor:pointer;user-select:none;padding:9px 10px;font-size:0.65rem;color:${active ? c.color : 'var(--gris-texto)'};text-align:${i===0?'left':'center'};white-space:nowrap;border-bottom:1px solid rgba(255,255,255,0.08);position:sticky;top:60px;z-index:20;background:var(--azul-card);">
+    return `<th onclick="_anualesSortB(${i})" style="cursor:pointer;user-select:none;padding:9px 10px;font-size:0.65rem;color:${active ? c.color : 'var(--gris-texto)'};text-align:${i===0?'left':'center'};white-space:nowrap;border-bottom:1px solid rgba(255,255,255,0.08);position:sticky;top:0;z-index:20;background:var(--azul-card);">
       ${c.label}${active ? `<span style="margin-left:2px;font-size:.7em">${_anualesSortAscB?'▲':'▼'}</span>` : ''}
     </th>`;
   }).join('');
@@ -10165,7 +10171,7 @@ function _anualesBuildTable(year) {
 
   const ths = COLS.map((c, i) => {
     const active = _anualesSortCol === i;
-    return `<th onclick="_anualesSort(${i})" style="cursor:pointer;user-select:none;padding:9px 10px;font-size:0.65rem;color:${active ? c.color : 'var(--gris-texto)'};text-align:${i===0?'left':'center'};white-space:nowrap;border-bottom:1px solid rgba(255,255,255,0.08);position:sticky;top:60px;z-index:20;background:var(--azul-card);">
+    return `<th onclick="_anualesSort(${i})" style="cursor:pointer;user-select:none;padding:9px 10px;font-size:0.65rem;color:${active ? c.color : 'var(--gris-texto)'};text-align:${i===0?'left':'center'};white-space:nowrap;border-bottom:1px solid rgba(255,255,255,0.08);position:sticky;top:0;z-index:20;background:var(--azul-card);">
       ${c.label}${active ? `<span style="margin-left:2px;font-size:.7em">${_anualesSortAsc?'▲':'▼'}</span>` : ''}
     </th>`;
   }).join('');
@@ -12515,10 +12521,14 @@ async function loadLiveData() {
     // Títulos/Vallas con el desglose de resultados en esta vista.
     const isPjRank   = _nidoRank === 'pj';
 
-    // top:60px = alto del header fijo del sitio (.header, ver position:sticky;
-    // top:0 ahí) — así el encabezado de la tabla queda pegado justo debajo,
-    // no tapado por ni tapando al header del sitio.
-    const TH  = `padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:#6b7280;white-space:nowrap;letter-spacing:.06em;position:sticky;top:60px;z-index:20;background:var(--azul-card);`;
+    // El wrapper de abajo (overflow:auto;max-height:640px) es su propio
+    // panel con scroll acotado, no la página entera — la tabla también
+    // scrollea horizontalmente, y un ancestro con overflow-x:auto termina
+    // forzando overflow-y:auto también (así lo resuelve la spec de CSS
+    // Overflow), lo que rompe un "sticky" pensado relativo a la ventana:
+    // sin una altura fija ese div nunca scrollea de verdad y el header no
+    // se despega. Por eso top:0 acá es relativo a ESTE panel.
+    const TH  = `padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:#6b7280;white-space:nowrap;letter-spacing:.06em;position:sticky;top:0;z-index:20;background:var(--azul-card);`;
     const THS = TH + `cursor:pointer;user-select:none;`;
 
     // Which column key is the active ranking column (for visual highlight) —
@@ -12671,7 +12681,7 @@ async function loadLiveData() {
         ${isRankMode ? `<span style="font-size:11px;color:#eab308;font-weight:600;letter-spacing:.05em;">RANKING — ${rankMeta?.label || ''}</span>` : ''}
         ${isPjRank && !_matchDataReadyOnce ? `<span style="font-size:11px;color:#6b7280;">⏳ Cargando PG/PE/PP…</span>` : ''}
       </div>
-      <div style="overflow-x:auto;">
+      <div style="overflow:auto;max-height:640px;">
         <table style="width:100%;border-collapse:collapse;">${thead}<tbody>${tbody || `<tr><td colspan="${colspan}" style="padding:32px;text-align:center;color:#4b5563;">Sin resultados</td></tr>`}</tbody></table>
       </div>
     </div>`;
