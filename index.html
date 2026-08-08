@@ -10836,7 +10836,11 @@ const GS = {
   A_SIM:  '1rgxxVfIOskO0qXSU_Yw6b9VvYYmMCxVr1sYZc6Hxv40',
   B_MAIN: '1fiw1Wd_KdE-l0ekbk6yuVy9gkvMLQ3X8k4poe9i0qkg',
   B_HIST: '1XaLSM8pfsCgbB5L0I13eE7NWdadYFJU-_A-MYudJU34',
-  B_SIM:  '1i9akFUzKsgrKB01lrFJdjE0djmImr64IqsnlLuMHsGI',
+  // B_SIM ('1i9akFUzKsgrKB01lrFJdjE0djmImr64IqsnlLuMHsGI') se sacó — era un
+  // fallback a una hoja "simulador" vieja para la tabla de posiciones B que
+  // devolvía 503 el 100% de las veces (nunca podía disparar de verdad, solo
+  // generaba un request roto reintentado en loop). Ver el comentario en
+  // loadLiveData(), sección "PRIMERA B — Clausura AIFA B 2026".
 };
 
 const PROXY_URL = 'https://script.google.com/macros/s/AKfycbzDmI2fgAZEONfC7gwuwazmR-GVPd4ISVTQiBBEU7324Sn8Pp6YGxnZwsrwe5J8ghE8/exec';
@@ -11845,19 +11849,19 @@ async function loadLiveData() {
   if (statusEl) { statusEl.textContent = 'Actualizando…'; statusEl.className = 'loading'; }
 
   // Fetch each section as a targeted range so parsers receive exactly the right rows
-  const [aSim, aBasic, aDet, bSim, bApBasic, bApDet, aHist, bHist, aGlobal, aTabla,
+  const [aSim, aBasic, aDet, bApBasic, bApDet, aHist, bHist, aGlobal, aTabla,
          a25Det, a25Global, a25Tabla, a25Basico, bApGlobal, bApTabla,
          bClDet, bClGlobal, bClTabla, aClDet, aClGlobal, aClTabla, aClBasic, copasSheet, copasBasicSheet, bRecopaSheet,
          bSupercopa25Det, bSupercopa25Plantel, bRecopa24Det, bRecopa24Plantel,
          bRecopa21Det, bRecopa21Plantel] = await Promise.allSettled([
     // Antes: fetchCSV(GS.A_SIM) — sin tab/range, csvUrl() arma la URL sin
     // &sheet= ni &gid=, pidiéndole a gviz "la hoja que corresponda" de forma
-    // ambigua. Confirmado en Network que la variante B (ver GS.B_SIM abajo)
-    // de esa misma URL sin parámetros le devuelve 503 + redirect a
-    // accounts.google.com/ServiceLogin a Google en vez del CSV — un
-    // comportamiento conocido de gviz con requests así de ambiguos, no un
-    // tema de permisos (el doc ya está compartido "cualquiera con el
-    // enlace"). gid=0 = la primera hoja del documento, que es la que
+    // ambigua. Confirmado en Network que esa misma forma de URL sin
+    // parámetros le devuelve 503 + redirect a accounts.google.com/
+    // ServiceLogin a Google en vez del CSV — un comportamiento conocido de
+    // gviz con requests así de ambiguos, no un tema de permisos (el doc ya
+    // está compartido "cualquiera con el enlace"). gid=0 = la primera hoja
+    // del documento, que es la que
     // siempre se buscó implícitamente acá — ahora se lo decimos explícito.
     fetchWithRetryCap('A_SIM', () => fetchGvizByGid(GS.A_SIM, 0, null)),
     // The 'Apertura 2026' tab name stopped resolving to useful data (the club
@@ -11869,12 +11873,6 @@ async function loadLiveData() {
     // "disappeared") — the club moved/restructured that block onto its own
     // gid. Fetched directly by gid now, club-confirmed range.
     fetchGvizByGid(GS.A_MAIN, 2018022084, 'A22:J524'), // fecha-a-fecha + positions
-    // Mismo fix que GS.A_MAIN arriba: antes fetchCSV(GS.B_SIM) armaba una URL
-    // gviz sin &sheet= ni &gid= (ambigua), y esa es justo la que devolvía
-    // 503 + redirect a accounts.google.com/ServiceLogin en vez del CSV —
-    // confirmado en Network, no es un tema de permisos. gid=0 = primera
-    // hoja del documento (lo que implícitamente se buscaba igual).
-    fetchWithRetryCap('B_SIM', () => fetchGvizByGid(GS.B_SIM, 0, null)),
     // ── Apertura AIFA B 2026 (finished, archived into DATA_B_APERTURA2026) ──
     fetchCSV(GS.B_HIST, 'APERTURA 2026 AIFA B', 'A1:Z18'),
     // NOTE: this one is fetchCSVFallback (GViz only), NOT the racing fetchCSV()
@@ -12124,20 +12122,22 @@ async function loadLiveData() {
   }
 
   // PRIMERA B — Clausura AIFA B 2026 (live season, own new sheet tab → DATA_B).
-  // bClTabla is the real standings source (the club's own dedicated gid);
-  // bSim is a legacy/simulator sheet from before that tab existed. Both used
-  // to be able to write DATA_B.tabla with only assignment order deciding the
-  // winner — if the real fetch ever failed silently, the stale simulador
-  // data would stick around with no indication anything was wrong. Now bSim
-  // only fills in when the real source hasn't returned anything usable.
+  // bClTabla es la fuente real de la tabla de posiciones (el gid propio del
+  // club). Hasta acá tenía un fallback a B_SIM ("1i9akFUzKsgrKB01lrFJdjE0
+  // djmImr64IqsnlLuMHsGI") — una hoja "simulador" vieja, de antes de que
+  // este tab propio existiera. Se saca por completo: confirmado que ese
+  // fetch devuelve 503 el 100% de las veces, así que el fallback nunca
+  // podía disparar de verdad — solo generaba un request roto reintentado
+  // en loop sin ningún beneficio. Si bClTabla llega a fallar ahora,
+  // DATA_B.tabla simplemente queda con lo que tenía (dato stale de la
+  // carga anterior) en vez de un fallback que de todas formas nunca
+  // funcionaba.
   const bClTablaRaw = ok(bClTabla);
   const bClTablaParsed = bClTablaRaw ? parseTablaSheet(bClTablaRaw) : [];
   if (bClTablaParsed.length >= 5) {
     DATA_B.tabla = bClTablaParsed;
   } else {
-    console.warn(`Tabla B (Clausura 2026): fetch ${ok(bClTabla) ? 'succeeded but parsed ' + bClTablaParsed.length + ' rows' : 'FAILED'} — falling back to B_SIM`);
-    const bSimTbl = ok(bSim) ? parseSimStandings(ok(bSim), 5) : [];
-    if (bSimTbl.length >= 5) DATA_B.tabla = bSimTbl;
+    console.warn(`Tabla B (Clausura 2026): fetch ${ok(bClTabla) ? 'succeeded but parsed ' + bClTablaParsed.length + ' rows' : 'FAILED'}`);
   }
   _fillCopasPorPosicion(DATA_B.tabla, COPAS_POR_POSICION_B);
 
