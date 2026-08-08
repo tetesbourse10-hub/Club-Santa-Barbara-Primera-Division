@@ -142,13 +142,14 @@ async function main() {
       const svg = buildShareCardSvg({
         nombre: s.nombre, pos: s.pos, posColor,
         goles: s.goles, asist: s.asist, pj: s.pj,
-        gmas: s.goles + s.asist, titulos: s.titulos, promGol: s.promGol,
+        gmas: s.goles + s.asist, titulos: s.titulos,
+        promGol: s.promGol, promAsist: s.promAsist,
+        vallas: s.vallas, vallasProm: s.vallasProm,
         pg: ved.v, pe: ved.e, pp: ved.d,
         hasA: s.hasA, hasB: s.hasB, logros,
       });
 
-      // El SVG ya nace a 1200x630 (tamaño estándar Open Graph) — se renderiza
-      // 1:1, sin reescalar.
+      // El SVG ya nace a 1080x1350 (formato 4:5) — se renderiza 1:1, sin reescalar.
       const png = new Resvg(svg).render().asPng();
       fs.writeFileSync(path.join(ogDir, `${slug}.png`), png);
 
