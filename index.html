@@ -11793,7 +11793,16 @@ async function loadLiveData() {
          bClDet, bClGlobal, bClTabla, aClDet, aClGlobal, aClTabla, aClBasic, copasSheet, copasBasicSheet, bRecopaSheet,
          bSupercopa25Det, bSupercopa25Plantel, bRecopa24Det, bRecopa24Plantel,
          bRecopa21Det, bRecopa21Plantel] = await Promise.allSettled([
-    fetchCSV(GS.A_SIM),
+    // Antes: fetchCSV(GS.A_SIM) — sin tab/range, csvUrl() arma la URL sin
+    // &sheet= ni &gid=, pidiéndole a gviz "la hoja que corresponda" de forma
+    // ambigua. Confirmado en Network que la variante B (ver GS.B_SIM abajo)
+    // de esa misma URL sin parámetros le devuelve 503 + redirect a
+    // accounts.google.com/ServiceLogin a Google en vez del CSV — un
+    // comportamiento conocido de gviz con requests así de ambiguos, no un
+    // tema de permisos (el doc ya está compartido "cualquiera con el
+    // enlace"). gid=0 = la primera hoja del documento, que es la que
+    // siempre se buscó implícitamente acá — ahora se lo decimos explícito.
+    fetchGvizByGid(GS.A_SIM, 0, null),
     // The 'Apertura 2026' tab name stopped resolving to useful data (the club
     // moved/restructured that block onto its own gid, same one the detailed
     // Fecha a Fecha below now uses) — both the basic table (Observaciones,
@@ -11803,7 +11812,12 @@ async function loadLiveData() {
     // "disappeared") — the club moved/restructured that block onto its own
     // gid. Fetched directly by gid now, club-confirmed range.
     fetchGvizByGid(GS.A_MAIN, 2018022084, 'A22:J524'), // fecha-a-fecha + positions
-    fetchCSV(GS.B_SIM),
+    // Mismo fix que GS.A_MAIN arriba: antes fetchCSV(GS.B_SIM) armaba una URL
+    // gviz sin &sheet= ni &gid= (ambigua), y esa es justo la que devolvía
+    // 503 + redirect a accounts.google.com/ServiceLogin en vez del CSV —
+    // confirmado en Network, no es un tema de permisos. gid=0 = primera
+    // hoja del documento (lo que implícitamente se buscaba igual).
+    fetchGvizByGid(GS.B_SIM, 0, null),
     // ── Apertura AIFA B 2026 (finished, archived into DATA_B_APERTURA2026) ──
     fetchCSV(GS.B_HIST, 'APERTURA 2026 AIFA B', 'A1:Z18'),
     // NOTE: this one is fetchCSVFallback (GViz only), NOT the racing fetchCSV()
