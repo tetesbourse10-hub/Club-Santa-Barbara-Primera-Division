@@ -11796,24 +11796,36 @@ function refreshCurrentView() {
 // even though it eventually succeeds. Whichever source answers first wins;
 // if the fastest answer comes back empty (the known silent-empty-result bug
 // on some tab names) we wait for the other source instead of trusting it.
+// Antes esta función SIEMPRE disparaba fetchCSVFallback (gviz directo) y
+// fetchProxy (Apps Script) en paralelo y se quedaba con lo primero que
+// llegara no-vacío — confirmado en Network que eso duplicaba literalmente
+// cada request de este tipo, y que el proxy (con arranque en frío conocido)
+// suele tardar bastante más que el directo. Ahora intenta el camino rápido
+// (directo) primero, y solo escala al proxy si hace falta — si el directo
+// tira error, o si "tuvo éxito" pero volvió vacío (el gviz de Google puede
+// devolver un array vacío en vez de un error para ciertos nombres de tab
+// que no resuelven bien, sin avisar) — así el proxy queda como lo que
+// siempre tuvo que ser: un último recurso, no una carrera permanente.
 async function fetchCSV(id, tab, range) {
-  const jobs = [fetchCSVFallback(id, tab, range)];
-  if (tab) jobs.push(fetchProxy(tab, range, id));
-  return new Promise((resolve, reject) => {
-    let pending = jobs.length;
-    let bestEmpty = undefined;
-    let lastErr = null;
-    jobs.forEach(job => {
-      job.then(val => {
-        if (val && val.length) { resolve(val); return; }
-        if (bestEmpty === undefined) bestEmpty = val;
-        if (--pending === 0) resolve(bestEmpty);
-      }).catch(err => {
-        lastErr = err;
-        if (--pending === 0) { bestEmpty !== undefined ? resolve(bestEmpty) : reject(lastErr); }
-      });
-    });
-  });
+  let direct;
+  try {
+    direct = await fetchCSVFallback(id, tab, range);
+    if (direct && direct.length) return direct;
+  } catch (directErr) {
+    if (!tab) throw directErr;
+    return fetchProxy(tab, range, id);
+  }
+  // direct resolvió pero vino vacío — sin `tab` no hay a qué escalar (el
+  // proxy lo necesita), así que no queda otra que devolver el vacío tal cual.
+  if (!tab) return direct;
+  try {
+    const proxied = await fetchProxy(tab, range, id);
+    if (proxied && proxied.length) return proxied;
+  } catch (proxyErr) {
+    // El directo al menos "funcionó" (vacío, pero sin tirar error) — se
+    // devuelve eso en vez de propagar el error del proxy.
+  }
+  return direct;
 }
 
 // Corta el reintento indefinido de una fuente que viene fallando siempre —
