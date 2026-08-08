@@ -11780,6 +11780,31 @@ async function fetchCSV(id, tab, range) {
   });
 }
 
+// Corta el reintento indefinido de una fuente que viene fallando siempre —
+// loadLiveData() se dispara cada 60s (setInterval) y también cada vez que
+// la pestaña recupera el foco, así que una fuente rota de fondo (gid
+// equivocado, hoja movida/borrada, cuota de Google agotada, lo que sea)
+// terminaba reintentándose para siempre mientras el usuario tuviera la
+// página abierta. Después de maxAttempts fallos CONSECUTIVOS se deja de
+// pedir esa fuente puntual — el resto de loadLiveData() sigue refrescando
+// normal — hasta que la página se recargue. Se resetea a la primera vez
+// que un intento funciona.
+const _sourceFailureCounts = {};
+async function fetchWithRetryCap(key, fetchFn, maxAttempts = 3) {
+  if ((_sourceFailureCounts[key] || 0) >= maxAttempts) return [];
+  try {
+    const result = await fetchFn();
+    _sourceFailureCounts[key] = 0;
+    return result;
+  } catch (e) {
+    _sourceFailureCounts[key] = (_sourceFailureCounts[key] || 0) + 1;
+    if (_sourceFailureCounts[key] === maxAttempts) {
+      console.warn(`"${key}" falló ${maxAttempts} veces seguidas — se deja de reintentar hasta recargar la página.`);
+    }
+    throw e;
+  }
+}
+
 let _refreshing = false;
 async function loadLiveData() {
   if (_refreshing) return;
@@ -11802,7 +11827,7 @@ async function loadLiveData() {
     // tema de permisos (el doc ya está compartido "cualquiera con el
     // enlace"). gid=0 = la primera hoja del documento, que es la que
     // siempre se buscó implícitamente acá — ahora se lo decimos explícito.
-    fetchGvizByGid(GS.A_SIM, 0, null),
+    fetchWithRetryCap('A_SIM', () => fetchGvizByGid(GS.A_SIM, 0, null)),
     // The 'Apertura 2026' tab name stopped resolving to useful data (the club
     // moved/restructured that block onto its own gid, same one the detailed
     // Fecha a Fecha below now uses) — both the basic table (Observaciones,
@@ -11817,7 +11842,7 @@ async function loadLiveData() {
     // 503 + redirect a accounts.google.com/ServiceLogin en vez del CSV —
     // confirmado en Network, no es un tema de permisos. gid=0 = primera
     // hoja del documento (lo que implícitamente se buscaba igual).
-    fetchGvizByGid(GS.B_SIM, 0, null),
+    fetchWithRetryCap('B_SIM', () => fetchGvizByGid(GS.B_SIM, 0, null)),
     // ── Apertura AIFA B 2026 (finished, archived into DATA_B_APERTURA2026) ──
     fetchCSV(GS.B_HIST, 'APERTURA 2026 AIFA B', 'A1:Z18'),
     // NOTE: this one is fetchCSVFallback (GViz only), NOT the racing fetchCSV()
