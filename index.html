@@ -4416,11 +4416,22 @@ function renderPlayerProfile(nombre) {
   // encontrar _ppStaticRecordCache ya poblado y tomar este mismo camino.
   if (!(normName(nombre) in _ppStaticRecordCache)) {
     _ppFetchStaticRecord(nombre).then(({ data, fresh }) => {
-      if (!fresh || !data) return;
-      if (document.getElementById('player-profile-overlay')?.style.display === 'block' && normName(window._ppCurrentNombre || '') === normName(nombre)) {
-        renderPlayerProfile(nombre);
+      if (!fresh) return;
+      if (data) {
+        if (document.getElementById('player-profile-overlay')?.style.display === 'block' && normName(window._ppCurrentNombre || '') === normName(nombre)) {
+          renderPlayerProfile(nombre);
+        }
+        return;
       }
+      // Sin JSON precalculado para este jugador (recién agregado, todavía no
+      // publicado en un build) — único caso en que hace falta el camino en
+      // vivo de siempre (fuerza Torneos Antiguos, ver más abajo).
+      _ppEnsureLiveHistoricoFallback(nombre);
     });
+  } else if (_ppStaticRecordCache[normName(nombre)] == null) {
+    // Ya se había intentado antes (otro perfil abierto en esta sesión) y no
+    // había JSON — mismo fallback en vivo, sin volver a pedir el JSON.
+    _ppEnsureLiveHistoricoFallback(nombre);
   }
   // Arqueros ven Vallas Invictas + su promedio en vez de Prom. Gol/Prom.
   // Asist — esas dos métricas no tienen sentido para un puesto que no
@@ -4519,19 +4530,14 @@ function renderPlayerProfile(nombre) {
       }
     });
   }
-  // Every finished league season (Torneos Antiguos) is normally lazy-loaded
-  // only when its own tab is opened — force-load every one of them here too,
-  // so "Historial de Partidos" is complete on the very first profile view
-  // instead of only showing years the user happened to have already browsed.
-  // Guarded by _ppHistoricoPreloadPromise (one-shot per page load), so this
-  // never turns into a re-render loop if a season's fetch keeps failing.
-  if (!_ppHistoricoPreloadPromise) {
-    _ppEnsureAllHistoricoLoaded().then(() => {
-      if (document.getElementById('player-profile-overlay')?.style.display === 'block') {
-        renderPlayerProfile(nombre);
-      }
-    });
-  }
+  // El force-load de Torneos Antiguos (_ppEnsureLiveHistoricoFallback) ya NO
+  // se dispara acá de forma incondicional — con el JSON precalculado de
+  // build-time disponible para casi todos los jugadores, forzar acá las 14+
+  // temporadas históricas en cada apertura de perfil era exactamente el
+  // fetch en vivo fragmentado que el JSON estaba pensado para eliminar. Ahora
+  // solo se dispara como fallback real, desde el .then() de
+  // _ppFetchStaticRecord más arriba, cuando ese jugador efectivamente no
+  // tiene JSON (recién agregado, todavía no publicado en un build).
 }
 
 let _ppRecordRetryForNombre = null;
@@ -7007,6 +7013,21 @@ function _ppEnsureAllHistoricoLoaded() {
     _loadBApt2024d(),
   ]).then(results => { _ppHistoricoReady = true; return results; });
   return _ppHistoricoPreloadPromise;
+}
+
+// Fallback real (no eager) para el único caso en que un perfil de jugador
+// SÍ necesita golpear Torneos Antiguos en vivo: cuando ese jugador no tiene
+// JSON precalculado de build-time (ver renderPlayerProfile / _ppFetchStaticRecord),
+// típicamente porque se agregó al plantel después del último deploy. Se
+// apoya en el mismo _ppHistoricoPreloadPromise one-shot de arriba, así que
+// aunque varios jugadores sin JSON abran su perfil en la misma sesión, el
+// force-load de las 14+ temporadas solo se dispara una vez.
+function _ppEnsureLiveHistoricoFallback(nombre) {
+  _ppEnsureAllHistoricoLoaded().then(() => {
+    if (document.getElementById('player-profile-overlay')?.style.display === 'block' && normName(window._ppCurrentNombre || '') === normName(nombre)) {
+      renderPlayerProfile(nombre);
+    }
+  });
 }
 
 // Patches a blank Fecha cell for a specific known row (matched by rival
