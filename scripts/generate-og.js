@@ -1,8 +1,24 @@
 #!/usr/bin/env node
-// Genera, como parte del build (npm run build), un PNG de preview + una
-// página HTML estática con meta og: por cada jugador conocido:
-//   og/<slug>.png
-//   jugador/<slug>/index.html
+// Genera, como parte del build (npm run build), lo siguiente por cada
+// jugador conocido:
+//   og/<slug>.png              — imagen de preview (og:image)
+//   jugador/<slug>/index.html  — página con meta og: reales
+//   data/jugador/<slug>.json   — récord V-E-D + Fecha a Fecha completo,
+//                                 ya calculados, para que el perfil los
+//                                 lea directo en vez de recorrer partido a
+//                                 partido en el navegador de cada visita
+//   data/records.json          — {v,e,d,pj} de TODOS los jugadores en un
+//                                 solo archivo, para el ranking de El Nido
+//
+// Antes, el perfil de jugador y el ranking recalculaban el récord V-E-D
+// (partido a partido, cruzando ~30 fuentes de Sheets incluidas las ~14
+// temporadas lazy de Torneos Antiguos) EN VIVO cada vez que alguien entraba
+// — con algunas de esas cargas fallando por rate limiting, el usuario podía
+// esperar hasta un minuto y ver números parciales de paso. Ahora ese cálculo
+// se hace UNA sola vez acá, con la misma lógica exacta que ya usaba el
+// cliente (_buildPlayerPartidos + _ppRecordVED), y el navegador solo lee un
+// JSON chico ya resuelto — el único momento en que este dato puede tardar
+// es el build/deploy, no la visita de un jugador real.
 //
 // Por qué así: WhatsApp/Facebook/X/etc. no ejecutan JS y nunca ven el
 // fragmento #jugador/slug del SPA (nunca llega al servidor), así que hace
@@ -149,11 +165,16 @@ async function main() {
   console.log('Descargando la fuente Inter (Regular + Bold) para las imágenes…');
   const fonts = await fetchInterFonts();
 
-  console.log('Generando previews…');
+  console.log('Generando previews y JSON precalculado…');
   const ogDir = path.join(ROOT, 'og');
   const jugadorDir = path.join(ROOT, 'jugador');
+  const dataJugadorDir = path.join(ROOT, 'data', 'jugador');
   fs.mkdirSync(ogDir, { recursive: true });
   fs.mkdirSync(jugadorDir, { recursive: true });
+  fs.mkdirSync(dataJugadorDir, { recursive: true });
+
+  const generatedAt = new Date().toISOString();
+  const recordsIndex = {}; // { [slug]: { v, e, d, pj } } — un solo archivo para el ranking
 
   let ok = 0, failed = 0;
   let vedMismatches = 0;
@@ -224,6 +245,23 @@ async function main() {
         url: `${SITE_URL}/jugador/${slug}`,
         redirectTarget: `${SITE_URL}/#jugador/${slug}`,
       }));
+
+      // Récord V-E-D + Fecha a Fecha completo, ya calculados — el perfil de
+      // jugador los lee directo de acá (ver _ppFetchStaticRecord en
+      // index.html) en vez de recorrer partido a partido en el navegador.
+      // `partidos` ya es JSON-serializable tal cual (strings/números/bools,
+      // mismo shape que ya consumen _ppStatRowHtml y compañía del lado del
+      // cliente) — no hace falta transformar nada.
+      fs.writeFileSync(path.join(dataJugadorDir, `${slug}.json`), JSON.stringify({
+        nombre: s.nombre, pos: s.pos, pj: s.pj, goles: s.goles, asist: s.asist,
+        titulos: s.titulos, vallas: s.vallas, vallasProm: s.vallasProm,
+        promGol: s.promGol, promAsist: s.promAsist, hasA: s.hasA, hasB: s.hasB,
+        ved: { v: ved.v, e: ved.e, d: ved.d },
+        partidos,
+        generatedAt,
+      }));
+      recordsIndex[slug] = { v: ved.v, e: ved.e, d: ved.d, pj: s.pj };
+
       ok++;
     } catch (e) {
       console.error(`  ✗ Error generando preview de "${nombre}":`, e.message);
@@ -231,6 +269,7 @@ async function main() {
     }
   }
 
+  fs.writeFileSync(path.join(ROOT, 'data', 'records.json'), JSON.stringify({ generatedAt, records: recordsIndex }));
   console.log(`Listo: ${ok} jugadores generados, ${failed} con error, ${vedMismatches} con PG+PE+PP ≠ PJ (ver advertencias arriba).`);
   window.close();
   if (ok === 0 && failed > 0) process.exit(1);

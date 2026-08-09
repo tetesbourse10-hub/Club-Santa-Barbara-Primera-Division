@@ -3545,6 +3545,61 @@ function _collectPlayerTitulos(cTitulosA, cTitulosB) {
 // loadLiveData() (ver _invalidatePlayerMatchIndex).
 let _playerPartidosCache = {};
 function _invalidatePlayerPartidosCache() { _playerPartidosCache = {}; }
+
+// Récord V-E-D + Fecha a Fecha ya calculados en build time (ver
+// scripts/generate-og.js, que corre _buildPlayerPartidos/_ppRecordVED UNA
+// sola vez por jugador contra la misma fuente de partidos, incluidas las
+// temporadas lazy de Torneos Antiguos, y los deja en data/jugador/<slug>.json)
+// — evita que el navegador tenga que recorrer partido a partido en vivo en
+// cada visita al perfil. Memoizado en memoria por sesión: `undefined` =
+// todavía no se pidió, `null` = se pidió y no hay (404, jugador nuevo que
+// no llegó a este build, error de red — cae al cálculo en vivo existente
+// como fallback), objeto = datos reales.
+let _ppStaticRecordCache = {};
+async function _ppFetchStaticRecord(nombre) {
+  const target = normName(nombre);
+  if (target in _ppStaticRecordCache) return { data: _ppStaticRecordCache[target], fresh: false };
+  let data = null;
+  try {
+    const slug = slugify(nombre);
+    const res = await fetch(`/data/jugador/${slug}.json`, { cache: 'no-store' });
+    if (res.ok) data = await res.json();
+  } catch (e) { /* sin red, 404, JSON roto — data queda null, cae al fallback en vivo */ }
+  _ppStaticRecordCache[target] = data;
+  return { data, fresh: true };
+}
+
+// Índice único {v,e,d,pj} de TODOS los jugadores (data/records.json,
+// generado junto con los JSON individuales de arriba) — lo usa el ranking
+// de El Nido (_nidoGetVED) para no tener que recorrer partido a partido en
+// vivo por cada uno de los ~100 jugadores listados. Un solo fetch para
+// toda la tabla, a diferencia del JSON por jugador (que se pide de a uno,
+// solo cuando se abre ESE perfil).
+let _nidoStaticRecords = null; // null = no pedido todavía o sin datos; objeto = {v,e,d,pj} por slug
+let _nidoStaticRecordsPromise = null;
+function _nidoEnsureStaticRecords() {
+  if (_nidoStaticRecordsPromise) return _nidoStaticRecordsPromise;
+  _nidoStaticRecordsPromise = fetch('/data/records.json', { cache: 'no-store' })
+    .then(r => r.ok ? r.json() : null)
+    .then(json => { _nidoStaticRecords = (json && json.records) || null; return _nidoStaticRecords; })
+    .catch(() => { _nidoStaticRecords = null; return null; });
+  return _nidoStaticRecordsPromise;
+}
+// Deriva las mismas 4 listas que _collectPlayerStats arma a partir de
+// _buildPlayerPartidos (golesList/asistList/gaList/rojasList) pero desde el
+// `partidos` que vino en el JSON precalculado — mismo criterio de filtro,
+// para que Fecha a Fecha y los paneles de Goles/Asistencias/G+A/Rojas
+// funcionen igual sea cual sea la fuente.
+function _ppDeriveDetailListsFromPartidos(partidos) {
+  return {
+    partidos,
+    golesList: partidos.filter(p => p.goles > 0),
+    asistList: partidos.filter(p => p.asist > 0),
+    gaList: partidos.filter(p => p.goles > 0 || p.asist > 0),
+    rojasList: partidos.filter(p => p.rojas > 0),
+  };
+}
+
 function _buildPlayerPartidos(nombre) {
   const target = normName(nombre);
   if (_playerPartidosCache[target]) return _playerPartidosCache[target];
@@ -4320,9 +4375,21 @@ function renderPlayerProfile(nombre) {
   // the on-screen values instantly without re-rendering the whole profile.
   window._ppMetricsData = s.porCategoria;
 
+  // Si ya se pidió (y llegó) el JSON precalculado de build time para este
+  // jugador, se usa esa lista de partidos en vez de la calculada en vivo
+  // (s.partidos, que puede estar incompleta mientras Torneos Antiguos
+  // sigue cargando) — mismo shape exacto, así que _ppStatRowHtml y el
+  // resto no necesitan saber de dónde salió. Si todavía no llegó (o no
+  // hay), sigue el camino en vivo de siempre como fallback.
+  const _ppStaticRecord = _ppStaticRecordCache[normName(nombre)];
+  const _ppPartidosSource = (_ppStaticRecord && _ppStaticRecord.partidos) || s.partidos;
+
   // Stash the 5 clickable-stat detail lists so ppShowDetail() can swap the
   // panel below without a full re-render (same pattern as _ppMetricsData).
-  window._ppDetailLists = { goles: s.golesList, asist: s.asistList, ga: s.gaList, rojas: s.rojasList, titulos: s.titulosList, partidos: s.partidos };
+  window._ppDetailLists = _ppStaticRecord
+    ? _ppDeriveDetailListsFromPartidos(_ppStaticRecord.partidos)
+    : { goles: s.golesList, asist: s.asistList, ga: s.gaList, rojas: s.rojasList, titulos: s.titulosList, partidos: s.partidos };
+  if (_ppStaticRecord) window._ppDetailLists.titulos = s.titulosList; // no depende de partidos, se mantiene igual
   // Reset here (not just in the block below) so a fresh render always
   // computes the micro-banners as "Totales" — otherwise a leftover
   // 'a'/'b' from whichever category the PREVIOUS player's profile was
@@ -4341,8 +4408,20 @@ function renderPlayerProfile(nombre) {
   // Resuelve window._ppRecordShowLoading/_ppRecordIncomplete (y programa un
   // reintento si hace falta) ANTES de armar el HTML de abajo, para que
   // _ppRecordCardInnerHtml/_ppRenderDetailPanel lean el valor ya resuelto
-  // para este render en vez de uno stale de un jugador anterior.
-  _ppUpdateRecordLoadingState(nombre, s);
+  // para este render en vez de uno stale de un jugador anterior. Con el
+  // JSON precalculado ya disponible no hace falta ni loading ni reintentos.
+  _ppUpdateRecordLoadingState(nombre, s, _ppStaticRecord);
+  // Si todavía no se pidió el JSON para este jugador, lo pide ahora — una
+  // vez que llegue (si trae datos), dispara un solo re-render que va a
+  // encontrar _ppStaticRecordCache ya poblado y tomar este mismo camino.
+  if (!(normName(nombre) in _ppStaticRecordCache)) {
+    _ppFetchStaticRecord(nombre).then(({ data, fresh }) => {
+      if (!fresh || !data) return;
+      if (document.getElementById('player-profile-overlay')?.style.display === 'block' && normName(window._ppCurrentNombre || '') === normName(nombre)) {
+        renderPlayerProfile(nombre);
+      }
+    });
+  }
   // Arqueros ven Vallas Invictas + su promedio en vez de Prom. Gol/Prom.
   // Asist — esas dos métricas no tienen sentido para un puesto que no
   // suele convertir goles.
@@ -4404,7 +4483,7 @@ function renderPlayerProfile(nombre) {
   const recordCard = `
     <div class="card pp-record-card" style="margin-top:18px">
       <div class="card-label">Récord de Resultados</div>
-      <div id="pp-record-body">${_ppRecordCardInnerHtml(s.partidos)}</div>
+      <div id="pp-record-body">${_ppRecordCardInnerHtml(_ppPartidosSource)}</div>
     </div>`;
 
   overlay.innerHTML = `
@@ -4478,7 +4557,16 @@ const PP_RECORD_MAX_RETRIES = 12; // 12 * 5s = 60s extra de margen sobre el sett
 // PP_RECORD_MAX_RETRIES (60s extra) todavía no cierra, se deja de
 // reintentar y se muestran los números que haya con una advertencia en
 // vez de trabar el loading para siempre.
-function _ppUpdateRecordLoadingState(nombre, s) {
+function _ppUpdateRecordLoadingState(nombre, s, staticRecord) {
+  // Con el JSON precalculado en build time ya disponible, el número es
+  // definitivo de una — no hace falta loading ni la lógica de reintentos
+  // (esa lógica sigue existiendo solo como fallback para cuando el JSON no
+  // está: jugador nuevo que no llegó al último build, 404, sin red).
+  if (staticRecord) {
+    window._ppRecordShowLoading = false;
+    window._ppRecordIncomplete = false;
+    return;
+  }
   const target = normName(nombre);
   if (_ppRecordRetryForNombre !== target) {
     _ppRecordRetryForNombre = target;
@@ -12590,6 +12678,13 @@ async function loadLiveData() {
   function _nidoGetVED(nombre) {
     const key = normName(nombre) + '|' + _nidoTeam;
     if (_nidoVEDCache[key]) return _nidoVEDCache[key];
+    // Precalculado en build time (data/records.json) — solo cubre el total
+    // combinado ("todos"), ya que ese JSON no separa por plantel A/B; el
+    // filtro por plantel específico sigue necesitando el cálculo en vivo.
+    if (_nidoTeam === 'todos' && _nidoStaticRecords) {
+      const rec = _nidoStaticRecords[slugify(nombre)];
+      if (rec) { _nidoVEDCache[key] = rec; return rec; }
+    }
     let partidos = _buildPlayerPartidos(nombre);
     if (_nidoTeam === 'a') partidos = partidos.filter(p => p.categoria === 'Primera A');
     else if (_nidoTeam === 'b') partidos = partidos.filter(p => p.categoria === 'Primera B');
@@ -13097,12 +13192,22 @@ async function loadLiveData() {
     return _nidoLoadPromise;
   }
 
+  let _nidoStaticRecordsRerendered = false;
   window.renderNido = function() {
     const el = document.getElementById('nido-content');
     if (!el) return;
     if (_nidoMerged !== null) { _renderNidoContent(); return; }
     _renderNidoContent();
     _nidoLoad().then(_renderNidoContent);
+    // Pide el índice precalculado de build time (data/records.json) una
+    // sola vez — cuando llega, un solo re-render toma el camino rápido de
+    // _nidoGetVED en vez del cálculo en vivo partido a partido.
+    if (!_nidoStaticRecordsRerendered) {
+      _nidoStaticRecordsRerendered = true;
+      _nidoEnsureStaticRecords().then(records => {
+        if (records) _renderNidoContent();
+      });
+    }
   };
 
   // ── Public accessors used by the Player Profile component ──────────────
