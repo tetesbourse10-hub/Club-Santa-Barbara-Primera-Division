@@ -3928,12 +3928,27 @@ function _ppFavoritoCliente(partidos) {
 // B re-filters the V-E-D balance and el Cliente Favorito exactly like the
 // KPI metrics above it, instead of always showing the career-wide total).
 function _ppRecordCardInnerHtml(fullPartidos) {
+  // window._ppRecordShowLoading/_ppRecordIncomplete ya vienen resueltos por
+  // _ppUpdateRecordLoadingState (llamado temprano en renderPlayerProfile,
+  // antes de armar este HTML) — evita recalcular acá y evita depender del
+  // orden en que se llaman las cosas dentro del render.
+  //
   // Mientras no terminó de cargar Torneos Antiguos, fullPartidos puede ser
   // un subconjunto de la carrera real — mostrar el V-E-D calculado sobre
   // eso sería mostrar un número que después cambia solo, sin avisar. Se
   // prefiere un estado de carga claro (ver _ppEnsureAllHistoricoLoaded,
   // que dispara un re-render de todo el perfil apenas termina).
-  if (!_ppHistoricoReady) {
+  //
+  // OJO: _ppHistoricoReady solo dice que las ~14 promesas de temporadas
+  // viejas "settled" (Promise.allSettled) — no que hayan cargado bien. Con
+  // esa cantidad de fetches disparados juntos, varias pueden fallar por
+  // rate limiting y aun así "settlear" rápido, dejando fullPartidos
+  // incompleto pero _ppHistoricoReady en true. Por eso se valida además
+  // contra el total real (PJ de El Nido, la fuente confiable) antes de
+  // confiar en el número — si no coincide, se sigue reintentando (ver
+  // _ppUpdateRecordLoadingState) hasta que coincida o se agoten los
+  // reintentos, sin sacar el loading antes de tiempo.
+  if (window._ppRecordShowLoading) {
     return `
       <div class="pp-record-ved pp-record-loading" id="pp-record-ved">Calculando récord…</div>
       <div class="pp-nido-loading">⏳ Terminando de cargar el historial completo del jugador</div>`;
@@ -3941,9 +3956,16 @@ function _ppRecordCardInnerHtml(fullPartidos) {
   const list = _ppFilterByCat(fullPartidos);
   const record = _ppRecordVED(list);
   const favCliente = _ppFavoritoCliente(list);
+  // Se agotaron los reintentos y el total sigue sin cerrar contra el PJ
+  // real — se muestra el número disponible, pero avisando que puede estar
+  // incompleto en vez de presentarlo como definitivo sin más.
+  const incompleteNote = window._ppRecordIncomplete
+    ? `<div class="pp-data-gap-note">⚠️ Puede estar incompleto — no se terminó de cargar todo el historial del jugador.</div>`
+    : '';
   return `
     <div class="pp-record-ved" id="pp-record-ved"><span class="pp-ved-v">${record.v}V</span> - <span class="pp-ved-e">${record.e}E</span> - <span class="pp-ved-d">${record.d}D</span></div>
     <div class="pp-record-note">* Métrica calculada sobre los partidos cargados en la web</div>
+    ${incompleteNote}
     <div class="pp-record-favorito" id="pp-record-favorito">👑 Cliente Favorito: ${favCliente
       ? `<span class="pp-favorito-name">${favCliente.rivales.join(', ')}</span> (${favCliente.wins} Victoria${favCliente.wins !== 1 ? 's' : ''})`
       : `<span style="color:rgba(255,255,255,0.4)">—</span>`}</div>`;
@@ -4070,11 +4092,11 @@ function _ppRenderDetailPanel(kind) {
   const panel = document.getElementById('pp-detail-panel');
   if (!panel) return;
   // Todo kind salvo 'titulos' sale de _buildPlayerPartidos (Fecha a Fecha de
-  // cada torneo) — mientras Torneos Antiguos no terminó de precargar (ver
-  // _ppEnsureAllHistoricoLoaded), esa lista puede estar incompleta. Mismo
-  // criterio que _ppRecordCardInnerHtml: mostrar "cargando" en vez de un
+  // cada torneo) — mismo criterio que _ppRecordCardInnerHtml (lee el mismo
+  // window._ppRecordShowLoading, ya resuelto por _ppUpdateRecordLoadingState
+  // temprano en renderPlayerProfile): mostrar "cargando" en vez de un
   // conteo parcial que después salta solo.
-  if (kind !== 'titulos' && !_ppHistoricoReady) {
+  if (kind !== 'titulos' && window._ppRecordShowLoading) {
     panel.innerHTML = `
       <div class="pp-detail-header">${PP_DETAIL_LABELS[kind]}</div>
       <div class="pp-record-loading" style="padding:16px 0;">Cargando historial completo…</div>`;
@@ -4316,6 +4338,11 @@ function renderPlayerProfile(nombre) {
   window._ppYearFilter = {};
   window._ppTipoFilter = {};
   window._ppCareerPJ = s.pj;
+  // Resuelve window._ppRecordShowLoading/_ppRecordIncomplete (y programa un
+  // reintento si hace falta) ANTES de armar el HTML de abajo, para que
+  // _ppRecordCardInnerHtml/_ppRenderDetailPanel lean el valor ya resuelto
+  // para este render en vez de uno stale de un jugador anterior.
+  _ppUpdateRecordLoadingState(nombre, s);
   // Arqueros ven Vallas Invictas + su promedio en vez de Prom. Gol/Prom.
   // Asist — esas dos métricas no tienen sentido para un puesto que no
   // suele convertir goles.
@@ -4426,6 +4453,60 @@ function renderPlayerProfile(nombre) {
       }
     });
   }
+}
+
+let _ppRecordRetryForNombre = null;
+let _ppRecordRetryCount = 0;
+let _ppRecordRetryTimer = null;
+const PP_RECORD_MAX_RETRIES = 12; // 12 * 5s = 60s extra de margen sobre el settle inicial
+
+// Decide si el récord/Fecha a Fecha tienen que mostrarse como "cargando" y,
+// si hace falta, programa un reintento — llamado temprano en
+// renderPlayerProfile (antes de armar el HTML de la tarjeta de récord),
+// así window._ppRecordShowLoading/_ppRecordIncomplete ya están resueltos
+// para cuando _ppRecordCardInnerHtml/_ppRenderDetailPanel los leen.
+//
+// _ppHistoricoPreloadPromise "settling" NO garantiza que los datos estén
+// completos — Promise.allSettled se resuelve tanto si cada temporada
+// cargó bien como si falló, y con ~14 fetches disparados juntos algunas
+// pueden fallar por rate limiting. Eso causaba exactamente el bug
+// reportado: a los ~10s el settle "terminaba" con varias temporadas
+// realmente fallidas, y el V-E-D parcial (31 partidos) se mostraba como
+// definitivo. En vez de confiar ciegamente en el settle, se valida contra
+// el dato confiable (PJ de El Nido) y, si no coincide, se sigue
+// reintentando — el loading nunca se saca antes de tiempo. Si después de
+// PP_RECORD_MAX_RETRIES (60s extra) todavía no cierra, se deja de
+// reintentar y se muestran los números que haya con una advertencia en
+// vez de trabar el loading para siempre.
+function _ppUpdateRecordLoadingState(nombre, s) {
+  const target = normName(nombre);
+  if (_ppRecordRetryForNombre !== target) {
+    _ppRecordRetryForNombre = target;
+    _ppRecordRetryCount = 0;
+    if (_ppRecordRetryTimer) { clearTimeout(_ppRecordRetryTimer); _ppRecordRetryTimer = null; }
+  }
+  const vedTotal = _ppRecordVED(s.partidos);
+  const isComplete = !s.pj || (vedTotal.v + vedTotal.e + vedTotal.d) === s.pj;
+  const retriesExhausted = _ppRecordRetryCount >= PP_RECORD_MAX_RETRIES;
+  window._ppRecordShowLoading = !_ppHistoricoReady || (!isComplete && !retriesExhausted);
+  window._ppRecordIncomplete = !isComplete;
+  // Recién programamos un reintento propio una vez que el settle inicial ya
+  // pasó (_ppHistoricoReady) pero los números todavía no cierran — mientras
+  // el settle inicial sigue en curso, el callback de
+  // _ppEnsureAllHistoricoLoaded().then(...) de arriba ya se encarga de
+  // volver a renderizar.
+  if (!_ppHistoricoReady || isComplete || retriesExhausted || _ppRecordRetryTimer) return;
+  _ppRecordRetryCount++;
+  _ppRecordRetryTimer = setTimeout(() => {
+    _ppRecordRetryTimer = null;
+    // Sin esto, _buildPlayerPartidos seguiría devolviendo la misma lista
+    // cacheada de la primera vez, aunque los datos reales ya hayan llegado.
+    _invalidatePlayerMatchIndex();
+    _invalidatePlayerPartidosCache();
+    if (document.getElementById('player-profile-overlay')?.style.display === 'block' && window._ppCurrentNombre) {
+      renderPlayerProfile(window._ppCurrentNombre);
+    }
+  }, 5000);
 }
 
 // Busca un jugador por el slug en location.hash (#jugador/slug) en todos los
