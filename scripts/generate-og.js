@@ -160,19 +160,62 @@ async function main() {
   // nadie, así que sin este paso, cualquier jugador con partidos en esas
   // temporadas viejas terminaba con un PG/PE/PP incompleto (no sumaba el PJ
   // real) — la causa real del bug reportado, no un simple "falta un await".
+  // BUG REAL encontrado (records.json con V-E-D en 0-0-0 para ~79 de 104
+  // jugadores, no un problema de matching de nombres): _loadHistoricoGeneric
+  // dispara hasta 4 fetches gviz por temporada (fecha/plantel/tabla/basico)
+  // y los envuelve en su PROPIO Promise.allSettled interno — si Google
+  // rate-limitea alguno, esa promesa se resuelve "fulfilled" igual (con
+  // valor null) y la temporada queda marcada `_historicoGenericLoaded[key]
+  // = true` con `dataObj.apertura`/`.partidos` vacíos, SIN lanzar ningún
+  // error. Disparar las 14 temporadas en paralelo (hasta ~56 requests
+  // simultáneos a docs.google.com desde una sola IP de build) es exactamente
+  // el patrón que gatilla ese rate-limit — silencioso, así que ni los logs
+  // de build lo mostraban. Cualquier jugador cuyos partidos viejos caían
+  // SOLO en una temporada así quedaba con el array `partidos` completamente
+  // vacío (no parcial), que es justo el patrón "todo o nada" reportado.
   console.log('Cargando temporadas viejas de Torneos Antiguos (necesarias para PG/PE/PP completo)…');
   const historicoKeys = Object.keys(window.HISTORICO_GENERIC || {});
-  const historicoResults = await Promise.allSettled(
-    historicoKeys.map(key => {
-      const cfg = window.HISTORICO_GENERIC[key];
-      return window._loadHistoricoGeneric(key, cfg.d, cfg);
-    })
-  );
-  historicoResults.forEach((r, i) => {
-    if (r.status === 'rejected') console.error(`  ✗ Error cargando temporada histórica "${historicoKeys[i]}":`, r.reason && r.reason.message);
-  });
+  const HIST_CONCURRENCY = 3;
+  const HIST_MAX_ATTEMPTS = 4;
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  async function loadHistoricoSeasonWithRetry(key) {
+    const cfg = window.HISTORICO_GENERIC[key];
+    for (let attempt = 1; attempt <= HIST_MAX_ATTEMPTS; attempt++) {
+      window._historicoGenericLoaded[key] = false; // fuerza que _loadHistoricoGeneric no haga early-return
+      try {
+        await window._loadHistoricoGeneric(key, cfg.d, cfg);
+      } catch (e) {
+        console.error(`  ✗ "${key}" (intento ${attempt}/${HIST_MAX_ATTEMPTS}): excepción inesperada:`, e.message);
+      }
+      const gotData = (cfg.d.apertura && cfg.d.apertura.length > 0) || (cfg.d.partidos && cfg.d.partidos.length > 0);
+      if (gotData) return true;
+      if (attempt < HIST_MAX_ATTEMPTS) {
+        const backoffMs = 1500 * attempt;
+        console.warn(`  ⚠ "${key}": vino vacío (posible rate limit de Google), reintento ${attempt + 1}/${HIST_MAX_ATTEMPTS} en ${backoffMs}ms…`);
+        await sleep(backoffMs);
+      }
+    }
+    return false;
+  }
+
+  // Concurrencia acotada (3 a la vez, no las 14 juntas) para no volver a
+  // gatillar el mismo rate limit con los reintentos.
+  const failedSeasons = [];
+  for (let i = 0; i < historicoKeys.length; i += HIST_CONCURRENCY) {
+    const batch = historicoKeys.slice(i, i + HIST_CONCURRENCY);
+    const results = await Promise.all(batch.map(loadHistoricoSeasonWithRetry));
+    batch.forEach((key, idx) => { if (!results[idx]) failedSeasons.push(key); });
+  }
   if (window._loadBApt2024d) {
     await window._loadBApt2024d().catch(e => console.error('  ✗ Error cargando Apertura AIFA D 2024:', e.message));
+  }
+  // Fallar fuerte y abortar el build en vez de publicar de nuevo un
+  // records.json con V-E-D en 0-0-0 para una porción de los jugadores sin
+  // ningún aviso — mejor un deploy rojo visible que datos incorrectos
+  // silenciosos en producción.
+  if (failedSeasons.length) {
+    throw new Error(`Temporadas históricas que NUNCA devolvieron datos después de ${HIST_MAX_ATTEMPTS} intentos cada una: ${failedSeasons.join(', ')} — build abortado.`);
   }
 
   console.log('Descargando la fuente Inter (Regular + Bold) para las imágenes…');
