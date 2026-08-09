@@ -173,8 +173,16 @@ async function main() {
   // de build lo mostraban. Cualquier jugador cuyos partidos viejos caían
   // SOLO en una temporada así quedaba con el array `partidos` completamente
   // vacío (no parcial), que es justo el patrón "todo o nada" reportado.
-  console.log('Cargando temporadas viejas de Torneos Antiguos (necesarias para PG/PE/PP completo)…');
   const historicoKeys = Object.keys(window.HISTORICO_GENERIC || {});
+  // Diagnóstico explícito pedido tras el reporte de que segundo-bourse.json
+  // (y todos los demás) solo traía partidos de "Apertura AIFA D 2024" —
+  // NINGUNA temporada de HISTORICO_GENERIC. Este log deja registrado, ANTES
+  // de intentar nada, exactamente cuántas hojas encontró el script y cuáles
+  // son, para poder comparar contra cuántas terminan con datos reales más
+  // abajo — así la próxima corrida real deja evidencia dura en vez de
+  // depender de inspeccionar el JSON de salida a mano.
+  console.log(`Torneos Antiguos: encontré ${historicoKeys.length} hojas en HISTORICO_GENERIC: ${historicoKeys.join(', ')}`);
+  console.log('Cargando temporadas viejas de Torneos Antiguos (necesarias para PG/PE/PP completo)…');
   const HIST_CONCURRENCY = 3;
   const HIST_MAX_ATTEMPTS = 4;
   const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -188,12 +196,17 @@ async function main() {
       } catch (e) {
         console.error(`  ✗ "${key}" (intento ${attempt}/${HIST_MAX_ATTEMPTS}): excepción inesperada:`, e.message);
       }
-      const gotData = (cfg.d.apertura && cfg.d.apertura.length > 0) || (cfg.d.partidos && cfg.d.partidos.length > 0);
-      if (gotData) return true;
+      const matchCount = (cfg.d.apertura && cfg.d.apertura.length) || (cfg.d.partidos && cfg.d.partidos.length) || 0;
+      if (matchCount > 0) {
+        console.log(`  ✓ "${key}": ${matchCount} partidos cargados (intento ${attempt}/${HIST_MAX_ATTEMPTS})`);
+        return true;
+      }
       if (attempt < HIST_MAX_ATTEMPTS) {
         const backoffMs = 1500 * attempt;
         console.warn(`  ⚠ "${key}": vino vacío (posible rate limit de Google), reintento ${attempt + 1}/${HIST_MAX_ATTEMPTS} en ${backoffMs}ms…`);
         await sleep(backoffMs);
+      } else {
+        console.error(`  ✗ "${key}": vino vacío en los ${HIST_MAX_ATTEMPTS} intentos — se cuenta como fallida.`);
       }
     }
     return false;
@@ -207,9 +220,22 @@ async function main() {
     const results = await Promise.all(batch.map(loadHistoricoSeasonWithRetry));
     batch.forEach((key, idx) => { if (!results[idx]) failedSeasons.push(key); });
   }
+  console.log(`Torneos Antiguos: ${historicoKeys.length - failedSeasons.length} de ${historicoKeys.length} hojas procesadas con datos reales. Fallidas: ${failedSeasons.length ? failedSeasons.join(', ') : 'ninguna'}.`);
+
+  // Apertura AIFA D 2024 (DATA_B_2024D) es una fuente "bespoke" totalmente
+  // aparte de HISTORICO_GENERIC — su propia función (_loadBApt2024d, en
+  // index.html), NO pasa por el loop de arriba. Se loguea por separado a
+  // propósito: si HISTORICO_GENERIC queda en 0/14 pero esta sí tiene datos,
+  // es la firma exacta de "el burst de 56 requests simultáneos rate-limiteó
+  // TODAS las 14 temporadas, pero esta (una sola tanda de 4 fetches, después
+  // del burst) zafó" — no un loop que corta después de la primera iteración.
+  let bApt2024dCount = 0;
   if (window._loadBApt2024d) {
     await window._loadBApt2024d().catch(e => console.error('  ✗ Error cargando Apertura AIFA D 2024:', e.message));
+    bApt2024dCount = (window.DATA_B_2024D && window.DATA_B_2024D.apertura && window.DATA_B_2024D.apertura.length) || 0;
   }
+  console.log(`Apertura AIFA D 2024 (fuente aparte, no es parte de HISTORICO_GENERIC): ${bApt2024dCount} partidos cargados.`);
+
   // Fallar fuerte y abortar el build en vez de publicar de nuevo un
   // records.json con V-E-D en 0-0-0 para una porción de los jugadores sin
   // ningún aviso — mejor un deploy rojo visible que datos incorrectos
