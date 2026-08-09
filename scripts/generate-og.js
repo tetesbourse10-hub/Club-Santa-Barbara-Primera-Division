@@ -3,22 +3,35 @@
 // jugador conocido:
 //   og/<slug>.png              — imagen de preview (og:image)
 //   jugador/<slug>/index.html  — página con meta og: reales
-//   data/jugador/<slug>.json   — récord V-E-D + Fecha a Fecha completo,
-//                                 ya calculados, para que el perfil los
-//                                 lea directo en vez de recorrer partido a
-//                                 partido en el navegador de cada visita
-//   data/records.json          — {v,e,d,pj} de TODOS los jugadores en un
-//                                 solo archivo, para el ranking de El Nido
+//   data/jugador/<slug>.json   — récord V-E-D + Fecha a Fecha, PERO SOLO del
+//                                 histórico cerrado (Torneos Antiguos
+//                                 2016-2025 + Apertura AIFA D 2024) — ver
+//                                 más abajo por qué la temporada en curso
+//                                 queda afuera a propósito
+//   data/records.json          — {v,e,d,pj} histórico de TODOS los
+//                                 jugadores en un solo archivo, para el
+//                                 ranking de El Nido
 //
 // Antes, el perfil de jugador y el ranking recalculaban el récord V-E-D
 // (partido a partido, cruzando ~30 fuentes de Sheets incluidas las ~14
 // temporadas lazy de Torneos Antiguos) EN VIVO cada vez que alguien entraba
 // — con algunas de esas cargas fallando por rate limiting, el usuario podía
-// esperar hasta un minuto y ver números parciales de paso. Ahora ese cálculo
-// se hace UNA sola vez acá, con la misma lógica exacta que ya usaba el
-// cliente (_buildPlayerPartidos + _ppRecordVED), y el navegador solo lee un
-// JSON chico ya resuelto — el único momento en que este dato puede tardar
-// es el build/deploy, no la visita de un jugador real.
+// esperar hasta un minuto y ver números parciales de paso, y abrir un
+// perfil disparaba de arranque ~30 requests fragmentados a Sheets.
+//
+// La solución NO es precalcular la carrera completa: eso dejaría la
+// temporada 2026 en curso (la única que realmente cambia semana a semana)
+// congelada en el estado del último build hasta el próximo deploy. En
+// cambio, acá solo se precalculan las temporadas CERRADAS e inmutables
+// (Torneos Antiguos) — exactamente las que hoy se cargan lazy y generan la
+// ráfaga de requests. La temporada actual + copas dedicadas ya se cargan
+// eager en cada visita real (loadLiveData(), sin este script) y se leen sin
+// fetch extra vía _buildPlayerLivePartidos en index.html; el perfil arma el
+// total combinando las dos mitades (_ppMergePartidos). Mismo cálculo/lógica
+// que ya usaba el cliente (_buildPlayerHistoricPartidos + _ppRecordVED), el
+// navegador solo lee un JSON chico ya resuelto para la mitad histórica — el
+// único momento en que ESA mitad puede tardar es el build/deploy, no la
+// visita de un jugador real.
 //
 // Por qué así: WhatsApp/Facebook/X/etc. no ejecutan JS y nunca ven el
 // fragmento #jugador/slug del SPA (nunca llega al servidor), así que hace
@@ -188,11 +201,22 @@ async function main() {
       const s = window._collectPlayerStats(nombre);
       const logros = window._ppComputeTopLogros(nombre);
       const posColor = window._plantelPosColor(s.pos);
-      // Mismo cálculo que usa el perfil del jugador para su "Récord de
-      // Resultados" (PG/PE/PP) — ver _buildPlayerPartidos + _ppRecordVED,
-      // ambas top-level en index.html.
+      // PG/PE/PP de la tarjeta (imagen OG) sigue siendo el total de carrera
+      // completo — ahí no hay problema de estar "en vivo", es una imagen
+      // estática que ya se regenera en cada build.
       const partidos = window._buildPlayerPartidos(nombre);
       const ved = window._ppRecordVED(partidos);
+      // Para el JSON que lee el perfil de jugador en el navegador (y para
+      // records.json/El Nido) usamos SOLO el histórico cerrado (Torneos
+      // Antiguos 2016-2025 + Apertura AIFA D 2024) — ver
+      // _buildPlayerHistoricPartidos en index.html. La temporada 2026 en
+      // curso y las copas dedicadas NO se precalculan a propósito: son
+      // pocos partidos, cambian semana a semana, y el navegador ya las
+      // tiene en memoria sin fetch extra (_buildPlayerLivePartidos) — así
+      // el perfil combina histórico-precalculado + actual-en-vivo y nunca
+      // muestra un número desactualizado entre deploys.
+      const historicoPartidos = window._buildPlayerHistoricPartidos(nombre);
+      const vedHistorico = window._ppRecordVED(historicoPartidos);
 
       // Validación explícita en vez de generar igual con datos parciales:
       // campos requeridos ausentes son un bug real (falla el build, no un
@@ -246,21 +270,21 @@ async function main() {
         redirectTarget: `${SITE_URL}/#jugador/${slug}`,
       }));
 
-      // Récord V-E-D + Fecha a Fecha completo, ya calculados — el perfil de
-      // jugador los lee directo de acá (ver _ppFetchStaticRecord en
-      // index.html) en vez de recorrer partido a partido en el navegador.
-      // `partidos` ya es JSON-serializable tal cual (strings/números/bools,
-      // mismo shape que ya consumen _ppStatRowHtml y compañía del lado del
-      // cliente) — no hace falta transformar nada.
+      // Récord V-E-D + Fecha a Fecha del histórico cerrado (Torneos
+      // Antiguos), ya calculados — el perfil de jugador los lee directo de
+      // acá (ver _ppFetchStaticRecord en index.html) y los combina con la
+      // temporada 2026 en curso, leída en vivo desde memoria sin fetch (ver
+      // _buildPlayerLivePartidos/_ppMergePartidos). `partidos` ya es
+      // JSON-serializable tal cual (strings/números/bools, mismo shape que
+      // ya consumen _ppStatRowHtml y compañía del lado del cliente) — no
+      // hace falta transformar nada.
       fs.writeFileSync(path.join(dataJugadorDir, `${slug}.json`), JSON.stringify({
-        nombre: s.nombre, pos: s.pos, pj: s.pj, goles: s.goles, asist: s.asist,
-        titulos: s.titulos, vallas: s.vallas, vallasProm: s.vallasProm,
-        promGol: s.promGol, promAsist: s.promAsist, hasA: s.hasA, hasB: s.hasB,
-        ved: { v: ved.v, e: ved.e, d: ved.d },
-        partidos,
+        nombre: s.nombre, pos: s.pos, hasA: s.hasA, hasB: s.hasB,
+        vedHistorico: { v: vedHistorico.v, e: vedHistorico.e, d: vedHistorico.d },
+        partidos: historicoPartidos,
         generatedAt,
       }));
-      recordsIndex[slug] = { v: ved.v, e: ved.e, d: ved.d, pj: s.pj };
+      recordsIndex[slug] = { v: vedHistorico.v, e: vedHistorico.e, d: vedHistorico.d, pj: s.pj };
 
       ok++;
     } catch (e) {

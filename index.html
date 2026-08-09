@@ -3392,12 +3392,21 @@ function ppFilterMetrics(cat, btn) {
 // just the 2 live + 2 archived ones. Primera A's centralized copas
 // (COPA_BLOCKS) have a different shape ({title: matches[]}, no wrapper
 // object) and are combined in separately by _collectAllMatchesForPlayer.
+// Cada fuente lleva un flag `historic` que marca si SOLO se carga en vivo de
+// forma lazy cuando se abre un perfil (ver _ppEnsureAllHistoricoLoaded más
+// abajo) — hoy eso es exactamente HISTORICO_GENERIC (temporadas 2016-2025) y
+// DATA_B_2024D, las fuentes cerradas/inmutables que scripts/generate-static-data.js
+// precalcula en build time. Todo lo demás (core = temporada 2026 en curso,
+// copasDedicadas, DATA_A_2025) ya se carga eager dentro de loadLiveData() en
+// cada visita a la página — no dispara ningún fetch extra al abrir un perfil,
+// así que sigue leyéndose en vivo tal cual siempre, sin necesidad de
+// precalcularlo (y sin el riesgo de quedar desactualizado entre deploys).
 function _allPlayerTorneoSources() {
   const core = [
-    { d: DATA_A, equipo: 'a', navKey: 'a', torneo: 'Clausura AIFA A 2026', cat: 'a' },
-    { d: DATA_A_APERTURA2026, equipo: 'a-ap2026', navKey: 'a-ap2026', torneo: 'Apertura AIFA A 2026', cat: 'a' },
-    { d: DATA_B, equipo: 'b', navKey: 'b', torneo: 'Clausura AIFA B 2026', cat: 'b' },
-    { d: DATA_B_APERTURA2026, equipo: 'b-ap2026', navKey: 'b-ap2026', torneo: 'Apertura AIFA B 2026', cat: 'b' },
+    { d: DATA_A, equipo: 'a', navKey: 'a', torneo: 'Clausura AIFA A 2026', cat: 'a', historic: false },
+    { d: DATA_A_APERTURA2026, equipo: 'a-ap2026', navKey: 'a-ap2026', torneo: 'Apertura AIFA A 2026', cat: 'a', historic: false },
+    { d: DATA_B, equipo: 'b', navKey: 'b', torneo: 'Clausura AIFA B 2026', cat: 'b', historic: false },
+    { d: DATA_B_APERTURA2026, equipo: 'b-ap2026', navKey: 'b-ap2026', torneo: 'Apertura AIFA B 2026', cat: 'b', historic: false },
   ];
   // Every historical league season (Torneos Antiguos), both categories — deep-
   // linkable via showHistoricoTorneo/ghSwitchTab/ghSelectFecha (see
@@ -3405,7 +3414,7 @@ function _allPlayerTorneoSources() {
   // Primera A entries and 'b' for Primera B ones (e.g. 'apertura-2024a' vs
   // 'apertura-2025b'/'...-d-b').
   const generic = Object.entries(HISTORICO_GENERIC).map(([key, cfg]) =>
-    ({ d: cfg.d, equipo: null, navKey: 'hg:' + key, torneo: cfg.name, cat: key.endsWith('b') ? 'b' : 'a' }));
+    ({ d: cfg.d, equipo: null, navKey: 'hg:' + key, torneo: cfg.name, cat: key.endsWith('b') ? 'b' : 'a', historic: true }));
   // Dedicated copa sheets (own Plantel/Fecha a Fecha, outside COPA_BLOCKS) —
   // no deep-link target yet (own fase-based selector, not fecha-based).
   const copasDedicadas = [
@@ -3424,7 +3433,7 @@ function _allPlayerTorneoSources() {
     { d: DATA_B_SUPERCOPA2025, navKey: 'ch:supercopa-2025b', cat: 'b' },
     { d: DATA_B_RECOPA2024, navKey: 'ch:recopa-2024b', cat: 'b' },
     { d: DATA_B_RECOPA2021, navKey: 'ch:recopa-2021b', cat: 'b' },
-  ].map(({ d, navKey, cat }) => ({ d, equipo: null, navKey, torneo: d.nombre, cat }));
+  ].map(({ d, navKey, cat }) => ({ d, equipo: null, navKey, torneo: d.nombre, cat, historic: false }));
   // Two finished LEAGUE seasons (not copas) that got their own bespoke render
   // component instead of going through HISTORICO_GENERIC — they used to be
   // lumped in with copasDedicadas above, which gave them d.nombre's plain
@@ -3432,8 +3441,8 @@ function _allPlayerTorneoSources() {
   // name and no deep link at all. 'sh:<key>:<pfx>' drives goToMatchFecha's
   // dedicated branch (own <pfx>SwitchTab/<pfx>SelectFecha pair).
   const bespoke = [
-    { d: DATA_A_2025, navKey: 'sh:apertura-2025a:ap25', torneo: 'Apertura AIFA A 2025', cat: 'a' },
-    { d: DATA_B_2024D, navKey: 'sh:apertura-2024d-b:ap24d', torneo: 'Apertura AIFA D 2024', cat: 'b' },
+    { d: DATA_A_2025, navKey: 'sh:apertura-2025a:ap25', torneo: 'Apertura AIFA A 2025', cat: 'a', historic: false },
+    { d: DATA_B_2024D, navKey: 'sh:apertura-2024d-b:ap24d', torneo: 'Apertura AIFA D 2024', cat: 'b', historic: true },
   ].map(s => ({ ...s, equipo: null }));
   return [...core, ...generic, ...copasDedicadas, ...bespoke];
 }
@@ -3486,9 +3495,9 @@ function _buildPlayerMatchIndex() {
   // (_ppDedupeCopaMatches) sigue prefiriendo esa copia ante un choque.
   const copaRows = Object.entries(COPA_BLOCKS)
     .flatMap(([title, matches]) => (matches || []).map(m =>
-      ({ m, torneo: title, equipo: null, navKey: PP_COPA_BLOCKS_NAVKEY[title] || null, cat: 'a' })));
+      ({ m, torneo: title, equipo: null, navKey: PP_COPA_BLOCKS_NAVKEY[title] || null, cat: 'a', historic: false })));
   const rows = _allPlayerTorneoSources()
-    .flatMap(({ d, equipo, navKey, torneo, cat }) => (d.apertura || []).map(m => ({ m, torneo, equipo, navKey, cat })));
+    .flatMap(({ d, equipo, navKey, torneo, cat, historic }) => (d.apertura || []).map(m => ({ m, torneo, equipo, navKey, cat, historic })));
   for (const entry of [...copaRows, ...rows]) {
     const seen = new Set(); // un jugador puede aparecer una sola vez por partido, igual que el .some() original
     for (const j of (entry.m.jugadores || [])) {
@@ -3544,17 +3553,18 @@ function _collectPlayerTitulos(cTitulosA, cTitulosB) {
 // Memoizado por jugador — se invalida junto con _playerMatchIndex en
 // loadLiveData() (ver _invalidatePlayerMatchIndex).
 let _playerPartidosCache = {};
-function _invalidatePlayerPartidosCache() { _playerPartidosCache = {}; }
+function _invalidatePlayerPartidosCache() { _playerPartidosCache = {}; _playerLivePartidosCache = {}; }
 
-// Récord V-E-D + Fecha a Fecha ya calculados en build time (ver
-// scripts/generate-og.js, que corre _buildPlayerPartidos/_ppRecordVED UNA
-// sola vez por jugador contra la misma fuente de partidos, incluidas las
-// temporadas lazy de Torneos Antiguos, y los deja en data/jugador/<slug>.json)
-// — evita que el navegador tenga que recorrer partido a partido en vivo en
-// cada visita al perfil. Memoizado en memoria por sesión: `undefined` =
-// todavía no se pidió, `null` = se pidió y no hay (404, jugador nuevo que
-// no llegó a este build, error de red — cae al cálculo en vivo existente
-// como fallback), objeto = datos reales.
+// Historial de Torneos Antiguos (2016-2025, incluida Apertura AIFA D 2024)
+// ya calculado en build time (ver scripts/generate-og.js) para cada jugador
+// y dejado en data/jugador/<slug>.json — SOLO esa parte, nunca la temporada
+// 2026 en curso (esa sigue leyéndose en vivo desde memoria vía
+// _buildPlayerLivePartidos, así que no hay riesgo de que quede
+// desactualizada entre deploys). El perfil arma el total combinándolos con
+// _ppMergePartidos. Memoizado en memoria por sesión: `undefined` = todavía
+// no se pidió, `null` = se pidió y no hay (404, jugador nuevo que no llegó
+// a este build, error de red — cae al cálculo en vivo completo existente
+// como fallback, incluyendo forzar Torneos Antiguos), objeto = datos reales.
 let _ppStaticRecordCache = {};
 async function _ppFetchStaticRecord(nombre) {
   const target = normName(nombre);
@@ -3569,13 +3579,15 @@ async function _ppFetchStaticRecord(nombre) {
   return { data, fresh: true };
 }
 
-// Índice único {v,e,d,pj} de TODOS los jugadores (data/records.json,
+// Índice único {v,e,d,pj} del V-E-D HISTÓRICO (Torneos Antiguos, build time,
+// NO la temporada 2026 en curso) de TODOS los jugadores (data/records.json,
 // generado junto con los JSON individuales de arriba) — lo usa el ranking
-// de El Nido (_nidoGetVED) para no tener que recorrer partido a partido en
-// vivo por cada uno de los ~100 jugadores listados. Un solo fetch para
-// toda la tabla, a diferencia del JSON por jugador (que se pide de a uno,
-// solo cuando se abre ESE perfil).
-let _nidoStaticRecords = null; // null = no pedido todavía o sin datos; objeto = {v,e,d,pj} por slug
+// de El Nido (_nidoGetVED), sumado al V-E-D en vivo de la temporada actual,
+// para no tener que recorrer Torneos Antiguos partido a partido por cada
+// uno de los ~100 jugadores listados. Un solo fetch para toda la tabla, a
+// diferencia del JSON por jugador (que se pide de a uno, solo cuando se
+// abre ESE perfil).
+let _nidoStaticRecords = null; // null = no pedido todavía o sin datos; objeto = {v,e,d,pj} históricos por slug
 let _nidoStaticRecordsPromise = null;
 function _nidoEnsureStaticRecords() {
   if (_nidoStaticRecordsPromise) return _nidoStaticRecordsPromise;
@@ -3600,16 +3612,20 @@ function _ppDeriveDetailListsFromPartidos(partidos) {
   };
 }
 
-function _buildPlayerPartidos(nombre) {
+// Núcleo compartido de _buildPlayerPartidos/_buildPlayerLivePartidos —
+// `filterEntry` decide qué fuentes entran ANTES de mapear cada partido a su
+// forma final, así _buildPlayerLivePartidos puede excluir las fuentes
+// `historic` (Torneos Antiguos) sin tocar la lógica de mapeo/dedupe/orden.
+function _buildPlayerPartidosRaw(nombre, filterEntry) {
   const target = normName(nombre);
-  if (_playerPartidosCache[target]) return _playerPartidosCache[target];
   // Fecha a fecha — every tournament/season currently loaded on the site
   // (live + archived + Torneos Antiguos + every copa), not just the 2 live +
   // 2 archived ones. Each row keeps its source team so the profile can
   // deep-link back into that tournament's "Fecha a Fecha" tab with the exact
   // date pre-selected — only the 4 core sources support that today (equipo
   // stays null for the rest, so those rows render without the deep-link).
-  const partidos = _collectAllMatchesForPlayer(target)
+  return _collectAllMatchesForPlayer(target)
+    .filter(filterEntry)
     .map(({ m, torneo, equipo, navKey, cat }) => {
       const j = m.jugadores.find(jj => normName(jj.nombre) === target);
       let condicion = 'No citado';
@@ -3643,16 +3659,62 @@ function _buildPlayerPartidos(nombre) {
     // _collectAllMatchesForPlayer), así que si hay choque se conserva esa
     // copia — la que trae un link real — y se descarta la otra.
     .filter(_ppDedupeCopaMatches())
-    // Orden cronológico real: año más reciente primero; dentro del mismo año,
-    // Clausura (el semestre que cierra el año) antes que Apertura, y cualquier
-    // otro torneo (copas) al final; dentro de cada uno, de la última fecha a
-    // la primera. Ordenar solo por número de fecha mezclaba Apertura/Clausura
-    // sin ningún criterio temporal real.
-    .sort((a, b) => (parseInt(b.anio) || 0) - (parseInt(a.anio) || 0)
-      || _ppTorneoRank(a.torneo) - _ppTorneoRank(b.torneo)
-      || (parseInt(b.fecha) || 0) - (parseInt(a.fecha) || 0));
+    .sort(_ppSortPartidos);
+}
+
+// Orden cronológico real: año más reciente primero; dentro del mismo año,
+// Clausura (el semestre que cierra el año) antes que Apertura, y cualquier
+// otro torneo (copas) al final; dentro de cada uno, de la última fecha a la
+// primera. Ordenar solo por número de fecha mezclaba Apertura/Clausura sin
+// ningún criterio temporal real. Extraído como función propia (no solo un
+// callback inline) para poder reordenar el merge histórico(JSON)+en vivo de
+// _ppMergePartidos con el mismo criterio exacto.
+function _ppSortPartidos(a, b) {
+  return (parseInt(b.anio) || 0) - (parseInt(a.anio) || 0)
+    || _ppTorneoRank(a.torneo) - _ppTorneoRank(b.torneo)
+    || (parseInt(b.fecha) || 0) - (parseInt(a.fecha) || 0);
+}
+
+// Combina el histórico precalculado en build time (data/jugador/<slug>.json,
+// solo Torneos Antiguos 2016-2025 + Apertura AIFA D 2024) con lo que ya está
+// cargado en vivo en memoria (temporada 2026 en curso + copas dedicadas +
+// Apertura 2025 A) — ninguna de las dos mitades dispara un fetch nuevo acá,
+// así que esto siempre es instantáneo.
+function _ppMergePartidos(historicPartidos, livePartidos) {
+  return [...(historicPartidos || []), ...(livePartidos || [])].sort(_ppSortPartidos);
+}
+
+function _buildPlayerPartidos(nombre) {
+  const target = normName(nombre);
+  if (_playerPartidosCache[target]) return _playerPartidosCache[target];
+  const partidos = _buildPlayerPartidosRaw(nombre, () => true);
   _playerPartidosCache[target] = partidos;
   return partidos;
+}
+
+// Igual que _buildPlayerPartidos pero excluye las fuentes `historic`
+// (Torneos Antiguos) — solo lee de memoria fuentes que loadLiveData() ya
+// carga eager en cada visita (temporada 2026 en curso + copas dedicadas +
+// Apertura 2025 A), así que nunca dispara un fetch. Se usa como la mitad
+// "en vivo" del perfil de jugador cuando la mitad "histórica" viene del JSON
+// precalculado (ver data/jugador/<slug>.json / _ppFetchStaticRecord).
+let _playerLivePartidosCache = {};
+function _buildPlayerLivePartidos(nombre) {
+  const target = normName(nombre);
+  if (_playerLivePartidosCache[target]) return _playerLivePartidosCache[target];
+  const partidos = _buildPlayerPartidosRaw(nombre, entry => !entry.historic);
+  _playerLivePartidosCache[target] = partidos;
+  return partidos;
+}
+
+// Complemento de _buildPlayerLivePartidos: SOLO las fuentes `historic`
+// (Torneos Antiguos 2016-2025 + Apertura AIFA D 2024). No memoiza porque el
+// único caller es scripts/generate-og.js, que la llama una vez por jugador
+// después de forzar la carga de todas esas temporadas — nunca corre en el
+// navegador real (ahí ese trabajo ya lo hizo el build y quedó en
+// data/jugador/<slug>.json).
+function _buildPlayerHistoricPartidos(nombre) {
+  return _buildPlayerPartidosRaw(nombre, entry => !!entry.historic);
 }
 
 function _collectPlayerStats(nombre) {
@@ -4375,19 +4437,23 @@ function renderPlayerProfile(nombre) {
   // the on-screen values instantly without re-rendering the whole profile.
   window._ppMetricsData = s.porCategoria;
 
-  // Si ya se pidió (y llegó) el JSON precalculado de build time para este
-  // jugador, se usa esa lista de partidos en vez de la calculada en vivo
-  // (s.partidos, que puede estar incompleta mientras Torneos Antiguos
-  // sigue cargando) — mismo shape exacto, así que _ppStatRowHtml y el
-  // resto no necesitan saber de dónde salió. Si todavía no llegó (o no
-  // hay), sigue el camino en vivo de siempre como fallback.
+  // Si ya se pidió (y llegó) el JSON precalculado de build time, ese JSON
+  // trae SOLO el histórico cerrado (Torneos Antiguos 2016-2025 + Apertura
+  // AIFA D 2024 — ver scripts/generate-og.js) — la temporada 2026 en curso y
+  // las copas dedicadas ya están eager en memoria (loadLiveData) y se leen
+  // sin fetch vía _buildPlayerLivePartidos, así que nunca quedan
+  // desactualizadas entre deploys. Si todavía no llegó el JSON (o el
+  // jugador no tiene), sigue el camino 100% en vivo de siempre (s.partidos)
+  // como fallback.
   const _ppStaticRecord = _ppStaticRecordCache[normName(nombre)];
-  const _ppPartidosSource = (_ppStaticRecord && _ppStaticRecord.partidos) || s.partidos;
+  const _ppPartidosSource = _ppStaticRecord
+    ? _ppMergePartidos(_ppStaticRecord.partidos, _buildPlayerLivePartidos(nombre))
+    : s.partidos;
 
   // Stash the 5 clickable-stat detail lists so ppShowDetail() can swap the
   // panel below without a full re-render (same pattern as _ppMetricsData).
   window._ppDetailLists = _ppStaticRecord
-    ? _ppDeriveDetailListsFromPartidos(_ppStaticRecord.partidos)
+    ? _ppDeriveDetailListsFromPartidos(_ppPartidosSource)
     : { goles: s.golesList, asist: s.asistList, ga: s.gaList, rojas: s.rojasList, titulos: s.titulosList, partidos: s.partidos };
   if (_ppStaticRecord) window._ppDetailLists.titulos = s.titulosList; // no depende de partidos, se mantiene igual
   // Reset here (not just in the block below) so a fresh render always
@@ -12699,12 +12765,24 @@ async function loadLiveData() {
   function _nidoGetVED(nombre) {
     const key = normName(nombre) + '|' + _nidoTeam;
     if (_nidoVEDCache[key]) return _nidoVEDCache[key];
-    // Precalculado en build time (data/records.json) — solo cubre el total
-    // combinado ("todos"), ya que ese JSON no separa por plantel A/B; el
-    // filtro por plantel específico sigue necesitando el cálculo en vivo.
+    // data/records.json trae SOLO el V-E-D histórico (Torneos Antiguos,
+    // build time) por jugador — no el total combinado, para no quedar
+    // desactualizado semana a semana con la temporada 2026 en curso. Se le
+    // suma acá el V-E-D de _buildPlayerLivePartidos (temporada actual +
+    // copas dedicadas, ya en memoria, sin fetch) — exactamente el mismo par
+    // histórico+en vivo que usa el perfil de jugador (ver _ppMergePartidos),
+    // así que ambas vistas siempre terminan mostrando el mismo número. Solo
+    // cubre el total combinado ("todos"), ya que records.json no separa por
+    // plantel A/B; el filtro por plantel específico sigue necesitando el
+    // cálculo en vivo completo de siempre.
     if (_nidoTeam === 'todos' && _nidoStaticRecords) {
-      const rec = _nidoStaticRecords[slugify(nombre)];
-      if (rec) { _nidoVEDCache[key] = rec; return rec; }
+      const histRec = _nidoStaticRecords[slugify(nombre)];
+      if (histRec) {
+        const liveVed = _ppRecordVED(_buildPlayerLivePartidos(nombre));
+        const ved = { v: histRec.v + liveVed.v, e: histRec.e + liveVed.e, d: histRec.d + liveVed.d };
+        _nidoVEDCache[key] = ved;
+        return ved;
+      }
     }
     let partidos = _buildPlayerPartidos(nombre);
     if (_nidoTeam === 'a') partidos = partidos.filter(p => p.categoria === 'Primera A');
