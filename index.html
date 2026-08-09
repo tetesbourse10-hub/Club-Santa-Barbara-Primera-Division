@@ -12119,7 +12119,7 @@ async function loadLiveData() {
   // Fetch each section as a targeted range so parsers receive exactly the right rows
   const [aSim, aBasic, aDet, bApBasic, bApDet, aHist, bHist, aGlobal, aTabla,
          a25Det, a25Global, a25Tabla, a25Basico, bApGlobal, bApTabla,
-         bClDet, bClGlobal, bClTabla, aClDet, aClGlobal, aClTabla, aClBasic, copasSheet, copasBasicSheet, bRecopaSheet,
+         bClDet, bClGlobal, bClTabla, bClBasic, aClDet, aClGlobal, aClTabla, aClBasic, copasSheet, copasBasicSheet, bRecopaSheet,
          bSupercopa25Det, bSupercopa25Plantel, bRecopa24Det, bRecopa24Plantel,
          bRecopa21Det, bRecopa21Plantel] = await Promise.allSettled([
     // Antes: fetchCSV(GS.A_SIM) — sin tab/range, csvUrl() arma la URL sin
@@ -12179,9 +12179,7 @@ async function loadLiveData() {
     fetchCSV(GS.B_HIST, 'APERTURA 2026 AIFA B', 'L1:X35'), // player stats
     fetchCSV(GS.B_HIST, 'APERTURA 2026 AIFA B', 'L37:V55'), // standings
     // ── Clausura AIFA B 2026 (live season, its own new tab — fetched by gid
-    //    since we don't have its exact tab name). Club-confirmed ranges; no
-    //    separate short "basic" table this time, so partidos is derived from
-    //    the detailed Fecha a Fecha instead (see _deriveBasicFromDetailed). ──
+    //    since we don't have its exact tab name). Club-confirmed ranges. ──
     fetchGvizByGid(GS.B_HIST, 266944794, 'A19:J561'),
     // Club-confirmed layout: Plantel header at L3, Tabla header at L39
     // (screenshot-verified — Banco Ciudad's own "Equipo" cell is exactly
@@ -12196,10 +12194,18 @@ async function loadLiveData() {
     // needing to fully pin down gviz's exact behavior around that merge.
     fetchGvizByGid(GS.B_HIST, 266944794, 'L2:X35'),
     fetchGvizByGid(GS.B_HIST, 266944794, 'L34:V56'),
+    // Short "resumen"/Centro de Datos table (club-confirmed A1:J16) — carries
+    // Observaciones/Parciales/Posición/Local missing from the detailed Fecha
+    // a Fecha block above, same enrichment pattern as Clausura AIFA A 2026.
+    // Hasta acá no se pedía (se asumía que esta hoja no tenía tabla resumen),
+    // por eso Centro de Datos/Fecha a Fecha de la Primera B actual mostraban
+    // Observaciones/Parciales siempre en blanco — _deriveBasicFromDetailed
+    // deja esos campos vacíos a propósito cuando no hay nada que los pise.
+    fetchGvizByGid(GS.B_HIST, 266944794, 'A1:J16'),
     // ── Clausura AIFA A 2026 (live season, its own new tab — fetched by gid).
-    //    Club-confirmed ranges; no separate short "basic" table, so partidos
-    //    is derived from the detailed Fecha a Fecha (_deriveBasicFromDetailed),
-    //    same pattern as Clausura AIFA B 2026 above. ──
+    //    Club-confirmed ranges; partidos is derived from the detailed Fecha a
+    //    Fecha (_deriveBasicFromDetailed), then enriched below from its own
+    //    short "basic" table — same pattern as Clausura AIFA B 2026 above. ──
     fetchGvizByGid(GS.A_MAIN, 618783090, 'A22:I532'),
     // Club-confirmed updated ranges (plantel grew, tabla row shifted down).
     fetchGvizByGid(GS.A_MAIN, 618783090, 'L3:X31'),
@@ -12422,6 +12428,27 @@ async function loadLiveData() {
   if (ok(bClGlobal)) {
     const p = parseGlobalStats(ok(bClGlobal));
     if (p.length > 0) DATA_B.jugadores = p;
+  }
+  // Cherry-pick Observaciones/Parciales/Posición/Local (club-confirmed
+  // A1:J16) onto the already-correct partidos derived from the detailed
+  // match data above — mismo enriquecimiento que ya tiene Clausura AIFA A
+  // 2026 (ver aClBasic más abajo). Antes esta hoja resumen no se pedía acá,
+  // así que Centro de Datos/Fecha a Fecha de la Primera B actual siempre
+  // mostraban Observaciones/Parciales en blanco.
+  if (ok(bClBasic)) {
+    const m = _ligaOnlyMatches(parseMatches(ok(bClBasic)));
+    const byKey = new Map(m.map(x => [`${(x.rival || '').toUpperCase()}|${x.fecha}`, x]));
+    for (const p of DATA_B.partidos) {
+      const src = byKey.get(`${(p.rival || '').toUpperCase()}|${p.fecha}`);
+      if (!src) continue;
+      if (src.obs) p.obs = src.obs;
+      if (src.parciales) p.parciales = src.parciales;
+      if (src.posCSB) p.posCSB = src.posCSB;
+      if (src.posRival) p.posRival = src.posRival;
+      if (src.local) p.local = src.local;
+      if (src.estadio) p.estadio = src.estadio;
+      if (src.horario) p.horario = src.horario;
+    }
   }
 
   // Estadisticas Historicas — only historico (club all-time record) and B's
