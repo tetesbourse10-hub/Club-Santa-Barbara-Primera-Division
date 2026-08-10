@@ -3576,6 +3576,11 @@ function _invalidatePlayerPartidosCache() { _playerPartidosCache = {}; _playerLi
 // a este build, error de red — cae al cálculo en vivo completo existente
 // como fallback, incluyendo forzar Torneos Antiguos), objeto = datos reales.
 let _ppStaticRecordCache = {};
+// normName(jugador) -> true una vez que se comprobó que el JSON precalculado
+// de ese jugador no suma el PJ real (ver la validación en renderPlayerProfile)
+// — se descarta para el resto de la sesión y ese jugador pasa a usar el
+// camino 100% en vivo, en vez de seguir mostrando un total incompleto.
+let _ppStaticRecordRejected = {};
 async function _ppFetchStaticRecord(nombre) {
   const target = normName(nombre);
   if (target in _ppStaticRecordCache) return { data: _ppStaticRecordCache[target], fresh: false };
@@ -4448,17 +4453,42 @@ function renderPlayerProfile(nombre) {
   window._ppMetricsData = s.porCategoria;
 
   // Si ya se pidió (y llegó) el JSON precalculado de build time, ese JSON
-  // trae SOLO el histórico cerrado (Torneos Antiguos 2016-2025 + Apertura
-  // AIFA D 2024 — ver scripts/generate-og.js) — la temporada 2026 en curso y
-  // las copas dedicadas ya están eager en memoria (loadLiveData) y se leen
-  // sin fetch vía _buildPlayerLivePartidos, así que nunca quedan
+  // trae SOLO el histórico cerrado (Torneos Antiguos + Apertura AIFA D 2024
+  // + Apertura AIFA A/B 2026 — ver scripts/generate-og.js) — la temporada en
+  // curso y las copas dedicadas ya están eager en memoria (loadLiveData) y
+  // se leen sin fetch vía _buildPlayerLivePartidos, así que nunca quedan
   // desactualizadas entre deploys. Si todavía no llegó el JSON (o el
   // jugador no tiene), sigue el camino 100% en vivo de siempre (s.partidos)
   // como fallback.
-  const _ppStaticRecord = _ppStaticRecordCache[normName(nombre)];
-  const _ppPartidosSource = _ppStaticRecord
+  const _ppTarget = normName(nombre);
+  let _ppStaticRecord = (_ppStaticRecordCache[_ppTarget] && !_ppStaticRecordRejected[_ppTarget])
+    ? _ppStaticRecordCache[_ppTarget] : null;
+  let _ppPartidosSource = _ppStaticRecord
     ? _ppMergePartidos(_ppStaticRecord.partidos, _buildPlayerLivePartidos(nombre))
     : s.partidos;
+  // BUG REAL encontrado (perfil clavado en un total chico — ej. 32 de 100+
+  // partidos — para siempre, no un tema de timing): antes, si el archivo
+  // data/jugador/<slug>.json EXISTÍA, se confiaba ciegamente en su contenido
+  // aunque viniera con `partidos` vacío o incompleto (ej. un build viejo
+  // afectado por el rate-limit de Google ya diagnosticado, o un jugador
+  // agregado a mitad de un build fallido) — a diferencia del camino 100% en
+  // vivo, que SÍ validaba el total contra el PJ real de El Nido antes de
+  // darlo por bueno. Portamos esa misma validación acá: si el merge
+  // histórico(JSON)+en vivo no suma el PJ real, se descarta el JSON para
+  // este jugador (memoria de sesión, ver _ppStaticRecordRejected) y se cae
+  // al camino en vivo completo de siempre, que si hace falta fuerza Torneos
+  // Antiguos (_ppEnsureLiveHistoricoFallback) — nunca se queda mostrando un
+  // número que ya se sabe incompleto como si fuera definitivo.
+  if (_ppStaticRecord && s.nidoReady) {
+    const _ppStaticTotal = _ppRecordVED(_ppPartidosSource);
+    const _ppStaticLooksComplete = !s.pj || (_ppStaticTotal.v + _ppStaticTotal.e + _ppStaticTotal.d) === s.pj;
+    if (!_ppStaticLooksComplete) {
+      _ppStaticRecordRejected[_ppTarget] = true;
+      _ppStaticRecord = null;
+      _ppPartidosSource = s.partidos;
+      _ppEnsureLiveHistoricoFallback(nombre);
+    }
+  }
 
   // Stash the 5 clickable-stat detail lists so ppShowDetail() can swap the
   // panel below without a full re-render (same pattern as _ppMetricsData).
