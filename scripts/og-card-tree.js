@@ -34,7 +34,18 @@ function escapeXml(s) {
   }[c]));
 }
 
-const FONT = "Inter, 'Segoe UI', system-ui, sans-serif";
+// Antes: "Inter, 'Segoe UI', system-ui, sans-serif" (la misma cadena de
+// fallback que usa index.html) — pero acá NO tiene sentido: resvg solo
+// tiene cargados los 3 buffers de Inter (loadSystemFonts:false), así que
+// "Segoe UI"/"system-ui"/"sans-serif" nunca van a matchear nada de todas
+// formas. Sospecha real (reportado: el texto sale como una fuente serif
+// tipo Times New Roman en vez de Inter): si por lo que sea el matching de
+// "Inter" como PRIMER nombre de una lista con comas le genera algún
+// problema al parser de font-family de resvg, la cadena entera termina
+// cayendo a algún fallback interno — que puede ser justo ese serif
+// genérico. Pedir directamente "Inter" a secas, sin lista, elimina esa
+// ambigüedad por completo.
+const FONT = 'Inter';
 const DEFENSOR_CODES = new Set(['LI', 'LD', 'DFI', 'DFD', 'DEF', 'DFC']);
 
 // Ancho aproximado de un carácter en Inter Bold/Black, como fracción del
