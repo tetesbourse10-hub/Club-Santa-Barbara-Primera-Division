@@ -56,17 +56,27 @@
 //
 // El dibujo de la tarjeta en sí (para el PNG) NO reusa el HTML/CSS del
 // sitio — se arma un SVG a mano en scripts/og-card-tree.js. El SVG declara
-// font-family "Inter", pero resvg (el motor que rasteriza a PNG) no hereda
-// nada del sitio ni tiene fuentes de sistema garantizadas en la máquina de
-// build — así que scripts/fetch-font.js baja el .ttf real de Inter
-// (Regular + Bold) desde Google Fonts acá abajo, y se lo pasamos a resvg
-// como buffer explícito (con loadSystemFonts:false) antes de renderizar
-// cada imagen.
+// font-family "Inter" (la misma que --font-family en index.html), pero
+// resvg (el motor que rasteriza a PNG) no hereda nada del sitio ni tiene
+// fuentes de sistema garantizadas en la máquina de build — así que
+// scripts/fetch-font.js baja el .ttf real de Inter (Regular + Bold +
+// Black) desde Google Fonts acá abajo, y se lo pasamos a resvg como buffer
+// explícito (con loadSystemFonts:false) antes de renderizar cada imagen.
+//
+// Por el mismo motivo (loadSystemFonts:false, sin fuentes de sistema)
+// cualquier emoji (🛡️, 👕) sale como una casilla vacía — Inter no tiene
+// glifos de emoji, y no hay ninguna fuente de emoji cargada. En vez de
+// depender de una fuente de emoji (nada garantiza que resvg la sepa
+// rasterizar bien en color), se embebe el logo real del club
+// (logo-csb.webp, el mismo que favicon/landing) como imagen rasterizada
+// dentro del SVG — resvg no soporta WEBP de forma confiable, así que se
+// convierte a PNG en memoria con `sharp` antes de embeberlo en base64.
 
 const fs = require('fs');
 const path = require('path');
 const { JSDOM } = require('jsdom');
 const { Resvg } = require('@resvg/resvg-js');
+const sharp = require('sharp');
 const { buildShareCardSvg } = require('./og-card-tree');
 const { fetchInterFonts } = require('./fetch-font');
 
@@ -247,8 +257,12 @@ async function main() {
     throw new Error(`Temporadas históricas que NUNCA devolvieron datos después de ${HIST_MAX_ATTEMPTS} intentos cada una: ${failedSeasons.join(', ')} — build abortado.`);
   }
 
-  console.log('Descargando la fuente Inter (Regular + Bold) para las imágenes…');
+  console.log('Descargando la fuente Inter (Regular + Bold + Black) para las imágenes…');
   const fonts = await fetchInterFonts();
+
+  console.log('Convirtiendo el logo del club (webp → png) para embeberlo en la imagen…');
+  const logoPngBuffer = await sharp(path.join(ROOT, 'logo-csb.webp')).png().toBuffer();
+  const logoDataUri = `data:image/png;base64,${logoPngBuffer.toString('base64')}`;
 
   console.log('Generando previews y JSON precalculado…');
   const ogDir = path.join(ROOT, 'og');
@@ -315,6 +329,7 @@ async function main() {
         vallas: s.vallas, vallasProm: s.vallasProm,
         pg: ved.v, pe: ved.e, pp: ved.d,
         hasA: s.hasA, hasB: s.hasB, logros,
+        logoDataUri,
       });
 
       // El SVG ya nace a 1080x1350 (formato 4:5) — se renderiza 1:1, sin

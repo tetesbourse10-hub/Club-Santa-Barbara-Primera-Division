@@ -37,6 +37,41 @@ function escapeXml(s) {
 const FONT = "Inter, 'Segoe UI', system-ui, sans-serif";
 const DEFENSOR_CODES = new Set(['LI', 'LD', 'DFI', 'DFD', 'DEF', 'DFC']);
 
+// Ancho aproximado de un carácter en Inter Bold/Black, como fracción del
+// font-size — no es exacto (no hay métricas reales de la fuente acá), pero
+// alcanza para centrar una línea corta con varios <tspan> de colores
+// distintos SIN depender de que el motor SVG calcule bien el ancho
+// combinado de varios tspans bajo text-anchor="middle" (confirmado con un
+// motor de prueba: pierde caracteres en ese escenario exacto — bug de ESE
+// motor, pero como no hay forma de probarlo contra resvg desde acá, la
+// solución elegida no depende de ningún motor en particular: cada tspan
+// lleva su propio x calculado a mano).
+const CHAR_W = { ' ': 0.28, '—': 0.85, '-': 0.34, '.': 0.28, ',': 0.28 };
+function estimateTextWidth(text, fontSize) {
+  let w = 0;
+  for (const ch of String(text)) {
+    const frac = CHAR_W[ch] ?? (/[0-9]/.test(ch) ? 0.6 : /[A-ZÁÉÍÓÚÑ]/.test(ch) ? 0.72 : 0.6);
+    w += frac * fontSize;
+  }
+  return w;
+}
+
+// Línea de <tspan> de colores distintos, centrada como UN bloque en cx —
+// cada tspan lleva su propio x= (calculado a partir del ancho estimado de
+// los anteriores), así que el resultado no depende de que el motor SVG
+// sepa centrar varios tspans juntos.
+function coloredLineSvg({ cx, y, fontSize, fontWeight = 700, segments }) {
+  const widths = segments.map(s => estimateTextWidth(s.text, fontSize));
+  const totalW = widths.reduce((a, b) => a + b, 0);
+  let x = cx - totalW / 2;
+  const parts = segments.map((s, i) => {
+    const tspan = `<tspan x="${x}" y="${y}" fill="${s.fill}">${escapeXml(s.text)}</tspan>`;
+    x += widths[i];
+    return tspan;
+  });
+  return `<text font-family="${FONT}" font-size="${fontSize}" font-weight="${fontWeight}" xml:space="preserve">${parts.join('')}</text>`;
+}
+
 function splitName(nombre, maxLine = 16) {
   const s = String(nombre || '');
   if (s.length <= maxLine) return [s];
@@ -64,7 +99,7 @@ function statCard({ x, y, w, h, val, label, valColor, big }) {
   return parts.join('\n');
 }
 
-function buildShareCardSvg({ nombre, pos, posColor, goles, asist, pj, gmas, titulos, promGol, promAsist, vallas, vallasProm, pg, pe, pp, hasA, hasB, logros }) {
+function buildShareCardSvg({ nombre, pos, posColor, goles, asist, pj, gmas, titulos, promGol, promAsist, vallas, vallasProm, pg, pe, pp, hasA, hasB, logros, logoDataUri }) {
   const W = 1080, H = 1350;
   const PAD_X = 56, PAD_TOP = 44, PAD_BOTTOM = 44;
   const bodyTop = PAD_TOP, bodyBottom = H - PAD_BOTTOM, bodyHeight = bodyBottom - bodyTop;
@@ -86,7 +121,14 @@ function buildShareCardSvg({ nombre, pos, posColor, goles, asist, pj, gmas, titu
     height: 64,
     render(y) {
       const parts = [];
-      parts.push(`<text x="${PAD_X}" y="${y + 38}" font-family="${FONT}" font-size="30" font-weight="700" fill="#ffffff">🛡️ Club Santa Bárbara</text>`);
+      // Logo real del club (rasterizado, embebido en base64) en vez del
+      // emoji 🛡️ — resvg solo tiene cargada la fuente Inter (sin glifos de
+      // emoji), así que cualquier emoji salía como una casilla vacía.
+      const logoD = 48, logoTextX = PAD_X + (logoDataUri ? logoD + 14 : 0);
+      if (logoDataUri) {
+        parts.push(`<image x="${PAD_X}" y="${y + (64 - logoD) / 2}" width="${logoD}" height="${logoD}" href="${logoDataUri}" />`);
+      }
+      parts.push(`<text x="${logoTextX}" y="${y + 38}" font-family="${FONT}" font-size="30" font-weight="700" fill="#ffffff">Club Santa Bárbara</text>`);
       const badgeW = 118, badgeH = 50;
       parts.push(`<rect x="${W - PAD_X - badgeW}" y="${y + (64 - badgeH) / 2}" width="${badgeW}" height="${badgeH}" rx="25" fill="#412402" />`);
       parts.push(`<text x="${W - PAD_X - badgeW / 2}" y="${y + 39}" font-family="${FONT}" font-size="22" font-weight="700" fill="#fac775" text-anchor="middle">2026</text>`);
@@ -154,12 +196,23 @@ function buildShareCardSvg({ nombre, pos, posColor, goles, asist, pj, gmas, titu
       const parts = [];
       parts.push(`<rect x="${PAD_X}" y="${y}" width="${contentW}" height="88" rx="24" fill="rgba(239,159,39,0.08)" stroke="rgba(239,159,39,0.3)" stroke-width="1.5" />`);
       const cx = W / 2;
-      parts.push(`<text x="${cx}" y="${y + 55}" font-family="${FONT}" font-size="30" font-weight="700" text-anchor="middle">` +
-        `<tspan>👕 </tspan>` +
-        `<tspan fill="#97c459">${escapeXml(String(pg))}</tspan><tspan fill="#4a5268"> PG — </tspan>` +
-        `<tspan fill="#fac775">${escapeXml(String(pe))}</tspan><tspan fill="#4a5268"> PE — </tspan>` +
-        `<tspan fill="#f09595">${escapeXml(String(pp))}</tspan><tspan fill="#4a5268"> PP</tspan>` +
-        `</text>`);
+      // Ver coloredLineSvg() arriba: cada tspan lleva su x calculado a
+      // mano en vez de depender de que el motor SVG centre bien varios
+      // tspans de colores distintos bajo text-anchor="middle" (un motor de
+      // prueba usado durante el desarrollo perdía caracteres justo en ese
+      // escenario — sea o no un problema real de resvg, esto no depende de
+      // adivinarlo).
+      parts.push(coloredLineSvg({
+        cx, y: y + 55, fontSize: 30, fontWeight: 700,
+        segments: [
+          { text: String(pg), fill: '#97c459' },
+          { text: ' PG — ', fill: '#4a5268' },
+          { text: String(pe), fill: '#fac775' },
+          { text: ' PE — ', fill: '#4a5268' },
+          { text: String(pp), fill: '#f09595' },
+          { text: ' PP', fill: '#4a5268' },
+        ],
+      }));
       return parts.join('\n');
     },
   });
