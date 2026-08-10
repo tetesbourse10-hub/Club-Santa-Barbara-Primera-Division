@@ -7005,19 +7005,28 @@ function _ligaOnlyMatches(matches) {
   });
 }
 
-// Apertura AIFA A 2026's live sheet has 2 copa fixtures (El Chasqui, Libertador
-// — both actually Recopa 2026 rounds, now read from the centralized "SB en
-// Copas" sheet instead) mislabeled with plain matchday numbers "1" and "12",
-// colliding with the real Fecha 1 (VILO) and Fecha 12 (AFALP) league rows.
-// _ligaOnlyMatches can't tell them apart from a real fecha by content alone,
-// so strip these two specific rival+fecha combinations by name instead.
+// Apertura AIFA A 2026's live sheet has 3 copa fixtures (El Chasqui, Libertador,
+// GEBA — todos rounds de Recopa 2026, leídos de la hoja centralizada "SB en
+// Copas" en vez de acá) mislabeled with plain matchday numbers "1", "12" y
+// "2", colliding with the real Fecha 1 (VILO), Fecha 12 (AFALP) y Fecha 2
+// (club-confirmado) league rows. _ligaOnlyMatches can't tell them apart from
+// a real fecha by content alone, so strip these specific rival+fecha
+// combinations by name instead.
 function _stripApertura2026ACopaLeaks(matches) {
   const leaks = [
     { rival: 'EL CHASQUI', fecha: '1' },
     { rival: 'LIBERTADOR', fecha: '12' },
+    // Match exacto (no substring) — "GEBA" solo, para no llevarse de arriba
+    // un futuro/otro cruce real contra "GEBA AZUL"/"GEBA BLANCO" (equipos
+    // distintos que existen en otros torneos) si alguna vez coincidieran
+    // en esta misma fecha.
+    { rival: 'GEBA', fecha: '2', exact: true },
   ];
-  return matches.filter(m => !leaks.some(l =>
-    (m.rival || '').toUpperCase().includes(l.rival) && String(m.fecha).trim() === l.fecha));
+  return matches.filter(m => !leaks.some(l => {
+    const rival = (m.rival || '').toUpperCase().trim();
+    const matchesRival = l.exact ? rival === l.rival : rival.includes(l.rival);
+    return matchesRival && String(m.fecha).trim() === l.fecha;
+  }));
 }
 
 // Apertura AIFA B 2026's live sheet has 2 leftover copa fixtures (ZAFADOS,
