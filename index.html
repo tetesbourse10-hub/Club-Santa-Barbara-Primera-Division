@@ -3392,21 +3392,31 @@ function ppFilterMetrics(cat, btn) {
 // just the 2 live + 2 archived ones. Primera A's centralized copas
 // (COPA_BLOCKS) have a different shape ({title: matches[]}, no wrapper
 // object) and are combined in separately by _collectAllMatchesForPlayer.
-// Cada fuente lleva un flag `historic` que marca si SOLO se carga en vivo de
-// forma lazy cuando se abre un perfil (ver _ppEnsureAllHistoricoLoaded más
-// abajo) — hoy eso es exactamente HISTORICO_GENERIC (temporadas 2016-2025) y
-// DATA_B_2024D, las fuentes cerradas/inmutables que scripts/generate-static-data.js
-// precalcula en build time. Todo lo demás (core = temporada 2026 en curso,
-// copasDedicadas, DATA_A_2025) ya se carga eager dentro de loadLiveData() en
-// cada visita a la página — no dispara ningún fetch extra al abrir un perfil,
-// así que sigue leyéndose en vivo tal cual siempre, sin necesidad de
-// precalcularlo (y sin el riesgo de quedar desactualizado entre deploys).
+// Cada fuente lleva un flag `historic` que marca si es un torneo CERRADO
+// (ya no recibe actualizaciones) — esas entran al JSON precalculado de
+// build time (data/jugador/<slug>.json, ver scripts/generate-og.js /
+// _buildPlayerHistoricPartidos) en vez de depender del fetch en vivo. Hoy
+// eso es: HISTORICO_GENERIC (temporadas 2016-2025), DATA_B_2024D, DATA_A_2025,
+// y (club-confirmado) Apertura AIFA A 2026 + Apertura AIFA B 2026, que ya
+// terminaron. Los ÚNICOS torneos todavía en juego son Clausura AIFA A 2026,
+// Clausura AIFA B 2026 y Recopa 2026 — quedan `historic: false`, se siguen
+// leyendo en vivo (ya eager dentro de loadLiveData() en cada visita, así que
+// no disparan ningún fetch extra al abrir un perfil) para no arriesgarse a
+// mostrar un resultado desactualizado entre deploys mientras se juegan.
+// _ppEnsureAllHistoricoLoaded (más abajo) sigue existiendo solo como
+// fallback en vivo para un jugador que todavía no tiene JSON publicado.
 function _allPlayerTorneoSources() {
   const core = [
     { d: DATA_A, equipo: 'a', navKey: 'a', torneo: 'Clausura AIFA A 2026', cat: 'a', historic: false },
-    { d: DATA_A_APERTURA2026, equipo: 'a-ap2026', navKey: 'a-ap2026', torneo: 'Apertura AIFA A 2026', cat: 'a', historic: false },
+    // Apertura AIFA A/B 2026 ya terminaron (confirmado por el club) — solo
+    // Clausura AIFA A, Clausura AIFA B y Recopa 2026 siguen en juego. Van
+    // como `historic: true` así entran al JSON precalculado de build time
+    // igual que cualquier otra temporada cerrada (ver
+    // scripts/generate-og.js) en vez de depender del fetch en vivo de
+    // loadLiveData() sin reintento ni aviso si algo falla.
+    { d: DATA_A_APERTURA2026, equipo: 'a-ap2026', navKey: 'a-ap2026', torneo: 'Apertura AIFA A 2026', cat: 'a', historic: true },
     { d: DATA_B, equipo: 'b', navKey: 'b', torneo: 'Clausura AIFA B 2026', cat: 'b', historic: false },
-    { d: DATA_B_APERTURA2026, equipo: 'b-ap2026', navKey: 'b-ap2026', torneo: 'Apertura AIFA B 2026', cat: 'b', historic: false },
+    { d: DATA_B_APERTURA2026, equipo: 'b-ap2026', navKey: 'b-ap2026', torneo: 'Apertura AIFA B 2026', cat: 'b', historic: true },
   ];
   // Every historical league season (Torneos Antiguos), both categories — deep-
   // linkable via showHistoricoTorneo/ghSwitchTab/ghSelectFecha (see
@@ -3441,7 +3451,7 @@ function _allPlayerTorneoSources() {
   // name and no deep link at all. 'sh:<key>:<pfx>' drives goToMatchFecha's
   // dedicated branch (own <pfx>SwitchTab/<pfx>SelectFecha pair).
   const bespoke = [
-    { d: DATA_A_2025, navKey: 'sh:apertura-2025a:ap25', torneo: 'Apertura AIFA A 2025', cat: 'a', historic: false },
+    { d: DATA_A_2025, navKey: 'sh:apertura-2025a:ap25', torneo: 'Apertura AIFA A 2025', cat: 'a', historic: true },
     { d: DATA_B_2024D, navKey: 'sh:apertura-2024d-b:ap24d', torneo: 'Apertura AIFA D 2024', cat: 'b', historic: true },
   ].map(s => ({ ...s, equipo: null }));
   return [...core, ...generic, ...copasDedicadas, ...bespoke];

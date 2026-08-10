@@ -3,11 +3,14 @@
 // jugador conocido:
 //   og/<slug>.png              — imagen de preview (og:image)
 //   jugador/<slug>/index.html  — página con meta og: reales
-//   data/jugador/<slug>.json   — récord V-E-D + Fecha a Fecha, PERO SOLO del
-//                                 histórico cerrado (Torneos Antiguos
-//                                 2016-2025 + Apertura AIFA D 2024) — ver
-//                                 más abajo por qué la temporada en curso
-//                                 queda afuera a propósito
+//   data/jugador/<slug>.json   — récord V-E-D + Fecha a Fecha, PERO SOLO de
+//                                 los torneos CERRADOS (Torneos Antiguos
+//                                 2016-2025, Apertura AIFA D 2024, Apertura
+//                                 AIFA A/B 2026 — ver `historic: true` en
+//                                 _allPlayerTorneoSources, index.html) — ver
+//                                 más abajo por qué los torneos EN JUEGO
+//                                 (Clausura AIFA A/B 2026, Recopa 2026)
+//                                 quedan afuera a propósito
 //   data/records.json          — {v,e,d,pj} histórico de TODOS los
 //                                 jugadores en un solo archivo, para el
 //                                 ranking de El Nido
@@ -276,14 +279,14 @@ async function main() {
       const partidos = window._buildPlayerPartidos(nombre);
       const ved = window._ppRecordVED(partidos);
       // Para el JSON que lee el perfil de jugador en el navegador (y para
-      // records.json/El Nido) usamos SOLO el histórico cerrado (Torneos
-      // Antiguos 2016-2025 + Apertura AIFA D 2024) — ver
-      // _buildPlayerHistoricPartidos en index.html. La temporada 2026 en
-      // curso y las copas dedicadas NO se precalculan a propósito: son
-      // pocos partidos, cambian semana a semana, y el navegador ya las
-      // tiene en memoria sin fetch extra (_buildPlayerLivePartidos) — así
-      // el perfil combina histórico-precalculado + actual-en-vivo y nunca
-      // muestra un número desactualizado entre deploys.
+      // records.json/El Nido) usamos SOLO los torneos CERRADOS (`historic:
+      // true` en _allPlayerTorneoSources, index.html) — ver
+      // _buildPlayerHistoricPartidos. Los torneos EN JUEGO (Clausura AIFA
+      // A/B 2026, Recopa 2026) NO se precalculan a propósito: cambian
+      // semana a semana, y el navegador ya los tiene en memoria sin fetch
+      // extra (_buildPlayerLivePartidos) — así el perfil combina
+      // histórico-precalculado + actual-en-vivo y nunca muestra un número
+      // desactualizado entre deploys.
       const historicoPartidos = window._buildPlayerHistoricPartidos(nombre);
       const vedHistorico = window._ppRecordVED(historicoPartidos);
 
