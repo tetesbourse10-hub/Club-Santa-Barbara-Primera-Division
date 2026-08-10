@@ -3617,13 +3617,22 @@ function _nidoEnsureStaticRecords() {
 // `partidos` que vino en el JSON precalculado — mismo criterio de filtro,
 // para que Fecha a Fecha y los paneles de Goles/Asistencias/G+A/Rojas
 // funcionen igual sea cual sea la fuente.
+// BUG REAL encontrado (paneles de Goles/Asistencias/G+A/Rojas mostraban
+// "(0)" a pesar de que las tiles de arriba sí tenían el número real): esta
+// función devolvía golesList/asistList/gaList/rojasList, pero
+// window._ppDetailLists (ver renderPlayerProfile/_ppRenderDetailPanel) lee
+// las claves SIN el sufijo "List" — goles/asist/ga/rojas. El sufijo de más
+// hacía que window._ppDetailLists['goles'] fuera siempre undefined con el
+// camino de JSON precalculado (nunca con el camino en vivo, que ya usaba
+// las claves cortas correctas) — de ahí que el bug solo apareciera para
+// jugadores con perfil estático disponible.
 function _ppDeriveDetailListsFromPartidos(partidos) {
   return {
     partidos,
-    golesList: partidos.filter(p => p.goles > 0),
-    asistList: partidos.filter(p => p.asist > 0),
-    gaList: partidos.filter(p => p.goles > 0 || p.asist > 0),
-    rojasList: partidos.filter(p => p.rojas > 0),
+    goles: partidos.filter(p => p.goles > 0),
+    asist: partidos.filter(p => p.asist > 0),
+    ga: partidos.filter(p => p.goles > 0 || p.asist > 0),
+    rojas: partidos.filter(p => p.rojas > 0),
   };
 }
 
