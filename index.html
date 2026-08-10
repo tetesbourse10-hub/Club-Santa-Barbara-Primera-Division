@@ -2835,6 +2835,11 @@ const DATA_B_2024D = {
   jugadores:[],
   tabla:    [],
 };
+// scripts/generate-og.js lee esto desde afuera solo para loguear cuántos
+// partidos trajo _loadBApt2024d() — `const` de nivel superior no es
+// propiedad de `window` (ver el comentario completo en
+// window.HISTORICO_GENERIC, más abajo en el archivo).
+window.DATA_B_2024D = DATA_B_2024D;
 
 // Historical Primera A seasons (2022-2024) — fetched by gid from A_MAIN, same
 // generic 4-tab component as DATA_A_2025 (renderTorneoHistoricoGeneric).
@@ -6962,6 +6967,11 @@ function renderTorneoHistoricoGeneric(d, name, fechaLabels) {
 // derived directly from the parsed detailed matches instead of a separate
 // fetch — there's no dedicated short-table range for these older sheets.
 const _historicoGenericLoaded = {};
+// Mismo motivo que window.HISTORICO_GENERIC más abajo (ver ese comentario):
+// `const` de nivel superior no es propiedad de `window`, y
+// scripts/generate-og.js necesita escribir acá desde afuera para forzar un
+// re-fetch en su lógica de reintentos.
+window._historicoGenericLoaded = _historicoGenericLoaded;
 
 // Historical seasons don't have an explicit LOCAL/VISITANTE column like the
 // current-season basic table does — only a venue name ("Lugar"). Infer it
@@ -7304,6 +7314,24 @@ const HISTORICO_GENERIC = {
   'clausura-2022d-b': { d: DATA_B_CL2022, sheet: 'B_HIST', gid: 1338541016, name: 'Clausura AIFA D 2022',
     plantel: 'L3:X28', fecha: 'A16:J422', tabla: null },
 };
+// BUG REAL encontrado en el log de build (Netlify): "Torneos Antiguos:
+// encontré 0 hojas en HISTORICO_GENERIC" — CERO, siempre, en TODOS los
+// builds hasta ahora. Causa: las declaraciones `const`/`let` de nivel
+// superior de un <script> NO se agregan como propiedad del objeto global
+// (`window`) — solo las declaraciones `function` sí (esa es la diferencia
+// real de la especificación, no un detalle de jsdom). scripts/generate-og.js
+// corre este archivo con dom.window.eval() y después necesita leer
+// `window.HISTORICO_GENERIC` desde AFUERA de ese script para saber qué
+// temporadas iterar — como HISTORICO_GENERIC es `const`, esa lectura
+// siempre devolvía `undefined`, así que el loop de Torneos Antiguos nunca
+// llegó a llamarse ni una sola vez, en ningún build, desde que existe esta
+// función. Las funciones (_loadHistoricoGeneric, _buildPlayerPartidos, etc.)
+// SÍ funcionaban bien al llamarlas como window.funcion(...) — porque las
+// declaraciones `function` sí son propiedades de `window`, y por dentro
+// leen HISTORICO_GENERIC por closure (no por window.), así que nunca hizo
+// falta esta alias ahí. Este alias explícito es lo mínimo para que
+// generate-og.js pueda enumerar las claves desde afuera.
+window.HISTORICO_GENERIC = HISTORICO_GENERIC;
 
 function openHistoricoGenerico(key) {
   const cfg = HISTORICO_GENERIC[key];
