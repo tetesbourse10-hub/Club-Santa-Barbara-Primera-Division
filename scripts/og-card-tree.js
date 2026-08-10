@@ -48,6 +48,17 @@ function escapeXml(s) {
 const FONT = 'Inter';
 const DEFENSOR_CODES = new Set(['LI', 'LD', 'DFI', 'DFD', 'DEF', 'DFC']);
 
+// Mismos colores que usa el perfil de jugador real (ver los kpi('pp-m-...')
+// dentro de renderPlayerProfile en index.html) para cada métrica — antes
+// esta tarjeta usaba variantes parecidas pero no idénticas (ej. Goles en
+// naranja acá vs. verde en el sitio), o directamente sin color.
+const STAT_COLORS = {
+  goles: '#22c55e',
+  asist: '#3b82f6',
+  ga: '#a855f7',
+  vallas: '#60a5fa',
+};
+
 // Ancho aproximado de un carácter en Inter Bold/Black, como fracción del
 // font-size — no es exacto (no hay métricas reales de la fuente acá), pero
 // alcanza para centrar una línea corta con varios <tspan> de colores
@@ -213,14 +224,17 @@ function buildShareCardSvg({ nombre, pos, posColor, goles, asist, pj, gmas, titu
       // prueba usado durante el desarrollo perdía caracteres justo en ese
       // escenario — sea o no un problema real de resvg, esto no depende de
       // adivinarlo).
+      // Mismos colores que .pp-ved-v/.pp-ved-e/.pp-ved-d en index.html (el
+      // Récord de Resultados del perfil real) — antes eran variantes
+      // parecidas pero no exactas.
       parts.push(coloredLineSvg({
         cx, y: y + 55, fontSize: 30, fontWeight: 700,
         segments: [
-          { text: String(pg), fill: '#97c459' },
+          { text: String(pg), fill: '#22c55e' },
           { text: ' PG — ', fill: '#4a5268' },
-          { text: String(pe), fill: '#fac775' },
+          { text: String(pe), fill: '#eab308' },
           { text: ' PE — ', fill: '#4a5268' },
-          { text: String(pp), fill: '#f09595' },
+          { text: String(pp), fill: '#ef4444' },
           { text: ' PP', fill: '#4a5268' },
         ],
       }));
@@ -240,13 +254,13 @@ function buildShareCardSvg({ nombre, pos, posColor, goles, asist, pj, gmas, titu
         const promVallasVal = pj > 0 ? String(vallasProm.toFixed(2)).replace('.', ',') : '—';
         mainStats = [
           { val: pj, label: 'PJ' },
-          { val: vallas, label: 'Vallas Invictas', valColor: '#85b7eb' },
-          { val: promVallasVal, label: 'Prom. Vallas Invictas' },
+          { val: vallas, label: 'Vallas Invictas', valColor: STAT_COLORS.vallas },
+          { val: promVallasVal, label: 'Prom. Vallas Invictas', valColor: STAT_COLORS.vallas },
         ];
       } else {
         mainStats = [
-          { val: goles, label: 'Goles', valColor: '#ef9f27' },
-          { val: asist, label: 'Asistencias' },
+          { val: goles, label: 'Goles', valColor: STAT_COLORS.goles },
+          { val: asist, label: 'Asistencias', valColor: STAT_COLORS.asist },
           { val: pj, label: 'PJ' },
         ];
       }
@@ -271,18 +285,18 @@ function buildShareCardSvg({ nombre, pos, posColor, goles, asist, pj, gmas, titu
         const promGmasVal = String((promGol + promAsist).toFixed(2)).replace('.', ',');
         const stats = isDefensor
           ? [
-              { val: promGmasVal, label: 'Prom. G+A' },
-              { val: vallas, label: 'Vallas Invictas' },
-              { val: promVallasVal, label: 'Prom. Vallas Invictas' },
+              { val: promGmasVal, label: 'Prom. G+A', valColor: STAT_COLORS.ga },
+              { val: vallas, label: 'Vallas Invictas', valColor: STAT_COLORS.vallas },
+              { val: promVallasVal, label: 'Prom. Vallas Invictas', valColor: STAT_COLORS.vallas },
             ]
           : [
-              { val: gmas, label: 'G+A' },
-              { val: String(promGol.toFixed(2)).replace('.', ','), label: 'Prom. Goles' },
-              { val: String(promAsist.toFixed(2)).replace('.', ','), label: 'Prom. Asistencias' },
+              { val: gmas, label: 'G+A', valColor: STAT_COLORS.ga },
+              { val: String(promGol.toFixed(2)).replace('.', ','), label: 'Prom. Goles', valColor: STAT_COLORS.goles },
+              { val: String(promAsist.toFixed(2)).replace('.', ','), label: 'Prom. Asistencias', valColor: STAT_COLORS.asist },
             ];
         stats.forEach((st, i) => {
           const x = PAD_X + i * (cardW + cardGap);
-          parts.push(statCard({ x, y, w: cardW, h: secH, val: st.val, label: st.label, big: false }));
+          parts.push(statCard({ x, y, w: cardW, h: secH, val: st.val, label: st.label, valColor: st.valColor, big: false }));
         });
         return parts.join('\n');
       },
