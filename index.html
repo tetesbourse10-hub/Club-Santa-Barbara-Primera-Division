@@ -13395,21 +13395,33 @@ async function loadLiveData() {
   }
 
   let _nidoStaticRecordsRerendered = false;
+  // BUG REAL encontrado (ranking "Partidos Jugados" mostraba PG/PE/PP
+  // incompletos aunque el perfil de jugador ya mostraba el total correcto):
+  // el pedido de data/records.json estaba DESPUÉS de un `if (_nidoMerged
+  // !== null) { ...; return; }` — si el usuario abría un perfil de jugador
+  // ANTES de entrar a "El Nido" (flujo normal: _nidoMerged ya queda
+  // poblado por window._nidoEnsureLoaded, que el perfil dispara), ese
+  // early return cortaba la función ANTES de llegar al pedido de
+  // records.json, así que nunca se pedía — _nidoGetVED se quedaba para
+  // siempre en su fallback en vivo (que necesita Torneos Antiguos
+  // force-cargado, algo que el ranking nunca dispara por su cuenta). Ahora
+  // el pedido de records.json corre siempre, una sola vez, sin importar si
+  // _nidoMerged ya estaba poblado o no.
   window.renderNido = function() {
     const el = document.getElementById('nido-content');
     if (!el) return;
-    if (_nidoMerged !== null) { _renderNidoContent(); return; }
-    _renderNidoContent();
-    _nidoLoad().then(_renderNidoContent);
-    // Pide el índice precalculado de build time (data/records.json) una
-    // sola vez — cuando llega, un solo re-render toma el camino rápido de
-    // _nidoGetVED en vez del cálculo en vivo partido a partido.
     if (!_nidoStaticRecordsRerendered) {
       _nidoStaticRecordsRerendered = true;
+      // Pide el índice precalculado de build time (data/records.json) una
+      // sola vez — cuando llega, un solo re-render toma el camino rápido de
+      // _nidoGetVED en vez del cálculo en vivo partido a partido.
       _nidoEnsureStaticRecords().then(records => {
         if (records) _renderNidoContent();
       });
     }
+    if (_nidoMerged !== null) { _renderNidoContent(); return; }
+    _renderNidoContent();
+    _nidoLoad().then(_renderNidoContent);
   };
 
   // ── Public accessors used by the Player Profile component ──────────────
