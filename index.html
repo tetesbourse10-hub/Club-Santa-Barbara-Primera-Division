@@ -3576,11 +3576,6 @@ function _invalidatePlayerPartidosCache() { _playerPartidosCache = {}; _playerLi
 // a este build, error de red — cae al cálculo en vivo completo existente
 // como fallback, incluyendo forzar Torneos Antiguos), objeto = datos reales.
 let _ppStaticRecordCache = {};
-// normName(jugador) -> true una vez que se comprobó que el JSON precalculado
-// de ese jugador no suma el PJ real (ver la validación en renderPlayerProfile)
-// — se descarta para el resto de la sesión y ese jugador pasa a usar el
-// camino 100% en vivo, en vez de seguir mostrando un total incompleto.
-let _ppStaticRecordRejected = {};
 async function _ppFetchStaticRecord(nombre) {
   const target = normName(nombre);
   if (target in _ppStaticRecordCache) return { data: _ppStaticRecordCache[target], fresh: false };
@@ -4088,11 +4083,16 @@ function _ppRecordCardInnerHtml(fullPartidos) {
   const list = _ppFilterByCat(fullPartidos);
   const record = _ppRecordVED(list);
   const favCliente = _ppFavoritoCliente(list);
-  // Se agotaron los reintentos y el total sigue sin cerrar contra el PJ
-  // real — se muestra el número disponible, pero avisando que puede estar
-  // incompleto en vez de presentarlo como definitivo sin más.
+  // window._ppRecordIncomplete puede venir de dos casos bien distintos:
+  // (a) el camino en vivo agotó los reintentos sin cerrar contra el PJ real
+  //     (posible falla transitoria); (b) el camino con JSON precalculado
+  //     detectó que hay menos partidos subidos que el PJ real de El Nido —
+  //     un estado PERMANENTE (temporadas viejas sin Fecha a Fecha
+  //     digitalizado), no una carga que falta terminar. Mismo aviso para
+  //     los dos, con la aclaración correcta: esto muestra lo SUBIDO, no
+  //     necesariamente el total jugado.
   const incompleteNote = window._ppRecordIncomplete
-    ? `<div class="pp-data-gap-note">⚠️ Puede estar incompleto — no se terminó de cargar todo el historial del jugador.</div>`
+    ? `<div class="pp-data-gap-note">ℹ️ Esta sección muestra los partidos cargados en el sitio — puede no ser el total de partidos jugados si alguna temporada vieja no tiene su Fecha a Fecha digitalizado.</div>`
     : '';
   return `
     <div class="pp-record-ved" id="pp-record-ved"><span class="pp-ved-v">${record.v}V</span> - <span class="pp-ved-e">${record.e}E</span> - <span class="pp-ved-d">${record.d}D</span></div>
@@ -4244,7 +4244,7 @@ function _ppRenderDetailPanel(kind) {
   // timing, así que si sigue apareciendo es una señal real de que revisar.
   const isTotalPartidos = kind === 'partidos' && (window._ppActiveCat || 'total') === 'total';
   const gapNote = isTotalPartidos && window._ppCareerPJ > list.length
-    ? `<div class="pp-data-gap-note">⚠️ Mostrando ${list.length} de ${window._ppCareerPJ} partidos de la carrera — algunos torneos antiguos aún no tienen su Fecha a Fecha cargada.</div>`
+    ? `<div class="pp-data-gap-note">ℹ️ Mostrando ${list.length} de ${window._ppCareerPJ} partidos de la carrera — el sitio muestra los partidos SUBIDOS en el Fecha a Fecha de cada torneo, que puede ser menos que el total jugado si alguna temporada vieja no está digitalizada.</div>`
     : '';
   panel.innerHTML = `
     <div class="pp-detail-header">${PP_DETAIL_LABELS[kind]} (${_ppKindTotal(kind, _ppFilterByCat(list))})</div>
@@ -4460,35 +4460,24 @@ function renderPlayerProfile(nombre) {
   // desactualizadas entre deploys. Si todavía no llegó el JSON (o el
   // jugador no tiene), sigue el camino 100% en vivo de siempre (s.partidos)
   // como fallback.
+  //
+  // OJO — esto NO se valida contra el PJ real de El Nido (a propósito): el
+  // sitio muestra los partidos que están SUBIDOS en el Fecha a Fecha de cada
+  // torneo, no necesariamente el total de partidos jugados en la historia
+  // del club — hay jugadores con más partidos jugados que partidos subidos
+  // (temporadas viejas sin Fecha a Fecha digitalizado), y eso es una
+  // situación PERMANENTE, no una carga que falta terminar. Antes esto se
+  // trataba como "incompleto" y mandaba a un reintento en vivo de hasta 60
+  // segundos que nunca iba a cerrar (el número real nunca iba a aparecer,
+  // porque nunca se subió) — quedaba "Calculando…" para siempre. Ahora se
+  // muestra directo lo que hay, sin reintentar nada; el aviso de "mostrando
+  // X de Y partidos" (ver _ppRenderDetailPanel/_ppRecordCardInnerHtml) deja
+  // claro que puede no ser el total jugado.
   const _ppTarget = normName(nombre);
-  let _ppStaticRecord = (_ppStaticRecordCache[_ppTarget] && !_ppStaticRecordRejected[_ppTarget])
-    ? _ppStaticRecordCache[_ppTarget] : null;
-  let _ppPartidosSource = _ppStaticRecord
+  const _ppStaticRecord = _ppStaticRecordCache[_ppTarget] || null;
+  const _ppPartidosSource = _ppStaticRecord
     ? _ppMergePartidos(_ppStaticRecord.partidos, _buildPlayerLivePartidos(nombre))
     : s.partidos;
-  // BUG REAL encontrado (perfil clavado en un total chico — ej. 32 de 100+
-  // partidos — para siempre, no un tema de timing): antes, si el archivo
-  // data/jugador/<slug>.json EXISTÍA, se confiaba ciegamente en su contenido
-  // aunque viniera con `partidos` vacío o incompleto (ej. un build viejo
-  // afectado por el rate-limit de Google ya diagnosticado, o un jugador
-  // agregado a mitad de un build fallido) — a diferencia del camino 100% en
-  // vivo, que SÍ validaba el total contra el PJ real de El Nido antes de
-  // darlo por bueno. Portamos esa misma validación acá: si el merge
-  // histórico(JSON)+en vivo no suma el PJ real, se descarta el JSON para
-  // este jugador (memoria de sesión, ver _ppStaticRecordRejected) y se cae
-  // al camino en vivo completo de siempre, que si hace falta fuerza Torneos
-  // Antiguos (_ppEnsureLiveHistoricoFallback) — nunca se queda mostrando un
-  // número que ya se sabe incompleto como si fuera definitivo.
-  if (_ppStaticRecord && s.nidoReady) {
-    const _ppStaticTotal = _ppRecordVED(_ppPartidosSource);
-    const _ppStaticLooksComplete = !s.pj || (_ppStaticTotal.v + _ppStaticTotal.e + _ppStaticTotal.d) === s.pj;
-    if (!_ppStaticLooksComplete) {
-      _ppStaticRecordRejected[_ppTarget] = true;
-      _ppStaticRecord = null;
-      _ppPartidosSource = s.partidos;
-      _ppEnsureLiveHistoricoFallback(nombre);
-    }
-  }
 
   // Stash the 5 clickable-stat detail lists so ppShowDetail() can swap the
   // panel below without a full re-render (same pattern as _ppMetricsData).
@@ -4516,7 +4505,7 @@ function renderPlayerProfile(nombre) {
   // _ppRecordCardInnerHtml/_ppRenderDetailPanel lean el valor ya resuelto
   // para este render en vez de uno stale de un jugador anterior. Con el
   // JSON precalculado ya disponible no hace falta ni loading ni reintentos.
-  _ppUpdateRecordLoadingState(nombre, s, _ppStaticRecord);
+  _ppUpdateRecordLoadingState(nombre, s, _ppStaticRecord, _ppPartidosSource);
   // Si todavía no se pidió el JSON para este jugador, lo pide ahora — una
   // vez que llegue (si trae datos), dispara un solo re-render que va a
   // encontrar _ppStaticRecordCache ya poblado y tomar este mismo camino.
@@ -4669,14 +4658,24 @@ const PP_RECORD_MAX_RETRIES = 12; // 12 * 5s = 60s extra de margen sobre el sett
 // PP_RECORD_MAX_RETRIES (60s extra) todavía no cierra, se deja de
 // reintentar y se muestran los números que haya con una advertencia en
 // vez de trabar el loading para siempre.
-function _ppUpdateRecordLoadingState(nombre, s, staticRecord) {
+function _ppUpdateRecordLoadingState(nombre, s, staticRecord, partidosSource) {
   // Con el JSON precalculado en build time ya disponible, el número es
   // definitivo de una — no hace falta loading ni la lógica de reintentos
   // (esa lógica sigue existiendo solo como fallback para cuando el JSON no
   // está: jugador nuevo que no llegó al último build, 404, sin red).
+  //
+  // Si el total (histórico del JSON + en vivo) no llega al PJ real de El
+  // Nido, eso NO es un problema de carga — el sitio solo puede mostrar los
+  // partidos que están SUBIDOS en el Fecha a Fecha de cada torneo, y hay
+  // temporadas viejas sin digitalizar. Es un estado PERMANENTE, no
+  // transitorio: _ppRecordIncomplete se usa acá solo para mostrar un aviso
+  // informativo ("mostrando X de Y"), nunca para disparar un reintento —
+  // antes esto quedaba "Calculando…" para siempre persiguiendo un número
+  // que nunca iba a aparecer porque nunca se subió.
   if (staticRecord) {
     window._ppRecordShowLoading = false;
-    window._ppRecordIncomplete = false;
+    const totalMostrado = (partidosSource || []).length;
+    window._ppRecordIncomplete = !!(s.pj && s.nidoReady && totalMostrado < s.pj);
     return;
   }
   const target = normName(nombre);
