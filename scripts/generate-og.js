@@ -324,7 +324,7 @@ async function main() {
       // fuentes tenga ese runner en particular.
       const png = new Resvg(svg, {
         font: {
-          fontBuffers: [fonts.regular, fonts.bold],
+          fontBuffers: [fonts.regular, fonts.bold, fonts.black],
           loadSystemFonts: false,
           defaultFontFamily: 'Inter',
         },

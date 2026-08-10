@@ -49,12 +49,18 @@ function splitName(nombre, maxLine = 16) {
   return line2 ? [line1, line2] : [line1];
 }
 
+// Tamaños calibrados contra el diseño de referencia real de la tarjeta
+// (.pp-share-card en index.html, 420px de ancho) escalado al lienzo de
+// 1080px de este SVG (factor 1080/420 ≈ 2.571) — antes los números de las
+// tiles eran ~25px, la mitad de lo que les correspondía (~62px), la causa
+// concreta de "los datos quedan muy chicos" reportado.
 function statCard({ x, y, w, h, val, label, valColor, big }) {
   const parts = [];
   parts.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="16" fill="${big ? '#141d2e' : 'rgba(255,255,255,0.035)'}" />`);
-  const valSize = big ? 25 : 17;
-  parts.push(`<text x="${x + w / 2}" y="${y + h / 2 - 2}" font-family="${FONT}" font-size="${valSize}" font-weight="900" fill="${valColor || '#ffffff'}" text-anchor="middle">${escapeXml(String(val))}</text>`);
-  parts.push(`<text x="${x + w / 2}" y="${y + h / 2 + (big ? 26 : 20)}" font-family="${FONT}" font-size="13" font-weight="600" fill="#8a94ab" text-anchor="middle">${escapeXml(label)}</text>`);
+  const valSize = big ? 60 : 34;
+  const labelSize = big ? 22 : 20;
+  parts.push(`<text x="${x + w / 2}" y="${y + h / 2 - (big ? 8 : 4)}" font-family="${FONT}" font-size="${valSize}" font-weight="900" fill="${valColor || '#ffffff'}" text-anchor="middle">${escapeXml(String(val))}</text>`);
+  parts.push(`<text x="${x + w / 2}" y="${y + h / 2 + (big ? 42 : 32)}" font-family="${FONT}" font-size="${labelSize}" font-weight="700" fill="#8a94ab" text-anchor="middle">${escapeXml(label)}</text>`);
   return parts.join('\n');
 }
 
@@ -73,21 +79,24 @@ function buildShareCardSvg({ nombre, pos, posColor, goles, asist, pj, gmas, titu
   const blocks = []; // { height, render(y) }
 
   // ── 1. Header ────────────────────────────────────────────────────────
+  // Tamaños calibrados contra .pp-share-card (420px de referencia) escalado
+  // ×2.571 al lienzo de 1080px — ver la nota completa en statCard() más
+  // abajo, mismo motivo en todos los bloques de este archivo.
   blocks.push({
-    height: 56,
+    height: 64,
     render(y) {
       const parts = [];
-      parts.push(`<text x="${PAD_X}" y="${y + 32}" font-family="${FONT}" font-size="22" font-weight="700" fill="#ffffff">🛡️ Club Santa Bárbara</text>`);
-      const badgeW = 92, badgeH = 40;
-      parts.push(`<rect x="${W - PAD_X - badgeW}" y="${y + (56 - badgeH) / 2}" width="${badgeW}" height="${badgeH}" rx="20" fill="#412402" />`);
-      parts.push(`<text x="${W - PAD_X - badgeW / 2}" y="${y + 32}" font-family="${FONT}" font-size="17" font-weight="700" fill="#fac775" text-anchor="middle">2026</text>`);
+      parts.push(`<text x="${PAD_X}" y="${y + 38}" font-family="${FONT}" font-size="30" font-weight="700" fill="#ffffff">🛡️ Club Santa Bárbara</text>`);
+      const badgeW = 118, badgeH = 50;
+      parts.push(`<rect x="${W - PAD_X - badgeW}" y="${y + (64 - badgeH) / 2}" width="${badgeW}" height="${badgeH}" rx="25" fill="#412402" />`);
+      parts.push(`<text x="${W - PAD_X - badgeW / 2}" y="${y + 39}" font-family="${FONT}" font-size="22" font-weight="700" fill="#fac775" text-anchor="middle">2026</text>`);
       return parts.join('\n');
     },
   });
 
   // ── 2. Identidad ─────────────────────────────────────────────────────
-  const AVATAR_D = 130;
-  const nameGap = 14, nameLineH = 34, badgesGap = 16, badgesRowH = 34;
+  const AVATAR_D = 148;
+  const nameGap = 18, nameLineH = 50, badgesGap = 18, badgesRowH = 46;
   const identityH = AVATAR_D + nameGap + nameLines.length * nameLineH + badgesGap + badgesRowH;
   blocks.push({
     height: identityH,
@@ -96,25 +105,25 @@ function buildShareCardSvg({ nombre, pos, posColor, goles, asist, pj, gmas, titu
       const cx = W / 2;
       const avatarCy = y + AVATAR_D / 2;
       parts.push(`<circle cx="${cx}" cy="${avatarCy}" r="${AVATAR_D / 2}" fill="${hexAlpha(posColor, 0.18)}" stroke="${hexAlpha(posColor, 0.4)}" stroke-width="3" />`);
-      parts.push(`<text x="${cx}" y="${avatarCy + 16}" font-family="${FONT}" font-size="46" font-weight="900" fill="${posColor}" text-anchor="middle">${escapeXml(initials)}</text>`);
+      parts.push(`<text x="${cx}" y="${avatarCy + 17}" font-family="${FONT}" font-size="45" font-weight="900" fill="${posColor}" text-anchor="middle">${escapeXml(initials)}</text>`);
       let ny = y + AVATAR_D + nameGap;
       nameLines.forEach((line, i) => {
-        parts.push(`<text x="${cx}" y="${ny + 26 + i * nameLineH}" font-family="${FONT}" font-size="32" font-weight="800" fill="#ffffff" text-anchor="middle">${escapeXml(line)}</text>`);
+        parts.push(`<text x="${cx}" y="${ny + 38 + i * nameLineH}" font-family="${FONT}" font-size="46" font-weight="900" fill="#ffffff" text-anchor="middle">${escapeXml(line)}</text>`);
       });
       ny += nameLines.length * nameLineH + badgesGap;
       const posLabel = pos || '—';
-      const posW = Math.max(60, 24 + posLabel.length * 12);
+      const posW = Math.max(90, 40 + posLabel.length * 20);
       const teamLabels = [hasA ? '1ra A' : null, hasB ? '1ra B' : null].filter(Boolean);
-      const teamW = 70;
-      const totalBadgesW = posW + (teamLabels.length ? teamLabels.length * (teamW + 10) : 0);
+      const teamW = 100;
+      const totalBadgesW = posW + (teamLabels.length ? teamLabels.length * (teamW + 14) : 0);
       let bx = cx - totalBadgesW / 2;
-      parts.push(`<rect x="${bx}" y="${ny}" width="${posW}" height="${badgesRowH}" rx="10" fill="${hexAlpha(posColor, 0.18)}" />`);
-      parts.push(`<text x="${bx + posW / 2}" y="${ny + 22}" font-family="${FONT}" font-size="15" font-weight="700" fill="${posColor}" text-anchor="middle">${escapeXml(posLabel)}</text>`);
-      bx += posW + 10;
+      parts.push(`<rect x="${bx}" y="${ny}" width="${posW}" height="${badgesRowH}" rx="12" fill="${hexAlpha(posColor, 0.18)}" />`);
+      parts.push(`<text x="${bx + posW / 2}" y="${ny + 30}" font-family="${FONT}" font-size="24" font-weight="700" fill="${posColor}" text-anchor="middle">${escapeXml(posLabel)}</text>`);
+      bx += posW + 14;
       teamLabels.forEach(label => {
-        parts.push(`<rect x="${bx}" y="${ny}" width="${teamW}" height="${badgesRowH}" rx="10" fill="rgba(255,255,255,0.08)" />`);
-        parts.push(`<text x="${bx + teamW / 2}" y="${ny + 22}" font-family="${FONT}" font-size="15" font-weight="700" fill="#cbd5e1" text-anchor="middle">${label}</text>`);
-        bx += teamW + 10;
+        parts.push(`<rect x="${bx}" y="${ny}" width="${teamW}" height="${badgesRowH}" rx="12" fill="rgba(255,255,255,0.08)" />`);
+        parts.push(`<text x="${bx + teamW / 2}" y="${ny + 30}" font-family="${FONT}" font-size="24" font-weight="700" fill="#cbd5e1" text-anchor="middle">${label}</text>`);
+        bx += teamW + 14;
       });
       return parts.join('\n');
     },
@@ -122,15 +131,15 @@ function buildShareCardSvg({ nombre, pos, posColor, goles, asist, pj, gmas, titu
 
   // ── 3. Logros TOP 5 (condicional) ───────────────────────────────────
   if (logrosList.length) {
-    const rowH = 50, rowGap = 12;
+    const rowH = 76, rowGap = 16;
     blocks.push({
       height: logrosList.length * rowH + (logrosList.length - 1) * rowGap,
       render(y) {
         const parts = [];
         let ly = y;
         logrosList.forEach(l => {
-          parts.push(`<rect x="${PAD_X}" y="${ly}" width="${contentW}" height="${rowH}" rx="12" fill="${hexAlpha(l.color, 0.15)}" />`);
-          parts.push(`<text x="${PAD_X + 18}" y="${ly + 32}" font-family="${FONT}" font-size="17" font-weight="700" fill="${l.color}">${l.pos}° ${escapeXml(l.text)}</text>`);
+          parts.push(`<rect x="${PAD_X}" y="${ly}" width="${contentW}" height="${rowH}" rx="14" fill="${hexAlpha(l.color, 0.15)}" />`);
+          parts.push(`<text x="${PAD_X + 24}" y="${ly + 47}" font-family="${FONT}" font-size="26" font-weight="700" fill="${l.color}">${l.pos}° ${escapeXml(l.text)}</text>`);
           ly += rowH + rowGap;
         });
         return parts.join('\n');
@@ -140,12 +149,12 @@ function buildShareCardSvg({ nombre, pos, posColor, goles, asist, pj, gmas, titu
 
   // ── 4. Récord con la camiseta (siempre) ─────────────────────────────
   blocks.push({
-    height: 64,
+    height: 88,
     render(y) {
       const parts = [];
-      parts.push(`<rect x="${PAD_X}" y="${y}" width="${contentW}" height="64" rx="20" fill="rgba(239,159,39,0.08)" stroke="rgba(239,159,39,0.3)" stroke-width="1.5" />`);
+      parts.push(`<rect x="${PAD_X}" y="${y}" width="${contentW}" height="88" rx="24" fill="rgba(239,159,39,0.08)" stroke="rgba(239,159,39,0.3)" stroke-width="1.5" />`);
       const cx = W / 2;
-      parts.push(`<text x="${cx}" y="${y + 40}" font-family="${FONT}" font-size="20" font-weight="700" text-anchor="middle">` +
+      parts.push(`<text x="${cx}" y="${y + 55}" font-family="${FONT}" font-size="30" font-weight="700" text-anchor="middle">` +
         `<tspan>👕 </tspan>` +
         `<tspan fill="#97c459">${escapeXml(String(pg))}</tspan><tspan fill="#4a5268"> PG — </tspan>` +
         `<tspan fill="#fac775">${escapeXml(String(pe))}</tspan><tspan fill="#4a5268"> PE — </tspan>` +
@@ -156,7 +165,7 @@ function buildShareCardSvg({ nombre, pos, posColor, goles, asist, pj, gmas, titu
   });
 
   // ── 5. Stats principales (3 cards) ──────────────────────────────────
-  const mainH = 190;
+  const mainH = 220;
   const cardGap = 20, cardW = (contentW - cardGap * 2) / 3;
   blocks.push({
     height: mainH,
@@ -187,7 +196,7 @@ function buildShareCardSvg({ nombre, pos, posColor, goles, asist, pj, gmas, titu
 
   // ── 6. Stats secundarias (3 cards, no aplica a arqueros) ────────────
   if (!isArquero) {
-    const secH = 140;
+    const secH = 165;
     blocks.push({
       height: secH,
       render(y) {

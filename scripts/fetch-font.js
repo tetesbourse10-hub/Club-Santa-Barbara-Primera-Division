@@ -1,5 +1,6 @@
-// Descarga los .ttf de Inter (Regular 400 + Bold 700 — los mismos pesos
-// que usa el resto del sitio) para pasárselos a resvg como buffer real.
+// Descarga los .ttf de Inter (Regular 400 + Bold 700 + Black 900 — los
+// mismos pesos que usa el resto del sitio, incluida la tarjeta de share)
+// para pasárselos a resvg como buffer real.
 // Sin esto, resvg no tiene ninguna fuente "Inter" instalada y cae a lo que
 // sea que tenga la máquina de build — que es exactamente el bug original
 // (texto en una fuente serif/default en vez de Inter).
@@ -20,7 +21,7 @@
 // que dependa todo.
 const wawoff2 = require('wawoff2');
 
-const FONT_CSS_URL = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap';
+const FONT_CSS_URL = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap';
 const MODERN_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
 // Separado de fetchInterFonts() para poder testearlo con un CSS de
@@ -62,20 +63,21 @@ async function fetchInterFonts() {
   const css = await cssRes.text();
   const fontsByWeight = parseFontUrlsByWeight(css);
 
-  if (!fontsByWeight['400'] || !fontsByWeight['700']) {
+  if (!fontsByWeight['400'] || !fontsByWeight['700'] || !fontsByWeight['900']) {
     throw new Error(
-      'No se encontraron URLs de Inter 400/700 (ni woff2 ni truetype) en la respuesta de Google Fonts ' +
+      'No se encontraron URLs de Inter 400/700/900 (ni woff2 ni truetype) en la respuesta de Google Fonts ' +
       '(¿cambió el formato de la respuesta de la API?). ' +
       `Pesos encontrados: ${Object.keys(fontsByWeight).join(', ') || 'ninguno'}.`
     );
   }
 
-  const [regular, bold] = await Promise.all([
+  const [regular, bold, black] = await Promise.all([
     downloadFont(fontsByWeight['400']),
     downloadFont(fontsByWeight['700']),
+    downloadFont(fontsByWeight['900']),
   ]);
 
-  return { regular, bold };
+  return { regular, bold, black };
 }
 
 module.exports = { fetchInterFonts, parseFontUrlsByWeight };
