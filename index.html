@@ -196,7 +196,7 @@
     .nmb-cd-val .nmb-cd-unit { font-size: 1.4rem; font-weight: 700; margin-right: 6px; }
     .nmb-cd-label { font-size: 0.65rem; color: var(--gris-texto); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
 
-    /* ── LANDING CARD: position badge + last-3-results/points footer ── */
+    /* ── LANDING CARD: position badge + last-5-results/points footer ── */
     .lc-badge { position: absolute; top: 14px; right: 14px; }
     .lc-badge-pill {
       font-size: 0.66rem; font-weight: 800; padding: 3px 9px; border-radius: 20px; letter-spacing: 0.02em; white-space: nowrap;
@@ -12062,10 +12062,10 @@ function renderLandingCardStats() {
     if (footEl) {
       const partidos = (d.partidos || []).filter(m => /^\d+$/.test(m.fecha));
       const played = partidos.filter(m => m.resultado !== null);
-      // Últimos 3 partidos, más reciente primero.
-      const lastThree = played.slice(-3).reverse();
-      if (lastThree.length) {
-        const pills = lastThree.map(m => {
+      // Últimos 5 partidos, más reciente primero.
+      const lastFive = played.slice(-5).reverse();
+      if (lastFive.length) {
+        const pills = lastFive.map(m => {
           const r = m.gf > m.gc ? 'G' : m.gf === m.gc ? 'E' : 'P';
           const cls = r === 'G' ? 'lc-res-g' : r === 'E' ? 'lc-res-e' : 'lc-res-p';
           return `<span class="lc-res-pill ${cls}" title="vs ${m.rival} (${m.resultado})">${r}</span>`;
