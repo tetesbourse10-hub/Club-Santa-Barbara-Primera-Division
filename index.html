@@ -7005,21 +7005,29 @@ function _ligaOnlyMatches(matches) {
   });
 }
 
-// Apertura AIFA A 2026's live sheet has 3 copa fixtures (El Chasqui, Libertador,
-// GEBA — todos rounds de Recopa 2026, leídos de la hoja centralizada "SB en
-// Copas" en vez de acá) mislabeled with plain matchday numbers "1", "12" y
-// "2", colliding with the real Fecha 1 (VILO), Fecha 12 (AFALP) y Fecha 2
-// (club-confirmado) league rows. _ligaOnlyMatches can't tell them apart from
-// a real fecha by content alone, so strip these specific rival+fecha
-// combinations by name instead.
+// Apertura AIFA A 2026's live sheet has 2 copa fixtures (El Chasqui, Libertador
+// — both actually Recopa 2026 rounds, now read from the centralized "SB en
+// Copas" sheet instead) mislabeled with plain matchday numbers "1" and "12",
+// colliding with the real Fecha 1 (VILO) and Fecha 12 (AFALP) league rows.
+// _ligaOnlyMatches can't tell them apart from a real fecha by content alone,
+// so strip these two specific rival+fecha combinations by name instead.
 function _stripApertura2026ACopaLeaks(matches) {
   const leaks = [
     { rival: 'EL CHASQUI', fecha: '1' },
     { rival: 'LIBERTADOR', fecha: '12' },
-    // Match exacto (no substring) — "GEBA" solo, para no llevarse de arriba
-    // un futuro/otro cruce real contra "GEBA AZUL"/"GEBA BLANCO" (equipos
-    // distintos que existen en otros torneos) si alguna vez coincidieran
-    // en esta misma fecha.
+  ];
+  return matches.filter(m => !leaks.some(l =>
+    (m.rival || '').toUpperCase().includes(l.rival) && String(m.fecha).trim() === l.fecha));
+}
+
+// Clausura AIFA A 2026's live sheet tiene la semifinal de Recopa 2026 vs
+// GEBA (jueves, no hay planilla propia todavía para esa copa — el club la
+// carga en el sheet de Clausura porque no tiene otro lugar) mislabeled como
+// Fecha 2, pisando el partido de liga real (Regatas) en esa misma fecha.
+// Mismo patrón que _stripApertura2026ACopaLeaks — rival+fecha exacto (no
+// substring) para no confundir "GEBA" con "GEBA AZUL"/"GEBA BLANCO".
+function _stripClausura2026ACopaLeaks(matches) {
+  const leaks = [
     { rival: 'GEBA', fecha: '2', exact: true },
   ];
   return matches.filter(m => !leaks.some(l => {
@@ -11907,7 +11915,38 @@ function _teamNextMatch(d) {
   if (!next) return null;
   const det = (d.apertura || []).find(m => String(m.fecha) === String(next.fecha));
   return { rival: next.rival, fecha: next.fecha, dia: det?.dia || '', hora: det?.hora || '', lugar: det?.lugar || '',
-    local: next.local || '', dt: det ? _parseFechaHora(det.dia, det.hora) : null };
+    local: next.local || '', dt: det ? _parseFechaHora(det.dia, det.hora) : null,
+    navKey: 'a', locator: next.fecha };
+}
+// Recopa AIFA A 2026 no tiene planilla propia todavía — el club carga esos
+// partidos directamente en el sheet de Clausura AIFA A 2026, mal
+// etiquetados con un número de fecha real (ver _stripClausura2026ACopaLeaks,
+// que los saca de ahí) y los lee de la hoja centralizada "SB en Copas"
+// (COPA_BLOCKS['Recopa 2026']) en su lugar. Próximo cruce PENDIENTE de esa
+// copa para Primera A, mismo shape que _teamNextMatch, para poder comparar
+// fechas y elegir cuál mostrar en la casilla de "Próximo Partido".
+function _recopaANextMatch() {
+  const matches = COPA_BLOCKS['Recopa 2026'] || [];
+  const next = matches.find(m => m.resultado === null);
+  if (!next) return null;
+  return {
+    rival: next.rival, fecha: next.posCSB || next.fecha, dia: next.dia || '', hora: next.hora || '',
+    lugar: next.lugar || '', local: next.local || '', dt: _parseFechaHora(next.dia, next.hora),
+    navKey: 'rc:a', locator: `${next.rival}|${next.posCSB || next.fecha}`,
+  };
+}
+// La casilla de "Próximo Partido" de Primera A tiene que mostrar el que sea
+// cronológicamente más próximo entre Clausura AIFA A 2026 (liga) y Recopa
+// 2026 (copa, corriendo en paralelo) — no asumir que siempre es de liga.
+// Sin fecha confirmada para alguno de los dos (dt null), se prioriza la
+// copa (en la práctica, la fase eliminatoria siempre es la más urgente).
+function _primeraANextMatch() {
+  const liga = _teamNextMatch(DATA_A);
+  const copa = _recopaANextMatch();
+  if (!copa) return liga;
+  if (!liga || !liga.dt) return copa;
+  if (!copa.dt) return copa;
+  return copa.dt.getTime() <= liga.dt.getTime() ? copa : liga;
 }
 const DIAS_SEMANA = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
 // "Sábado · 17:00hs · 01/08" instead of the raw sheet date — weekday name
@@ -11975,7 +12014,14 @@ function _renderNextMatchBox(elId, boxClass, label, m, navKey) {
         ? `${cd.days}<span class="nmb-cd-unit">d</span> ${cd.hours}<span class="nmb-cd-unit">h</span>`
         : `${cd.hours}<span class="nmb-cd-unit">h</span> ${cd.minutes}<span class="nmb-cd-unit">m</span>`)
     : '';
-  const clickAttr = m.fecha != null ? ` onclick="goToMatchFecha('${navKey}', ${parseInt(m.fecha)})"` : '';
+  // m.navKey/m.locator (ya resueltos por _teamNextMatch/_recopaANextMatch)
+  // pisan al navKey estático del parámetro cuando existen — necesario para
+  // Primera A, que puede mostrar acá un partido de Recopa 2026 en vez de
+  // Clausura (ver _primeraANextMatch), con su propio navKey ('rc:a') y un
+  // locator compuesto ("rival|fase"), no un simple número de fecha.
+  const clickNavKey = m.navKey || navKey;
+  const clickLocator = m.locator != null ? m.locator : m.fecha;
+  const clickAttr = clickLocator != null ? ` onclick="goToMatchFecha('${clickNavKey}', '${String(clickLocator).replace(/'/g, "\\'")}')"` : '';
   _softSetHtml(el, `
     <div class="next-match-box ${boxClass}${clickAttr ? ' clickable' : ''}"${clickAttr}>
       <div class="nmb-main">
@@ -11990,7 +12036,7 @@ function _renderNextMatchBox(elId, boxClass, label, m, navKey) {
     </div>`);
 }
 function renderLandingNextMatch() {
-  _renderNextMatchBox('landing-next-match-a', 'nmb-box-a', 'Primera A', _teamNextMatch(DATA_A), 'a');
+  _renderNextMatchBox('landing-next-match-a', 'nmb-box-a', 'Primera A', _primeraANextMatch(), 'a');
   _renderNextMatchBox('landing-next-match-b', 'nmb-box-b', 'Primera B', _teamNextMatch(DATA_B), 'b');
 }
 function _posBadgeClass(pos, total) {
@@ -12409,8 +12455,8 @@ async function loadLiveData() {
     // showed up in Centro de Datos/Fecha a Fecha, almost certainly a leaked
     // copa fixture parsed as if it were a league round. Capped the same way
     // HISTORICO_GENERIC seasons already cap their own leaks (maxFecha/capFecha).
-    const det = _ligaOnlyMatches(parseDetailedMatches(ok(aClDet), true))
-      .filter(m => parseInt(m.fecha) <= 14);
+    const det = _stripClausura2026ACopaLeaks(_ligaOnlyMatches(parseDetailedMatches(ok(aClDet), true))
+      .filter(m => parseInt(m.fecha) <= 14));
     if (p.length > 0)   DATA_A.jugadores = p;
     if (det.length > 0) {
       DATA_A.apertura  = det;
@@ -12429,7 +12475,7 @@ async function loadLiveData() {
   // at all and only carries Local/Visitante indirectly (inferred from
   // Lugar, which is often blank).
   if (ok(aClBasic)) {
-    const m = _ligaOnlyMatches(parseMatches(ok(aClBasic)));
+    const m = _stripClausura2026ACopaLeaks(_ligaOnlyMatches(parseMatches(ok(aClBasic))));
     const byKey = new Map(m.map(x => [`${(x.rival || '').toUpperCase()}|${x.fecha}`, x]));
     for (const p of DATA_A.partidos) {
       const src = byKey.get(`${(p.rival || '').toUpperCase()}|${p.fecha}`);
