@@ -11908,7 +11908,7 @@ function _countdownParts(target) {
 // Next PENDING league match for a team's live season — same "next"/"detNext"
 // pattern already used by the Torneos Actuales "Próximo Partido" card,
 // reused here so the landing banner reads from that exact same source.
-function _teamNextMatch(d) {
+function _teamNextMatch(d, navKey) {
   const partidos = (d.partidos || []).filter(m => /^\d+$/.test(m.fecha));
   const pending = partidos.filter(m => m.resultado === null);
   const next = pending[0];
@@ -11916,7 +11916,7 @@ function _teamNextMatch(d) {
   const det = (d.apertura || []).find(m => String(m.fecha) === String(next.fecha));
   return { rival: next.rival, fecha: next.fecha, dia: det?.dia || '', hora: det?.hora || '', lugar: det?.lugar || '',
     local: next.local || '', dt: det ? _parseFechaHora(det.dia, det.hora) : null,
-    navKey: 'a', locator: next.fecha };
+    navKey, locator: next.fecha };
 }
 // Recopa AIFA A 2026 no tiene planilla propia todavía — el club carga esos
 // partidos directamente en el sheet de Clausura AIFA A 2026, mal
@@ -11941,7 +11941,7 @@ function _recopaANextMatch() {
 // Sin fecha confirmada para alguno de los dos (dt null), se prioriza la
 // copa (en la práctica, la fase eliminatoria siempre es la más urgente).
 function _primeraANextMatch() {
-  const liga = _teamNextMatch(DATA_A);
+  const liga = _teamNextMatch(DATA_A, 'a');
   const copa = _recopaANextMatch();
   if (!copa) return liga;
   if (!liga || !liga.dt) return copa;
@@ -12037,7 +12037,7 @@ function _renderNextMatchBox(elId, boxClass, label, m, navKey) {
 }
 function renderLandingNextMatch() {
   _renderNextMatchBox('landing-next-match-a', 'nmb-box-a', 'Primera A', _primeraANextMatch(), 'a');
-  _renderNextMatchBox('landing-next-match-b', 'nmb-box-b', 'Primera B', _teamNextMatch(DATA_B), 'b');
+  _renderNextMatchBox('landing-next-match-b', 'nmb-box-b', 'Primera B', _teamNextMatch(DATA_B, 'b'), 'b');
 }
 function _posBadgeClass(pos, total) {
   if (!pos || !total) return 'lc-badge-amber';
