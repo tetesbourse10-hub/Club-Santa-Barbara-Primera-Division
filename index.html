@@ -7765,11 +7765,24 @@ function renderResumen() {
   // the promise below is memoized/already-resolved after the first load, so
   // without the guard every renderResumen() call would re-attach a .then()
   // that immediately re-triggers renderResumen(), an infinite render loop.
+  //
+  // BUG REAL encontrado (TOP 5 no aparecía al entrar a un plantel — mucho
+  // más notorio en mobile, donde cada visita suele ser una carga en frío en
+  // vez de una sesión de escritorio ya calentada): _jugTotalesData/_jugBData
+  // se leían ACÁ, en la línea de arriba, ANTES de llamar a
+  // _ensureJugTotalesA/B — pero es esa misma llamada la que puebla
+  // _jugTotalesData con SEED_JUG_ESTADISTICAS de forma síncrona (ver
+  // _ensureJugTotalesA). Como la llamada pasaba recién DESPUÉS de leer
+  // totalesRows, el primer render de cada visita siempre arrancaba con
+  // totalesRows en null → TOP 5 vacío, hasta que el fetch real (de red)
+  // terminara y disparara el re-render. Se invierte el orden para que el
+  // seed ya esté disponible en este mismo render, no en el siguiente.
+  const totalesPromise = isA ? _ensureJugTotalesA() : _ensureJugTotalesB();
   const totalesRows = isA ? _jugTotalesData : _jugBData;
   const totalesCol  = isA ? JUG_COL : JUG_COL_B;
   const { partidos: byPartidos, goles: byGoles, asist: byAsist } = _top5FromTotales(totalesRows, totalesCol);
   if (!(isA ? _jugTotalesAReady : _jugTotalesBReady)) {
-    (isA ? _ensureJugTotalesA() : _ensureJugTotalesB()).then(() => {
+    totalesPromise.then(() => {
       if (isA) _jugTotalesAReady = true; else _jugTotalesBReady = true;
       if (currentData === d && document.getElementById('tab-resumen')?.classList.contains('active')) renderResumen();
     });
@@ -13609,6 +13622,16 @@ if (window.__OG_BUILD__) {
   // _nidoEnsureStaticRecords() también — esa función dedupea vía su propia
   // promise, así que no dispara un segundo fetch.
   _nidoEnsureStaticRecords();
+  // Mismo motivo: arranca ya el fetch de "Estadísticas Totales" (A y B) que
+  // alimenta los paneles TOP 5 de Resumen, en vez de esperar a que el
+  // usuario entre a un plantel. Primera A tiene datos semilla (ver
+  // SEED_JUG_ESTADISTICAS) que ya se ven al instante aunque este fetch
+  // tarde; Primera B no tiene semilla propia todavía, así que para esa
+  // sección esto es lo que más achica el hueco vacío antes de que llegue lo
+  // real. _ensureJugTotalesA/B dedupean vía su propia promise — llamarlas
+  // de nuevo al entrar al plantel no dispara un segundo fetch.
+  _ensureJugTotalesA();
+  _ensureJugTotalesB();
   loadLiveData();
   if (location.hash) {
     // Deep link directo: alguien entra por /jugador/:slug, que redirige acá
