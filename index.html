@@ -12924,6 +12924,18 @@ async function loadLiveData() {
   // incompleto, mientras que el perfil del jugador (que jamás cachea, siempre
   // recalcula desde cero) sí terminaba reflejando el total real una vez
   // cargado todo — de ahí el desfase reportado entre ambas vistas.
+  // El ranking esperaba _matchDataReadyOnce (loadLiveData() completo, TODAS
+  // las fuentes incluido Torneos Antiguos) incluso cuando _nidoGetVED ya
+  // tenía disponible el camino rápido (records.json + solo temporada en
+  // vivo) — el mismo camino que ya usa el perfil de jugador sin esperar
+  // nada, por eso el perfil se sentía instantáneo y el ranking no. Con
+  // plantel "todos" y records.json ya cargado, no hace falta esperar más:
+  // se puede pintar ya. Filtrado por plantel específico (a/b) sigue
+  // esperando la carga completa, porque ahí _nidoGetVED cae al cálculo en
+  // vivo completo (_buildPlayerPartidos, con histórico incluido).
+  function _nidoVedReady() {
+    return _matchDataReadyOnce || (_nidoTeam === 'todos' && !!_nidoStaticRecords);
+  }
   let _nidoVEDCache = {};
   function _nidoGetVED(nombre) {
     const key = normName(nombre) + '|' + _nidoTeam;
@@ -13164,7 +13176,7 @@ async function loadLiveData() {
       // pueden estar incompletos (ver _matchDataReadyOnce) — se evita incluso
       // calcularlos y se muestra un placeholder de carga en su lugar, en vez
       // de un número que cambia solo apenas termina la carga real.
-      const ved = isPjRank && _matchDataReadyOnce ? _nidoGetVED(p.nombre) : null;
+      const ved = isPjRank && _nidoVedReady() ? _nidoGetVED(p.nombre) : null;
 
       return `<tr style="background:${bg};border-bottom:${borderBottom};transition:background .15s;">
         ${posCell}
@@ -13201,7 +13213,7 @@ async function loadLiveData() {
           Mostrando <strong style="color:#c0c8d8;font-weight:600;">${showing}</strong> de <strong style="color:#c0c8d8;font-weight:600;">${totalDs}</strong> jugadores
         </span>
         ${isRankMode ? `<span style="font-size:11px;color:#eab308;font-weight:600;letter-spacing:.05em;">RANKING — ${rankMeta?.label || ''}</span>` : ''}
-        ${isPjRank && !_matchDataReadyOnce ? `<span style="font-size:11px;color:#6b7280;">⏳ Cargando PG/PE/PP…</span>` : ''}
+        ${isPjRank && !_nidoVedReady() ? `<span style="font-size:11px;color:#6b7280;">⏳ Cargando PG/PE/PP…</span>` : ''}
       </div>
       <div style="overflow:auto;max-height:640px;">
         <table style="width:100%;border-collapse:collapse;">${thead}<tbody>${tbody || `<tr><td colspan="${colspan}" style="padding:32px;text-align:center;color:#4b5563;">Sin resultados</td></tr>`}</tbody></table>
@@ -13250,7 +13262,7 @@ async function loadLiveData() {
     // Ver _matchDataReadyOnce: antes de la primera carga completa, PG/PE/PP
     // pueden estar incompletos — se muestra un placeholder de carga en vez
     // de calcularlos y mostrar un número que cambia solo después.
-    const ved = _matchDataReadyOnce ? _nidoGetVED(p.nombre) : null;
+    const ved = _nidoVedReady() ? _nidoGetVED(p.nombre) : null;
     const activeVal = !ved && (activeColKey === 'pg' || activeColKey === 'pe' || activeColKey === 'pp') ? '…'
       : activeColKey === 'pg' ? ved.v
       : activeColKey === 'pe' ? ved.e
@@ -13587,6 +13599,16 @@ if (window.__OG_BUILD__) {
     renderLandingWidgets();
     refreshCurrentView();
   }
+  // Arranca el fetch de data/records.json (índice V-E-D histórico para El
+  // Nido) ya en el arranque de la página, en paralelo con loadLiveData(),
+  // en vez de esperar a que el usuario entre a El Nido y elija el ranking
+  // de "Partidos Jugados" — es un JSON chico, así que para cuando llegue a
+  // esa pantalla normalmente ya está resuelto (mismo motivo por el que el
+  // perfil de jugador, que pide su propio JSON individual apenas se abre,
+  // se siente casi instantáneo). window.renderNido sigue llamando a
+  // _nidoEnsureStaticRecords() también — esa función dedupea vía su propia
+  // promise, así que no dispara un segundo fetch.
+  _nidoEnsureStaticRecords();
   loadLiveData();
   if (location.hash) {
     // Deep link directo: alguien entra por /jugador/:slug, que redirige acá
