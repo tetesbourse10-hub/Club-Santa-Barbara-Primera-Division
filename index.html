@@ -13714,20 +13714,24 @@ async function loadLiveData() {
 
   let _nidoLoadPromise = null;
   // Shared loader: dedupes concurrent callers (renderNido + player profile) into one fetch.
+  // Reuses the same "Jugadores Estadisticas" data/promises as Estadísticas Totales
+  // (_ensureJugTotalesA/B, same top-level <script> scope) instead of issuing its
+  // own independent fetch — that source already renders instantly from seed data
+  // and is very likely already resolved by the time El Nido is opened, so
+  // filtering by plantel here is as fast as it is in Totales instead of waiting
+  // on a fresh cold fetch.
   function _nidoLoad() {
     if (_nidoMerged !== null) return Promise.resolve();
     if (_nidoLoadPromise) return _nidoLoadPromise;
     _nidoLoading = true;
     _nidoLoadPromise = Promise.allSettled([
-      fetchProxy('Jugadores Estadisticas', null, GS.A_MAIN),
-      fetchProxy('Jugadores Estadisticas', null, GS.B_HIST),
-    ]).then(([resA, resB]) => {
-      const rowsA = resA.status === 'fulfilled' ? resA.value : [];
-      const rowsB = resB.status === 'fulfilled' ? resB.value : [];
-      const hdrA  = rowsA[0] || [];
-      const hdrB  = rowsB[0] || [];
-      _nidoDataA  = rowsA.slice(1).map(r => hdrA.map((_, i) => String(r[i] ?? '').trim())).map(normA).filter(Boolean);
-      _nidoDataB  = rowsB.slice(1).map(r => hdrB.map((_, i) => String(r[i] ?? '').trim())).map(normB).filter(Boolean);
+      _ensureJugTotalesA(),
+      _ensureJugTotalesB(),
+    ]).then(() => {
+      const rowsA = _jugTotalesData || [];
+      const rowsB = _jugBData || [];
+      _nidoDataA  = rowsA.map(normA).filter(Boolean);
+      _nidoDataB  = rowsB.map(normB).filter(Boolean);
       _nidoMerged = mergeAB(_nidoDataA, _nidoDataB);
       _nidoLoading = false;
     });
