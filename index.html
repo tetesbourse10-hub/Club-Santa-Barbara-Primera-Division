@@ -9817,6 +9817,42 @@ const SEED_DEBUTS = [
   { year:2026, nombre:'Benito Jasiukiewicz',      cat:2007, edad:19, rival:'El Chasqui',    resultado:'2-1', gol:true,  asist:false },
   { year:2026, nombre:'Benito Gualco',            cat:2008, edad:18, rival:'Harrods',       resultado:'3-0', gol:false, asist:false },
 ];
+// Debuts de Primera A en vivo (gid 1550109108, columnas A:H = Nombre,
+// Categoria, Edad, Rival, Resultado, Gol, Asistencia, Año) — antes esta
+// sección estaba enteramente hardcodeada en SEED_DEBUTS de arriba; se van a
+// seguir sumando debuts nuevos en esta hoja en vivo en vez de tocar el
+// código cada vez. Para cada año presente en la hoja en vivo, esas filas
+// REEMPLAZAN a las del mismo año en SEED_DEBUTS (así la hoja siempre manda
+// para el/los año(s) que trae, típicamente el actual); los años que la hoja
+// no toca siguen viniendo del seed histórico (2016-2025).
+let _debutsData = SEED_DEBUTS;
+let _debutsLoadPromise = null;
+function _ensureDebutsA() {
+  if (_debutsLoadPromise) return _debutsLoadPromise;
+  const esSiOX = v => /^(s[ií]|x|true|1)$/i.test(String(v ?? '').trim());
+  _debutsLoadPromise = fetchGvizByGid(GS.A_MAIN, 1550109108, 'A2:H500')
+    .then(rows => {
+      if (!rows || !rows.length) return;
+      const live = rows
+        .filter(r => r.some(c => c !== '' && c != null))
+        .map(r => ({
+          nombre: String(r[0] ?? '').trim(),
+          cat: parseInt(r[1]) || null,
+          edad: parseInt(r[2]) || null,
+          rival: String(r[3] ?? '').trim(),
+          resultado: String(r[4] ?? '').trim(),
+          gol: esSiOX(r[5]),
+          asist: esSiOX(r[6]),
+          year: parseInt(r[7]) || null,
+        }))
+        .filter(d => d.nombre && d.year);
+      if (!live.length) return;
+      const liveYears = new Set(live.map(d => d.year));
+      _debutsData = [...SEED_DEBUTS.filter(d => !liveYears.has(d.year)), ...live];
+    })
+    .catch(e => console.warn('[Debuts A] fetch failed:', e));
+  return _debutsLoadPromise;
+}
 
 // ── Estadísticas Anuales ─────────────────────────────────────────────────────
 const SEED_ANUALES_PLAYERS = {
@@ -10717,8 +10753,15 @@ function _anualesBuildTable(year) {
   </table>`;
 }
 
+let _debutsAReady = false; // true una vez que el fetch en vivo resolvió (éxito o error)
 function renderDebuts() {
-  const data = SEED_DEBUTS;
+  if (!_debutsAReady) {
+    _ensureDebutsA().then(() => {
+      _debutsAReady = true;
+      if (document.getElementById('tab-jug-debuts')?.classList.contains('active')) renderDebuts();
+    });
+  }
+  const data = _debutsData;
   const years = [...new Set(data.map(d => d.year))].sort();
   const backBtn = _volverBtnHtml('margin-bottom:20px');
 
