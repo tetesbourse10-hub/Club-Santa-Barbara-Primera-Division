@@ -151,6 +151,14 @@
     .badge-blue  { background: rgba(59,130,246,0.15); color: var(--azul-claro); }
     .badge-green { background: rgba(34,197,94,0.15);  color: var(--verde); }
 
+    /* Invisibles en desktop (sus hijos quedan en el flujo de .landing-card
+       como si el wrapper no existiera) — solo se activan como layout de
+       fila real bajo 768px, ver el bloque @media más abajo. */
+    .lc-card-head, .lc-card-head-left, .lc-card-head-info { display: contents; }
+    /* Carrusel de "Próximos Partidos" mobile — reemplaza a .next-match-row
+       bajo 768px (ver @media), oculto en desktop. */
+    .pm-carousel-wrap { display: none; }
+
     /* ── NEXT MATCH BANNER — one box per category, side by side ── */
     .next-match-row {
       width: 100%;
@@ -771,14 +779,77 @@
       .jtot-mobile-empty { text-align: center; padding: 30px; color: #6b7280; font-size: 0.85rem; }
     }
 
-    @media (max-width: 600px) {
-      .landing-card { width: 100%; max-width: 320px; padding: 28px 16px 22px; }
-      .landing-card .card-icon { font-size: 2.4rem; }
-      .landing-title { font-size: 1.5rem; }
-      .landing-cards { flex-direction: column; align-items: center; width: 100%; }
-      .next-match-row { flex-direction: column; width: 100%; }
-      .next-match-box { flex-direction: column; align-items: flex-start; padding: 16px 18px; width: 100%; }
-      .nmb-countdown { text-align: left; align-self: stretch; }
+    /* ══════════════════════════════════════════
+       INICIO (mobile) — rediseño completo bajo 768px: header compacto,
+       carrusel de próximos partidos (reemplaza next-match-row) y las 3
+       cards principales en un layout de fila compacto en vez del stack
+       centrado de desktop. Mismos tokens que ya usa el resto del sitio
+       (#141d2e cards, rgba(255,255,255,0.08) bordes) + la paleta de acento
+       ya establecida.
+       ══════════════════════════════════════════ */
+    @media (max-width: 768px) {
+      #landing { padding: 24px 16px 20px; justify-content: flex-start; }
+      .landing-logo {
+        width: 56px; height: 56px; padding: 10px; box-sizing: border-box;
+        background: rgba(151,196,89,0.12); border-radius: 10px; filter: none;
+        margin-bottom: 12px;
+      }
+      .landing-title { font-size: 1.35rem; margin-bottom: 2px; }
+      .landing-sub { font-size: 0.66rem; margin-bottom: 22px; }
+
+      /* Oculta el banner de escritorio, prende el carrusel */
+      .next-match-row { display: none; }
+      .pm-carousel-wrap { display: block; width: 100%; margin-bottom: 20px; }
+      .pm-carousel-label {
+        font-size: 0.68rem; font-weight: 700; color: var(--gris-texto);
+        text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px;
+      }
+      .pm-carousel {
+        display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px;
+        scrollbar-width: none;
+      }
+      .pm-carousel::-webkit-scrollbar { display: none; }
+      .pm-card {
+        flex-shrink: 0; width: 148px; background: #141d2e;
+        border: 1px solid rgba(255,255,255,0.08); border-radius: 14px;
+        padding: 14px 12px; text-align: center;
+      }
+      .pm-card.clickable { cursor: pointer; }
+      .pm-card-label {
+        font-size: 0.62rem; font-weight: 800; letter-spacing: 0.08em;
+        text-transform: uppercase; margin-bottom: 10px;
+      }
+      .pm-card-label.pm-label-a { color: #fac775; }
+      .pm-card-label.pm-label-b { color: #85b7eb; }
+      .pm-avatars { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 10px; }
+      .pm-avatar {
+        width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+        display: inline-flex; align-items: center; justify-content: center;
+        font-size: 0.68rem; font-weight: 800;
+      }
+      .pm-avatar-us    { background: rgba(151,196,89,0.15); color: #97c459; border: 1px solid rgba(151,196,89,0.35); }
+      .pm-avatar-rival { background: rgba(240,149,149,0.15); color: #f09595; border: 1px solid rgba(240,149,149,0.35); }
+      .pm-vs { font-size: 0.62rem; color: var(--gris-texto); font-weight: 700; }
+      .pm-card-meta { font-size: 0.68rem; color: var(--gris-texto); margin-bottom: 6px; }
+      .pm-card-countdown { font-size: 1.05rem; font-weight: 900; color: #ef9f27; }
+
+      /* Cards principales: de stack centrado a fila compacta */
+      .landing-cards { flex-direction: column; align-items: stretch; gap: 12px; width: 100%; max-width: none; }
+      .landing-card {
+        width: 100%; max-width: none; background: #141d2e;
+        border: 1px solid rgba(255,255,255,0.08); border-radius: 14px;
+        padding: 16px; align-items: stretch; text-align: left; gap: 0;
+      }
+      .lc-card-head, .lc-card-head-left { display: flex; }
+      .lc-card-head { align-items: flex-start; justify-content: space-between; width: 100%; }
+      .lc-card-head-left { align-items: center; gap: 10px; }
+      .lc-card-head-info { display: flex; flex-direction: column; gap: 2px; }
+      .landing-card .card-icon { font-size: 1.6rem; filter: none; }
+      .landing-card .card-name { font-size: 0.95rem; letter-spacing: normal; text-transform: none; }
+      .landing-card .card-desc { font-size: 0.7rem; line-height: 1.3; }
+      .landing-card .card-badge { display: inline-block; margin: 10px 0 12px; align-self: flex-start; }
+      .lc-badge { position: static; flex-shrink: 0; }
+      .lc-footer { margin-top: 0; }
     }
 
     footer { text-align: center; padding: 24px; font-size: 0.72rem; color: var(--gris-texto); border-top: 1px solid var(--gris); margin-top: 40px; }
@@ -1925,31 +1996,65 @@
     <div id="landing-next-match-a"></div>
     <div id="landing-next-match-b"></div>
   </div>
+  <!-- Versión mobile del banner de arriba: carrusel horizontal con avatares
+       enfrentados — ver renderLandingNextMatch()/_renderNextMatchCarouselCard
+       en el JS. display:none por defecto, se prende solo bajo 768px (ver
+       CSS) — .next-match-row hace lo inverso, así nunca se ven los dos a
+       la vez. -->
+  <div class="pm-carousel-wrap">
+    <div class="pm-carousel-label">Próximos partidos</div>
+    <div class="pm-carousel" id="landing-next-match-carousel"></div>
+  </div>
 
   <div class="landing-cards">
+    <!-- Los wrapper .lc-card-head/-left/-info de acá abajo son
+         display:contents en desktop (no existen para el layout — el ícono,
+         nombre, subtítulo y badge de posición quedan hijos directos de
+         .landing-card exactamente como antes) y pasan a un layout de fila
+         compacto recién bajo 768px (ver CSS) — el mismo #lc-badge-a/-b/-nido
+         y #lc-footer-a/-b/-nido de siempre, sin ningún cambio de JS, solo
+         se reordenan visualmente. -->
     <div class="landing-card" onclick="openSection('a')">
-      <div class="lc-badge" id="lc-badge-a"></div>
-      <div class="card-icon">🏆</div>
-      <div class="card-name">Primera A</div>
-      <div class="card-desc">1ª División<br>Temporada 2026</div>
+      <div class="lc-card-head">
+        <div class="lc-card-head-left">
+          <div class="card-icon">🏆</div>
+          <div class="lc-card-head-info">
+            <div class="card-name">Primera A</div>
+            <div class="card-desc">1ª División<br>Temporada 2026</div>
+          </div>
+        </div>
+        <div class="lc-badge" id="lc-badge-a"></div>
+      </div>
       <span class="card-badge badge-gold">Clausura AIFA A 2026</span>
       <div class="lc-footer" id="lc-footer-a"></div>
     </div>
 
     <div class="landing-card" onclick="openSection('b')">
-      <div class="lc-badge" id="lc-badge-b"></div>
-      <div class="card-icon">⚽</div>
-      <div class="card-name">Primera B</div>
-      <div class="card-desc">1ª División B<br>Temporada 2026</div>
+      <div class="lc-card-head">
+        <div class="lc-card-head-left">
+          <div class="card-icon">⚽</div>
+          <div class="lc-card-head-info">
+            <div class="card-name">Primera B</div>
+            <div class="card-desc">1ª División B<br>Temporada 2026</div>
+          </div>
+        </div>
+        <div class="lc-badge" id="lc-badge-b"></div>
+      </div>
       <span class="card-badge badge-blue">Clausura AIFA B 2026</span>
       <div class="lc-footer" id="lc-footer-b"></div>
     </div>
 
     <div class="landing-card" onclick="openSection('nido')">
-      <div class="lc-badge" id="lc-badge-nido"></div>
-      <div class="card-icon">🏟️</div>
-      <div class="card-name">El Nido</div>
-      <div class="card-desc">Jugadores de la Primera División A y B del club</div>
+      <div class="lc-card-head">
+        <div class="lc-card-head-left">
+          <div class="card-icon">🏟️</div>
+          <div class="lc-card-head-info">
+            <div class="card-name">El Nido</div>
+            <div class="card-desc">Jugadores de la Primera División A y B del club</div>
+          </div>
+        </div>
+        <div class="lc-badge" id="lc-badge-nido"></div>
+      </div>
       <span class="card-badge badge-green">NUESTROS JUGADORES</span>
       <div class="lc-footer" id="lc-footer-nido"></div>
     </div>
@@ -12012,6 +12117,16 @@ function _paintLandingSkeletons() {
   const b = document.getElementById('landing-next-match-b');
   if (a && !a.innerHTML) a.innerHTML = box('nmb-box-a');
   if (b && !b.innerHTML) b.innerHTML = box('nmb-box-b');
+  const carousel = document.getElementById('landing-next-match-carousel');
+  if (carousel && !carousel.innerHTML) {
+    const pmCard = `<div class="pm-card">
+      <div style="display:flex;justify-content:center;margin-bottom:10px">${bar('60px', '9px')}</div>
+      <div style="display:flex;justify-content:center;margin-bottom:10px">${bar('90px', '34px')}</div>
+      <div style="display:flex;justify-content:center;margin-bottom:6px">${bar('80px', '10px')}</div>
+      <div style="display:flex;justify-content:center">${bar('54px', '17px')}</div>
+    </div>`;
+    carousel.innerHTML = pmCard + pmCard;
+  }
   ['a', 'b', 'nido'].forEach(key => {
     const badgeEl = document.getElementById('lc-badge-' + key);
     const footEl  = document.getElementById('lc-footer-' + key);
@@ -12053,9 +12168,47 @@ function _renderNextMatchBox(elId, boxClass, label, m, navKey) {
       </div>` : ''}
     </div>`);
 }
+// Versión mobile de _renderNextMatchBox: card angosta con dos avatares
+// enfrentados en vez del layout horizontal de escritorio — misma data
+// (_primeraANextMatch/_teamNextMatch), mismo navKey/locator para el click.
+// "SB" hardcodeado para nuestro escudo (ver pedido: "iniciales SB por
+// ahora") — el rival usa _rivalInitials, igual que en Últimos Partidos,
+// Centro de Datos, etc.
+function _pmCard(label, labelClass, m, navKey) {
+  if (!m) return '';
+  const meta = _fmtProximoMeta(m);
+  const cd = m.dt ? _countdownParts(m.dt) : null;
+  const diaCorto = meta.weekday ? meta.weekday.slice(0, 3) : '';
+  const metaLine = [diaCorto, meta.diaMes].filter(Boolean).join(' ');
+  const cdVal = cd
+    ? (cd.days > 0 ? `${cd.days}d ${cd.hours}h` : `${cd.hours}h ${cd.minutes}m`)
+    : '';
+  const clickNavKey = m.navKey || navKey;
+  const clickLocator = m.locator != null ? m.locator : m.fecha;
+  const clickAttr = clickLocator != null ? ` onclick="goToMatchFecha('${clickNavKey}', '${String(clickLocator).replace(/'/g, "\\'")}')"` : '';
+  return `<div class="pm-card${clickAttr ? ' clickable' : ''}"${clickAttr}>
+    <div class="pm-card-label ${labelClass}">${label}</div>
+    <div class="pm-avatars">
+      <span class="pm-avatar pm-avatar-us">SB</span>
+      <span class="pm-vs">vs</span>
+      <span class="pm-avatar pm-avatar-rival">${_rivalInitials(m.rival)}</span>
+    </div>
+    <div class="pm-card-meta">${metaLine || 'Fecha a confirmar'}${meta.localTxt ? ' · ' + meta.localTxt : ''}</div>
+    ${cd ? `<div class="pm-card-countdown">${cdVal}</div>` : ''}
+  </div>`;
+}
+function renderLandingNextMatchCarousel(matchA, matchB) {
+  const el = document.getElementById('landing-next-match-carousel');
+  if (!el) return;
+  const html = _pmCard('Primera A', 'pm-label-a', matchA, 'a') + _pmCard('Primera B', 'pm-label-b', matchB, 'b');
+  _softSetHtml(el, html);
+}
 function renderLandingNextMatch() {
-  _renderNextMatchBox('landing-next-match-a', 'nmb-box-a', 'Primera A', _primeraANextMatch(), 'a');
-  _renderNextMatchBox('landing-next-match-b', 'nmb-box-b', 'Primera B', _teamNextMatch(DATA_B, 'b'), 'b');
+  const matchA = _primeraANextMatch();
+  const matchB = _teamNextMatch(DATA_B, 'b');
+  renderLandingNextMatchCarousel(matchA, matchB);
+  _renderNextMatchBox('landing-next-match-a', 'nmb-box-a', 'Primera A', matchA, 'a');
+  _renderNextMatchBox('landing-next-match-b', 'nmb-box-b', 'Primera B', matchB, 'b');
 }
 function _posBadgeClass(pos, total) {
   if (!pos || !total) return 'lc-badge-amber';
