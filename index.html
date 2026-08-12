@@ -11180,8 +11180,13 @@ const TORNEO_NAV_MAP = {
   '2026|Apertura AIFA B': { fn: "showHistoricoTorneo('apertura-2026')" },
   // Clausura AIFA B 2026 es la temporada EN CURSO (Torneos Actuales), no
   // Torneos Antiguos — a diferencia del resto de este mapa, no usa
-  // showHistoricoTorneo.
-  '2026|Clausura AIFA B': { fn: "showTab('posiciones')" },
+  // showHistoricoTorneo. showTorneo('apertura') va directo al Centro de
+  // Datos (la tab que arranca activa en renderTorneoApertura()), sin pasar
+  // por el picker de Torneos Actuales. El clear de JUG_SUB_IDS de acá es el
+  // mismo fix ya aplicado en showHistoricoTorneo — sin él, el sub-panel de
+  // Estadísticas Anuales (de donde se hace este click) queda con
+  // display:block y el torneo se ve incrustado arriba en vez de reemplazarlo.
+  '2026|Clausura AIFA B': { fn: "JUG_SUB_IDS.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; }); showTorneo('apertura')" },
   // Only Primera B's Recopa 2026 lives here — A's Recopa is still active in
   // Torneos Actuales, so this key never appears in SEED_GRAFICOS (A).
   '2026|Recopa': { fn: "showHistoricoTorneo('recopa-2026')" },
