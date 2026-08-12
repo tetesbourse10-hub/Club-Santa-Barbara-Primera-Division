@@ -11123,11 +11123,7 @@ const SEED_GRAFICOS_B = [
   // 2023
   { competencia:'Apertura AIFA D',           anio:2023, pj:15, pg:8,  pe:4, pp:3, gf:36, gc:14, vi:4, pts:28,   pos:'11°' },
   { competencia:'Clausura AIFA D',           anio:2023, pj:14, pg:9,  pe:5, pp:0, gf:25, gc:9,  vi:7, pts:32,   pos:'5°' },
-  // 2022 — club-confirmed resumen de temporada todavía no llegó para
-  // Apertura AIFA D; placeholders en 0/null (posLabel ya maneja pos:null
-  // mostrando "—") hasta que se reciba y se puedan reemplazar por los
-  // valores reales.
-  { competencia:'Apertura AIFA D',           anio:2022, pj:0,  pg:0,  pe:0, pp:0, gf:0,  gc:0,  vi:null, pts:null, pos:null },
+  { competencia:'Apertura AIFA D',           anio:2022, pj:12, pg:6,  pe:1, pp:5, gf:20, gc:18, vi:3, pts:19,   pos:'7°' },
   { competencia:'Clausura AIFA D',           anio:2022, pj:12, pg:5,  pe:4, pp:3, gf:25, gc:18, vi:null, pts:19, pos:'5°' },
   // 2021
   { competencia:'Apertura AIFA D',           anio:2021, pj:12, pg:7,  pe:2, pp:2, gf:27, gc:14, vi:3, pts:23,   pos:'4°' },
@@ -11238,9 +11234,6 @@ const TORNEO_NAV_MAP = {
   // Clausura AIFA D 2022 gets a new seed tile (see SEED_GRAFICOS_B) since none
   // existed yet.
   '2022|Clausura AIFA D': { fn: "showHistoricoTorneo('clausura-2022d-b')" },
-  // Apertura AIFA D 2022 — placeholder seed tile (see SEED_GRAFICOS_B) until
-  // the club sends the season summary; the 4-tab component itself already
-  // has real ranges (Centro de Datos/Plantel/Fecha a Fecha/Tabla Completa).
   '2022|Apertura AIFA D': { fn: "showHistoricoTorneo('apertura-2022d-b')" },
   '2021|Recopa':          { fn: "showHistoricoTorneo('recopa-2021b')" },
 };
