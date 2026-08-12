@@ -10336,8 +10336,24 @@ function renderJugAnualesYear(year) {
 // ── Primera B: Estadísticas Anuales — strictly sourced from B_HIST, never A_MAIN ──
 // Built from the same torneos[] records used by "Torneos Antiguos" (parseEstHistSheetB),
 // so team-level year totals always reflect Primera B's own sheet.
+// Clausura AIFA B 2026 es la temporada EN CURSO de Primera B — a diferencia
+// de las demás temporadas de acá (todas cerradas, números fijos), esta se
+// calcula en vivo desde DATA_B.tabla (misma fila "csb" que usa Torneos
+// Actuales) en vez de vivir hardcodeada en SEED_GRAFICOS_B, para no quedar
+// desactualizada semana a semana mientras el torneo sigue jugándose — mismo
+// patrón que ya usa renderGraficos() para la Apertura AIFA A 2026 de
+// Primera A (ahí ya finalizada, ver DATA_A_APERTURA2026.tabla).
 function _anualesSourceB() {
-  return (DATA_B.graficos && DATA_B.graficos.length) ? DATA_B.graficos : SEED_GRAFICOS_B;
+  const source = (DATA_B.graficos && DATA_B.graficos.length) ? DATA_B.graficos : SEED_GRAFICOS_B;
+  const csbRow = (DATA_B.tabla || []).find(t => t.csb);
+  if (csbRow && !source.some(t => t.anio === 2026 && t.competencia === 'Clausura AIFA B')) {
+    return [...source, {
+      competencia: 'Clausura AIFA B', anio: 2026,
+      pj: csbRow.pj, pg: csbRow.pg, pe: csbRow.pe, pp: csbRow.pp,
+      gf: csbRow.gf, gc: csbRow.gc, vi: null, pts: csbRow.pts, pos: csbRow.pos,
+    }];
+  }
+  return source;
 }
 
 // Overlay sobre SEED_ANUALES_PLAYERS_B para años cargados en vivo (2026, sin
@@ -11162,6 +11178,10 @@ const TORNEO_NAV_MAP = {
   '2024|Apertura AIFA D': { fn: "showHistoricoTorneo('apertura-2024d-b')" },
   '2026|Apertura AIFA A': { fn: "showHistoricoTorneo('apertura-2026')" },
   '2026|Apertura AIFA B': { fn: "showHistoricoTorneo('apertura-2026')" },
+  // Clausura AIFA B 2026 es la temporada EN CURSO (Torneos Actuales), no
+  // Torneos Antiguos — a diferencia del resto de este mapa, no usa
+  // showHistoricoTorneo.
+  '2026|Clausura AIFA B': { fn: "showTab('posiciones')" },
   // Only Primera B's Recopa 2026 lives here — A's Recopa is still active in
   // Torneos Actuales, so this key never appears in SEED_GRAFICOS (A).
   '2026|Recopa': { fn: "showHistoricoTorneo('recopa-2026')" },
