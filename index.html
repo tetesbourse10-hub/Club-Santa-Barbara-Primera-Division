@@ -9821,10 +9821,23 @@ const SEED_DEBUTS = [
 // Categoria, Edad, Rival, Resultado, Gol, Asistencia, Año) — antes esta
 // sección estaba enteramente hardcodeada en SEED_DEBUTS de arriba; se van a
 // seguir sumando debuts nuevos en esta hoja en vivo en vez de tocar el
-// código cada vez. Para cada año presente en la hoja en vivo, esas filas
-// REEMPLAZAN a las del mismo año en SEED_DEBUTS (así la hoja siempre manda
-// para el/los año(s) que trae, típicamente el actual); los años que la hoja
-// no toca siguen viniendo del seed histórico (2016-2025).
+// código cada vez.
+//
+// BUG REAL encontrado (reportado por el club: "faltan algunos resultado
+// para algunos debuts", con captura mostrando a Vicente Fiore/Felipe Fossa
+// —2025, ya con resultado cargado en SEED_DEBUTS— sin badge de resultado):
+// la primera versión reemplazaba TODAS las filas de un año si la hoja en
+// vivo traía aunque sea una fila de ese año. La hoja en vivo, además de los
+// debuts nuevos, también repite algunos jugadores de años ya cubiertos por
+// el seed (Fiore/Fossa entre ellos) pero todavía sin la columna Resultado
+// completada del lado del club — el reemplazo por año entero borraba
+// silenciosamente el resultado correcto que ya tenía el seed. Se cambia a
+// un merge por JUGADOR (nombre normalizado): para cada uno que aparece en
+// ambas fuentes, cada campo vacío de la fila en vivo cae al valor del seed
+// como respaldo (en vez de pisarlo con un blanco); los jugadores nuevos que
+// solo están en la hoja en vivo (sin match en el seed) se agregan tal cual
+// — si a esos les falta el Resultado es un hueco real de carga en la hoja,
+// no algo que el código pueda inventar.
 let _debutsData = SEED_DEBUTS;
 let _debutsLoadPromise = null;
 function _ensureDebutsA() {
@@ -9847,8 +9860,24 @@ function _ensureDebutsA() {
         }))
         .filter(d => d.nombre && d.year);
       if (!live.length) return;
-      const liveYears = new Set(live.map(d => d.year));
-      _debutsData = [...SEED_DEBUTS.filter(d => !liveYears.has(d.year)), ...live];
+      const liveByName = new Map(live.map(d => [normName(d.nombre), d]));
+      const merged = SEED_DEBUTS.map(seed => {
+        const key = normName(seed.nombre);
+        const liveMatch = liveByName.get(key);
+        if (!liveMatch) return seed;
+        liveByName.delete(key);
+        return {
+          year: liveMatch.year || seed.year,
+          nombre: liveMatch.nombre || seed.nombre,
+          cat: liveMatch.cat || seed.cat,
+          edad: liveMatch.edad || seed.edad,
+          rival: liveMatch.rival || seed.rival,
+          resultado: liveMatch.resultado || seed.resultado,
+          gol: liveMatch.gol || seed.gol,
+          asist: liveMatch.asist || seed.asist,
+        };
+      });
+      _debutsData = [...merged, ...liveByName.values()];
     })
     .catch(e => console.warn('[Debuts A] fetch failed:', e));
   return _debutsLoadPromise;
