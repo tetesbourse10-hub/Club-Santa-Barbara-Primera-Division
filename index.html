@@ -7313,6 +7313,64 @@ function _applyTablaFix(tabla, fixes) {
   });
 }
 
+// Partidos cargados a mano, club-confirmados, para cuando el fetch en vivo
+// de una temporada CERRADA (que ya no va a cambiar) no logra levantar un
+// partido puntual — ver el comentario en la config de HISTORICO_GENERIC de
+// cada torneo para el porqué específico de cada caso. _loadHistoricoGeneric
+// los agrega solo si ese fecha no vino ya del fetch en vivo, así que si algún
+// día el fetch empieza a traerlo bien, esta entrada queda inerte.
+const HISTORICO_GENERIC_MANUAL_MATCHES = {
+  // Clausura AIFA A 2022 — Fecha 1 vs ITALIANO (Santa Bárbara 2-0, Local,
+  // parcial 1-0). El fetch en vivo del rango "Fecha a Fecha" nunca la
+  // levanta (se probó ensanchar el rango de arranque, sin efecto) mientras
+  // que Centro de Datos sí la trae — cargada a mano con el detalle de
+  // plantel confirmado por el club directamente sobre el sheet.
+  'clausura-2022a': [{
+    rival: 'ITALIANO', fecha: '1', lugar: 'Nido', dia: 'Martes', hora: '21hs',
+    formacionCSB: '4-3-3', formacionRival: '', resultado: '2-0', gf: 2, gc: 0, penales: null,
+    jugadores: [
+      { nombre:'Iñaki Usandizaga',  citado:false, titular:false, entro:false, salio:false, goles:0, asist:0, rojas:0, pos:'ARQ', porQuien:'' },
+      { nombre:'Ayrton Gardoqui',   citado:true,  titular:false, entro:false, salio:false, goles:0, asist:0, rojas:0, pos:'ARQ', porQuien:'' },
+      { nombre:'Santiago Carabajal',citado:true,  titular:true,  entro:false, salio:false, goles:0, asist:0, rojas:0, pos:'ARQ', porQuien:'' },
+      { nombre:'Mateo Schwartz',    citado:true,  titular:true,  entro:false, salio:true,  goles:0, asist:0, rojas:0, pos:'DFI', porQuien:'' },
+      { nombre:'Theo Jurs',         citado:true,  titular:false, entro:true,  salio:false, goles:0, asist:0, rojas:0, pos:'DFI', porQuien:'' },
+      { nombre:'Mauro Pellegrino',  citado:false, titular:false, entro:false, salio:false, goles:0, asist:0, rojas:0, pos:'DFC', porQuien:'' },
+      { nombre:'Mateo Garcia',      citado:false, titular:false, entro:false, salio:false, goles:0, asist:0, rojas:0, pos:'DFC', porQuien:'' },
+      { nombre:'Genaro Falconi',    citado:true,  titular:true,  entro:false, salio:false, goles:0, asist:0, rojas:0, pos:'DFC', porQuien:'' },
+      { nombre:'Valentin Ruocco',   citado:true,  titular:true,  entro:false, salio:false, goles:0, asist:0, rojas:0, pos:'DFC', porQuien:'' },
+      { nombre:'Juan Moyano',       citado:true,  titular:true,  entro:false, salio:false, goles:0, asist:0, rojas:0, pos:'DFD', porQuien:'' },
+      { nombre:'Juan Manuel Vittar',citado:false, titular:false, entro:false, salio:false, goles:0, asist:0, rojas:0, pos:'DFD', porQuien:'' },
+      { nombre:'Bautista Casaretto',citado:true,  titular:false, entro:false, salio:false, goles:0, asist:0, rojas:0, pos:'DFD', porQuien:'' },
+      { nombre:'Matias Guidoni',    citado:true,  titular:false, entro:false, salio:false, goles:0, asist:0, rojas:0, pos:'DFD', porQuien:'' },
+      { nombre:'Facundo Llauro',    citado:true,  titular:true,  entro:false, salio:true,  goles:0, asist:0, rojas:0, pos:'MC',  porQuien:'' },
+      { nombre:'Tomas Elhaiek (c)', citado:true,  titular:true,  entro:false, salio:false, goles:0, asist:0, rojas:0, pos:'MCO', porQuien:'' },
+      { nombre:'Adrian Cavallero',  citado:true,  titular:true,  entro:false, salio:false, goles:0, asist:0, rojas:0, pos:'MCO', porQuien:'' },
+      { nombre:'Eduardo Seeber',    citado:true,  titular:false, entro:true,  salio:false, goles:0, asist:0, rojas:0, pos:'MCO', porQuien:'' },
+      { nombre:'Francisco Vittar',  citado:false, titular:false, entro:false, salio:false, goles:0, asist:0, rojas:0, pos:'MCO', porQuien:'' },
+      { nombre:'Bautista Elhaiek',  citado:false, titular:false, entro:false, salio:false, goles:0, asist:0, rojas:0, pos:'MCO', porQuien:'' },
+      { nombre:'Bautista Fossa',    citado:true,  titular:true,  entro:false, salio:true,  goles:0, asist:0, rojas:0, pos:'EI',  porQuien:'' },
+      { nombre:'Ramiro Hermida',    citado:true,  titular:false, entro:false, salio:false, goles:0, asist:0, rojas:0, pos:'ED',  porQuien:'' },
+      { nombre:'Felipe Bello',      citado:true,  titular:true,  entro:false, salio:false, goles:0, asist:0, rojas:1, pos:'DC',  porQuien:'' },
+      { nombre:'Francisco Moresco', citado:true,  titular:false, entro:true,  salio:false, goles:0, asist:0, rojas:0, pos:'DC',  porQuien:'' },
+      { nombre:'Marcos Gicovate',   citado:true,  titular:true,  entro:false, salio:true,  goles:0, asist:1, rojas:0, pos:'ED',  porQuien:'' },
+      { nombre:'Fernando Cobian',   citado:false, titular:false, entro:false, salio:false, goles:0, asist:0, rojas:0, pos:'DC',  porQuien:'' },
+      { nombre:'Justo Gottlieb',    citado:true,  titular:false, entro:true,  salio:false, goles:0, asist:0, rojas:0, pos:'DC',  porQuien:'' },
+    ],
+  }],
+};
+
+// Inserta los partidos de HISTORICO_GENERIC_MANUAL_MATCHES[key] que el fetch
+// en vivo no haya traído (por fecha) — no pisa nada que ya haya llegado bien.
+function _applyManualMatches(dataObj, key) {
+  const manual = HISTORICO_GENERIC_MANUAL_MATCHES[key];
+  if (!manual || !manual.length) return;
+  const existentes = new Set((dataObj.apertura || []).map(m => String(m.fecha)));
+  const faltantes = manual.filter(m => !existentes.has(String(m.fecha)));
+  if (!faltantes.length) return;
+  dataObj.apertura = [...(dataObj.apertura || []), ...faltantes]
+    .sort((a, b) => (parseInt(a.fecha) || 0) - (parseInt(b.fecha) || 0));
+}
+
 async function _loadHistoricoGeneric(key, dataObj, cfg) {
   if (_historicoGenericLoaded[key]) return;
   try {
@@ -7374,6 +7432,8 @@ async function _loadHistoricoGeneric(key, dataObj, cfg) {
       if (t.length >= 3) { _applyTablaFix(t, cfg.tablaFix); dataObj.tabla = t; }
     }
 
+    _applyManualMatches(dataObj, key);
+
     // Clausura AIFA A 2025's sheet mixed in 3 copa fixtures (SITAS C, GEBA
     // Azul, and the Fecha 18 decider vs GEBA) as if they were league matches —
     // pull them into Recopa 2025 so liga stats/tabla stop counting them.
@@ -7417,16 +7477,16 @@ const HISTORICO_GENERIC = {
     excludeMatches: [{ rival: 'REGATAS', resultado: '2-2', penales: '1-3' }, { rival: 'REGATAS', fecha: '12' }] },
   // No tabla range given for this one — left null; Tabla Completa shows
   // "Cargando…" until we get that range.
-  // fecha arranca en la fila 18 (no 20) a propósito: la fila 19 tiene el
-  // título "Fecha a Fecha" en una celda combinada, y si el rango de fetch
-  // arranca justo después (A20), la exportación CSV de Google corta/desplaza
-  // esa primera fila real — se pierde el ancla del partido de Fecha 1 (el
-  // resto de las fechas no se ve afectado). Mismo patrón que ya se vio en la
-  // Tabla B (ver "Ampliar buffer del rango de Tabla B para saltear el banner
-  // mergeado") — incluir el banner en el rango evita el corte; las filas de
-  // más arriba se descartan solas (no matchean ningún patrón de partido).
+  // Fecha 1 (vs ITALIANO) no se levanta desde el fetch en vivo — se probó
+  // ensanchar el rango de arranque (por si era un banner combinado cortando
+  // la primera fila, como pasó antes con la Tabla B) y no tuvo ningún efecto,
+  // así que la causa real está en cómo exporta esa fila puntual el gviz de
+  // Google, no en el rango. Como el club confirmó que ese partido ya cerró y
+  // no se va a volver a cargar, se agrega a mano en vez de seguir
+  // persiguiendo el fetch — ver manualMatches['clausura-2022a'] más abajo
+  // (_loadHistoricoGeneric la inserta solo si el fetch en vivo no la trajo).
   'clausura-2022a': { d: DATA_A_CL2022, gid: 556920736,  name: 'Clausura AIFA A 2022',
-    plantel: 'L3:X30', fecha: 'A18:J464', tabla: null, basico: 'A1:Z16' },
+    plantel: 'L3:X30', fecha: 'A20:J464', tabla: null, basico: 'A1:Z16' },
   'apertura-2022a': { d: DATA_A_AP2022, gid: 292775325,  name: 'Apertura AIFA A 2022',
     plantel: 'L3:X31', fecha: 'A20:I469', tabla: 'L35:V51', basico: 'A1:J16' },
   // Primera B 2025 — same B_HIST spreadsheet as the live/archived B seasons,
