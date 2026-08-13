@@ -7417,8 +7417,16 @@ const HISTORICO_GENERIC = {
     excludeMatches: [{ rival: 'REGATAS', resultado: '2-2', penales: '1-3' }, { rival: 'REGATAS', fecha: '12' }] },
   // No tabla range given for this one — left null; Tabla Completa shows
   // "Cargando…" until we get that range.
+  // fecha arranca en la fila 18 (no 20) a propósito: la fila 19 tiene el
+  // título "Fecha a Fecha" en una celda combinada, y si el rango de fetch
+  // arranca justo después (A20), la exportación CSV de Google corta/desplaza
+  // esa primera fila real — se pierde el ancla del partido de Fecha 1 (el
+  // resto de las fechas no se ve afectado). Mismo patrón que ya se vio en la
+  // Tabla B (ver "Ampliar buffer del rango de Tabla B para saltear el banner
+  // mergeado") — incluir el banner en el rango evita el corte; las filas de
+  // más arriba se descartan solas (no matchean ningún patrón de partido).
   'clausura-2022a': { d: DATA_A_CL2022, gid: 556920736,  name: 'Clausura AIFA A 2022',
-    plantel: 'L3:X30', fecha: 'A20:J464', tabla: null, basico: 'A1:Z16' },
+    plantel: 'L3:X30', fecha: 'A18:J464', tabla: null, basico: 'A1:Z16' },
   'apertura-2022a': { d: DATA_A_AP2022, gid: 292775325,  name: 'Apertura AIFA A 2022',
     plantel: 'L3:X31', fecha: 'A20:I469', tabla: 'L35:V51', basico: 'A1:J16' },
   // Primera B 2025 — same B_HIST spreadsheet as the live/archived B seasons,
