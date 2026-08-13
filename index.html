@@ -2965,6 +2965,7 @@ const DATA_A_CL2024 = { nombre:'Primera A — Clausura 2024', partidos:[], apert
 const DATA_A_AP2023 = { nombre:'Primera A — Apertura 2023', partidos:[], apertura:[], jugadores:[], tabla:[] };
 const DATA_A_CL2023 = { nombre:'Primera A — Clausura 2023', partidos:[], apertura:[], jugadores:[], tabla:[] };
 const DATA_A_CL2022 = { nombre:'Primera A — Clausura 2022', partidos:[], apertura:[], jugadores:[], tabla:[] };
+const DATA_A_AP2022 = { nombre:'Primera A — Apertura 2022', partidos:[], apertura:[], jugadores:[], tabla:[] };
 
 // Very old Primera A seasons (2016-2020) — club only has ONE flat "básico"
 // range on record for each (no Plantel/Tabla/lineup-detail ranges), all on
@@ -7418,6 +7419,8 @@ const HISTORICO_GENERIC = {
   // "Cargando…" until we get that range.
   'clausura-2022a': { d: DATA_A_CL2022, gid: 556920736,  name: 'Clausura AIFA A 2022',
     plantel: 'L3:X30', fecha: 'A20:J464', tabla: null, basico: 'A1:Z16' },
+  'apertura-2022a': { d: DATA_A_AP2022, gid: 292775325,  name: 'Apertura AIFA A 2022',
+    plantel: 'L3:X31', fecha: 'A20:I469', tabla: 'L35:V51', basico: 'A1:J16' },
   // Primera B 2025 — same B_HIST spreadsheet as the live/archived B seasons,
   // each on its own gid.
   // sheet: 'B_HIST' is a key into GS, resolved at load time (not here) —
@@ -11194,6 +11197,7 @@ const TORNEO_NAV_MAP = {
   '2024|Clausura AIFA A': { fn: "showHistoricoTorneo('clausura-2024a')" },
   '2023|Apertura AIFA A': { fn: "showHistoricoTorneo('apertura-2023a')" },
   '2023|Clausura AIFA A': { fn: "showHistoricoTorneo('clausura-2023a')" },
+  '2022|Apertura AIFA A': { fn: "showHistoricoTorneo('apertura-2022a')" },
   '2022|Clausura AIFA A': { fn: "showHistoricoTorneo('clausura-2022a')" },
   // Very old Primera A seasons (2016-2020, back when the club played in
   // divisions C/B before reaching A) — Centro de Datos only, no hand-authored
