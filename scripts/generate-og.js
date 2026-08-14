@@ -253,13 +253,19 @@ async function main() {
     const cfg = window.HISTORICO_GENERIC[key];
     for (let attempt = 1; attempt <= HIST_MAX_ATTEMPTS; attempt++) {
       window._historicoGenericLoaded[key] = false; // fuerza que _loadHistoricoGeneric no haga early-return
+      let liveOk = false;
       try {
-        await window._loadHistoricoGeneric(key, cfg.d, cfg);
+        liveOk = await window._loadHistoricoGeneric(key, cfg.d, cfg);
       } catch (e) {
         console.error(`  ✗ "${key}" (intento ${attempt}/${HIST_MAX_ATTEMPTS}): excepción inesperada:`, e.message);
       }
+      // liveOk viene de _loadHistoricoGeneric (index.html) — refleja si el
+      // fetch EN VIVO trajo datos, no cfg.d.apertura.length (que puede tener
+      // partidos cargados a mano vía HISTORICO_GENERIC_MANUAL_MATCHES aunque
+      // el fetch real haya fallado del todo por rate-limit; ver comentario
+      // en _loadHistoricoGeneric).
       const matchCount = (cfg.d.apertura && cfg.d.apertura.length) || (cfg.d.partidos && cfg.d.partidos.length) || 0;
-      if (matchCount > 0) {
+      if (liveOk) {
         console.log(`  ✓ "${key}": ${matchCount} partidos cargados (intento ${attempt}/${HIST_MAX_ATTEMPTS})`);
         return true;
       }
@@ -369,6 +375,13 @@ async function main() {
       // desactualizado entre deploys.
       const historicoPartidos = window._buildPlayerHistoricPartidos(nombre);
       const vedHistorico = window._ppRecordVED(historicoPartidos);
+      // Desglose por plantel (Primera A / Primera B) del mismo histórico, para
+      // que El Nido pueda mostrar PG/PE/PP al instante también cuando se
+      // filtra por plantel — antes records.json solo traía el combinado, así
+      // que filtrar por A o B caía siempre al cálculo en vivo completo (lento,
+      // esperaba _matchDataReadyOnce) en vez de este mismo camino rápido.
+      const vedHistoricoA = window._ppRecordVED(historicoPartidos.filter(p => p.categoria === 'Primera A'));
+      const vedHistoricoB = window._ppRecordVED(historicoPartidos.filter(p => p.categoria === 'Primera B'));
 
       // Validación explícita en vez de generar igual con datos parciales:
       // campos requeridos ausentes son un bug real (falla el build, no un
@@ -437,7 +450,11 @@ async function main() {
         partidos: historicoPartidos,
         generatedAt,
       }));
-      recordsIndex[slug] = { v: vedHistorico.v, e: vedHistorico.e, d: vedHistorico.d, pj: s.pj };
+      recordsIndex[slug] = {
+        v: vedHistorico.v, e: vedHistorico.e, d: vedHistorico.d, pj: s.pj,
+        a: { v: vedHistoricoA.v, e: vedHistoricoA.e, d: vedHistoricoA.d },
+        b: { v: vedHistoricoB.v, e: vedHistoricoB.e, d: vedHistoricoB.d },
+      };
 
       ok++;
     } catch (e) {

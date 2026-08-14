@@ -7411,8 +7411,20 @@ function _applyManualMatches(dataObj, key) {
     .sort((a, b) => (parseInt(a.fecha) || 0) - (parseInt(b.fecha) || 0));
 }
 
+// Devuelve si el fetch EN VIVO de Fecha a Fecha realmente trajo datos
+// (`liveOk`) — el script de build (scripts/generate-og.js) usa este valor,
+// no cfg.d.apertura.length, para decidir si reintentar una temporada. Antes
+// de este cambio, _applyManualMatches (más abajo) hacía que apertura.length
+// fuera > 0 con SOLO el partido cargado a mano aunque el fetch real hubiera
+// fallado del todo por rate-limit — el script de build daba por "cargada"
+// esa temporada después de un solo intento, y todos los demás partidos
+// reales (los otros 14 de la temporada) quedaban afuera de los perfiles de
+// jugador precalculados sin ningún reintento. Con esto, un fallo real sigue
+// reintentando igual que antes; el partido manual queda igual disponible en
+// cada intento (mejor que nada), pero ya no enmascara el fallo.
 async function _loadHistoricoGeneric(key, dataObj, cfg) {
-  if (_historicoGenericLoaded[key]) return;
+  if (_historicoGenericLoaded[key]) return true;
+  let liveOk = false;
   try {
     const sheetId = cfg.sheet ? GS[cfg.sheet] : GS.A_MAIN;
     // Fixed 4-slot layout regardless of which ranges this season actually
@@ -7453,6 +7465,7 @@ async function _loadHistoricoGeneric(key, dataObj, cfg) {
       if (d.length > 0) {
         dataObj.apertura = d;
         dataObj.partidos = _deriveBasicFromDetailed(d);
+        liveOk = true;
       }
     } catch(e) { console.warn(`[${key}] parseDetailedMatches:`, e); }
 
@@ -7488,6 +7501,7 @@ async function _loadHistoricoGeneric(key, dataObj, cfg) {
   } catch(e) {
     console.error(`[${key}] Load failed:`, e.message || e);
   }
+  return liveOk;
 }
 
 // Ranges given directly by the club from each sheet — column letters/row
@@ -13316,32 +13330,36 @@ async function loadLiveData() {
   // tenía disponible el camino rápido (records.json + solo temporada en
   // vivo) — el mismo camino que ya usa el perfil de jugador sin esperar
   // nada, por eso el perfil se sentía instantáneo y el ranking no. Con
-  // plantel "todos" y records.json ya cargado, no hace falta esperar más:
-  // se puede pintar ya. Filtrado por plantel específico (a/b) sigue
-  // esperando la carga completa, porque ahí _nidoGetVED cae al cálculo en
-  // vivo completo (_buildPlayerPartidos, con histórico incluido).
+  // records.json ya cargado alcanza para pintar ya, sea cual sea el plantel
+  // filtrado — records.json trae el desglose por A/B además del combinado
+  // (ver scripts/generate-og.js), así que el filtro por plantel específico
+  // ya NO necesita esperar el cálculo en vivo completo como antes.
   function _nidoVedReady() {
-    return _matchDataReadyOnce || (_nidoTeam === 'todos' && !!_nidoStaticRecords);
+    return _matchDataReadyOnce || !!_nidoStaticRecords;
   }
   let _nidoVEDCache = {};
   function _nidoGetVED(nombre) {
     const key = normName(nombre) + '|' + _nidoTeam;
     if (_nidoVEDCache[key]) return _nidoVEDCache[key];
-    // data/records.json trae SOLO el V-E-D histórico (Torneos Antiguos,
-    // build time) por jugador — no el total combinado, para no quedar
-    // desactualizado semana a semana con la temporada 2026 en curso. Se le
-    // suma acá el V-E-D de _buildPlayerLivePartidos (temporada actual +
-    // copas dedicadas, ya en memoria, sin fetch) — exactamente el mismo par
-    // histórico+en vivo que usa el perfil de jugador (ver _ppMergePartidos),
-    // así que ambas vistas siempre terminan mostrando el mismo número. Solo
-    // cubre el total combinado ("todos"), ya que records.json no separa por
-    // plantel A/B; el filtro por plantel específico sigue necesitando el
-    // cálculo en vivo completo de siempre.
-    if (_nidoTeam === 'todos' && _nidoStaticRecords) {
+    // data/records.json trae el V-E-D histórico (Torneos Antiguos, build
+    // time) por jugador, con el combinado y el desglose por plantel (a/b) —
+    // no el total en vivo, para no quedar desactualizado semana a semana con
+    // la temporada 2026 en curso. Se le suma acá el V-E-D de
+    // _buildPlayerLivePartidos (temporada actual + copas dedicadas, ya en
+    // memoria, sin fetch, filtrado por el mismo plantel), exactamente el
+    // mismo par histórico+en vivo que usa el perfil de jugador (ver
+    // _ppMergePartidos) — así el ranking se pinta al instante sea "Todos",
+    // "Primera A" o "Primera B", y las tres vistas siempre terminan
+    // mostrando el mismo número que el perfil.
+    if (_nidoStaticRecords) {
       const histRec = _nidoStaticRecords[slugify(nombre)];
       if (histRec) {
-        const liveVed = _ppRecordVED(_buildPlayerLivePartidos(nombre));
-        const ved = { v: histRec.v + liveVed.v, e: histRec.e + liveVed.e, d: histRec.d + liveVed.d };
+        const catFilter = _nidoTeam === 'a' ? 'Primera A' : _nidoTeam === 'b' ? 'Primera B' : null;
+        const histPart = catFilter ? (histRec[_nidoTeam] || { v: 0, e: 0, d: 0 }) : histRec;
+        let liveMatches = _buildPlayerLivePartidos(nombre);
+        if (catFilter) liveMatches = liveMatches.filter(p => p.categoria === catFilter);
+        const liveVed = _ppRecordVED(liveMatches);
+        const ved = { v: histPart.v + liveVed.v, e: histPart.e + liveVed.e, d: histPart.d + liveVed.d };
         _nidoVEDCache[key] = ved;
         return ved;
       }
