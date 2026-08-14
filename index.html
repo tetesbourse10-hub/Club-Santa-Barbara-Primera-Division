@@ -7211,6 +7211,38 @@ function _deriveBasicFromDetailed(detailed) {
   }));
 }
 
+// dataObj.partidos de una temporada EN VIVO se arma hoy solo a partir del
+// bloque detallado (Fecha a Fecha) vía _deriveBasicFromDetailed — la tabla
+// corta (Centro de Datos/"básico") solo se usaba para ENRIQUECER partidos ya
+// existentes (Observaciones/Parciales/Posición/Local), nunca para agregar
+// uno nuevo. El club suele cargar el fixture (rival/fecha/local) en la tabla
+// corta antes de tener listo el bloque detallado de esa fecha (lineups
+// todavía sin confirmar) — sin este merge, ese próximo partido queda
+// invisible en TODO el sitio (Centro de Datos, Fecha a Fecha, Próximo
+// Partido del home) hasta que el club complete el detallado, en vez de
+// mostrarse como pendiente igual que cualquier otro partido programado.
+function _mergeBasicoIntoPartidos(dataObj, basicoMatches) {
+  const key = m => `${(m.rival || '').toUpperCase()}|${m.fecha}`;
+  const byKey = new Map(basicoMatches.map(m => [key(m), m]));
+  for (const p of dataObj.partidos) {
+    const src = byKey.get(key(p));
+    if (!src) continue;
+    if (src.obs) p.obs = src.obs;
+    if (src.parciales) p.parciales = src.parciales;
+    if (src.posCSB) p.posCSB = src.posCSB;
+    if (src.posRival) p.posRival = src.posRival;
+    if (src.local) p.local = src.local;
+    if (src.estadio) p.estadio = src.estadio;
+    if (src.horario) p.horario = src.horario;
+  }
+  const existentes = new Set(dataObj.partidos.map(key));
+  const faltantes = basicoMatches.filter(m => !existentes.has(key(m)));
+  if (faltantes.length) {
+    dataObj.partidos = [...dataObj.partidos, ...faltantes]
+      .sort((a, b) => (parseInt(a.fecha) || 0) - (parseInt(b.fecha) || 0));
+  }
+}
+
 // Recopa AIFA A 2025 — holds the copa fixtures that were miscategorized as
 // league matches in the Clausura/Apertura 2025 sheets (see _moveCopaMatches
 // calls below). No bracket UI yet (needs the actual cuadro data, like 2026's),
@@ -12813,18 +12845,7 @@ async function loadLiveData() {
   // de Datos.
   if (ok(aBasic)) {
     const m = _stripApertura2026ACopaLeaks(_ligaOnlyMatches(parseMatches(ok(aBasic))));
-    const byKey = new Map(m.map(x => [`${(x.rival || '').toUpperCase()}|${x.fecha}`, x]));
-    for (const p of DATA_A_APERTURA2026.partidos) {
-      const src = byKey.get(`${(p.rival || '').toUpperCase()}|${p.fecha}`);
-      if (!src) continue;
-      if (src.obs) p.obs = src.obs;
-      if (src.parciales) p.parciales = src.parciales;
-      if (src.posCSB) p.posCSB = src.posCSB;
-      if (src.posRival) p.posRival = src.posRival;
-      if (src.local) p.local = src.local;
-      if (src.estadio) p.estadio = src.estadio;
-      if (src.horario) p.horario = src.horario;
-    }
+    _mergeBasicoIntoPartidos(DATA_A_APERTURA2026, m);
   }
 
   // Apertura AIFA A 2026 global player stats (L3:X33) — exact range, row 0 = header
@@ -12869,18 +12890,7 @@ async function loadLiveData() {
   // Lugar, which is often blank).
   if (ok(aClBasic)) {
     const m = _stripClausura2026ACopaLeaks(_ligaOnlyMatches(parseMatches(ok(aClBasic))));
-    const byKey = new Map(m.map(x => [`${(x.rival || '').toUpperCase()}|${x.fecha}`, x]));
-    for (const p of DATA_A.partidos) {
-      const src = byKey.get(`${(p.rival || '').toUpperCase()}|${p.fecha}`);
-      if (!src) continue;
-      if (src.obs) p.obs = src.obs;
-      if (src.parciales) p.parciales = src.parciales;
-      if (src.posCSB) p.posCSB = src.posCSB;
-      if (src.posRival) p.posRival = src.posRival;
-      if (src.local) p.local = src.local;
-      if (src.estadio) p.estadio = src.estadio;
-      if (src.horario) p.horario = src.horario;
-    }
+    _mergeBasicoIntoPartidos(DATA_A, m);
   }
   if (ok(aClTabla)) {
     const t = parseTablaSheet(ok(aClTabla));
@@ -12961,18 +12971,7 @@ async function loadLiveData() {
   // mostraban Observaciones/Parciales en blanco.
   if (ok(bClBasic)) {
     const m = _ligaOnlyMatches(parseMatches(ok(bClBasic)));
-    const byKey = new Map(m.map(x => [`${(x.rival || '').toUpperCase()}|${x.fecha}`, x]));
-    for (const p of DATA_B.partidos) {
-      const src = byKey.get(`${(p.rival || '').toUpperCase()}|${p.fecha}`);
-      if (!src) continue;
-      if (src.obs) p.obs = src.obs;
-      if (src.parciales) p.parciales = src.parciales;
-      if (src.posCSB) p.posCSB = src.posCSB;
-      if (src.posRival) p.posRival = src.posRival;
-      if (src.local) p.local = src.local;
-      if (src.estadio) p.estadio = src.estadio;
-      if (src.horario) p.horario = src.horario;
-    }
+    _mergeBasicoIntoPartidos(DATA_B, m);
   }
 
   // Estadisticas Historicas — only historico (club all-time record) and B's
