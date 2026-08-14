@@ -5005,21 +5005,16 @@ function renderTorneosMenu() {
   const isA = currentData === DATA_A;
   // Apertura ended for both categories — its data lives in Torneos Antiguos now.
   // Both A and B's tracked "current season" slot now represents their Clausura
-  // AIFA 2026 (same live sheet feed pattern, relabeled). A's Recopa 2026 keeps
-  // running in parallel (still active); B's Recopa already finished and moved
-  // to Torneos Antiguos, so it's dropped from Torneos Actuales.
+  // AIFA 2026 (same live sheet feed pattern, relabeled). Recopa 2026 already
+  // finished for BOTH categories (B in Cuartos, A eliminado en Semifinales por
+  // penales vs GEBA BLANCO) and moved to Torneos Antiguos, so it's dropped
+  // from Torneos Actuales for both.
   const ligaCard = `<div class="torneo-card" onclick="_navPushTorneosActuales();showTorneo('apertura')">
          <div class="torneo-card-icon">🥇</div>
          <div class="torneo-card-name">Clausura AIFA ${isA ? 'A' : 'B'} 2026</div>
          <div class="torneo-card-sub">Liga oficial AIFA · Temporada 2026</div>
        </div>`;
-  const cards = isA
-    ? ligaCard + `<div class="torneo-card" onclick="_navPushTorneosActuales();showTorneo('recopa')">
-         <div class="torneo-card-icon">🏆</div>
-         <div class="torneo-card-name">Recopa 2026</div>
-         <div class="torneo-card-sub">Torneo copa · Temporada 2026</div>
-       </div>`
-    : ligaCard;
+  const cards = ligaCard;
   document.getElementById('torneos-picker-content').innerHTML = `
     <div class="section-title" style="margin-bottom:20px">🏆 Torneos Actuales – ${currentData.nombre}</div>
     <div class="torneos-picker-grid">${cards}</div>`;
@@ -5697,7 +5692,7 @@ function renderRecopa() {
   }
 
   // ── Tab 2: Fase de Eliminación (bracket) ───────────────────────────────
-  function rcTeam(name, score, isWinner, isCsb, isPending) {
+  function rcTeam(name, score, isWinner, isCsb, isPending, pen) {
     // A team name is only shown greyed-out/italic when it's genuinely
     // undetermined (waiting on a previous round's winner) — a match with
     // both qualifiers already known but simply not yet played (isPending)
@@ -5709,22 +5704,30 @@ function renderRecopa() {
       : [isCsb ? 'csb-name' : '', isWinner ? 'winner' : ''].filter(Boolean).join(' ');
     const scoreClass = isPending ? 'tbd' : isWinner ? 'win' : score !== null ? 'loss' : 'tbd';
     const scoreStr = score !== null ? score : '–';
+    const penStr = pen != null ? ` <span style="font-size:0.75em;opacity:.7">(${pen})</span>` : '';
     return `<div class="rc-team-row">
       <span class="rc-team-name ${nameClass}">${isCsb ? '⭐ ' : ''}${name}</span>
-      <span class="rc-score ${scoreClass}">${scoreStr}</span>
+      <span class="rc-score ${scoreClass}">${scoreStr}${penStr}</span>
     </div>`;
   }
 
-  // Call convention is rcMatch(team1, team2, goles1, goles2, meta, isCsb, isPending, csbSlot).
-  function rcMatch(t1, t2, g1, g2, meta, isCsb, isPending, isCSBwinner) {
+  // Call convention is rcMatch(team1, team2, goles1, goles2, meta, isCsb, isPending, csbSlot, penales).
+  // `penales` ("4-3") solo aplica cuando g1===g2 (empate en los 90') — el
+  // ganador real se decide por penales en vez de por goles.
+  function rcMatch(t1, t2, g1, g2, meta, isCsb, isPending, isCSBwinner, penales) {
     // Determine winners
-    const w1 = g1 !== null && g2 !== null && g1 > g2;
-    const w2 = g1 !== null && g2 !== null && g2 > g1;
+    let w1 = g1 !== null && g2 !== null && g1 > g2;
+    let w2 = g1 !== null && g2 !== null && g2 > g1;
+    let p1 = null, p2 = null;
+    if (!w1 && !w2 && penales) {
+      [p1, p2] = penales.split('-').map(Number);
+      w1 = p1 > p2; w2 = p2 > p1;
+    }
     const csb1 = isCsb && isCSBwinner === 't1';
     const csb2 = isCsb && isCSBwinner === 't2';
     return `<div class="rc-match-card${isCsb ? ' csb' : ''}${isPending ? ' pending' : ''}">
-      ${rcTeam(t1, g1, w1, csb1, isPending)}
-      ${rcTeam(t2, g2, w2, csb2, isPending)}
+      ${rcTeam(t1, g1, w1, csb1, isPending, p1)}
+      ${rcTeam(t2, g2, w2, csb2, isPending, p2)}
       ${meta ? `<div class="rc-meta">${meta}</div>` : ''}
     </div>`;
   }
@@ -5753,7 +5756,7 @@ function renderRecopa() {
     rcMatch('LIBERTADOR "A"','SANTA BÁRBARA "A"',2,5,'📅 23/05 14:30 · Santa Bárbara, C. Marcos',isA,false,'t2'),
   ];
   const leftSemis = [
-    rcMatch('GEBA BLANCO','SANTA BÁRBARA "A"',null,null,'📅 15/08 20:00 · Por definir',isA,true,'t2'),
+    rcMatch('GEBA BLANCO','SANTA BÁRBARA "A"',1,1,'📅 13/08/2026 · GEBA BLANCO avanza por penales',isA,false,'t2','4-3'),
   ];
   const rightOctavos = [
     rcMatch('VILO','SHOLEM',0,1,'📅 07/03 19:00 · Club Vilo, Vte. López',false,false),
@@ -8154,7 +8157,12 @@ function renderResumen() {
               .map(p => ({ ...p, _navKey: navKey, _torneoLabel: torneoLabel }));
             // Apertura primero (más antiguo) + Clausura después (más reciente) —
             // tomar los últimos 5 de esa secuencia da exactamente la cola móvil.
+            // Para Primera A, la Recopa 2026 corre en paralelo a la liga y no
+            // vive en d.partidos — el último resultado (eliminados en
+            // Semifinales, 13/08) se suma al final a mano, como el partido más
+            // reciente jugado por el plantel.
             const combinado = [...jugadosDe(aperturaSrc, aperturaNavKey, aperturaLabel), ...jugadosDe(d, clausuraNavKey, clausuraLabel)];
+            if (isA) combinado.push(RECOPA_2026_A_ULTIMO_RESULTADO);
             const ultimos = combinado.slice(-5).reverse();
             return ultimos.map(p => {
               const res = p.gf > p.gc ? 'win' : p.gf < p.gc ? 'loss' : 'draw';
@@ -11202,6 +11210,11 @@ const SEED_GRAFICOS_B = [
 ];
 
 const SEED_GRAFICOS = [
+  // 2026 — Apertura AIFA A 2026 se agrega dinámicamente en renderGraficos()
+  // desde DATA_A_APERTURA2026 (recién terminada), no acá. La Recopa 2026 sí
+  // ya cerró del todo (eliminados en Semifinales por penales vs GEBA
+  // BLANCO, 1-1 · 3-4) y queda fija en el seed como cualquier otra temporada.
+  { competencia:'Recopa', anio:2026, pj:3, pg:2, pe:1, pp:0, gf:8, gc:4, vi:0, pts:null, pos:'Semifinal' },
   // 2025
   { competencia:'Apertura AIFA A', anio:2025, pj:15, pg:9,  pe:3, pp:3,  gf:25, gc:10, vi:8, pts:30,  pos:'4°' },
   { competencia:'Clausura AIFA A', anio:2025, pj:15, pg:7,  pe:2, pp:6,  gf:22, gc:18, vi:4, pts:23,  pos:'5°' },
@@ -11254,9 +11267,13 @@ const TORNEO_NAV_MAP = {
   // Estadísticas Anuales (de donde se hace este click) queda con
   // display:block y el torneo se ve incrustado arriba en vez de reemplazarlo.
   '2026|Clausura AIFA B': { fn: "JUG_SUB_IDS.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; }); showTorneo('apertura')" },
-  // Only Primera B's Recopa 2026 lives here — A's Recopa is still active in
-  // Torneos Actuales, so this key never appears in SEED_GRAFICOS (A).
-  '2026|Recopa': { fn: "showHistoricoTorneo('recopa-2026')" },
+  // Recopa 2026 terminó para las dos categorías (B en Cuartos, A eliminado
+  // en Semifinales por penales vs GEBA BLANCO) — team-qualificado porque
+  // ambas usan el mismo nombre de competencia "Recopa", mismo patrón que
+  // 2024 más abajo. Las dos reusan renderRecopa() (mismo bracket a mano),
+  // que ya distingue currentData === DATA_A internamente.
+  '2026|Recopa|A': { fn: "showHistoricoTorneo('recopa-2026')" },
+  '2026|Recopa|B': { fn: "showHistoricoTorneo('recopa-2026')" },
   // Finished Primera A league seasons (2022-2025) — generic 4-tab component,
   // fetched live by gid. Recopa/Supercopa for these years still needs its
   // bracket hand-authored (like 2026's), so intentionally left out of the map.
@@ -12221,7 +12238,27 @@ function _teamNextMatch(d, navKey) {
 // (COPA_BLOCKS['Recopa 2026']) en su lugar. Próximo cruce PENDIENTE de esa
 // copa para Primera A, mismo shape que _teamNextMatch, para poder comparar
 // fechas y elegir cuál mostrar en la casilla de "Próximo Partido".
+// Primera A quedó eliminada de la Recopa 2026 en Semifinales (penales vs
+// GEBA BLANCO, 13/08/2026) — no hay más cruces pendientes para el club en
+// esta copa, así que esta función corta acá sin mirar la hoja. Sin este
+// corte, un cruce PENDIENTE de otro equipo (ej. la otra semifinal, Sholem
+// vs Cissab, o la Final) podría quedar como "resultado === null" en
+// COPA_BLOCKS y aparecer por error como el próximo partido de Santa
+// Bárbara — la hoja "SB en Copas" solo trae los cruces DEL CLUB, pero antes
+// de que el club cargue el resultado de esta baja ahí, esta guardia evita
+// el falso positivo de todos modos.
+const RECOPA_2026_A_ELIMINADA = true;
+// Resultado final de Primera A en la Recopa 2026, para mezclarlo con los
+// partidos de liga en los widgets de "últimos partidos" (Resumen y la
+// casilla de Primera A en el home) — esos widgets solo leen d.partidos
+// (liga), nunca copas, así que este único partido puntual se inyecta a
+// mano en los dos lugares que lo necesitan en vez de duplicar el dato.
+const RECOPA_2026_A_ULTIMO_RESULTADO = {
+  rival: 'GEBA BLANCO', fecha: 'Semifinal', local: '', resultado: '1-1 (3-4 pen.)',
+  gf: 1, gc: 1, posCSB: 'Eliminados en Semifinales', _navKey: 'rc:a', _torneoLabel: 'Recopa 2026',
+};
 function _recopaANextMatch() {
+  if (RECOPA_2026_A_ELIMINADA) return null;
   const matches = COPA_BLOCKS['Recopa 2026'] || [];
   const next = matches.find(m => m.resultado === null);
   if (!next) return null;
@@ -12402,6 +12439,10 @@ function renderLandingCardStats() {
     if (footEl) {
       const partidos = (d.partidos || []).filter(m => /^\d+$/.test(m.fecha));
       const played = partidos.filter(m => m.resultado !== null);
+      // Recopa 2026 corre en paralelo a la liga de Primera A y no vive en
+      // d.partidos — se suma el último resultado (eliminados en
+      // Semifinales) al final, como el partido más reciente jugado.
+      if (key === 'a') played.push(RECOPA_2026_A_ULTIMO_RESULTADO);
       // Últimos 5 partidos, más reciente primero.
       const lastFive = played.slice(-5).reverse();
       if (lastFive.length) {
