@@ -1289,6 +1289,11 @@
       color: var(--dorado); background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.25);
       border-radius: 999px; padding: 1px 7px; white-space: nowrap;
     }
+    /* Apertura/Clausura/Recopa se distinguen por color — antes las 3 usaban
+       el mismo dorado y era difícil diferenciarlas de un vistazo. */
+    .ultimo-torneo-badge.badge-apertura { color: #60a5fa; background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.3); }
+    .ultimo-torneo-badge.badge-clausura { color: var(--dorado); background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.25); }
+    .ultimo-torneo-badge.badge-copa     { color: #c084fc; background: rgba(168,85,247,0.12); border-color: rgba(168,85,247,0.3); }
     .ultimo-rival { font-size: 0.88rem; font-weight: 700; color: #e2e8f0; display: flex; align-items: center; gap: 6px; }
     /* Círculo de iniciales para el club rival — ver _rivalAvatarHtml(). Mismo
        lenguaje visual dorado que .pp-avatar (jugadores) y .hd-club-avatar
@@ -8170,8 +8175,10 @@ function renderResumen() {
               const esCopa = isNaN(parseInt(p.fecha));
               const fechaLabel = esCopa ? p.fecha : `Fecha ${p.fecha}`;
               const fechaArg = String(p.fecha).replace(/'/g, "\\'");
+              const badgeCls = /apertura/i.test(p._torneoLabel) ? 'badge-apertura'
+                : /clausura/i.test(p._torneoLabel) ? 'badge-clausura' : 'badge-copa';
               return `<div class="ultimo-card ultimo-card-link ${res}" onclick="goToMatchFecha('${p._navKey}', '${fechaArg}')" title="Ver en Fecha a Fecha">
-                <div class="ultimo-fecha">${fechaLabel}<span class="ultimo-torneo-badge">${p._torneoLabel}</span></div>
+                <div class="ultimo-fecha">${fechaLabel}<span class="ultimo-torneo-badge ${badgeCls}">${p._torneoLabel}</span></div>
                 <div>
                   <div class="ultimo-rival">${_rivalAvatarHtml(p.rival)}vs ${p.rival}</div>
                   <div class="ultimo-local">${p.local || ''}</div>
