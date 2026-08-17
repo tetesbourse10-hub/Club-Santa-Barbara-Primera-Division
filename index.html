@@ -1338,6 +1338,112 @@
     .mini-tabla tr.csb-row td { color:var(--dorado); font-weight:800; }
     .mini-tabla-gap td { border-top:none; padding:2px 0; }
     .mini-tabla-gap-dots { color:#334155; font-size:0.7rem; text-align:center; letter-spacing:2px; }
+    /* Avatar circular con iniciales del equipo — mismo lenguaje visual que
+       .rival-avatar (Últimos Partidos), a esta escala ligeramente más chica
+       para no romper el ancho ajustado de la mini tabla. */
+    .mini-tabla-team { display:inline-flex; align-items:center; gap:6px; }
+    .mini-tabla-avatar {
+      display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;
+      width:18px; height:18px; border-radius:50%;
+      background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.3);
+      color:var(--dorado); font-size:0.52rem; font-weight:800;
+    }
+    .mini-tabla tr.csb-row .mini-tabla-avatar { background:rgba(245,158,11,0.22); }
+
+    /* ── RESUMEN — vista mobile (Estadísticas Históricas en grilla compacta,
+       Últimos Partidos en carrusel horizontal, TOP 5 con pestañas) ──
+       Reemplaza al layout de escritorio SOLO ≤768px — .resumen-desktop-only
+       se oculta y .rsm-mobile se muestra (mismo patrón "dos vistas, una
+       oculta por CSS" que ya usan Centro de Datos/Plantel/Historial). */
+    .rsm-mobile { display:none; }
+    @media (max-width:768px) {
+      /* !important porque el título/switch de escritorio trae su propio
+         style="display:flex" inline (mayor especificidad que una regla de
+         clase normal) — sin esto, esa fila en particular quedaría visible
+         encima de la vista mobile en vez de ocultarse. */
+      .resumen-desktop-only { display:none !important; }
+      .rsm-mobile { display:block; }
+    }
+    /* Título + selector A/B pegado justo debajo del header sticky global
+       (60px de alto) — solo en mobile, para no duplicar sticky-stacking en
+       desktop donde el layout de 2 columnas ya tiene lugar de sobra. */
+    @media (max-width:768px) {
+      .resumen-mobile-head {
+        position: sticky; top: 60px; z-index: 15;
+        background: var(--azul); padding: 10px 0 12px; margin-bottom: 0;
+      }
+    }
+    .rsm-section { margin-bottom: 18px; }
+    .rsm-section-title {
+      font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--gris-texto); font-weight: 700; margin-bottom: 10px;
+    }
+    .rsm-stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+    .rsm-stat {
+      background: var(--azul-card); border:1px solid rgba(255,255,255,0.06);
+      border-radius:10px; padding:8px 4px; text-align:center;
+    }
+    .rsm-stat-val { font-size:0.92rem; font-weight:800; color:var(--blanco); line-height:1.1; }
+    .rsm-stat-label { font-size:0.56rem; color:var(--gris-texto); margin-top:3px; text-transform:uppercase; letter-spacing:.03em; }
+
+    .rsm-carousel { display:flex; gap:8px; overflow-x:auto; padding-bottom:2px; scrollbar-width:none; }
+    .rsm-carousel::-webkit-scrollbar { display:none; }
+    .rsm-match-card {
+      flex-shrink:0; width:92px; background:var(--azul-card); border:1px solid rgba(255,255,255,0.06);
+      border-top:2px solid var(--gris-texto); border-radius:10px; padding:10px 6px; text-align:center; cursor:pointer;
+    }
+    .rsm-match-card.win  { border-top-color: var(--verde); }
+    .rsm-match-card.draw { border-top-color: var(--dorado); }
+    .rsm-match-card.loss { border-top-color: var(--rojo); }
+    .rsm-match-card .rival-avatar { margin: 0 auto 6px; }
+    .rsm-match-rival { font-size:0.66rem; color:var(--gris-texto); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .rsm-match-score { font-size:0.88rem; font-weight:800; margin-top:2px; }
+    .rsm-match-score.win  { color: var(--verde); }
+    .rsm-match-score.draw { color: var(--dorado); }
+    .rsm-match-score.loss { color: var(--rojo); }
+    .rsm-match-torneo {
+      font-size:0.5rem; font-weight:800; color:var(--dorado); background:rgba(245,158,11,0.1);
+      border:1px solid rgba(245,158,11,0.25); border-radius:999px; padding:1px 5px; margin-top:5px; display:inline-block;
+    }
+    .rsm-match-torneo.badge-apertura { color:#60a5fa; background:rgba(59,130,246,0.1); border-color:rgba(59,130,246,0.3); }
+    .rsm-match-torneo.badge-copa     { color:#c084fc; background:rgba(168,85,247,0.12); border-color:rgba(168,85,247,0.3); }
+
+    .rsm-card { background:var(--azul-card); border:1px solid rgba(255,255,255,0.06); border-radius:14px; overflow:hidden; }
+    .rsm-tabs { display:flex; border-bottom:1px solid rgba(255,255,255,0.08); }
+    .rsm-tab {
+      flex:1; background:none; border:none; color:var(--gris-texto); font-size:0.72rem; font-weight:700;
+      padding:11px 4px; cursor:pointer; border-bottom:2px solid transparent;
+    }
+    .rsm-tab.active { color:var(--dorado); border-bottom-color:var(--dorado); }
+    .rsm-panel { padding: 4px 14px 8px; }
+    .rsm-panel .top10-row { padding: 8px 0; }
+
+    /* ── BOTTOM NAV — mobile only, oculta en la landing (ver openSection/
+       goBack) y en pantallas de escritorio (min-width:769px). Mismos 5
+       destinos que #main-nav, mismo estado activo sincronizado (ver
+       showTab). ── */
+    #mobile-bottom-nav {
+      display: none;
+      position: fixed; left:0; right:0; bottom:0; z-index: 90;
+      background: var(--azul-mid); border-top: 1px solid var(--gris);
+      padding-bottom: env(safe-area-inset-bottom, 0);
+    }
+    @media (min-width: 769px) { #mobile-bottom-nav { display: none !important; } }
+    .bnav-btn {
+      flex: 1; background: none; border: none; color: var(--gris-texto);
+      display:flex; flex-direction:column; align-items:center; gap:2px;
+      padding: 8px 2px 7px; font-size: 0.6rem; font-weight:600; cursor:pointer;
+    }
+    .bnav-btn-icon { font-size: 1.05rem; line-height:1; }
+    .bnav-btn.active { color: var(--dorado); }
+    /* Deja hueco abajo de página para que el contenido no quede tapado
+       detrás de la bottom nav fija — solo cuando está en pantalla. */
+    @media (max-width:768px) { body.has-bottom-nav .panel { padding-bottom: 76px; } }
+    /* La bottom nav reemplaza a la nav superior en mobile — mostrar las dos
+       a la vez duplica la navegación sin necesidad. #main-nav se sigue
+       usando igual como fuente de verdad del estado activo (ver showTab/
+       BOTTOM_NAV_TAB_INDEX), solo se oculta visualmente acá. */
+    @media (max-width:768px) { #main-nav { display: none !important; } }
 
     /* ── APERTURA TORNEO PAGE ── */
     .ap-overview {
@@ -2099,6 +2205,22 @@
     <span id="refresh-status"></span>
     <span id="refresh-time"></span>
   </div>
+
+  <!-- Bottom nav mobile — mismos 5 destinos que #main-nav (ver showTab, que
+       sincroniza el estado activo de acá). Oculta en la landing y en
+       escritorio (ver CSS + openSection/goBack). -->
+  <nav id="mobile-bottom-nav">
+    <button class="bnav-btn active" onclick="showTab('resumen', document.querySelectorAll('#main-nav button')[0])">
+      <span class="bnav-btn-icon">🏠</span>Inicio</button>
+    <button class="bnav-btn" onclick="showTab('posiciones', document.querySelectorAll('#main-nav button')[1])">
+      <span class="bnav-btn-icon">📡</span>En Vivo</button>
+    <button class="bnav-btn" onclick="showTab('jugadores', document.querySelectorAll('#main-nav button')[2])">
+      <span class="bnav-btn-icon">👥</span>Jugadores</button>
+    <button class="bnav-btn" onclick="showTab('historial', document.querySelectorAll('#main-nav button')[3])">
+      <span class="bnav-btn-icon">🕐</span>Historial</button>
+    <button class="bnav-btn" onclick="showTab('graficos', document.querySelectorAll('#main-nav button')[4])">
+      <span class="bnav-btn-icon">🏆</span>Torneos</button>
+  </nav>
 
   <!-- RESUMEN -->
   <div class="panel active" id="tab-resumen">
@@ -4878,6 +5000,8 @@ window.addEventListener('popstate', () => {
 function openSection(section) {
   document.getElementById('landing').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
+  document.getElementById('mobile-bottom-nav').style.display = 'flex';
+  document.body.classList.add('has-bottom-nav');
 
   if (section === 'nido') {
     document.getElementById('main-nav').style.display = 'none';
@@ -4886,6 +5010,10 @@ function openSection(section) {
     document.getElementById('tab-nido').classList.add('active');
     document.getElementById('section-badge').textContent = 'El Nido';
     document.getElementById('section-badge').className = 'header-section-badge badge-green';
+    // Ningún destino de la bottom nav corresponde exactamente a El Nido
+    // (se entra desde la landing, no desde #main-nav) — se limpia el activo
+    // en vez de dejar pegado el de la sección anterior.
+    document.querySelectorAll('#mobile-bottom-nav button').forEach(b => b.classList.remove('active'));
     currentData = null;
     renderNido();
     return;
@@ -4907,6 +5035,8 @@ function openSection(section) {
 function goBack() {
   document.getElementById('landing').style.display = 'flex';
   document.getElementById('app').style.display = 'none';
+  document.getElementById('mobile-bottom-nav').style.display = 'none';
+  document.body.classList.remove('has-bottom-nav');
   destroyCharts();
 }
 
@@ -4973,9 +5103,16 @@ function _navPushTorneosAntiguos() {
   _navPush('Torneos Antiguos', () => showTab('graficos', document.querySelectorAll('#main-nav button')[4]));
 }
 
+// Mismo orden que #main-nav/#mobile-bottom-nav (5 destinos 1:1) — usado por
+// showTab para mantener sincronizado el estado activo de la bottom nav sin
+// importar desde dónde se haya disparado la navegación (click en la bottom
+// nav, en #main-nav, o programático vía _navPush/breadcrumbs).
+const BOTTOM_NAV_TAB_INDEX = { resumen:0, posiciones:1, jugadores:2, historial:3, graficos:4 };
 function showTab(name, btn) {
   document.querySelectorAll('#main-nav button').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
+  const bnavIdx = BOTTOM_NAV_TAB_INDEX[name];
+  document.querySelectorAll('#mobile-bottom-nav button').forEach((b, i) => b.classList.toggle('active', i === bnavIdx));
   // Restore the header's position badge — only a tournament's own Plantel tab hides it.
   const sectionBadge = document.getElementById('section-badge');
   if (sectionBadge) sectionBadge.style.display = '';
@@ -8077,7 +8214,7 @@ function renderResumen() {
     const end = Math.min(tabla.length, idx + 5);
     const slice = tabla.slice(start, end);
     const rows = slice.map(t => `<tr class="${t.csb ? 'csb-row' : ''}">
-      <td>${t.pos}</td><td>${t.csb ? '⭐ ' : ''}${t.equipo}</td>
+      <td>${t.pos}</td><td><span class="mini-tabla-team"><span class="mini-tabla-avatar">${_rivalInitials(t.equipo)}</span>${t.csb ? '⭐ ' : ''}${t.equipo}</span></td>
       <td>${miniCopaBadge(t.copas)}</td>
       <td>${t.pts}</td><td>${t.pj}</td>
       <td style="color:${t.df > 0 ? '#22c55e' : t.df < 0 ? '#ef4444' : 'inherit'}">${t.df > 0 ? '+' : ''}${t.df ?? '–'}</td>
@@ -8090,9 +8227,40 @@ function renderResumen() {
     </div>`;
   }
 
+  // Cola móvil: los últimos 5 partidos JUGADOS del equipo, sin importar el
+  // torneo — cuando el Clausura recién arranca y todavía no tiene (o no
+  // tiene 5) partidos disputados, se completa el cupo con las últimas
+  // fechas del Apertura anterior. A medida que el Clausura acumula
+  // resultados, van desplazando a los del Apertura de a uno. Extraído fuera
+  // del template (antes vivía en una IIFE inline dentro de la vista de
+  // escritorio) para que la vista mobile pueda reusar exactamente el mismo
+  // array en vez de recalcularlo por separado.
+  const aperturaSrc = isA ? DATA_A_APERTURA2026 : DATA_B_APERTURA2026;
+  const aperturaNavKey = isA ? 'a-ap2026' : 'b-ap2026';
+  const clausuraNavKey = isA ? 'a' : 'b';
+  // Torneo badge — para no confundir fechas de Apertura y Clausura cuando se
+  // mezclan en la misma cola móvil (típicamente al arrancar un torneo
+  // nuevo, cuando la mayoría de las 5 tarjetas todavía son del anterior).
+  const aperturaLabel = 'Apertura 2026', clausuraLabel = 'Clausura 2026';
+  const jugadosDe = (dataObj, navKey, torneoLabel) => (dataObj.partidos || [])
+    .filter(p => p.resultado !== null && p.gf !== null)
+    .map(p => ({ ...p, _navKey: navKey, _torneoLabel: torneoLabel }));
+  // Apertura primero (más antiguo) + Clausura después (más reciente) — tomar
+  // los últimos 5 de esa secuencia da exactamente la cola móvil. Para
+  // Primera A, la Recopa 2026 corre en paralelo a la liga y no vive en
+  // d.partidos — el último resultado (eliminados en Semifinales, 13/08) se
+  // suma al final a mano, como el partido más reciente jugado por el plantel.
+  const combinadoUltimos = [...jugadosDe(aperturaSrc, aperturaNavKey, aperturaLabel), ...jugadosDe(d, clausuraNavKey, clausuraLabel)];
+  if (isA) combinadoUltimos.push(RECOPA_2026_A_ULTIMO_RESULTADO);
+  const ultimos = combinadoUltimos.slice(-5).reverse();
+  function ultimoBadgeCls(torneoLabel) {
+    return /apertura/i.test(torneoLabel) ? 'badge-apertura'
+      : /clausura/i.test(torneoLabel) ? 'badge-clausura' : 'badge-copa';
+  }
+
   const container = document.getElementById('resumen-content');
   container.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+    <div class="resumen-desktop-only" style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap">
       <div class="section-title" style="margin-bottom:0">${isA ? '🏆' : '⚽'} Resumen – ${d.nombre}</div>
       <div class="resumen-cat-switch">
         <button class="resumen-cat-btn${isA ? ' active' : ''}" onclick="_resumenSwitchCategory('a')">Primera A</button>
@@ -8100,7 +8268,93 @@ function renderResumen() {
       </div>
     </div>
 
+    <!-- ═══ VISTA MOBILE (≤768px) ═══ -->
+    <div class="rsm-mobile">
+      <div class="resumen-mobile-head">
+        <div class="section-title" style="margin-bottom:10px">${isA ? '🏆' : '⚽'} Resumen – ${d.nombre}</div>
+        <div class="resumen-cat-switch">
+          <button class="resumen-cat-btn${isA ? ' active' : ''}" onclick="_resumenSwitchCategory('a')">Primera A</button>
+          <button class="resumen-cat-btn${isA ? '' : ' active'}" onclick="_resumenSwitchCategory('b')">Primera B</button>
+        </div>
+      </div>
+
+      <div class="rsm-section">
+        <div class="rsm-section-title">Estadísticas históricas</div>
+        <div class="rsm-stats-grid">
+          <div class="rsm-stat"><div class="rsm-stat-val">${h.pj}</div><div class="rsm-stat-label">PJ</div></div>
+          <div class="rsm-stat"><div class="rsm-stat-val" style="color:var(--verde)">${h.pg}</div><div class="rsm-stat-label">Victorias</div></div>
+          <div class="rsm-stat"><div class="rsm-stat-val" style="color:var(--dorado)">${h.pe}</div><div class="rsm-stat-label">Empates</div></div>
+          <div class="rsm-stat"><div class="rsm-stat-val" style="color:var(--rojo)">${h.pp}</div><div class="rsm-stat-label">Derrotas</div></div>
+          <div class="rsm-stat"><div class="rsm-stat-val" style="color:var(--azul-claro)">${h.gf}</div><div class="rsm-stat-label">GF</div></div>
+          <div class="rsm-stat"><div class="rsm-stat-val" style="color:var(--rojo)">${h.gc}</div><div class="rsm-stat-label">GC</div></div>
+          <div class="rsm-stat"><div class="rsm-stat-val">${h.vi}</div><div class="rsm-stat-label">Vallas</div></div>
+          <div class="rsm-stat"><div class="rsm-stat-val" style="color:${(h.gf-h.gc)>=0?'var(--verde)':'var(--rojo)'}">${h.gf-h.gc>=0?'+':''}${h.gf-h.gc}</div><div class="rsm-stat-label">Dif.</div></div>
+        </div>
+      </div>
+
+      <div class="rsm-section">
+        <div class="titulos-card">
+          <div class="titulos-card-title">🏅 Títulos Oficiales</div>
+          ${d.titulos.map(t => `
+            <div class="titulo-item">
+              <span class="titulo-name">${t.nombre}</span>
+              <span class="titulo-count">${t.anio}</span>
+            </div>`).join('')}
+        </div>
+      </div>
+      <div class="rsm-section">
+        <div class="records-card">
+          <div class="records-card-title">⚡ Récords Históricos</div>
+          <div class="record-item">
+            <div class="record-label">Máxima goleada histórica</div>
+            <div class="record-val">${isA ? '<span>8 – 0</span> vs Sitas (Apertura 2023)' : '<span>13 – 0</span> vs República del Oeste (Apertura 2023)'}</div>
+          </div>
+          <div class="record-item">
+            <div class="record-label">Racha invicta más larga</div>
+            <div class="record-val">${isA ? '<span>15 partidos</span> (Apertura 2026)' : '<span>14 partidos</span> (Clausura 2023)'}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rsm-section">
+        <div class="rsm-section-title">Últimos partidos</div>
+        <div class="rsm-carousel">
+          ${ultimos.length ? ultimos.map(p => {
+            const res = p.gf > p.gc ? 'win' : p.gf < p.gc ? 'loss' : 'draw';
+            const fechaArg = String(p.fecha).replace(/'/g, "\\'");
+            return `<div class="rsm-match-card ${res}" onclick="goToMatchFecha('${p._navKey}', '${fechaArg}')" title="Ver en Fecha a Fecha">
+              ${_rivalAvatarHtml(p.rival)}
+              <div class="rsm-match-rival">vs ${p.rival}</div>
+              <div class="rsm-match-score ${res}">${p.resultado}</div>
+              <span class="rsm-match-torneo ${ultimoBadgeCls(p._torneoLabel)}">${p._torneoLabel}</span>
+            </div>`;
+          }).join('') : '<div style="color:#475569;padding:16px;font-size:0.8rem">Sin partidos jugados aún</div>'}
+        </div>
+      </div>
+
+      <div class="rsm-section">
+        <div class="rsm-section-title">TOP 5 histórico</div>
+        <div class="rsm-card">
+          <div class="rsm-tabs">
+            <button class="rsm-tab active" data-top5="pj" onclick="_resumenMobileTop5('pj', this)">Partidos</button>
+            <button class="rsm-tab" data-top5="goles" onclick="_resumenMobileTop5('goles', this)">Goles</button>
+            <button class="rsm-tab" data-top5="asist" onclick="_resumenMobileTop5('asist', this)">Asist.</button>
+          </div>
+          <div class="rsm-panel" id="rsm-top5-pj">${byPartidos.map((j,i) => top10Row(j, i)).join('') || '<div style="color:#475569;padding:12px 0;font-size:0.8rem">Sin datos</div>'}</div>
+          <div class="rsm-panel" id="rsm-top5-goles" style="display:none">${byGoles.map((j,i) => top10Row(j, i)).join('') || '<div style="color:#475569;padding:12px 0;font-size:0.8rem">Sin datos</div>'}</div>
+          <div class="rsm-panel" id="rsm-top5-asist" style="display:none">${byAsist.map((j,i) => top10Row(j, i)).join('') || '<div style="color:#475569;padding:12px 0;font-size:0.8rem">Sin datos</div>'}</div>
+        </div>
+      </div>
+
+      <div class="rsm-section" style="margin-bottom:0">
+        <div class="rsm-section-title">Tabla de posiciones</div>
+        ${miniTablaHtml(d.tabla, d.badge || d.nombre)}
+      </div>
+    </div>
+
+    <!-- ═══ VISTA ESCRITORIO (>768px) ═══ -->
     <!-- Estadísticas históricas + columna derecha -->
+    <div class="resumen-desktop-only resumen-grid">
     <div class="resumen-grid">
       <div class="stats-hist">
         <div class="stats-hist-title">📊 Estadísticas Históricas</div>
@@ -8172,7 +8426,7 @@ function renderResumen() {
     </div>
 
     <!-- TOP 5 histórico -->
-    <div class="top10-grid">
+    <div class="resumen-desktop-only top10-grid">
       <div class="top10-card">
         <div class="top10-header" style="color:#fac775;border-bottom-color:#fac775">👟 TOP 5 – Más partidos</div>
         ${byPartidos.map((j,i) => top10Row(j, i)).join('')}
@@ -8188,61 +8442,41 @@ function renderResumen() {
     </div>
 
     <!-- Últimos 5 partidos + mini tabla, lado a lado -->
-    <div class="resumen-split">
+    <div class="resumen-desktop-only resumen-split">
       <div class="ultimos-col">
         <div class="section-title" style="margin-bottom:14px">🕐 Últimos 5 Partidos</div>
         <div class="ultimos-grid">
-          ${(() => {
-            // Cola móvil: los últimos 5 partidos JUGADOS del equipo, sin importar
-            // el torneo — cuando el Clausura recién arranca y todavía no tiene
-            // (o no tiene 5) partidos disputados, se completa el cupo con las
-            // últimas fechas del Apertura anterior. A medida que el Clausura
-            // acumula resultados, van desplazando a los del Apertura de a uno.
-            const aperturaSrc = isA ? DATA_A_APERTURA2026 : DATA_B_APERTURA2026;
-            const aperturaNavKey = isA ? 'a-ap2026' : 'b-ap2026';
-            const clausuraNavKey = isA ? 'a' : 'b';
-            // Torneo badge — para no confundir fechas de Apertura y Clausura
-            // cuando se mezclan en la misma cola móvil (típicamente al arrancar
-            // un torneo nuevo, cuando la mayoría de las 5 tarjetas todavía son
-            // del anterior).
-            const aperturaLabel = 'Apertura 2026', clausuraLabel = 'Clausura 2026';
-            const jugadosDe = (dataObj, navKey, torneoLabel) => (dataObj.partidos || [])
-              .filter(p => p.resultado !== null && p.gf !== null)
-              .map(p => ({ ...p, _navKey: navKey, _torneoLabel: torneoLabel }));
-            // Apertura primero (más antiguo) + Clausura después (más reciente) —
-            // tomar los últimos 5 de esa secuencia da exactamente la cola móvil.
-            // Para Primera A, la Recopa 2026 corre en paralelo a la liga y no
-            // vive en d.partidos — el último resultado (eliminados en
-            // Semifinales, 13/08) se suma al final a mano, como el partido más
-            // reciente jugado por el plantel.
-            const combinado = [...jugadosDe(aperturaSrc, aperturaNavKey, aperturaLabel), ...jugadosDe(d, clausuraNavKey, clausuraLabel)];
-            if (isA) combinado.push(RECOPA_2026_A_ULTIMO_RESULTADO);
-            const ultimos = combinado.slice(-5).reverse();
-            return ultimos.map(p => {
-              const res = p.gf > p.gc ? 'win' : p.gf < p.gc ? 'loss' : 'draw';
-              const resLabel = p.gf > p.gc ? 'Victoria' : p.gf < p.gc ? 'Derrota' : 'Empate';
-              const esCopa = isNaN(parseInt(p.fecha));
-              const fechaLabel = esCopa ? p.fecha : `Fecha ${p.fecha}`;
-              const fechaArg = String(p.fecha).replace(/'/g, "\\'");
-              const badgeCls = /apertura/i.test(p._torneoLabel) ? 'badge-apertura'
-                : /clausura/i.test(p._torneoLabel) ? 'badge-clausura' : 'badge-copa';
-              return `<div class="ultimo-card ultimo-card-link ${res}" onclick="goToMatchFecha('${p._navKey}', '${fechaArg}')" title="Ver en Fecha a Fecha">
-                <div class="ultimo-fecha">${fechaLabel}<span class="ultimo-torneo-badge ${badgeCls}">${p._torneoLabel}</span></div>
-                <div>
-                  <div class="ultimo-rival">${_rivalAvatarHtml(p.rival)}vs ${p.rival}</div>
-                  <div class="ultimo-local">${p.local || ''}</div>
-                </div>
-                <div class="ultimo-resultado ${res}">${p.resultado}</div>
-                <div class="ultimo-pos">${p.posCSB || resLabel}</div>
-              </div>`;
-            }).join('') || '<div style="color:#475569;padding:20px;text-align:center;font-size:0.82rem">Sin partidos jugados aún</div>';
-          })()}
+          ${ultimos.length ? ultimos.map(p => {
+            const res = p.gf > p.gc ? 'win' : p.gf < p.gc ? 'loss' : 'draw';
+            const resLabel = p.gf > p.gc ? 'Victoria' : p.gf < p.gc ? 'Derrota' : 'Empate';
+            const esCopa = isNaN(parseInt(p.fecha));
+            const fechaLabel = esCopa ? p.fecha : `Fecha ${p.fecha}`;
+            const fechaArg = String(p.fecha).replace(/'/g, "\\'");
+            return `<div class="ultimo-card ultimo-card-link ${res}" onclick="goToMatchFecha('${p._navKey}', '${fechaArg}')" title="Ver en Fecha a Fecha">
+              <div class="ultimo-fecha">${fechaLabel}<span class="ultimo-torneo-badge ${ultimoBadgeCls(p._torneoLabel)}">${p._torneoLabel}</span></div>
+              <div>
+                <div class="ultimo-rival">${_rivalAvatarHtml(p.rival)}vs ${p.rival}</div>
+                <div class="ultimo-local">${p.local || ''}</div>
+              </div>
+              <div class="ultimo-resultado ${res}">${p.resultado}</div>
+              <div class="ultimo-pos">${p.posCSB || resLabel}</div>
+            </div>`;
+          }).join('') : '<div style="color:#475569;padding:20px;text-align:center;font-size:0.82rem">Sin partidos jugados aún</div>'}
         </div>
       </div>
       <div class="mini-tabla-col">
         ${miniTablaHtml(d.tabla, d.badge || d.nombre)}
       </div>
     </div>`;
+}
+// Cambia de pestaña el TOP 5 mobile (Partidos/Goles/Asist.) sin re-renderizar
+// el resto de Resumen — mismo patrón vanilla onclick que el resto del sitio.
+function _resumenMobileTop5(key, btn) {
+  ['pj', 'goles', 'asist'].forEach(k => {
+    const el = document.getElementById('rsm-top5-' + k);
+    if (el) el.style.display = k === key ? '' : 'none';
+  });
+  document.querySelectorAll('.rsm-tab').forEach(b => b.classList.toggle('active', b === btn));
 }
 
 // ──────────────────────────────────────────────
