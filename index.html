@@ -5769,11 +5769,20 @@ function renderFechaDetail(basic, detail, targetId = 'ap-fecha-detail', fechaLab
   el.innerHTML = buildFechaDetailHTML(basic, detail, fechaLabelOverride);
 }
 
+// Torneos Antiguos puede tener 15-17+ fechas en el selector horizontal — sin esto,
+// al auto-seleccionar la última fecha jugada (ver autoFecha en cada renderTorneo*)
+// el botón activo queda fuera de vista y el usuario no sabe dónde está parado.
+function _scrollActiveFechaIntoView() {
+  const active = document.querySelector('.ap-fecha-btn.active');
+  if (active) active.scrollIntoView({ block: 'nearest', inline: 'center' });
+}
+
 function selectFecha(n) {
   selectedFecha = n;
   document.querySelectorAll('.ap-fecha-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.fecha === String(n));
   });
+  _scrollActiveFechaIntoView();
   // Mirror renderTorneoApertura()'s own data-source resolution — this used to
   // just read currentData directly, which was harmless while DATA_A/DATA_B
   // WERE the Apertura 2026 data. Now that Clausura 2026 lives there instead
@@ -7134,6 +7143,7 @@ function renderTorneoApertura2025A() {
     document.querySelectorAll('.ap-fecha-btn').forEach(b => {
       b.classList.toggle('active', b.dataset.fecha === String(n));
     });
+    _scrollActiveFechaIntoView();
     const basic  = (d.partidos || []).find(m => String(m.fecha) === String(n));
     const detail = (d.apertura  || []).find(m => String(m.fecha) === String(n));
     renderFechaDetail(basic, detail, FECHA_TARGET);
@@ -7427,6 +7437,7 @@ function renderTorneoHistoricoGeneric(d, name, fechaLabels) {
     document.querySelectorAll(`#${CONTAINER} .ap-fecha-btn`).forEach(b => {
       b.classList.toggle('active', b.dataset.fecha === String(n));
     });
+    _scrollActiveFechaIntoView();
     const basic  = (d.partidos || []).find(m => String(m.fecha) === String(n));
     const detail = (d.apertura  || []).find(m => String(m.fecha) === String(n));
     renderFechaDetail(basic, detail, FECHA_TARGET);
@@ -8242,6 +8253,7 @@ function renderTorneoApt2024DB() {
       document.querySelectorAll(`#${CONTAINER} .ap-fecha-btn`).forEach(b => {
         b.classList.toggle('active', b.dataset.fecha === String(n));
       });
+      _scrollActiveFechaIntoView();
       const basic  = (d.partidos || []).find(m => String(m.fecha) === String(n));
       const detail = (d.apertura  || []).find(m => String(m.fecha) === String(n));
       renderFechaDetail(basic, detail, FECHA_TARGET, AP24D_FECHA_LABELS[Number(n)]);
