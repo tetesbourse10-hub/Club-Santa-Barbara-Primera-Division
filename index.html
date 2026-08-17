@@ -1677,6 +1677,33 @@
     .mrow-expand-content.open { display:block; }
     .mrow-empty { color:#475569; padding:32px 16px; text-align:center; font-size:0.85rem; }
 
+    /* ── Plantel mobile: filtro Pos + Orden + buscador (ver _plantelMobileCardsHtml) ── */
+    .pmf-bar { display:none; }
+    @media (max-width:768px) {
+      .pmf-bar { display:flex; flex-direction:column; gap:8px; margin-bottom:12px; }
+    }
+    .pmf-row { display:flex; gap:8px; }
+    .pmf-dd { position:relative; flex:1; min-width:0; }
+    .pmf-btn {
+      width:100%; background:var(--azul-card); border:1px solid rgba(255,255,255,0.1); border-radius:8px;
+      padding:8px 10px; font-size:0.72rem; font-weight:600; color:var(--gris-texto);
+      display:flex; align-items:center; justify-content:space-between; gap:4px; cursor:pointer; font-family:inherit;
+    }
+    .pmf-btn.active { background:rgba(245,158,11,0.12); border-color:rgba(245,158,11,0.35); color:var(--dorado); font-weight:700; }
+    .pmf-menu {
+      position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:20;
+      background:#1a1d29; border:1px solid rgba(255,255,255,0.1); border-radius:10px;
+      box-shadow:0 8px 24px rgba(0,0,0,0.4); overflow-y:auto; max-height:240px;
+    }
+    .pmf-menu-item { padding:9px 12px; font-size:0.74rem; color:#d1d5db; cursor:pointer; white-space:nowrap; }
+    .pmf-menu-item:hover { background:rgba(255,255,255,0.06); }
+    .pmf-menu-item.active { color:var(--dorado); font-weight:700; background:rgba(245,158,11,0.1); }
+    .pmf-search input {
+      width:100%; padding:8px 12px; border-radius:8px; background:var(--azul-card);
+      border:1px solid rgba(255,255,255,0.1); color:#fff; font-size:0.78rem; outline:none; font-family:inherit;
+    }
+    .pmf-search input::placeholder { color:#475569; }
+
     /* ── Centro de Datos (Fixture) ── */
     .cd-empty { color:#475569; padding:48px 20px; text-align:center; font-size:0.9rem; }
     /* Desktop keeps the wide table with horizontal scroll as a fallback;
@@ -6205,30 +6232,122 @@ function _cdGoToFecha(tabFn, fechaFn, fecha) {
 // same array instead of requiring a second, torneo-specific mapping.
 // Position badge uses _plantelPosColor(), the same colors as El Nido, for
 // consistency.
+function _plantelMobileCard({ j, g, a, tit, cit, pj, pos }) {
+  const pc = _plantelPosColor(pos);
+  return `
+    <div class="mrow-card">
+      <div class="mrow-top">
+        <div class="mrow-top-main">
+          ${pos ? `<span class="mrow-badge" style="color:${pc};background:${pc}1a;border:1px solid ${pc}44;margin-bottom:4px">${pos}</span>` : ''}
+          <div class="mrow-title-row"><div class="mrow-title">${j.nombre}</div></div>
+        </div>
+        <div class="mrow-highlight">
+          <div class="mrow-highlight-val" style="color:var(--dorado)">${pj}</div>
+          <div class="mrow-highlight-label">PJ</div>
+        </div>
+      </div>
+      <div class="mrow-secondary">
+        <div class="mrow-sec-item"><span class="mrow-sec-val">${tit}</span><span class="mrow-sec-label">Titular</span></div>
+        <div class="mrow-sec-item"><span class="mrow-sec-val" style="color:#22c55e">${g}</span><span class="mrow-sec-label">Goles</span></div>
+        <div class="mrow-sec-item"><span class="mrow-sec-val" style="color:#38bdf8">${a}</span><span class="mrow-sec-label">Asist.</span></div>
+        <div class="mrow-sec-item"><span class="mrow-sec-val">${cit}</span><span class="mrow-sec-label">Citado</span></div>
+      </div>
+    </div>`;
+}
+// Orden canónico de posiciones para el dropdown de filtro — el mismo grupo
+// arquero→defensa→mediocampo→delantera que ya usa El Nido, así el orden no
+// depende de en qué orden aparecieron los jugadores en la hoja del club.
+const PLANTEL_POS_ORDER = ['ARQ','DFI','DFD','DFC','DEF','MI','MD','MC','MCO','DC','DEL','ED','EI','ATA','ATI','ATD'];
+const PLANTEL_SORT_OPTS = [
+  { key:'pj',  label:'PJ' }, { key:'g',   label:'Goles' },
+  { key:'a',   label:'Asist.' }, { key:'ga',  label:'G+A' }, { key:'tit', label:'Titular' },
+];
+// Estado del filtro/orden/búsqueda mobile de Plantel — un solo juego de
+// variables global en vez de una por torneo: de las 4 vistas que comparten
+// este componente, nunca hay más de una activa a la vez (cambiar de torneo
+// vuelve a llamar a _plantelMobileCardsHtml con datos frescos y reinicia el
+// estado), así que no hace falta namespacing por instancia.
+let _plantelMobileRows = [];
+let _plantelMobileQuery = '';
+let _plantelMobilePos = 'todas';
+let _plantelMobileSort = 'pj';
+let _plantelMobilePosOpen = false;
+let _plantelMobileSortOpen = false;
+
+function _plantelMobileFilteredSorted() {
+  let rows = _plantelMobileRows;
+  if (_plantelMobilePos !== 'todas') rows = rows.filter(r => r.pos === _plantelMobilePos);
+  if (_plantelMobileQuery) {
+    const q = normName(_plantelMobileQuery);
+    rows = rows.filter(r => normName(r.j.nombre).includes(q));
+  }
+  const key = _plantelMobileSort;
+  return [...rows].sort((x, y) => {
+    const vx = key === 'ga' ? (x.g + x.a) : (x[key] || 0);
+    const vy = key === 'ga' ? (y.g + y.a) : (y[key] || 0);
+    return vy - vx;
+  });
+}
+function _plantelMobileListHtml() {
+  const rows = _plantelMobileFilteredSorted();
+  return rows.length ? rows.map(_plantelMobileCard).join('') : '<div class="mrow-empty">Ningún jugador coincide con el filtro.</div>';
+}
+function _plantelMobileRerenderList() {
+  const el = document.getElementById('pmf-list');
+  if (el) el.innerHTML = _plantelMobileListHtml();
+}
+window._plantelMobileSearch = function(q) {
+  _plantelMobileQuery = q;
+  _plantelMobileRerenderList();
+};
+window._plantelMobilePosToggle = function() { _plantelMobilePosOpen = !_plantelMobilePosOpen; _plantelMobileSortOpen = false; _plantelMobileRerenderFilterBar(); };
+window._plantelMobileSortToggle = function() { _plantelMobileSortOpen = !_plantelMobileSortOpen; _plantelMobilePosOpen = false; _plantelMobileRerenderFilterBar(); };
+window._plantelMobilePosSelect = function(p) {
+  _plantelMobilePos = p; _plantelMobilePosOpen = false;
+  _plantelMobileRerenderFilterBar(); _plantelMobileRerenderList();
+};
+window._plantelMobileSortSelect = function(s) {
+  _plantelMobileSort = s; _plantelMobileSortOpen = false;
+  _plantelMobileRerenderFilterBar(); _plantelMobileRerenderList();
+};
+function _plantelMobileRerenderFilterBar() {
+  const el = document.getElementById('pmf-bar');
+  if (el) el.outerHTML = _plantelMobileFilterBarHtml();
+}
+function _plantelMobileFilterBarHtml() {
+  const positions = [...new Set(_plantelMobileRows.map(r => r.pos).filter(Boolean))]
+    .sort((a, b) => {
+      const ia = PLANTEL_POS_ORDER.indexOf(a), ib = PLANTEL_POS_ORDER.indexOf(b);
+      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+    });
+  const posLabel = _plantelMobilePos === 'todas' ? 'Todas' : _plantelMobilePos;
+  const posMenu = ['todas', ...positions].map(p => `<div class="pmf-menu-item${p === _plantelMobilePos ? ' active' : ''}"
+    onclick="window._plantelMobilePosSelect('${p}')">${p === 'todas' ? 'Todas' : p}</div>`).join('');
+  const sortMeta = PLANTEL_SORT_OPTS.find(o => o.key === _plantelMobileSort);
+  const sortMenu = PLANTEL_SORT_OPTS.map(o => `<div class="pmf-menu-item${o.key === _plantelMobileSort ? ' active' : ''}"
+    onclick="window._plantelMobileSortSelect('${o.key}')">${o.label}</div>`).join('');
+  return `<div class="pmf-bar" id="pmf-bar">
+    <div class="pmf-row">
+      <div class="pmf-dd">
+        <button class="pmf-btn${_plantelMobilePos !== 'todas' ? ' active' : ''}" onclick="window._plantelMobilePosToggle()">Pos: ${posLabel} <span>▾</span></button>
+        ${_plantelMobilePosOpen ? `<div class="pmf-menu">${posMenu}</div>` : ''}
+      </div>
+      <div class="pmf-dd">
+        <button class="pmf-btn active" onclick="window._plantelMobileSortToggle()">Orden: ${sortMeta.label} <span>▾</span></button>
+        ${_plantelMobileSortOpen ? `<div class="pmf-menu">${sortMenu}</div>` : ''}
+      </div>
+    </div>
+    <div class="pmf-search"><input type="text" placeholder="Buscar jugador…" value="${_plantelMobileQuery.replace(/"/g, '&quot;')}" oninput="window._plantelMobileSearch(this.value)" /></div>
+  </div>`;
+}
 function _plantelMobileCardsHtml(rows) {
-  const cardsHtml = (rows || []).map(({ j, g, a, tit, cit, pj, pos }) => {
-    const pc = _plantelPosColor(pos);
-    return `
-      <div class="mrow-card">
-        <div class="mrow-top">
-          <div class="mrow-top-main">
-            ${pos ? `<span class="mrow-badge" style="color:${pc};background:${pc}1a;border:1px solid ${pc}44;margin-bottom:4px">${pos}</span>` : ''}
-            <div class="mrow-title-row"><div class="mrow-title">${j.nombre}</div></div>
-          </div>
-          <div class="mrow-highlight">
-            <div class="mrow-highlight-val" style="color:var(--dorado)">${pj}</div>
-            <div class="mrow-highlight-label">PJ</div>
-          </div>
-        </div>
-        <div class="mrow-secondary">
-          <div class="mrow-sec-item"><span class="mrow-sec-val">${tit}</span><span class="mrow-sec-label">Titular</span></div>
-          <div class="mrow-sec-item"><span class="mrow-sec-val" style="color:#22c55e">${g}</span><span class="mrow-sec-label">Goles</span></div>
-          <div class="mrow-sec-item"><span class="mrow-sec-val" style="color:#38bdf8">${a}</span><span class="mrow-sec-label">Asist.</span></div>
-          <div class="mrow-sec-item"><span class="mrow-sec-val">${cit}</span><span class="mrow-sec-label">Citado</span></div>
-        </div>
-      </div>`;
-  }).join('');
-  return `<div class="mrow-cards">${cardsHtml || '<div class="mrow-empty">Sin datos de plantel.</div>'}</div>`;
+  _plantelMobileRows = rows || [];
+  _plantelMobileQuery = '';
+  _plantelMobilePos = 'todas';
+  _plantelMobileSort = 'pj';
+  _plantelMobilePosOpen = false;
+  _plantelMobileSortOpen = false;
+  return `${_plantelMobileFilterBarHtml()}<div class="mrow-cards" id="pmf-list">${_plantelMobileListHtml()}</div>`;
 }
 
 // Mobile-only card view for Centro de Datos (desktop keeps the `.cd-wrap`
