@@ -1614,8 +1614,16 @@
     .ap-tab-btn.active { color:var(--dorado); border-bottom-color:var(--dorado); }
     .ap-tab-btn .ap-tab-icon { font-size:1.1rem; }
     @media (max-width:768px) {
+      /* Pegada justo debajo del header global (60px) — así el usuario
+         siempre puede cambiar de sub-pestaña sin importar cuánto haya
+         scrolleado dentro de Centro de Datos/Plantel/Fecha a Fecha/etc.
+         top:60px en vez de relative (que solo servía de ancla para el
+         degradado horizontal, ver .can-scroll::after más abajo — ese sigue
+         funcionando igual, es un sticky en el eje horizontal, independiente
+         de este que es en el eje vertical de la página). */
       .ap-tab-nav {
-        overflow-x:auto; flex-wrap:nowrap; position:relative;
+        overflow-x:auto; flex-wrap:nowrap; position:sticky; top:60px; z-index:15;
+        background:var(--azul);
         scrollbar-width:none; -ms-overflow-style:none;
       }
       .ap-tab-nav::-webkit-scrollbar { display:none; }
