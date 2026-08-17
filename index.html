@@ -6195,12 +6195,17 @@ function _cdGoToFecha(tabFn, fechaFn, fecha) {
 // "Fecha a Fecha" tab uses (default apSwitchTab/selectFecha) — only numeric-
 // fecha rows (real matchdays) become clickable, since copa rows don't have
 // a slot in the Fecha a Fecha nav to jump to.
-// Mobile-only card view for Plantel (Torneos Actuales) — desktop keeps its
-// sortable `.ap-plantel-table` (hidden ≤768px via the `.mrow-desktop-only`
-// class added just on that wrapper, not shared CSS, so the other Plantel tab
-// copies elsewhere in the site are untouched). Position badge uses
-// _plantelPosColor(), the same colors as El Nido, for consistency.
-function _apPlantelMobileCardsHtml(rows) {
+// Mobile-only card view for Plantel — desktop keeps its sortable
+// `.ap-plantel-table` (hidden ≤768px via the `.mrow-desktop-only` class
+// added on that wrapper). Shared by all 4 "5-tab torneo" render functions
+// (Torneos Actuales live + Apertura AIFA A 2025 + Apertura AIFA D 2024-B +
+// Torneos Antiguos genérico) — each one's own buildPlantelTab() builds the
+// same { j, g, a, tit, cit, pj, pos, ... } row shape already for its own
+// sortable table, so this just reads the extra fields it needs off that
+// same array instead of requiring a second, torneo-specific mapping.
+// Position badge uses _plantelPosColor(), the same colors as El Nido, for
+// consistency.
+function _plantelMobileCardsHtml(rows) {
   const cardsHtml = (rows || []).map(({ j, g, a, tit, cit, pj, pos }) => {
     const pc = _plantelPosColor(pos);
     return `
@@ -6469,7 +6474,7 @@ function renderTorneoApertura() {
         ${thead}
         <tbody>${renderRows(defaultSorted)}</tbody>
       </table>
-    </div>${_apPlantelMobileCardsHtml(defaultSorted)}`;
+    </div>${_plantelMobileCardsHtml(defaultSorted)}`;
 
     // Sort state: null means default positional order
     window._apPlantelSortState = { col: null, asc: false };
@@ -6780,7 +6785,7 @@ function renderTorneoApertura2025A() {
       </th>`
     ).join('')}</tr></thead>`;
 
-    const tableHtml = `<div class="ap-plantel-table-wrap">
+    const tableHtml = `<div class="ap-plantel-table-wrap mrow-desktop-only">
       <table class="ap-plantel-table" id="${tableId}">
         ${thead}<tbody>${renderRows(defaultSorted)}</tbody>
       </table>
@@ -6809,7 +6814,7 @@ function renderTorneoApertura2025A() {
       });
     };
 
-    return `${kpisHtml}${tableHtml}`;
+    return `${kpisHtml}${tableHtml}${_plantelMobileCardsHtml(defaultSorted)}`;
   }
 
   // ── Tab 2: Tabla Completa ───────────────────────────────────────────────
@@ -7073,7 +7078,7 @@ function renderTorneoHistoricoGeneric(d, name, fechaLabels) {
       </th>`
     ).join('')}</tr></thead>`;
 
-    const tableHtml = `<div class="ap-plantel-table-wrap">
+    const tableHtml = `<div class="ap-plantel-table-wrap mrow-desktop-only">
       <table class="ap-plantel-table" id="${tableId}">
         ${thead}<tbody>${renderRows(defaultSorted)}</tbody>
       </table>
@@ -7102,7 +7107,7 @@ function renderTorneoHistoricoGeneric(d, name, fechaLabels) {
       });
     };
 
-    return `${kpisHtml}${tableHtml}`;
+    return `${kpisHtml}${tableHtml}${_plantelMobileCardsHtml(defaultSorted)}`;
   }
 
   // ── Tab 2: Tabla Completa ───────────────────────────────────────────────
@@ -7926,8 +7931,8 @@ function renderTorneoApt2024DB() {
           el.classList.toggle('ap-sort-active', el.dataset.col === col);
         });
       };
-      return `${kpisHtml}<div class="ap-plantel-table-wrap">
-        <table class="ap-plantel-table" id="${tableId}">${thead}<tbody>${renderRows(defaultSorted)}</tbody></table></div>`;
+      return `${kpisHtml}<div class="ap-plantel-table-wrap mrow-desktop-only">
+        <table class="ap-plantel-table" id="${tableId}">${thead}<tbody>${renderRows(defaultSorted)}</tbody></table></div>${_plantelMobileCardsHtml(defaultSorted)}`;
     }
 
     // ── Tab 2: Tabla ────────────────────────────────────────────────────
