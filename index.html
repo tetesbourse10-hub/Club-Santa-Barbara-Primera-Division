@@ -2001,15 +2001,23 @@
 
     /* ── ESTADÍSTICAS DETALLADAS (rankings + drilldown por rival) ── */
     .ed-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:14px; }
+    @media (max-width:768px) { .ed-grid { grid-template-columns:1fr; gap:0; } }
     .ed-card { background:linear-gradient(160deg,#1a2236,#131825); border:1px solid #1e2a3a; border-radius:14px; padding:16px; }
     .ed-card-title { font-size:0.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:var(--gris-texto); margin-bottom:10px; }
     .ed-empty { font-size:0.8rem; color:var(--gris-texto); padding:12px 0; text-align:center; }
     .ed-rows { display:flex; flex-direction:column; }
     .ed-row { display:flex; align-items:center; gap:10px; padding:9px 4px; border-radius:8px; cursor:pointer; transition:background .15s; border:1px solid transparent; }
     .ed-row:hover { background:rgba(255,255,255,0.04); }
-    .ed-row.ed-top1 { background:linear-gradient(90deg,rgba(250,204,21,0.14),rgba(250,204,21,0.02)); border-color:rgba(250,204,21,0.35); }
-    .ed-row.ed-top2 { background:linear-gradient(90deg,rgba(203,213,225,0.13),rgba(203,213,225,0.02)); border-color:rgba(203,213,225,0.3); }
-    .ed-row.ed-top3 { background:linear-gradient(90deg,rgba(217,119,6,0.14),rgba(217,119,6,0.02)); border-color:rgba(217,119,6,0.3); }
+    .ed-row.ed-top1, .mrow-card.ed-top1 { background:linear-gradient(90deg,rgba(250,204,21,0.14),rgba(250,204,21,0.02)); border-color:rgba(250,204,21,0.35); }
+    .ed-row.ed-top2, .mrow-card.ed-top2 { background:linear-gradient(90deg,rgba(203,213,225,0.13),rgba(203,213,225,0.02)); border-color:rgba(203,213,225,0.3); }
+    .ed-row.ed-top3, .mrow-card.ed-top3 { background:linear-gradient(90deg,rgba(217,119,6,0.14),rgba(217,119,6,0.02)); border-color:rgba(217,119,6,0.3); }
+    /* Mobile: una card compacta por jugador (rank + valor + rival favorito) en
+       vez de la fila expandible de desktop — ver _edMobileCard(). */
+    .ed-mobile-section { display:none; }
+    @media (max-width:768px) {
+      .ed-mobile-section { display:block; margin-bottom:20px; }
+      .ed-mobile-section:last-child { margin-bottom:0; }
+    }
     .ed-rank { width:20px; text-align:center; font-size:0.72rem; font-weight:800; color:var(--gris-texto); flex-shrink:0; }
     .ed-rank.ed-medal { font-size:0.95rem; }
     .ed-name { flex:1; font-size:0.84rem; color:#e2e8f0; font-weight:600; }
@@ -5418,14 +5426,53 @@ function _aggregatePlayerRivalStats(matches) {
   return Object.values(map);
 }
 
+// Compact mobile card por jugador: ranking + valor grande + "víctima/asistencia
+// favorita" (el rival top del desglose ya calculado por _aggregatePlayerRivalStats),
+// en vez de la fila expandible con el desglose completo que usa el desktop.
+function _edMobileCard(p, i, key, unitLabel, favLabel) {
+  const PODIO = ['🥇', '🥈', '🥉'];
+  const rankDisplay = i < 3 ? PODIO[i] : (i + 1);
+  const topClass = i < 3 ? ` ed-top${i + 1}` : '';
+  const top = Object.entries(p.porRival)
+    .filter(([, v]) => v[key] > 0)
+    .sort((a, b) => b[1][key] - a[1][key])[0];
+  return `
+    <div class="mrow-card${topClass}">
+      <div class="mrow-top">
+        <div class="mrow-top-main">
+          <div class="mrow-title-row">
+            <span class="ed-rank${i < 3 ? ' ed-medal' : ''}">${rankDisplay}</span>
+            ${_rivalAvatarHtml(p.nombre)}
+            <div class="mrow-title">${pl(p.nombre)}</div>
+          </div>
+        </div>
+        <div class="mrow-highlight">
+          <div class="mrow-highlight-val" style="color:var(--dorado)">${p[key]}</div>
+          <div class="mrow-highlight-label">${unitLabel}</div>
+        </div>
+      </div>
+      ${top ? `<div class="mrow-secondary">
+        <div class="mrow-sec-item" style="flex:1 1 100%">
+          <span class="mrow-sec-label">${favLabel}</span>
+          <span class="mrow-sec-val">${top[0]} · ${top[1][key]} ${unitLabel}</span>
+        </div>
+      </div>` : ''}
+    </div>`;
+}
+
 // Builds the "Estadísticas Detalladas" tab: Goleadores / Asistidores / Presencias
-// ranking tables, each row expandable into a per-rival breakdown.
+// ranking tables. Desktop conserva las filas expandibles con el desglose
+// completo por rival; mobile muestra una card compacta por jugador con solo
+// el rival "favorito" (top del mismo desglose, sin recalcular nada).
 function buildEstadisticasDetalladasTab(matches, idPrefix) {
   const players = _aggregatePlayerRivalStats(matches);
 
-  function rankTable(title, icon, key, unitLabel) {
+  function rankTable(title, icon, key, unitLabel, favLabel) {
     const rows = [...players].filter(p => p[key] > 0).sort((a, b) => b[key] - a[key]);
-    if (!rows.length) return `<div class="ed-card"><div class="ed-card-title">${icon} ${title}</div><div class="ed-empty">Sin datos registrados.</div></div>`;
+    if (!rows.length) {
+      return `<div class="ed-card mrow-desktop-only"><div class="ed-card-title">${icon} ${title}</div><div class="ed-empty">Sin datos registrados.</div></div>
+        <div class="ed-mobile-section"><div class="ed-card-title">${icon} ${title}</div><div class="mrow-empty">📭 Sin datos registrados.</div></div>`;
+    }
     const PODIO = ['🥇', '🥈', '🥉'];
     const body = rows.map((p, i) => {
       const rid = `ed-${idPrefix}-${key}-${i}`;
@@ -5445,13 +5492,15 @@ function buildEstadisticasDetalladasTab(matches, idPrefix) {
         </div>
         <div class="ed-drill" id="${rid}" style="display:none">${rivales || '<div class="ed-drill-row">Sin desglose disponible.</div>'}</div>`;
     }).join('');
-    return `<div class="ed-card"><div class="ed-card-title">${icon} ${title}</div><div class="ed-rows">${body}</div></div>`;
+    const mobileCards = rows.map((p, i) => _edMobileCard(p, i, key, unitLabel, favLabel)).join('');
+    return `<div class="ed-card mrow-desktop-only"><div class="ed-card-title">${icon} ${title}</div><div class="ed-rows">${body}</div></div>
+      <div class="ed-mobile-section"><div class="ed-card-title">${icon} ${title}</div><div class="mrow-cards">${mobileCards}</div></div>`;
   }
 
   return `<div class="ed-grid">
-    ${rankTable('Goleadores', '⚽', 'goles', 'goles')}
-    ${rankTable('Asistidores', '🎯', 'asist', 'asist.')}
-    ${rankTable('Presencias', '🎮', 'pj', 'PJ')}
+    ${rankTable('Goleadores', '⚽', 'goles', 'goles', 'Víctima favorita')}
+    ${rankTable('Asistidores', '🎯', 'asist', 'asist.', 'Asistencia favorita')}
+    ${rankTable('Presencias', '🎮', 'pj', 'PJ', 'Rival más enfrentado')}
   </div>`;
 }
 window.edToggle = function(id) {
