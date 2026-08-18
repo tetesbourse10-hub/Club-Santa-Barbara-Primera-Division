@@ -1449,6 +1449,7 @@
       padding: 8px 2px 7px; font-size: 0.6rem; font-weight:600; cursor:pointer;
     }
     .bnav-btn-icon { font-size: 1.05rem; line-height:1; }
+    .bnav-btn-icon svg { width: 20px; height: 20px; display: block; stroke: currentColor; }
     .bnav-btn.active { color: var(--dorado); }
     /* Deja hueco abajo de página para que el contenido no quede tapado
        detrás de la bottom nav fija — solo cuando está en pantalla. */
@@ -2302,15 +2303,15 @@
        escritorio (ver CSS + openSection/goBack). -->
   <nav id="mobile-bottom-nav">
     <button class="bnav-btn active" onclick="showTab('resumen', document.querySelectorAll('#main-nav button')[0])">
-      <span class="bnav-btn-icon">🏠</span>Inicio</button>
+      <span class="bnav-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg></span>Inicio</button>
     <button class="bnav-btn" onclick="showTab('posiciones', document.querySelectorAll('#main-nav button')[1])">
-      <span class="bnav-btn-icon">📡</span>En Vivo</button>
+      <span class="bnav-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z"/></svg></span>En Vivo</button>
     <button class="bnav-btn" onclick="showTab('jugadores', document.querySelectorAll('#main-nav button')[2])">
-      <span class="bnav-btn-icon">👥</span>Jugadores</button>
+      <span class="bnav-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M22 20v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>Jugadores</button>
     <button class="bnav-btn" onclick="showTab('historial', document.querySelectorAll('#main-nav button')[3])">
-      <span class="bnav-btn-icon">🕐</span>Historial</button>
+      <span class="bnav-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></span>Historial</button>
     <button class="bnav-btn" onclick="showTab('graficos', document.querySelectorAll('#main-nav button')[4])">
-      <span class="bnav-btn-icon">🏆</span>Torneos</button>
+      <span class="bnav-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 5H4a2 2 0 0 0 2 4"/><path d="M17 5h3a2 2 0 0 1-2 4"/></svg></span>Torneos</button>
   </nav>
 
   <!-- RESUMEN -->
@@ -5091,25 +5092,27 @@ window.addEventListener('popstate', () => {
 function openSection(section) {
   document.getElementById('landing').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
-  document.getElementById('mobile-bottom-nav').style.display = 'flex';
-  document.body.classList.add('has-bottom-nav');
 
   if (section === 'nido') {
+    // El Nido no tiene un destino propio en la bottom nav (esos 5 accesos
+    // son plantel-only: Inicio/En Vivo/Jugadores/Historial/Torneos) — se
+    // oculta acá en vez de mostrarla con el estado activo de la sección
+    // anterior pegado o, peor, sin ningún botón resaltado.
+    document.getElementById('mobile-bottom-nav').style.display = 'none';
+    document.body.classList.remove('has-bottom-nav');
     document.getElementById('main-nav').style.display = 'none';
     document.querySelectorAll('.panel').forEach(p => { p.classList.remove('active'); p.style.display = ''; });
     document.getElementById('tab-nido').style.display = 'block';
     document.getElementById('tab-nido').classList.add('active');
     document.getElementById('section-badge').textContent = 'El Nido';
     document.getElementById('section-badge').className = 'header-section-badge badge-green';
-    // Ningún destino de la bottom nav corresponde exactamente a El Nido
-    // (se entra desde la landing, no desde #main-nav) — se limpia el activo
-    // en vez de dejar pegado el de la sección anterior.
-    document.querySelectorAll('#mobile-bottom-nav button').forEach(b => b.classList.remove('active'));
     currentData = null;
     renderNido();
     return;
   }
 
+  document.getElementById('mobile-bottom-nav').style.display = 'flex';
+  document.body.classList.add('has-bottom-nav');
   document.getElementById('main-nav').style.display = 'flex';
   document.getElementById('tab-nido').style.display = 'none';
   currentData = section === 'a' ? DATA_A : DATA_B;
