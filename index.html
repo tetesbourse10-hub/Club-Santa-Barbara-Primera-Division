@@ -261,16 +261,15 @@
       top: 0;
       z-index: 100;
     }
-    /* Instalada como app (agregada a pantalla de inicio), el header queda
-       pegado al borde superior curvo del teléfono y la bottom nav al
-       inferior — redondear sus esquinas exteriores (arriba del header,
-       abajo de la bottom nav) hace que ambas barras acompañen la curva
-       física de la pantalla en vez de mostrar esquinas cuadradas contra
-       el borde redondeado. El fondo del body (--azul, más oscuro que
-       --azul-mid) se asoma por el recorte, imitando el bisel del
-       dispositivo. */
+    /* Instalada como app (agregada a pantalla de inicio), la bottom nav
+       queda pegada al borde inferior curvo del teléfono — redondear su
+       esquina exterior hace que acompañe la curva física de la pantalla en
+       vez de mostrar esquinas cuadradas contra el borde redondeado. El
+       fondo detrás (--azul, más oscuro que --azul-mid) se asoma por el
+       recorte, imitando el bisel del dispositivo. El header vuelve a
+       bordes rectos (pedido explícito — se había probado curvo arriba
+       también, pero no se quería ese efecto en el header). */
     @media (max-width: 768px) {
-      header { border-radius: 22px 22px 0 0; }
       #mobile-bottom-nav { border-radius: 0 0 22px 22px; }
     }
     .header-back {
@@ -2189,6 +2188,7 @@
     .pp-resumen-val { font-size:0.86rem; font-weight:900; color:var(--dorado); white-space:nowrap; }
     .pp-resumen-unit { font-size:0.66rem; font-weight:600; color:var(--gris-texto); text-transform:uppercase; }
     .pp-resumen-breakdown { font-size:0.72rem; font-weight:600; color:#cbd5e1; }
+    .pp-resumen-ved { font-size:0.72rem; font-weight:700; white-space:nowrap; }
     .pp-data-gap-note { font-size:0.72rem; color:#fbbf24; background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.25); border-radius:8px; padding:8px 12px; margin-bottom:10px; }
     .pp-res-badge { display:inline-block; font-size:0.76rem; font-weight:800; padding:2px 7px; border-radius:6px; margin-left:2px; }
     .pp-res-win  { color:#4ade80; background:rgba(34,197,94,0.14); }
@@ -4382,6 +4382,23 @@ function _ppFavoritoRival(list, key) {
   return _ppRivalTotals(list, key)[0] || null;
 }
 
+// V-E-D del jugador contra cada rival puntual (mismo criterio "resultado
+// del club en los partidos donde pisó la cancha" que _ppRecordVED, pero
+// desglosado por rival) — acompaña el "X PJ" de la pestaña Resumen para
+// no dejar la cifra de partidos sin contexto de cómo le fue en esos
+// cruces.
+function _ppRivalVED(list) {
+  const map = {};
+  for (const p of list) {
+    if (!p.rival || p.gf == null || p.gc == null) continue;
+    if (!map[p.rival]) map[p.rival] = { v: 0, e: 0, d: 0 };
+    if (p.gf > p.gc) map[p.rival].v++;
+    else if (p.gf < p.gc) map[p.rival].d++;
+    else map[p.rival].e++;
+  }
+  return map;
+}
+
 // Career V-E-D — resultado del EQUIPO en cada partido donde el jugador
 // efectivamente pisó la cancha (partidos ya viene filtrado a Titular/Suplente
 // que ingresó, ver _collectPlayerStats). No es un resultado "personal" del
@@ -4556,14 +4573,24 @@ function _ppDetailPanelBodyHtml(kind, fullList) {
     // single combined number (e.g. "5 G+A ➔ 3 ⚽ + 2 🎯").
     const totals = kind === 'ga' ? _ppRivalGaBreakdown(catList) : _ppRivalTotals(catList, kind);
     const unit = PP_RESUMEN_UNIT[kind] || 'PJ';
+    // Pestaña Partidos: el "X PJ" por rival queda sin contexto de cómo le
+    // fue al jugador en esos cruces — se suma el V-E-D del club en esos
+    // mismos partidos (ver _ppRivalVED) al lado de la cifra.
+    const vedByRival = kind === 'partidos' ? _ppRivalVED(catList) : null;
     const rows = totals.length
-      ? totals.map((t, i) => `<div class="pp-resumen-row">
+      ? totals.map((t, i) => {
+        const ved = vedByRival && vedByRival[t.rival];
+        const vedHtml = ved
+          ? ` <span class="pp-resumen-ved">(<span class="pp-ved-v">${ved.v}V</span> - <span class="pp-ved-e">${ved.e}E</span> - <span class="pp-ved-d">${ved.d}D</span>)</span>`
+          : '';
+        return `<div class="pp-resumen-row">
           <span class="pp-resumen-rank">${i + 1}</span>
           <span class="pp-resumen-rival">${t.rival}</span>
           <span class="pp-resumen-val">${t.val} ${kind === 'ga'
             ? `<span class="pp-resumen-unit">G+A</span> <span class="pp-resumen-breakdown">➔ ${t.goles} ⚽ + ${t.asist} 🎯</span>`
-            : `<span class="pp-resumen-unit">${unit}</span>`}</span>
-        </div>`).join('')
+            : `<span class="pp-resumen-unit">${unit}</span>`}${vedHtml}</span>
+        </div>`;
+      }).join('')
       : `<div class="hist-empty">Sin registros cargados.</div>`;
     return `<div class="pp-year-chips">${yearChips}</div>${rows}`;
   }
@@ -6353,8 +6380,31 @@ function _cdGoToFecha(tabFn, fechaFn, fecha) {
 // same array instead of requiring a second, torneo-specific mapping.
 // Position badge uses _plantelPosColor(), the same colors as El Nido, for
 // consistency.
+// Orden canónico de posiciones para el dropdown de filtro — el mismo grupo
+// arquero→defensa→mediocampo→delantera que ya usa El Nido, así el orden no
+// depende de en qué orden aparecieron los jugadores en la hoja del club.
+const PLANTEL_POS_ORDER = ['ARQ','DFI','DFD','DFC','DEF','MI','MD','MC','MCO','DC','DEL','ED','EI','ATA','ATI','ATD'];
+const PLANTEL_SORT_OPTS = [
+  { key:'pj',  label:'PJ' }, { key:'g',   label:'Goles' },
+  { key:'a',   label:'Asist.' }, { key:'ga',  label:'G+A' }, { key:'tit', label:'Titular' },
+];
+// Valor/label/color del número grande de la card — antes quedaba fijo en
+// PJ sin importar qué métrica eligió el usuario en el dropdown de Orden;
+// ahora sigue a _plantelMobileSort (el mismo criterio por el que ya están
+// ordenadas las cards, así el número destacado es siempre el que explica
+// por qué esa card quedó en esa posición del listado).
+const PLANTEL_HIGHLIGHT_META = {
+  pj:  { label: 'PJ',      color: 'var(--dorado)' },
+  g:   { label: 'Goles',   color: '#22c55e' },
+  a:   { label: 'Asist.',  color: '#38bdf8' },
+  ga:  { label: 'G+A',     color: '#a855f7' },
+  tit: { label: 'Titular', color: 'var(--dorado)' },
+};
 function _plantelMobileCard({ j, g, a, tit, cit, pj, pos }) {
   const pc = _plantelPosColor(pos);
+  const sortKey = PLANTEL_HIGHLIGHT_META[_plantelMobileSort] ? _plantelMobileSort : 'pj';
+  const meta = PLANTEL_HIGHLIGHT_META[sortKey];
+  const highlightVal = sortKey === 'ga' ? (g + a) : { pj, g, a, tit }[sortKey];
   return `
     <div class="mrow-card">
       <div class="mrow-top">
@@ -6363,8 +6413,8 @@ function _plantelMobileCard({ j, g, a, tit, cit, pj, pos }) {
           <div class="mrow-title-row"><div class="mrow-title">${j.nombre}</div></div>
         </div>
         <div class="mrow-highlight">
-          <div class="mrow-highlight-val" style="color:var(--dorado)">${pj}</div>
-          <div class="mrow-highlight-label">PJ</div>
+          <div class="mrow-highlight-val" style="color:${meta.color}">${highlightVal}</div>
+          <div class="mrow-highlight-label">${meta.label}</div>
         </div>
       </div>
       <div class="mrow-secondary">
@@ -6375,14 +6425,6 @@ function _plantelMobileCard({ j, g, a, tit, cit, pj, pos }) {
       </div>
     </div>`;
 }
-// Orden canónico de posiciones para el dropdown de filtro — el mismo grupo
-// arquero→defensa→mediocampo→delantera que ya usa El Nido, así el orden no
-// depende de en qué orden aparecieron los jugadores en la hoja del club.
-const PLANTEL_POS_ORDER = ['ARQ','DFI','DFD','DFC','DEF','MI','MD','MC','MCO','DC','DEL','ED','EI','ATA','ATI','ATD'];
-const PLANTEL_SORT_OPTS = [
-  { key:'pj',  label:'PJ' }, { key:'g',   label:'Goles' },
-  { key:'a',   label:'Asist.' }, { key:'ga',  label:'G+A' }, { key:'tit', label:'Titular' },
-];
 // Estado del filtro/orden/búsqueda mobile de Plantel — un solo juego de
 // variables global en vez de una por torneo: de las 4 vistas que comparten
 // este componente, nunca hay más de una activa a la vez (cambiar de torneo
@@ -9246,20 +9288,27 @@ async function _loadPartidosCache() {
       regatas2023.torneo = 'Recopa 2023';
       regatas2023.resultado = '2-2'; regatas2023.gf = 2; regatas2023.gc = 2;
     }
-    // La Semifinal de Recopa 2026 vs GEBA BLANCO (eliminación por penales,
-    // ver RECOPA_2026_A_ULTIMO_RESULTADO) todavía no tiene fila propia en la
+    // La Semifinal de Recopa 2026 (eliminación por penales, ver
+    // RECOPA_2026_A_ULTIMO_RESULTADO) todavía no tiene fila propia en la
     // hoja "Partidos Historial" — mismo caso que Regatas 2023 arriba, el
     // club no la cargó ahí todavía. Sin esto, "Historial vs Clubes" mostraba
-    // el resumen y el listado de partidos vs GEBA BLANCO cortados en el
+    // el resumen y el listado de partidos vs ese rival cortados en el
     // último cruce de Apertura 2026, sin la copa. Se inyecta a mano con el
     // mismo resultado ya confirmado que usan los widgets de "Últimos
     // Partidos" — idempotente: si el club la termina cargando en la hoja,
     // este bloque deja de sumarla apenas encuentre la fila real.
-    const yaTieneRecopaGebaBlanco = parsed.some(m =>
-      m.rival === 'GEBA BLANCO' && m.anio === '2026' && /recopa/i.test(m.torneo));
-    if (!yaTieneRecopaGebaBlanco) {
+    //
+    // Rival = 'GEBA' (no 'GEBA BLANCO'): en el bracket de Recopa el cruce se
+    // identifica como "GEBA BLANCO" (ver COPA_RECOPA_2026 / rcMatch), pero
+    // para el Historial vs Clubes el propio club confirmó que es el mismo
+    // rival ya cargado como "GEBA" — usar el nombre del bracket acá creaba
+    // una categoría duplicada separada de "GEBA" en vez de sumarse a su
+    // historial.
+    const yaTieneRecopaGeba = parsed.some(m =>
+      (m.rival || '').toUpperCase().includes('GEBA') && m.anio === '2026' && /recopa/i.test(m.torneo));
+    if (!yaTieneRecopaGeba) {
       parsed.push({
-        torneo: 'Recopa 2026', anio: '2026', rival: 'GEBA BLANCO', fecha: 'Semifinal', local: '',
+        torneo: 'Recopa 2026', anio: '2026', rival: 'GEBA', fecha: 'Semifinal', local: '',
         resultado: '1-1 (3-4 pen.)', gf: 1, gc: 1, parciales: '', posCSB: 'Eliminados en Semifinales',
         posRival: '', obs: '',
       });
