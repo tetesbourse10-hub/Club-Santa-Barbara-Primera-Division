@@ -9211,6 +9211,24 @@ async function _loadPartidosCache() {
       regatas2023.torneo = 'Recopa 2023';
       regatas2023.resultado = '2-2'; regatas2023.gf = 2; regatas2023.gc = 2;
     }
+    // La Semifinal de Recopa 2026 vs GEBA BLANCO (eliminación por penales,
+    // ver RECOPA_2026_A_ULTIMO_RESULTADO) todavía no tiene fila propia en la
+    // hoja "Partidos Historial" — mismo caso que Regatas 2023 arriba, el
+    // club no la cargó ahí todavía. Sin esto, "Historial vs Clubes" mostraba
+    // el resumen y el listado de partidos vs GEBA BLANCO cortados en el
+    // último cruce de Apertura 2026, sin la copa. Se inyecta a mano con el
+    // mismo resultado ya confirmado que usan los widgets de "Últimos
+    // Partidos" — idempotente: si el club la termina cargando en la hoja,
+    // este bloque deja de sumarla apenas encuentre la fila real.
+    const yaTieneRecopaGebaBlanco = parsed.some(m =>
+      m.rival === 'GEBA BLANCO' && m.anio === '2026' && /recopa/i.test(m.torneo));
+    if (!yaTieneRecopaGebaBlanco) {
+      parsed.push({
+        torneo: 'Recopa 2026', anio: '2026', rival: 'GEBA BLANCO', fecha: 'Semifinal', local: '',
+        resultado: '1-1 (3-4 pen.)', gf: 1, gc: 1, parciales: '', posCSB: 'Eliminados en Semifinales',
+        posRival: '', obs: '',
+      });
+    }
     _partidosCache = parsed;
   } catch(e) {
     console.error('[Historial] Load failed:', e.message || e);
