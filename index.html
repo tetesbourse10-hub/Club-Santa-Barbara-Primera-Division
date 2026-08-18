@@ -261,6 +261,18 @@
       top: 0;
       z-index: 100;
     }
+    /* Instalada como app (agregada a pantalla de inicio), el header queda
+       pegado al borde superior curvo del teléfono y la bottom nav al
+       inferior — redondear sus esquinas exteriores (arriba del header,
+       abajo de la bottom nav) hace que ambas barras acompañen la curva
+       física de la pantalla en vez de mostrar esquinas cuadradas contra
+       el borde redondeado. El fondo del body (--azul, más oscuro que
+       --azul-mid) se asoma por el recorte, imitando el bisel del
+       dispositivo. */
+    @media (max-width: 768px) {
+      header { border-radius: 22px 22px 0 0; }
+      #mobile-bottom-nav { border-radius: 0 0 22px 22px; }
+    }
     .header-back {
       background: none;
       border: none;
