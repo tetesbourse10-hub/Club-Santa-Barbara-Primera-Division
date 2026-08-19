@@ -1424,6 +1424,22 @@
     }
     .mini-tabla tr.csb-row .mini-tabla-avatar { background:rgba(245,158,11,0.22); }
 
+    /* ── Mobile: filas parejas, nombre en 1 línea, fila CSB destacada,
+       badges de clasificación más chicos ── */
+    @media (max-width: 768px) {
+      .mini-tabla td, .mini-tabla th { height: 34px; vertical-align: middle; }
+      .mini-tabla-team { max-width: 108px; }
+      .mini-tabla-team-name {
+        font-size: 0.72rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        display: inline-block; vertical-align: middle; max-width: 78px;
+      }
+      .mini-tabla tr.csb-row {
+        background: rgba(245,158,11,0.1);
+        box-shadow: inset 3px 0 0 var(--dorado);
+      }
+      .mini-tabla-wrap .copa-badge { font-size: 0.6rem; padding: 2px 8px; }
+    }
+
     /* ── RESUMEN — vista mobile (Estadísticas Históricas en grilla compacta,
        Últimos Partidos en carrusel horizontal, TOP 5 con pestañas) ──
        Reemplaza al layout de escritorio SOLO ≤768px — .resumen-desktop-only
@@ -8611,7 +8627,7 @@ function renderResumen() {
     const end = Math.min(tabla.length, idx + 5);
     const slice = tabla.slice(start, end);
     const rows = slice.map(t => `<tr class="${t.csb ? 'csb-row' : ''}">
-      <td>${t.pos}</td><td><span class="mini-tabla-team"><span class="mini-tabla-avatar">${_rivalInitials(t.equipo)}</span>${t.csb ? '⭐ ' : ''}${t.equipo}</span></td>
+      <td>${t.pos}</td><td><span class="mini-tabla-team"><span class="mini-tabla-avatar">${_rivalInitials(t.equipo)}</span><span class="mini-tabla-team-name">${t.csb ? '⭐ ' : ''}${t.equipo}</span></span></td>
       <td>${miniCopaBadge(t.copas)}</td>
       <td>${t.pts}</td><td>${t.pj}</td>
       <td style="color:${t.df > 0 ? '#22c55e' : t.df < 0 ? '#ef4444' : 'inherit'}">${t.df > 0 ? '+' : ''}${t.df ?? '–'}</td>
