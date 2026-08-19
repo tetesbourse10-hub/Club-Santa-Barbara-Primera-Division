@@ -1512,6 +1512,48 @@
     .rsm-panel { padding: 4px 14px 8px; }
     .rsm-panel .top10-row { padding: 8px 0; }
 
+    /* ── TOP 5 podio horizontal mobile — usado por Resumen (Inicio) y
+       Estadísticas Anuales, ver _top5PodiumHtml(). Grid de 3 columnas para
+       el 1-2-3, con el 1° elevado y destacado en dorado; 4°/5° como filas
+       chicas debajo. ── */
+    .t5-podium { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; align-items:end; margin:2px 0 8px; }
+    .t5-pcol {
+      background:#151c2c; border-radius:10px; padding:10px 6px 8px;
+      display:flex; flex-direction:column; align-items:center; gap:4px; text-align:center;
+      border:1px solid rgba(255,255,255,0.06); min-width:0;
+    }
+    .t5-pcol.t5-p1 {
+      order:2; transform:translateY(-4px);
+      background:linear-gradient(160deg, rgba(245,158,11,0.16), #151c2c 75%);
+      border-color:rgba(245,158,11,0.5);
+    }
+    .t5-pcol.t5-p2 { order:1; border-color:rgba(203,213,225,0.28); }
+    .t5-pcol.t5-p3 { order:3; border-color:rgba(217,119,6,0.3); }
+    .t5-pbadge { font-size:0.62rem; font-weight:800; line-height:1; }
+    .t5-p1 .t5-pbadge { color:#F59E0B; }
+    .t5-p2 .t5-pbadge { color:#CBD5E1; }
+    .t5-p3 .t5-pbadge { color:#D97706; }
+    .t5-pavatar {
+      width:32px; height:32px; border-radius:10px; flex-shrink:0;
+      display:flex; align-items:center; justify-content:center;
+      font-size:0.68rem; font-weight:800; line-height:1;
+    }
+    .t5-p1 .t5-pavatar { background:rgba(245,158,11,0.2); color:#F59E0B; }
+    .t5-p2 .t5-pavatar { background:rgba(203,213,225,0.16); color:#CBD5E1; }
+    .t5-p3 .t5-pavatar { background:rgba(217,119,6,0.18); color:#D97706; }
+    .t5-pname { font-size:0.66rem; font-weight:700; color:#e2e8f0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; line-height:1.2; }
+    .t5-pval { font-size:0.92rem; font-weight:900; line-height:1; color:#fff; }
+    .t5-rest { display:flex; flex-direction:column; gap:4px; }
+    .t5-rrow { display:flex; align-items:center; gap:8px; background:#0b0f19; padding:8px; border-radius:8px; }
+    .t5-rrank { width:16px; text-align:center; font-size:0.7rem; font-weight:800; color:#64748b; flex-shrink:0; line-height:1; }
+    .t5-ravatar {
+      width:24px; height:24px; border-radius:7px; flex-shrink:0; background:rgba(255,255,255,0.06); color:#94a3b8;
+      display:flex; align-items:center; justify-content:center; font-size:0.58rem; font-weight:800; line-height:1;
+    }
+    .t5-rname { flex:1; min-width:0; font-size:0.78rem; font-weight:600; color:#e2e8f0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1; }
+    .t5-rval { font-size:0.82rem; font-weight:800; color:#fff; flex-shrink:0; line-height:1; }
+    .t5-empty { color:#475569; padding:12px 0; font-size:0.8rem; text-align:center; }
+
     /* ── BOTTOM NAV — mobile only, oculta en la landing (ver openSection/
        goBack) y en pantallas de escritorio (min-width:769px). Mismos 5
        destinos que #main-nav, mismo estado activo sincronizado (ver
@@ -8716,6 +8758,33 @@ function _resumenSwitchCategory(cat) {
   renderResumen();
 }
 
+// TOP 5 podio horizontal mobile — compartido por Resumen (Inicio) y
+// Estadísticas Anuales. `items` ya viene recortado a 5 y ordenado desc,
+// shape [{nombre, val}] (val ya formateado con cualquier sufijo/unidad que
+// el caller necesite, ej. "12" o "8 PJ"). El 1° puesto queda al centro,
+// elevado y con degradado dorado; 4°/5° como filas chicas debajo.
+function _top5PodiumHtml(items) {
+  if (!items || !items.length) return `<div class="t5-empty">Sin datos</div>`;
+  const top3 = items.slice(0, 3);
+  const rest = items.slice(3, 5);
+  const badges = ['👑 1º', '2º', '3º'];
+  const podiumHtml = top3.map((it, i) => `
+    <div class="t5-pcol t5-p${i + 1}">
+      <div class="t5-pbadge">${badges[i]}</div>
+      <div class="t5-pavatar">${_rivalInitials(it.nombre)}</div>
+      <div class="t5-pname">${pl(it.nombre)}</div>
+      <div class="t5-pval">${it.val}</div>
+    </div>`).join('');
+  const restHtml = rest.map((it, i) => `
+    <div class="t5-rrow">
+      <span class="t5-rrank">${i + 4}</span>
+      <span class="t5-ravatar">${_rivalInitials(it.nombre)}</span>
+      <span class="t5-rname">${pl(it.nombre)}</span>
+      <span class="t5-rval">${it.val}</span>
+    </div>`).join('');
+  return `<div class="t5-podium">${podiumHtml}</div>${restHtml ? `<div class="t5-rest">${restHtml}</div>` : ''}`;
+}
+
 function renderResumen() {
   const d = currentData;
   const isA = d === DATA_A;
@@ -8926,9 +8995,9 @@ function renderResumen() {
             <button class="rsm-tab" data-top5="goles" onclick="_resumenMobileTop5('goles', this)">Goles</button>
             <button class="rsm-tab" data-top5="asist" onclick="_resumenMobileTop5('asist', this)">Asist.</button>
           </div>
-          <div class="rsm-panel" id="rsm-top5-pj">${byPartidos.map((j,i) => top10Row(j, i)).join('') || '<div style="color:#475569;padding:12px 0;font-size:0.8rem">Sin datos</div>'}</div>
-          <div class="rsm-panel" id="rsm-top5-goles" style="display:none">${byGoles.map((j,i) => top10Row(j, i)).join('') || '<div style="color:#475569;padding:12px 0;font-size:0.8rem">Sin datos</div>'}</div>
-          <div class="rsm-panel" id="rsm-top5-asist" style="display:none">${byAsist.map((j,i) => top10Row(j, i)).join('') || '<div style="color:#475569;padding:12px 0;font-size:0.8rem">Sin datos</div>'}</div>
+          <div class="rsm-panel" id="rsm-top5-pj">${_top5PodiumHtml(byPartidos.map(j => ({ nombre: j.nombre, val: j.valor })))}</div>
+          <div class="rsm-panel" id="rsm-top5-goles" style="display:none">${_top5PodiumHtml(byGoles.map(j => ({ nombre: j.nombre, val: j.valor })))}</div>
+          <div class="rsm-panel" id="rsm-top5-asist" style="display:none">${_top5PodiumHtml(byAsist.map(j => ({ nombre: j.nombre, val: j.valor })))}</div>
         </div>
       </div>
 
@@ -11225,13 +11294,7 @@ window._anuMobileRankTab = function(idPrefix, key, btn) {
 };
 function _anuMobileRankRowsHtml(players, key, suffix) {
   const top = [...players].filter(p => p[key] > 0).sort((a, b) => b[key] - a[key]).slice(0, 5);
-  if (!top.length) return `<div style="color:var(--gris-texto);font-size:0.78rem;padding:10px 0">Sin datos.</div>`;
-  const PODIO = ['🥇', '🥈', '🥉'];
-  return top.map((p, i) => `<div class="top10-row${i < 3 ? ' rank-' + (i + 1) + '-row' : ''}">
-    <span class="top10-rank ${i < 3 ? 'rank-' + (i + 1) : ''}">${i < 3 ? PODIO[i] : i + 1}</span>
-    <span class="top10-name"><strong>${pl(p.nombre)}</strong></span>
-    <span class="top10-val ${i < 3 ? 'val-' + (i + 1) : 'val-n'}">${p[key]}${suffix || ''}</span>
-  </div>`).join('');
+  return _top5PodiumHtml(top.map(p => ({ nombre: p.nombre, val: `${p[key]}${suffix || ''}` })));
 }
 function _anuMobileFillRankings(idPrefix, players) {
   ANU_RANK_TABS.forEach(([k]) => {
