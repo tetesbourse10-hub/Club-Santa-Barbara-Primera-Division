@@ -2443,6 +2443,87 @@
     #pp-m-pct.pp-fading { opacity:0; }
     #pp-m-pct { transition:opacity .15s; }
     #pp-m-meter { transition:width .25s ease; }
+
+    /* Progress bar V-E-D — solo mobile (ver .pp-record-bar más abajo); en
+       desktop la fracción "6V - 2E - 1D" ya se lee perfecto como texto. */
+    .pp-record-bar { display: none; }
+
+    /* ── PERFIL DE JUGADOR — mobile (≤768px) ──
+       Desktop mantiene .pp-header / .pp-rank-layout / .pp-favorito-banner
+       tal cual (nada de lo de acá los toca fuera de este breakpoint). */
+    .pp-hero-mobile-ranks { display: none; }
+    .pp-metrics-fav-mobile { display: none; }
+    @media (max-width: 768px) {
+      .pp-wrap { padding: 16px 14px 40px; }
+
+      /* 1. Cabecera Hero unificada — avatar/nombre/posición + los 3
+         rankings principales (Goleadores/Asistidores/Presencias) como pie
+         de la misma tarjeta, en vez de dos bloques sueltos. */
+      .pp-hero-card {
+        background: linear-gradient(180deg, #1c2538 0%, #151c2c 100%);
+        border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;
+        padding: 18px 16px 14px; margin-bottom: 16px;
+      }
+      .pp-hero-card .pp-header { margin-bottom: 0; }
+      .pp-hero-mobile-ranks {
+        display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+        margin-top: 16px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.08);
+      }
+      .pp-hero-rank-item {
+        display: flex; flex-direction: column; align-items: center; gap: 2px;
+        text-align: center; padding: 6px 2px; border-radius: 10px;
+      }
+      .pp-hero-rank-item.pp-hero-rank-top { background: rgba(255,255,255,0.03); }
+      .pp-hero-rank-icon { font-size: 0.78rem; opacity: .7; }
+      .pp-hero-rank-val { font-size: 0.98rem; font-weight: 900; line-height: 1.1; }
+      .pp-hero-rank-label { font-size: 0.56rem; color: var(--gris-texto); text-transform: uppercase; letter-spacing: .04em; font-weight: 700; }
+      /* La grilla completa por A/Primera B ya quedó resumida arriba — evita
+         mostrar el mismo dato dos veces en una pantalla angosta. */
+      .pp-rank-layout { display: none; }
+
+      /* 2. Récord con barra de proporción V-E-D. */
+      .pp-record-bar {
+        display: flex; height: 9px; border-radius: 999px; overflow: hidden;
+        background: rgba(255,255,255,0.06); margin: 2px 0 6px;
+      }
+      .pp-record-bar-v { background: #22c55e; }
+      .pp-record-bar-e { background: #eab308; }
+      .pp-record-bar-d { background: #ef4444; }
+
+      /* 3. Métricas Totales compactas — grilla 2x2 para las 4 métricas
+         principales (Partidos/Goles/Asistencias/G+A, primeras 4 tarjetas en
+         el DOM) más grande/legible; Títulos/Rojas/Promedios (tarjetas 5-8)
+         quedan más chicas debajo, mismo grid de 2 columnas. */
+      .pp-metrics-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 8px; }
+      .pp-metrics-grid .hist-kpi:nth-child(-n+4) { padding: 16px 10px 14px; }
+      .pp-metrics-grid .hist-kpi:nth-child(-n+4) .hist-kpi-icon { font-size: 1.15rem; }
+      .pp-metrics-grid .hist-kpi:nth-child(-n+4) .hist-kpi-val { font-size: 1.7rem; }
+      .pp-metrics-grid .hist-kpi:nth-child(-n+4) .hist-kpi-label { font-size: 0.6rem; }
+      .pp-metrics-grid .hist-kpi:nth-child(n+5) { padding: 8px 6px 6px; }
+      .pp-metrics-grid .hist-kpi:nth-child(n+5) .hist-kpi-val { font-size: 1rem; }
+      /* Los micro-banners "Favorito" quedan resumidos en un único banner al
+         pie de la grilla (.pp-metrics-fav-mobile) — mostrarlos también
+         dentro de cada tarjeta chica repetiría el mismo dato 4 veces. */
+      .pp-metrics-grid .pp-favorito-banner { display: none; }
+      .pp-metrics-fav-mobile {
+        display: block; margin-top: 10px; padding: 9px 12px; border-radius: 10px;
+        background: rgba(2,6,23,0.4); border: 1px solid rgba(255,255,255,0.06);
+        font-size: 0.72rem; color: #cbd5e1; text-align: center;
+        transition: opacity .15s ease;
+      }
+      .pp-metrics-fav-mobile.pp-fading { opacity: 0; }
+
+      /* 4. Lista de partidos con incidencias — condición (Titular/Suplente)
+         más visible, ⚽/🎯 ya vienen de _ppImpactIconsHtml sin cambios; acá
+         solo se agranda el badge y se deja que el resultado (movido a
+         .pp-match-side por _ppStatRowHtml) quede pegado a la derecha. */
+      .pp-match-row { padding: 11px 12px; gap: 8px; }
+      .pp-match-torneo { font-size: 0.66rem; }
+      .pp-match-rival { font-size: 0.82rem; }
+      .pp-match-side { gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+      .pp-match-cond { font-size: 0.7rem; padding: 5px 10px; }
+      .pp-match-resultado { font-size: 0.8rem; padding: 4px 10px; }
+    }
   </style>
 </head>
 <body>
@@ -3955,6 +4036,14 @@ function ppFilterMetrics(cat, btn) {
       gaEl.classList.remove('pp-fading');
     }, 150);
   }
+  const favMobileEl = document.getElementById('pp-fav-mobile');
+  if (favMobileEl) {
+    favMobileEl.classList.add('pp-fading');
+    setTimeout(() => {
+      favMobileEl.innerHTML = _ppFavoritoBannerInner('🎯', 'Víctima Favorita', fav.goles, 'Goles');
+      favMobileEl.classList.remove('pp-fading');
+    }, 150);
+  }
 
   const meter = document.getElementById('pp-m-meter');
   const pctEl = document.getElementById('pp-m-pct');
@@ -4482,6 +4571,38 @@ function _ppRankGroup(rankSet, groupLabel, accent) {
   </div>`;
 }
 
+// Grilla compacta de 3 columnas (Goleadores/Asistidores/Presencias) para el
+// pie de la Hero Card en mobile (ver renderPlayerProfile/.pp-hero-mobile-ranks)
+// — usa el ranking general (A+B histórico) cuando existe, o el de una sola
+// categoría si el jugador solo jugó en un plantel, en vez de repetir el
+// desglose completo por A/Primera B que ya muestra .pp-rank-layout debajo.
+function _ppHeroMiniRanksHtml(s) {
+  const rankSet = s.rankGen || s.rankA || s.rankB;
+  if (!rankSet) return '';
+  const items = [
+    { rank: rankSet.goles, icon: '⚽', label: 'Goleadores' },
+    { rank: rankSet.asist, icon: '🎯', label: 'Asistidores' },
+    { rank: rankSet.pj,    icon: '📋', label: 'Presencias' },
+  ];
+  return items.map(it => {
+    if (!it.rank || !it.rank.pos) {
+      return `<div class="pp-hero-rank-item">
+        <span class="pp-hero-rank-icon">${it.icon}</span>
+        <span class="pp-hero-rank-val" style="color:rgba(255,255,255,0.35)">—</span>
+        <span class="pp-hero-rank-label">${it.label}</span>
+      </div>`;
+    }
+    const top = it.rank.pos <= 3;
+    const medal = it.rank.pos === 1 ? '🥇' : it.rank.pos === 2 ? '🥈' : it.rank.pos === 3 ? '🥉' : null;
+    const color = top ? (it.rank.pos === 1 ? '#FFD700' : it.rank.pos === 2 ? '#C0C0C0' : '#CD7F32') : '#fbbf24';
+    return `<div class="pp-hero-rank-item${top ? ' pp-hero-rank-top' : ''}">
+      <span class="pp-hero-rank-icon">${it.icon}</span>
+      <span class="pp-hero-rank-val" style="color:${color}">${medal || '#' + it.rank.pos}</span>
+      <span class="pp-hero-rank-label">${it.label}</span>
+    </div>`;
+  }).join('');
+}
+
 // Colored global-score pill (win/draw/loss from the club's own gf/gc), used
 // by the Goles and Partidos detail rows.
 function _ppResultadoPillHtml(p) {
@@ -4553,9 +4674,10 @@ function _ppStatRowHtml(kind, p) {
   return `<div ${rowAttrs}>
     <div class="pp-match-main">
       <span class="pp-match-torneo">${p.torneo}</span>
-      <span class="pp-match-rival">${label ? label + ' - ' : ''}${p.rival} ${_ppResultadoPillHtml(p)}${localIco ? ' ' + localIco : ''}</span>
+      <span class="pp-match-rival">${label ? label + ' - ' : ''}${p.rival}${localIco ? ' ' + localIco : ''}</span>
     </div>
     <div class="pp-match-side">
+      ${_ppResultadoPillHtml(p)}
       ${(kind === 'partidos' || kind === 'ga') ? _ppImpactIconsHtml(p) : (statVal != null ? `<span class="pp-match-stat">${statIco}${statVal > 1 ? ' ×' + statVal : ''}</span>` : '')}
       <span class="pp-match-cat ${_ppCatClass(p.categoria)}">${p.categoria}</span>
       <span class="pp-match-cond ${PP_COND_CLASS[p.condCorta] || ''}">${p.condCorta}</span>
@@ -4711,8 +4833,17 @@ function _ppRecordCardInnerHtml(fullPartidos) {
   const incompleteNote = window._ppRecordIncomplete
     ? `<div class="pp-data-gap-note">ℹ️ Esta sección muestra los partidos cargados en el sitio — puede no ser el total de partidos jugados si alguna temporada vieja no tiene su Fecha a Fecha digitalizado.</div>`
     : '';
+  const vedTotal = record.v + record.e + record.d || 1;
+  const pctV = (record.v / vedTotal * 100).toFixed(1);
+  const pctE = (record.e / vedTotal * 100).toFixed(1);
+  const pctD = (record.d / vedTotal * 100).toFixed(1);
   return `
     <div class="pp-record-ved" id="pp-record-ved"><span class="pp-ved-v">${record.v}V</span> - <span class="pp-ved-e">${record.e}E</span> - <span class="pp-ved-d">${record.d}D</span></div>
+    <div class="pp-record-bar" title="${record.v}V - ${record.e}E - ${record.d}D">
+      <div class="pp-record-bar-seg pp-record-bar-v" style="width:${pctV}%"></div>
+      <div class="pp-record-bar-seg pp-record-bar-e" style="width:${pctE}%"></div>
+      <div class="pp-record-bar-seg pp-record-bar-d" style="width:${pctD}%"></div>
+    </div>
     <div class="pp-record-note">* Métrica calculada sobre los partidos cargados en la web</div>
     ${incompleteNote}
     <div class="pp-record-favorito" id="pp-record-favorito">👑 Cliente Favorito: ${favCliente
@@ -5192,6 +5323,7 @@ function renderPlayerProfile(nombre) {
       <div class="hd-meter-track"><div class="hd-meter-fill" id="pp-m-meter" style="width:${Math.min(100, s.efectividadGA).toFixed(0)}%"></div></div>
       <div class="hd-meter-row"><span>0%</span><span class="hd-meter-pct" id="pp-m-pct">${s.efectividadGA.toFixed(0)}%</span><span>100%</span></div>
     </div>
+    <div class="pp-metrics-fav-mobile" id="pp-fav-mobile">${_ppFavoritoBannerInner('🎯', 'Víctima Favorita', _favInit.goles, 'Goles')}</div>
     ${!s.nidoReady ? `<div class="pp-nido-loading">⏳ Sincronizando con El Nido…</div>` : ''}
     <div id="pp-detail-panel"></div>`;
 
@@ -5223,12 +5355,15 @@ function renderPlayerProfile(nombre) {
     <div class="pp-wrap">
       <button class="volver-btn" onclick="_ppVolver()">← Volver</button>
       <button class="pp-share-trigger-btn" onclick="_ppShareCard('${s.nombre.replace(/'/g, "\\'")}', this)">${_ppShareIconSvg()}<span>Compartir</span></button>
-      <div class="pp-header">
-        <div class="pp-avatar">${initials}</div>
-        <div>
-          <div class="pp-name">${s.nombre}</div>
-          <div class="pp-pos">${posLabel}</div>
+      <div class="pp-hero-card">
+        <div class="pp-header">
+          <div class="pp-avatar">${initials}</div>
+          <div>
+            <div class="pp-name">${s.nombre}</div>
+            <div class="pp-pos">${posLabel}</div>
+          </div>
         </div>
+        <div class="pp-hero-mobile-ranks">${_ppHeroMiniRanksHtml(s)}</div>
       </div>
       ${rankings}
       ${recordCard}
