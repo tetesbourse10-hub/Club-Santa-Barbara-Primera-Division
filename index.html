@@ -1719,6 +1719,32 @@
     .hist-tc-meta-sep { margin:0 6px; color:rgba(255,255,255,.15); }
     .hist-tc-arrow { position:absolute; right:14px; top:50%; transform:translateY(-50%); color:#334155; font-size:1.1rem; transition:all .2s; }
     .hist-torneo-card:hover .hist-tc-arrow { color:var(--dorado); transform:translateY(-50%) translateX(2px); }
+    /* Chips V-E-D — misma info que .hist-tc-v/e/d (texto con separadores),
+       solo que en mobile (ver media query abajo) se muestran como badges
+       independientes en vez de texto plano. */
+    .hist-tc-ved-chips { display:none; gap:6px; }
+    .hist-tc-chip { padding:2px 8px; border-radius:6px; font-size:0.72rem; font-weight:800; }
+    .hist-tc-chip-v { background:rgba(34,197,94,0.14); color:#4ade80; }
+    .hist-tc-chip-e { background:rgba(245,158,11,0.14); color:#fbbf24; }
+    .hist-tc-chip-d { background:rgba(239,68,68,0.14); color:#f87171; }
+    @media (max-width:768px) {
+      /* Tarjeta compacta: sin el badge "Estadísticas completas" (la tarjeta
+         entera ya es clickeable con flecha), menos padding, y el V-E-D como
+         chips con un borde superior separándolo del resto. */
+      .hist-tc-detail-badge { display:none; }
+      .hist-torneo-card { padding:14px 14px 12px; }
+      .hist-tc-record-inline { display:none; }
+      .hist-tc-ved-chips {
+        display:flex; margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.07);
+      }
+      /* Campeón: degradado dorado sutil sobre el fondo oscuro de la card
+         (desktop ya tiene su propio tratamiento más discreto — este es más
+         marcado, pensado para leerse de un vistazo en la lista mobile). */
+      .hist-torneo-card.campeon {
+        background: linear-gradient(135deg, rgba(245,158,11,0.15), #151c2c 65%);
+        border-color: rgba(245,158,11,0.4);
+      }
+    }
     .graf-section-title {
       font-size:1.05rem; font-weight:800; color:#e2e8f0; margin-bottom:18px;
       display:flex; align-items:center; gap:10px;
@@ -12575,13 +12601,22 @@ function renderGraficos() {
       const clickFn = rich
         ? `_navPushTorneosAntiguos(); ${rich.fn}`
         : `_navPush('Torneos Antiguos', () => renderGraficos()); grafDetalle(${JSON.stringify(t).replace(/"/g,'&quot;')})`;
+      // Desktop mantiene el texto coloreado con separadores " - "; mobile
+      // (ver .hist-tc-ved-chips ≤768px) muestra los mismos 3 valores como
+      // chips independientes con fondo, separados por un borde superior —
+      // mismo dato, sin duplicar el cálculo de PG/PE/PP.
       const record = `<span class="hist-tc-v">${t.pg}V</span> - <span class="hist-tc-e">${t.pe}E</span> - <span class="hist-tc-d">${t.pp}D</span>`;
+      const recordChips = `<div class="hist-tc-ved-chips">
+        <span class="hist-tc-chip hist-tc-chip-v">${t.pg}V</span>
+        <span class="hist-tc-chip hist-tc-chip-e">${t.pe}E</span>
+        <span class="hist-tc-chip hist-tc-chip-d">${t.pp}D</span>
+      </div>`;
       const footer = esCopa
-        ? `<div class="hist-tc-foot-copa">${t.pj} PJ&nbsp;&nbsp;•&nbsp;&nbsp;${record}</div>`
+        ? `<div class="hist-tc-foot-copa">${t.pj} PJ<span class="hist-tc-record-inline">&nbsp;&nbsp;•&nbsp;&nbsp;${record}</span></div>${recordChips}`
         : `<div class="hist-tc-foot-liga">
              <div class="hist-tc-line1">${t.pts != null ? t.pts + ' pts&nbsp;&nbsp;•&nbsp;&nbsp;' : ''}${t.pj} PJ</div>
-             <div class="hist-tc-line2">${record}</div>
-           </div>`;
+             <div class="hist-tc-line2 hist-tc-record-inline">${record}</div>
+           </div>${recordChips}`;
       return `<div class="hist-torneo-card${esCamp ? ' campeon' : ''}" onclick="${clickFn}">
         <div class="hist-tc-header">
           <span class="hist-tc-tipo ${esCopa ? 'copa' : 'liga'}">${esCopa ? 'Copa' : 'Liga'}</span>
