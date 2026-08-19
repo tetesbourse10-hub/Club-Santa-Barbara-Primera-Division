@@ -647,24 +647,43 @@
       .nido-mobile-only { display: block; }
 
       .nido-mobile-filters { margin-bottom: 16px; }
-      .nido-mobile-pills { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
-      .nido-mobile-dropdown-row { display: flex; gap: 8px; margin-bottom: 10px; }
       .nido-mobile-select {
-        flex: 1; min-width: 0; padding: 8px 10px; border-radius: 8px;
+        width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 8px;
         background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
-        color: #f1f5f9; font-size: 13px; outline: none;
+        color: #f1f5f9; font-size: 13px; outline: none; margin-bottom: 4px;
       }
       .nido-mobile-search {
         width: 100%; box-sizing: border-box; padding: 9px 13px; border-radius: 8px;
         background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
-        color: #f1f5f9; font-size: 13px; outline: none; margin-bottom: 10px;
+        color: #f1f5f9; font-size: 13px; outline: none; margin-bottom: 4px;
       }
-      .nido-mobile-summary { font-size: 12px; color: #6b7280; }
+      .nido-mobile-summary { font-size: 12px; color: #6b7280; margin-top: 12px; }
+
+      /* PLANTEL / RANKING POR — mismas pills que desktop (teamBtns/rankBtns
+         se generan una sola vez y se reusan acá), pero en una fila que
+         scrollea horizontalmente en vez de wrappear a varias líneas: en
+         mobile cada fila ya tiene su propio label arriba, así que dejar
+         que las pills bajen de línea solo hacía la sección más alta sin
+         ninguna ventaja. */
+      .nido-mobile-filter-label {
+        font-size: 0.65rem; color: #6b7280; font-weight: 700; text-transform: uppercase;
+        letter-spacing: .05em; margin: 10px 0 6px;
+      }
+      .nido-mobile-filter-row {
+        display: flex; gap: 6px; overflow-x: auto; white-space: nowrap; padding-bottom: 2px;
+        scrollbar-width: none; -webkit-overflow-scrolling: touch;
+      }
+      .nido-mobile-filter-row::-webkit-scrollbar { display: none; }
+      .nido-mobile-filter-row button { flex-shrink: 0; }
+      .nido-mobile-rank-clear {
+        padding: 6px 10px; border-radius: 20px; background: rgba(239,68,68,0.1); color: #f87171;
+        border: 1px solid rgba(239,68,68,0.25); font-size: 11px; cursor: pointer; flex-shrink: 0;
+      }
 
       /* Sub-selector propio del filtro "Partidos Jugados" — solo se muestra
          cuando ese es el ranking activo (es el único que se desglosa en
          columnas propias PG/PE/PP en desktop; ver isPjRank). */
-      .nido-pj-subsort { margin-bottom: 10px; }
+      .nido-pj-subsort { margin: 10px 0; }
       .nido-pj-subsort-label {
         font-size: 0.68rem; color: #6b7280; text-transform: uppercase;
         letter-spacing: .04em; margin-bottom: 6px;
@@ -680,49 +699,57 @@
       .nido-pj-chip-pe:not(.active) { background: rgba(250,199,117,0.12); color: #fac775; }
       .nido-pj-chip-pp:not(.active) { background: rgba(240,149,149,0.12); color: #f09595; }
 
-      .nido-mobile-cards { display: flex; flex-direction: column; gap: 10px; }
-      .nido-card {
-        display: flex; gap: 12px; align-items: flex-start;
-        background: #141d2e; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px;
-        padding: 12px 14px; cursor: pointer;
+      /* Data-table analítica mobile — misma tabla que desktop, primera
+         columna ("JUGADOR / EQUIPO") fija (sticky) para que al scrollear
+         horizontal el resto de columnas el nombre siempre quede visible. */
+      .nido-mtable-wrap {
+        background: #1e293b; border: 1px solid rgba(255,255,255,0.09); border-radius: 10px;
+        overflow: hidden;
       }
-      .nido-card-rank { font-size: 1.3rem; font-weight: 900; flex-shrink: 0; width: 24px; text-align: center; }
-      .nido-card-body { flex: 1; min-width: 0; }
-      .nido-card-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
-      .nido-card-name { font-size: 0.92rem; font-weight: 700; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .nido-card-value { font-size: 1.3rem; font-weight: 900; color: var(--dorado); flex-shrink: 0; }
-      .nido-card-value-label { font-size: 0.62rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: .03em; margin-left: 2px; }
-      .nido-card-badges { display: flex; gap: 6px; margin-top: 5px; flex-wrap: wrap; align-items: center; }
-      .nido-card-pos { display: inline-block; font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 6px; border: 1px solid; letter-spacing: .03em; }
-      /* Chips individuales con fondo tenue del color propio de cada stat
-         (val grande arriba, label chico abajo) — reemplaza la fila de
-         texto plano gris que traía antes, misma idea que ya usan los
-         badges PG/PE/PP de abajo. Fondo/color vienen inline por stat (ver
-         NIDO_STAT_COLOR), la clase solo define la forma del chip. */
-      .nido-card-stats {
-        display: flex; gap: 6px; margin-top: 9px; padding-top: 9px;
-        border-top: 1px solid rgba(255,255,255,0.08);
+      .nido-mtable-scroll {
+        overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
       }
-      .nido-card-stat { flex: 1; min-width: 0; border-radius: 8px; padding: 6px 4px; text-align: center; }
-      .nido-card-stat-val { font-size: 0.9rem; font-weight: 800; line-height: 1; }
-      .nido-card-stat-label { font-size: 0.58rem; color: #94a3b8; text-transform: uppercase; letter-spacing: .04em; margin-top: 3px; display: block; }
-
-      /* Card del filtro "Partidos Jugados" — PG/PE/PP siempre juntos (dan
-         contexto completo del récord sin importar cuál esté resaltado
-         arriba) + G/A/G+A como fila de chips chica debajo, mismo
-         tratamiento visual que .nido-card-stat de arriba. */
-      .nido-pj-badges { display: flex; gap: 6px; margin-top: 9px; }
-      .nido-pj-badge { flex: 1; padding: 5px 4px; border-radius: 8px; text-align: center; font-size: 0.72rem; font-weight: 700; }
-      .nido-pj-badge-pg { background: rgba(151,196,89,0.12);  color: #97c459; }
-      .nido-pj-badge-pe { background: rgba(250,199,117,0.12); color: #fac775; }
-      .nido-pj-badge-pp { background: rgba(240,149,149,0.12); color: #f09595; }
-      .nido-pj-extra {
-        display: flex; gap: 6px; margin-top: 9px; padding-top: 9px;
-        border-top: 1px solid rgba(255,255,255,0.08);
+      .nido-mtable-scroll::-webkit-scrollbar { display: none; }
+      .nido-mtable { width: 100%; border-collapse: separate; border-spacing: 0; }
+      .nido-mtable-th, .nido-mtable-sticky-th {
+        padding: 9px 10px; font-size: 10px; font-weight: 700; color: #6b7280;
+        text-transform: uppercase; letter-spacing: .05em; white-space: nowrap;
+        text-align: center; background: #1a2337; border-bottom: 1px solid rgba(255,255,255,0.08);
       }
+      .nido-mtable-th-active { color: #a5b4fc; }
+      .nido-mtable-sticky-th {
+        position: sticky; left: 0; z-index: 11; text-align: left; padding: 9px 12px;
+        background: #151c2c; border-right: 1px solid #1e293b; box-shadow: 2px 0 6px rgba(0,0,0,0.35);
+        min-width: 140px; max-width: 150px;
+      }
+      .nido-mtable-td {
+        padding: 9px 10px; font-size: 12.5px; font-weight: 600; color: #cbd5e1;
+        text-align: center; white-space: nowrap; border-bottom: 1px solid rgba(255,255,255,0.05);
+      }
+      .nido-mtable-active {
+        background: rgba(99,102,241,0.1); color: #a5b4fc; font-weight: 700; border-radius: 0;
+      }
+      .nido-mtable-sticky-td {
+        position: sticky; left: 0; z-index: 10; padding: 8px 12px;
+        background: #151c2c; border-right: 1px solid #1e293b; box-shadow: 2px 0 6px rgba(0,0,0,0.35);
+        border-bottom: 1px solid rgba(255,255,255,0.05); min-width: 140px; max-width: 150px;
+      }
+      .nido-mtable tbody tr:nth-child(even) .nido-mtable-td:not(.nido-mtable-active) { background: rgba(255,255,255,0.02); }
+      .nido-mtable-rank-name { display: flex; align-items: baseline; gap: 5px; }
+      .nido-mtable-rank { font-size: 0.8rem; font-weight: 900; flex-shrink: 0; }
+      .nido-mtable-name {
+        font-size: 0.8rem; font-weight: 700; color: #f1f5f9; white-space: nowrap;
+        overflow: hidden; text-overflow: ellipsis;
+      }
+      .nido-mtable-badges { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; align-items: center; }
+      .nido-mtable-pos {
+        display: inline-block; font-size: 0.62rem; font-weight: 700; padding: 1px 6px;
+        border-radius: 5px; border: 1px solid; letter-spacing: .03em;
+      }
+      .nido-mtable-empty { text-align: center; padding: 30px; color: #6b7280; font-size: 0.85rem; }
 
       .nido-load-more {
-        margin-top: 4px; padding: 10px; border-radius: 8px; width: 100%;
+        margin-top: 10px; padding: 10px; border-radius: 8px; width: 100%;
         background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
         color: #d1d5db; font-size: 0.82rem; font-weight: 600; cursor: pointer;
       }
@@ -14753,59 +14780,19 @@ async function loadLiveData() {
       </div>
     </div>`;
 
-    return desktopHtml + _renderNidoMobileCards(rows, activeColKey, promSwap, isPjRank);
+    return desktopHtml + _renderNidoMobileTable(rows, activeColKey, promSwap, isPjRank);
   }
 
-  const NIDO_COL_LABELS = {
-    pj:'PJ', goles:'Goles', asist:'Asist.', gmas:'G+A', titulos:'Títulos', vallas:'Vallas',
-    pg:'PG', pe:'PE', pp:'PP', titular:'Titular', suplente:'Suplente',
-    promGol:'Prom. Gol', promAsist:'Prom. Asist.', promGmas:'Prom. G+A', vallasProm:'Prom. Vallas',
-  };
-  // Sufijo corto para el número grande de cada card en mobile (.nido-card-value)
-  // — sin esto el valor quedaba "desnudo" (un número solo, sin decir de qué
-  // métrica se trata) cada vez que se rankeaba por algo que no fuera PG/PE/PP.
-  const NIDO_VALUE_LABEL = { pj: 'PJ', goles: 'G', asist: 'A', gmas: 'G+A', titulos: 'Tít.', vallas: 'VI', pg: 'PG', pe: 'PE', pp: 'PP' };
-  // Color por stat para los chips secundarios de la card mobile — mismos
-  // tokens que ya usa el resto del sitio (PP_LOGRO_META/.nido-pj-badge-*),
-  // no colores nuevos inventados para esta card.
-  const NIDO_STAT_COLOR = {
-    pj: '#94a3b8', goles: '#ef9f27', asist: '#97c459', gmas: '#af9ec6', titulos: '#85b7eb',
-    vallas: '#60a5fa', vallasProm: '#60a5fa', titular: '#94a3b8', suplente: '#64748b',
-    promGol: '#ef9f27', promAsist: '#97c459', promGmas: '#af9ec6',
-  };
-  // Qué 4 stats acompañan a cada métrica cuando es la resaltada (highlight)
-  // de la card — antes era una lista fija (PJ/Goles/Asist/Títulos/Vallas)
-  // sin importar qué ranking estuviera activo, así que rankear por Vallas
-  // Invictas, por ejemplo, mostraba Goles/Asist igual que rankear por
-  // Goleadores. Cada entrada ya excluye su propia clave (no tiene sentido
-  // repetir el highlight como chip secundario).
-  const NIDO_SECONDARY_MAP = {
-    pj:         ['goles', 'asist', 'gmas', 'titulos'],
-    goles:      ['pj', 'asist', 'gmas', 'titulos'],
-    asist:      ['pj', 'goles', 'gmas', 'titulos'],
-    gmas:       ['pj', 'goles', 'asist', 'titulos'],
-    titulos:    ['pj', 'goles', 'asist', 'gmas'],
-    vallas:     ['pj', 'vallasProm', 'titular', 'suplente'],
-    vallasProm: ['pj', 'titular', 'suplente', 'titulos'],
-    promGol:    ['pj', 'promAsist', 'promGmas', 'titulos'],
-    promAsist:  ['pj', 'promGol', 'promGmas', 'titulos'],
-    promGmas:   ['pj', 'promGol', 'promAsist', 'titulos'],
-  };
-  const NIDO_SECONDARY_DEFAULT = ['goles', 'asist', 'gmas', 'titulos'];
   // Same per-column value (raw vs. promedio-swapped) the desktop table's
-  // `td()`/`fmt()` helpers compute, reused here so mobile shows identical
-  // numbers — just laid out as a card instead of a table row. pg/pe/pp no
-  // viven en `p` — se resuelven vía _nidoGetVED (misma cache que el desktop).
+  // `td()`/`fmt()` helpers compute, reused here so la tabla mobile muestra
+  // los mismos números. pg/pe/pp no viven en `p` — se resuelven vía
+  // _nidoGetVED (misma cache que el desktop).
   const NIDO_PROM_KEYS = new Set(['promGol', 'promAsist', 'promGmas', 'vallasProm']);
   function _nidoStatValue(p, key, promSwap) {
     if (key === 'pg' || key === 'pe' || key === 'pp') {
       const ved = _nidoGetVED(p.nombre);
       return key === 'pg' ? ved.v : key === 'pe' ? ved.e : ved.d;
     }
-    // Los chips secundarios pueden pedir un promedio directamente por su
-    // propio nombre de campo (ej. "promGol" como chip de contexto al lado
-    // del ranking por promAsist) — no solo vía promSwap, que solo cubre el
-    // caso de la columna resaltada de la tabla.
     if (NIDO_PROM_KEYS.has(key)) {
       const v = p[key] || 0;
       return v > 0 ? v.toFixed(2) : '—';
@@ -14819,106 +14806,93 @@ async function loadLiveData() {
     }
     return raw;
   }
-  // Mobile card list (≤768px) — same `rows` (already filtered+sorted) and
-  // ranking state the desktop table above just rendered, so both stay in
-  // sync from the exact same renderTable() call. Capped at
-  // _nidoMobileVisible with a "Cargar más" button instead of rendering all
-  // ~103 players at once.
-  // Tarjeta propia para el filtro "Partidos Jugados" — medalla top-3, PG/PE/PP
-  // siempre visibles juntos (con fondo tenue de su color) para dar contexto
-  // completo del récord sin importar cuál esté resaltado arriba, y G/A/G+A
-  // como línea de contexto chica debajo de una separación sutil.
-  function _renderNidoPjCard(p, i, activeColKey) {
+
+  // Tabla mobile (≤768px) — misma data-table analítica que desktop
+  // (renderTable()), con la primera columna "JUGADOR / EQUIPO" fija
+  // (sticky) para poder scrollear horizontalmente el resto de columnas
+  // (PJ/PG/PE/PP/G/A/G+A o PJ/GOLES/ASIST/G+A/TÍTULOS/VALLAS) sin perder
+  // de vista a qué jugador corresponde cada fila. Reemplaza el layout de
+  // cards anterior — mismos `rows` (ya filtrados+ordenados) y estado de
+  // ranking que la tabla desktop, así ambas quedan siempre sincronizadas
+  // desde el mismo renderTable().
+  function _nidoMobileStickyCell(p, i) {
     const rankColor = i === 0 ? '#eab308' : i === 1 ? '#cbd5e1' : i === 2 ? '#d6a87c' : '#6b7280';
+    const rankLabel = i < 3 ? PODIO[i].medal : `${i + 1}º`;
     const pColor = posColor(p.pos);
     const teamBadges = p.teams.map(teamBadge).join('');
-    // Ver _matchDataReadyOnce: antes de la primera carga completa, PG/PE/PP
-    // pueden estar incompletos — se muestra un placeholder de carga en vez
-    // de calcularlos y mostrar un número que cambia solo después.
-    const ved = _nidoVedReady() ? _nidoGetVED(p.nombre) : null;
-    const activeVal = !ved && (activeColKey === 'pg' || activeColKey === 'pe' || activeColKey === 'pp') ? '…'
-      : activeColKey === 'pg' ? ved.v
-      : activeColKey === 'pe' ? ved.e
-      : activeColKey === 'pp' ? ved.d
-      : p[activeColKey]; // 'pj' (default) o, si se llega vía desktop, 'goles'/'asist'/'gmas'
-    const activeValLabel = NIDO_VALUE_LABEL[activeColKey] || '';
-    return `
-      <div class="nido-card" onclick="goToPlayer('${p.nombre.replace(/'/g, "\\'")}')">
-        <div class="nido-card-rank" style="color:${rankColor}">${i < 3 ? PODIO[i].medal : i + 1}</div>
-        <div class="nido-card-body">
-          <div class="nido-card-top">
-            <div>
-              <div class="nido-card-name">${pl(p.nombre)}</div>
-              <div class="nido-card-badges">
-                <span class="nido-card-pos" style="background:${pColor}1a;border-color:${pColor}59;color:${pColor}">${p.pos || '—'}</span>
-                ${teamBadges}
-              </div>
-            </div>
-            <div class="nido-card-value">${activeVal}${activeValLabel ? `<span class="nido-card-value-label">${activeValLabel}</span>` : ''}</div>
-          </div>
-          <div class="nido-pj-badges">
-            <div class="nido-pj-badge nido-pj-badge-pg">${ved ? ved.v : '…'} PG</div>
-            <div class="nido-pj-badge nido-pj-badge-pe">${ved ? ved.e : '…'} PE</div>
-            <div class="nido-pj-badge nido-pj-badge-pp">${ved ? ved.d : '…'} PP</div>
-          </div>
-          <div class="nido-pj-extra">
-            ${['goles', 'asist', 'gmas'].map(k => `
-              <div class="nido-card-stat" style="background:${NIDO_STAT_COLOR[k]}1a">
-                <span class="nido-card-stat-val" style="color:${NIDO_STAT_COLOR[k]}">${p[k]}</span>
-                <span class="nido-card-stat-label">${NIDO_VALUE_LABEL[k]}</span>
-              </div>`).join('')}
-          </div>
-        </div>
-      </div>`;
+    return `<td class="nido-mtable-sticky-td">
+      <div class="nido-mtable-rank-name">
+        <span class="nido-mtable-rank" style="color:${rankColor}">${rankLabel}</span>
+        <span class="nido-mtable-name">${p.nombre}</span>
+      </div>
+      <div class="nido-mtable-badges">
+        <span class="nido-mtable-pos" style="background:${pColor}1a;border-color:${pColor}59;color:${pColor}">${p.pos || '—'}</span>
+        ${teamBadges}
+      </div>
+    </td>`;
   }
 
-  function _renderNidoMobileCards(rows, activeColKey, promSwap, isPjRank) {
+  function _nidoMobileTd(colKey, value, activeColKey, colorOverride) {
+    const isActive = activeColKey === colKey;
+    const cls = isActive ? ' nido-mtable-active' : '';
+    const style = colorOverride ? ` style="color:${colorOverride};"` : '';
+    return `<td class="nido-mtable-td${cls}"${style}>${value}</td>`;
+  }
+
+  function _renderNidoMobileTable(rows, activeColKey, promSwap, isPjRank) {
     const total = rows.length;
     const visible = rows.slice(0, _nidoMobileVisible);
 
-    const cardsHtml = visible.map((p, i) => {
-      if (isPjRank) return _renderNidoPjCard(p, i, activeColKey);
+    const cols = isPjRank ? [
+      { key: 'pj',     label: 'PJ' },
+      { key: 'pg',     label: 'PG', color: '#22c55e' },
+      { key: 'pe',     label: 'PE', color: '#eab308' },
+      { key: 'pp',     label: 'PP', color: '#ef4444' },
+      { key: 'goles',  label: 'G' },
+      { key: 'asist',  label: 'A' },
+      { key: 'gmas',   label: 'G+A' },
+    ] : [
+      { key: 'pj',      label: 'PJ' },
+      { key: 'goles',   label: promSwap?.replaces === 'goles' ? promSwap.header : 'GOLES' },
+      { key: 'asist',   label: promSwap?.replaces === 'asist' ? promSwap.header : 'ASIST' },
+      { key: 'gmas',    label: promSwap?.replaces === 'gmas'  ? promSwap.header : 'G+A' },
+      { key: 'titulos', label: 'TÍT.' },
+      { key: 'vallas',  label: promSwap?.replaces === 'vallas' ? promSwap.header : 'VALLAS' },
+    ];
 
-      const rankColor = i === 0 ? '#eab308' : i === 1 ? '#cbd5e1' : i === 2 ? '#d6a87c' : '#6b7280';
-      const pColor = posColor(p.pos);
-      const teamBadges = p.teams.map(teamBadge).join('');
-      // Rankeando por un promedio (Prom. Goles/Asist/G+A/Vallas), activeColKey
-      // sigue siendo la columna base que reemplaza (ej. 'goles' para
-      // 'promGol' — así el valor grande se resuelve bien vía _nidoStatValue),
-      // así que el set de chips secundarios hay que resolverlo por
-      // promSwap.field, no por activeColKey, o nunca matchearía las entradas
-      // promGol/promAsist/promGmas/vallasProm de NIDO_SECONDARY_MAP.
-      const secondaryLookupKey = promSwap ? promSwap.field : activeColKey;
-      const secondaryKeys = (NIDO_SECONDARY_MAP[secondaryLookupKey] || NIDO_SECONDARY_DEFAULT)
-        .filter(k => k !== activeColKey && k !== secondaryLookupKey).slice(0, 4);
-      const secondaryHtml = secondaryKeys.map(k => `
-        <div class="nido-card-stat" style="background:${NIDO_STAT_COLOR[k] || '#94a3b8'}1a">
-          <span class="nido-card-stat-val" style="color:${NIDO_STAT_COLOR[k] || '#94a3b8'}">${_nidoStatValue(p, k, promSwap)}</span>
-          <span class="nido-card-stat-label">${NIDO_COL_LABELS[k]}</span>
-        </div>`).join('');
-      return `
-        <div class="nido-card" onclick="goToPlayer('${p.nombre.replace(/'/g, "\\'")}')">
-          <div class="nido-card-rank" style="color:${rankColor}">${i + 1}</div>
-          <div class="nido-card-body">
-            <div class="nido-card-top">
-              <div class="nido-card-name">${pl(p.nombre)}</div>
-              <div class="nido-card-value">${_nidoStatValue(p, activeColKey, promSwap)}<span class="nido-card-value-label">${promSwap ? promSwap.header.replace('PROM.', 'Prom.') : (NIDO_VALUE_LABEL[activeColKey] || '')}</span></div>
-            </div>
-            <div class="nido-card-badges">
-              <span class="nido-card-pos" style="background:${pColor}1a;border-color:${pColor}59;color:${pColor}">${p.pos || '—'}</span>
-              ${teamBadges}
-            </div>
-            <div class="nido-card-stats">${secondaryHtml}</div>
-          </div>
-        </div>`;
+    const theadCells = cols.map(c =>
+      `<th class="nido-mtable-th${activeColKey === c.key ? ' nido-mtable-th-active' : ''}">${c.label}</th>`
+    ).join('');
+
+    const rowsHtml = visible.map((p, i) => {
+      const cellsHtml = cols.map(c => {
+        let val, colorOverride;
+        if (c.key === 'pg' || c.key === 'pe' || c.key === 'pp') {
+          // Ver _matchDataReadyOnce: antes de la primera carga completa,
+          // PG/PE/PP pueden estar incompletos — placeholder de carga en
+          // vez de un número que cambia solo apenas termina de cargar.
+          const ved = _nidoVedReady() ? _nidoGetVED(p.nombre) : null;
+          val = ved ? (c.key === 'pg' ? ved.v : c.key === 'pe' ? ved.e : ved.d) : '…';
+          colorOverride = c.color;
+        } else {
+          val = _nidoStatValue(p, c.key, promSwap);
+        }
+        return _nidoMobileTd(c.key, val, activeColKey, colorOverride);
+      }).join('');
+      return `<tr onclick="goToPlayer('${p.nombre.replace(/'/g, "\\'")}')">${_nidoMobileStickyCell(p, i)}${cellsHtml}</tr>`;
     }).join('');
 
     const loadMoreHtml = total > _nidoMobileVisible
       ? `<button class="nido-load-more" onclick="window._nidoLoadMore()">Cargar más jugadores (${total - _nidoMobileVisible} restantes)</button>`
       : '';
 
-    return `<div class="nido-mobile-only nido-mobile-cards">
-      ${cardsHtml || `<div class="nido-mobile-empty">Sin resultados</div>`}
+    return `<div class="nido-mobile-only nido-mtable-wrap">
+      <div class="nido-mtable-scroll">
+        <table class="nido-mtable">
+          <thead><tr><th class="nido-mtable-sticky-th">JUGADOR / EQUIPO</th>${theadCells}</tr></thead>
+          <tbody>${rowsHtml || `<tr><td class="nido-mtable-empty" colspan="${cols.length + 1}">Sin resultados</td></tr>`}</tbody>
+        </table>
+      </div>
       ${loadMoreHtml}
     </div>`;
   }
@@ -14999,14 +14973,18 @@ async function loadLiveData() {
       </div>
 
       <div class="nido-mobile-only nido-mobile-filters">
-        <div class="nido-mobile-pills">${teamBtns}</div>
-        <div class="nido-mobile-dropdown-row">
-          <select class="nido-mobile-select" onchange="window._nidoPosSelect(this.value)">
-            ${posOptions.map(p => `<option value="${p}" ${p === _nidoPos ? 'selected' : ''}>${p === 'todas' ? 'Posición: Todas' : 'Posición: ' + p}</option>`).join('')}
-          </select>
-          <select class="nido-mobile-select" onchange="window._nidoRankMode(this.value)">
-            ${RANK_METRICS.map(m => `<option value="${m.key}" ${(_nidoRank || _nidoSort.col) === m.key ? 'selected' : ''}>${m.label}</option>`).join('')}
-          </select>
+        <input id="nido-search-mobile" type="text" class="nido-mobile-search" placeholder="Buscar jugador…" value="${_nidoQuery}"
+          oninput="window._nidoSearch(this.value)" />
+        <div class="nido-mobile-filter-label">PLANTEL</div>
+        <div class="nido-mobile-filter-row">${teamBtns}</div>
+        <div class="nido-mobile-filter-label">POSICIÓN</div>
+        <select class="nido-mobile-select" onchange="window._nidoPosSelect(this.value)">
+          ${posOptions.map(p => `<option value="${p}" ${p === _nidoPos ? 'selected' : ''}>${p === 'todas' ? 'Posición: Todas' : 'Posición: ' + p}</option>`).join('')}
+        </select>
+        <div class="nido-mobile-filter-label">RANKING POR</div>
+        <div class="nido-mobile-filter-row">
+          ${rankBtns}
+          ${_nidoRank ? `<button onclick="window._nidoRankMode(null)" class="nido-mobile-rank-clear">✕ Quitar</button>` : ''}
         </div>
         ${_nidoRank === 'pj' ? `
         <div class="nido-pj-subsort">
@@ -15018,9 +14996,7 @@ async function loadLiveData() {
             }).join('')}
           </div>
         </div>` : ''}
-        <input id="nido-search-mobile" type="text" class="nido-mobile-search" placeholder="Buscar jugador…" value="${_nidoQuery}"
-          oninput="window._nidoSearch(this.value)" />
-        <div class="nido-mobile-summary">Ranking por ${(RANK_METRICS.find(m => m.key === (_nidoRank || _nidoSort.col)) || {}).label || 'Partidos Jugados'} · ${filteredData().length} jugadores</div>
+        <div class="nido-mobile-summary">Mostrando <strong>${filteredData().length}</strong> de <strong>${activeDataset().length}</strong> jugadores${_nidoRank ? ` · RANKING — ${(RANK_METRICS.find(m => m.key === _nidoRank) || {}).label || ''}` : ''}</div>
       </div>
 
       <div id="nido-table-container">${renderTable()}</div>
