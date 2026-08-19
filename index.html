@@ -694,26 +694,31 @@
       .nido-card-value-label { font-size: 0.62rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: .03em; margin-left: 2px; }
       .nido-card-badges { display: flex; gap: 6px; margin-top: 5px; flex-wrap: wrap; align-items: center; }
       .nido-card-pos { display: inline-block; font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 6px; border: 1px solid; letter-spacing: .03em; }
+      /* Chips individuales con fondo tenue del color propio de cada stat
+         (val grande arriba, label chico abajo) — reemplaza la fila de
+         texto plano gris que traía antes, misma idea que ya usan los
+         badges PG/PE/PP de abajo. Fondo/color vienen inline por stat (ver
+         NIDO_STAT_COLOR), la clase solo define la forma del chip. */
       .nido-card-stats {
-        display: flex; gap: 14px; margin-top: 9px; padding-top: 9px;
-        border-top: 1px solid rgba(255,255,255,0.08); flex-wrap: wrap;
+        display: flex; gap: 6px; margin-top: 9px; padding-top: 9px;
+        border-top: 1px solid rgba(255,255,255,0.08);
       }
-      .nido-card-stat { display: flex; flex-direction: column; }
-      .nido-card-stat-val { font-size: 0.82rem; font-weight: 700; color: #cbd5e1; }
-      .nido-card-stat-label { font-size: 0.62rem; color: #6b7280; text-transform: uppercase; letter-spacing: .04em; }
+      .nido-card-stat { flex: 1; min-width: 0; border-radius: 8px; padding: 6px 4px; text-align: center; }
+      .nido-card-stat-val { font-size: 0.9rem; font-weight: 800; line-height: 1; }
+      .nido-card-stat-label { font-size: 0.58rem; color: #94a3b8; text-transform: uppercase; letter-spacing: .04em; margin-top: 3px; display: block; }
 
       /* Card del filtro "Partidos Jugados" — PG/PE/PP siempre juntos (dan
          contexto completo del récord sin importar cuál esté resaltado
-         arriba) + G/A/G+A como línea de contexto chica debajo. */
+         arriba) + G/A/G+A como fila de chips chica debajo, mismo
+         tratamiento visual que .nido-card-stat de arriba. */
       .nido-pj-badges { display: flex; gap: 6px; margin-top: 9px; }
       .nido-pj-badge { flex: 1; padding: 5px 4px; border-radius: 8px; text-align: center; font-size: 0.72rem; font-weight: 700; }
       .nido-pj-badge-pg { background: rgba(151,196,89,0.12);  color: #97c459; }
       .nido-pj-badge-pe { background: rgba(250,199,117,0.12); color: #fac775; }
       .nido-pj-badge-pp { background: rgba(240,149,149,0.12); color: #f09595; }
       .nido-pj-extra {
-        display: flex; gap: 14px; margin-top: 9px; padding-top: 9px;
+        display: flex; gap: 6px; margin-top: 9px; padding-top: 9px;
         border-top: 1px solid rgba(255,255,255,0.08);
-        font-size: 0.78rem; color: #94a3b8;
       }
 
       .nido-load-more {
@@ -14415,19 +14420,59 @@ async function loadLiveData() {
     return desktopHtml + _renderNidoMobileCards(rows, activeColKey, promSwap, isPjRank);
   }
 
-  const NIDO_COL_LABELS = { pj:'PJ', goles:'Goles', asist:'Asist.', gmas:'G+A', titulos:'Títulos', vallas:'Vallas', pg:'PG', pe:'PE', pp:'PP' };
+  const NIDO_COL_LABELS = {
+    pj:'PJ', goles:'Goles', asist:'Asist.', gmas:'G+A', titulos:'Títulos', vallas:'Vallas',
+    pg:'PG', pe:'PE', pp:'PP', titular:'Titular', suplente:'Suplente',
+    promGol:'Prom. Gol', promAsist:'Prom. Asist.', promGmas:'Prom. G+A', vallasProm:'Prom. Vallas',
+  };
   // Sufijo corto para el número grande de cada card en mobile (.nido-card-value)
   // — sin esto el valor quedaba "desnudo" (un número solo, sin decir de qué
   // métrica se trata) cada vez que se rankeaba por algo que no fuera PG/PE/PP.
   const NIDO_VALUE_LABEL = { pj: 'PJ', goles: 'G', asist: 'A', gmas: 'G+A', titulos: 'Tít.', vallas: 'VI', pg: 'PG', pe: 'PE', pp: 'PP' };
+  // Color por stat para los chips secundarios de la card mobile — mismos
+  // tokens que ya usa el resto del sitio (PP_LOGRO_META/.nido-pj-badge-*),
+  // no colores nuevos inventados para esta card.
+  const NIDO_STAT_COLOR = {
+    pj: '#94a3b8', goles: '#ef9f27', asist: '#97c459', gmas: '#af9ec6', titulos: '#85b7eb',
+    vallas: '#60a5fa', vallasProm: '#60a5fa', titular: '#94a3b8', suplente: '#64748b',
+    promGol: '#ef9f27', promAsist: '#97c459', promGmas: '#af9ec6',
+  };
+  // Qué 4 stats acompañan a cada métrica cuando es la resaltada (highlight)
+  // de la card — antes era una lista fija (PJ/Goles/Asist/Títulos/Vallas)
+  // sin importar qué ranking estuviera activo, así que rankear por Vallas
+  // Invictas, por ejemplo, mostraba Goles/Asist igual que rankear por
+  // Goleadores. Cada entrada ya excluye su propia clave (no tiene sentido
+  // repetir el highlight como chip secundario).
+  const NIDO_SECONDARY_MAP = {
+    pj:         ['goles', 'asist', 'gmas', 'titulos'],
+    goles:      ['pj', 'asist', 'gmas', 'titulos'],
+    asist:      ['pj', 'goles', 'gmas', 'titulos'],
+    gmas:       ['pj', 'goles', 'asist', 'titulos'],
+    titulos:    ['pj', 'goles', 'asist', 'gmas'],
+    vallas:     ['pj', 'vallasProm', 'titular', 'suplente'],
+    vallasProm: ['pj', 'titular', 'suplente', 'titulos'],
+    promGol:    ['pj', 'promAsist', 'promGmas', 'titulos'],
+    promAsist:  ['pj', 'promGol', 'promGmas', 'titulos'],
+    promGmas:   ['pj', 'promGol', 'promAsist', 'titulos'],
+  };
+  const NIDO_SECONDARY_DEFAULT = ['goles', 'asist', 'gmas', 'titulos'];
   // Same per-column value (raw vs. promedio-swapped) the desktop table's
   // `td()`/`fmt()` helpers compute, reused here so mobile shows identical
   // numbers — just laid out as a card instead of a table row. pg/pe/pp no
   // viven en `p` — se resuelven vía _nidoGetVED (misma cache que el desktop).
+  const NIDO_PROM_KEYS = new Set(['promGol', 'promAsist', 'promGmas', 'vallasProm']);
   function _nidoStatValue(p, key, promSwap) {
     if (key === 'pg' || key === 'pe' || key === 'pp') {
       const ved = _nidoGetVED(p.nombre);
       return key === 'pg' ? ved.v : key === 'pe' ? ved.e : ved.d;
+    }
+    // Los chips secundarios pueden pedir un promedio directamente por su
+    // propio nombre de campo (ej. "promGol" como chip de contexto al lado
+    // del ranking por promAsist) — no solo vía promSwap, que solo cubre el
+    // caso de la columna resaltada de la tabla.
+    if (NIDO_PROM_KEYS.has(key)) {
+      const v = p[key] || 0;
+      return v > 0 ? v.toFixed(2) : '—';
     }
     const raw = key === 'titulos' ? (p.titulos || 0) : p[key];
     const promFieldByKey = { goles: 'promGol', asist: 'promAsist', gmas: 'promGmas', vallas: 'vallasProm' };
@@ -14481,9 +14526,11 @@ async function loadLiveData() {
             <div class="nido-pj-badge nido-pj-badge-pp">${ved ? ved.d : '…'} PP</div>
           </div>
           <div class="nido-pj-extra">
-            <span>${p.goles} G</span>
-            <span>${p.asist} A</span>
-            <span>${p.gmas} G+A</span>
+            ${['goles', 'asist', 'gmas'].map(k => `
+              <div class="nido-card-stat" style="background:${NIDO_STAT_COLOR[k]}1a">
+                <span class="nido-card-stat-val" style="color:${NIDO_STAT_COLOR[k]}">${p[k]}</span>
+                <span class="nido-card-stat-label">${NIDO_VALUE_LABEL[k]}</span>
+              </div>`).join('')}
           </div>
         </div>
       </div>`;
@@ -14499,10 +14546,18 @@ async function loadLiveData() {
       const rankColor = i === 0 ? '#eab308' : i === 1 ? '#cbd5e1' : i === 2 ? '#d6a87c' : '#6b7280';
       const pColor = posColor(p.pos);
       const teamBadges = p.teams.map(teamBadge).join('');
-      const secondaryKeys = ['pj', 'goles', 'asist', 'titulos', 'vallas'].filter(k => k !== activeColKey).slice(0, 4);
+      // Rankeando por un promedio (Prom. Goles/Asist/G+A/Vallas), activeColKey
+      // sigue siendo la columna base que reemplaza (ej. 'goles' para
+      // 'promGol' — así el valor grande se resuelve bien vía _nidoStatValue),
+      // así que el set de chips secundarios hay que resolverlo por
+      // promSwap.field, no por activeColKey, o nunca matchearía las entradas
+      // promGol/promAsist/promGmas/vallasProm de NIDO_SECONDARY_MAP.
+      const secondaryLookupKey = promSwap ? promSwap.field : activeColKey;
+      const secondaryKeys = (NIDO_SECONDARY_MAP[secondaryLookupKey] || NIDO_SECONDARY_DEFAULT)
+        .filter(k => k !== activeColKey && k !== secondaryLookupKey).slice(0, 4);
       const secondaryHtml = secondaryKeys.map(k => `
-        <div class="nido-card-stat">
-          <span class="nido-card-stat-val">${_nidoStatValue(p, k, promSwap)}</span>
+        <div class="nido-card-stat" style="background:${NIDO_STAT_COLOR[k] || '#94a3b8'}1a">
+          <span class="nido-card-stat-val" style="color:${NIDO_STAT_COLOR[k] || '#94a3b8'}">${_nidoStatValue(p, k, promSwap)}</span>
           <span class="nido-card-stat-label">${NIDO_COL_LABELS[k]}</span>
         </div>`).join('');
       return `
