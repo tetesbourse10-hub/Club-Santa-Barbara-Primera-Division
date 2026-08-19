@@ -2007,6 +2007,37 @@
       background:var(--azul-card); border:1px solid rgba(255,255,255,0.06);
       border-radius:14px; padding:16px 18px;
     }
+    /* ── Mobile: pestañas Titular/Suplentes/Cambios en vez del scroll con
+       las 3 listas siempre desplegadas (.ap-squad-panel de arriba). ── */
+    .ap-squad-tabs-m { display:none; }
+    @media (max-width:768px) {
+      .ap-squad-panel { display:none; }
+      .ap-squad-tabs-m {
+        display:block; background:var(--azul-card); border:1px solid rgba(255,255,255,0.06);
+        border-radius:14px; overflow:hidden;
+      }
+      .ap-squad-tabbar-m { display:flex; border-bottom:1px solid rgba(255,255,255,0.08); }
+      .ap-squad-tabbtn-m {
+        flex:1; background:none; border:none; color:var(--gris-texto); font-size:0.72rem; font-weight:700;
+        padding:11px 4px; cursor:pointer; border-bottom:2px solid transparent; font-family:inherit;
+      }
+      .ap-squad-tabbtn-m.active { color:var(--dorado); border-bottom-color:var(--dorado); }
+      .ap-squad-tabpanel-m { padding:6px 14px 10px; }
+      .ap-squad-item-m { display:flex; align-items:center; gap:8px; padding:7px 0; font-size:0.8rem; color:var(--texto); border-bottom:1px solid rgba(255,255,255,0.04); }
+      .ap-squad-item-m:last-child { border-bottom:none; }
+      .ap-squad-pos-m { font-size:0.62rem; font-weight:800; padding:2px 7px; border-radius:6px; border:1px solid; min-width:32px; text-align:center; flex-shrink:0; }
+      .ap-squad-name-m { flex:1; min-width:0; }
+      .ap-squad-stat-m { font-size:0.7rem; margin-left:auto; }
+      .ap-squad-stat-m.gol { color:var(--verde); }
+      .ap-squad-stat-m.ast { color:var(--azul-claro); }
+      .ap-squad-stat-m.roja { color:var(--rojo); }
+      .ap-squad-empty-m { color:rgba(255,255,255,0.3); font-size:0.8rem; text-align:center; padding:16px 0; }
+      .ap-change-m { display:flex; align-items:center; gap:6px; padding:8px 0; font-size:0.78rem; border-bottom:1px solid rgba(255,255,255,0.04); flex-wrap:wrap; }
+      .ap-change-m:last-child { border-bottom:none; }
+      .ap-change-m .cin-m { color:var(--verde); font-weight:700; }
+      .ap-change-m .cout-m { color:var(--rojo); opacity:0.9; }
+      .ap-change-m .cmet-m { font-size:0.65rem; color:var(--gris-texto); padding:0 2px; }
+    }
     .ap-squad-sec { font-size:0.62rem; text-transform:uppercase; letter-spacing:0.1em; color:var(--gris-texto); font-weight:700; margin:12px 0 6px; padding-bottom:5px; border-bottom:1px solid rgba(255,255,255,0.06); }
     .ap-squad-sec:first-child { margin-top:0; }
     .ap-squad-item { display:flex; align-items:center; gap:7px; padding:4px 0; font-size:0.78rem; color:var(--texto); border-bottom:1px solid rgba(255,255,255,0.03); }
@@ -2045,6 +2076,35 @@
     .ap-fd-form-chip { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.09); border-radius:8px; padding:6px 14px; font-size:0.8rem; font-weight:700; color:var(--blanco); display:flex; flex-direction:column; gap:2px; }
     .ap-fd-form-chip span { font-size:0.58rem; text-transform:uppercase; letter-spacing:0.08em; color:var(--gris-texto); font-weight:400; }
     .ap-fd-ph { color:rgba(255,255,255,0.2); font-style:italic; }
+
+    /* ── Marcador mobile estilo Sofascore/Promiedos: escudos+equipos en
+       horizontal con el resultado al medio, fecha/hora/lugar como barra
+       superior sutil. Oculto en desktop (queda el header clásico). ── */
+    .ap-fd-mobile { display:none; }
+    @media (max-width:768px) {
+      .ap-fd-mobile { display:block; background:var(--azul-card); border:1px solid rgba(255,255,255,0.06); border-radius:14px; padding:14px 16px; margin-bottom:16px; }
+      .ap-fd-mobile-topbar { display:flex; flex-wrap:wrap; gap:10px; font-size:0.68rem; color:var(--gris-texto); padding-bottom:10px; margin-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.07); }
+      .ap-fd-mobile-matchup { display:flex; align-items:center; justify-content:space-between; gap:6px; }
+      .ap-fd-mobile-team { flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center; min-width:0; }
+      .ap-fd-mobile-crest { width:36px; height:36px; object-fit:contain; flex-shrink:0; }
+      .ap-fd-mobile-crest-rival {
+        display:flex; align-items:center; justify-content:center; border-radius:50%;
+        background:rgba(255,255,255,0.08); color:var(--gris-texto); font-size:0.68rem; font-weight:800;
+      }
+      .ap-fd-mobile-team-name { font-size:0.72rem; font-weight:700; color:var(--blanco); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+      .ap-fd-mobile-score { font-size:1.7rem; font-weight:900; line-height:1; flex-shrink:0; padding:0 8px; color:var(--blanco); text-align:center; }
+      .ap-fd-mobile-score small { display:block; font-size:0.5rem; font-weight:600; opacity:.75; }
+      .ap-fd-mobile-pending { text-align:center; margin-top:10px; font-size:0.78rem; font-weight:700; color:var(--dorado); }
+
+      /* El header clásico (título+score grande+pills de fecha/hora/lugar) y
+         los chips de Formación CSB/Rival quedan redundantes con el marcador
+         de arriba — se ocultan, dejando en .ap-fd-card solo lo que el
+         marcador mobile no cubre (parciales/posición/categoría rival y la
+         crónica). */
+      .ap-fd-header { display:none; }
+      .ap-fd-pill-basic { display:none; }
+      .ap-fd-form-row { display:none; }
+    }
     .ap-squad-num { font-size:0.65rem; color:var(--gris-texto); min-width:20px; text-align:right; flex-shrink:0; }
     .ap-squad-empty { color:rgba(255,255,255,0.2); font-style:italic; }
     .ap-pdot.placeholder { background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.20); color:rgba(255,255,255,0.30); font-size:0.7rem; }
@@ -5668,10 +5728,14 @@ function buildPitch(titulares) {
         : (parts.length > 1 ? (parts[0][0] + parts[parts.length-1][0]).toUpperCase()
                              : parts[0].substring(0,2).toUpperCase());
       const displayName = isPlaceholder ? '···'
-        : (parts.length > 1 ? parts[0] + ' ' + parts[parts.length-1] : parts[0]);
+        : (parts.length > 1 ? parts[0][0] + '. ' + parts[parts.length-1] : parts[0]);
       const goles  = jug.goles  || 0;
       const asist  = jug.asist  || 0;
       const rojas  = jug.rojas  || 0;
+      // Nombre en amarillo si convirtió, en verde si asistió (gol prioriza si
+      // hizo ambas cosas) — mismo lenguaje de color que el resto del sitio
+      // usa para goles/asistencias.
+      const nameHl = goles > 0 ? ' style="color:#fbbf24"' : asist > 0 ? ' style="color:#4ade80"' : '';
       const isHat  = !isPlaceholder && goles >= 3;
       // Goal badge: 1-2 balls, hat-trick = golden ball
       let goalBadge = '';
@@ -5691,7 +5755,7 @@ function buildPitch(titulares) {
         <div class="ap-player-wrap">
           <div class="ap-pdot${isPlaceholder?' placeholder':isHat?' hat-trick':' csb'}">${initials}${topBadge}${rojaBadge}${subBadge}</div>
         </div>
-        <div class="ap-pname${isPlaceholder?' ph':''}">${displayName}</div>
+        <div class="ap-pname${isPlaceholder?' ph':''}"${nameHl}>${displayName}</div>
       </div>`;
     });
   }
@@ -5814,11 +5878,11 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
   const localIco  = isNeutral ? '🏟️' : isLocal ? '🏠' : '✈️';
 
   const pills = [
-    { ico: '📅', lbl: 'Fecha', val: fecha !== '—' ? `${fecha}` : null },
-    { ico: '📆', lbl: 'Día',   val: dia !== '—' ? dia : null },
-    { ico: '🕐', lbl: 'Hora',  val: horaVal !== '—' ? horaVal : null },
-    { ico: '📍', lbl: 'Lugar', val: lugarVal !== '—' ? lugarVal : null },
-    { ico: localIco, lbl: localVal, val: localVal, highlight: isLocal },
+    { ico: '📅', lbl: 'Fecha', val: fecha !== '—' ? `${fecha}` : null, basic: true },
+    { ico: '📆', lbl: 'Día',   val: dia !== '—' ? dia : null, basic: true },
+    { ico: '🕐', lbl: 'Hora',  val: horaVal !== '—' ? horaVal : null, basic: true },
+    { ico: '📍', lbl: 'Lugar', val: lugarVal !== '—' ? lugarVal : null, basic: true },
+    { ico: localIco, lbl: localVal, val: localVal, highlight: isLocal, basic: true },
   ].filter(p => p.val);
 
   const extraMeta = [
@@ -5834,7 +5898,38 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
       ${formRiv !== '—' ? `<div class="ap-fd-form-chip"><span>Formación Rival</span>${formRiv}</div>` : ''}
     </div>` : '';
 
-  const summary = `
+  // Marcador compacto mobile — escudos+nombres en horizontal con el
+  // resultado al medio, y Fecha/Hora/Lugar como barra superior sutil,
+  // estilo Sofascore/Promiedos. Reemplaza visualmente (vía CSS, ver
+  // .ap-fd-mobile / .ap-fd-header ≤768px) al título+pills de arriba, que
+  // queda solo para desktop.
+  const csbCrestHtml = `<img src="logo-csb.webp" alt="" class="ap-fd-mobile-crest">`;
+  const rivalCrestHtml = `<span class="ap-fd-mobile-crest ap-fd-mobile-crest-rival">${_rivalInitials(rival)}</span>`;
+  const csbIsLeft = !isLocal ? false : true; // visitante -> CSB a la derecha
+  const leftName  = csbIsLeft ? 'Santa Bárbara' : rivalDisplay;
+  const rightName = csbIsLeft ? rivalDisplay : 'Santa Bárbara';
+  const leftCrest  = csbIsLeft ? csbCrestHtml : rivalCrestHtml;
+  const rightCrest = csbIsLeft ? rivalCrestHtml : csbCrestHtml;
+  const topbarHtml = [
+    fecha !== '—' ? `<span>📅 Fecha ${fecha}</span>` : '',
+    dia !== '—' ? `<span>${dia}</span>` : '',
+    horaVal !== '—' ? `<span>🕐 ${horaVal}</span>` : '',
+    lugarVal !== '—' ? `<span>📍 ${lugarVal}</span>` : '',
+  ].filter(Boolean).join('');
+  const mobileMatchup = `
+    <div class="ap-fd-mobile">
+      ${topbarHtml ? `<div class="ap-fd-mobile-topbar">${topbarHtml}</div>` : ''}
+      <div class="ap-fd-mobile-matchup">
+        <div class="ap-fd-mobile-team">${leftCrest}<span class="ap-fd-mobile-team-name">${leftName}</span></div>
+        <div class="ap-fd-mobile-score" style="${played ? `color:${resColor}` : ''}">${played
+          ? `${resultado}${penales ? `<small>(pen. ${penales})</small>` : ''}`
+          : 'vs'}</div>
+        <div class="ap-fd-mobile-team">${rightCrest}<span class="ap-fd-mobile-team-name">${rightName}</span></div>
+      </div>
+      ${!played ? `<div class="ap-fd-mobile-pending">⏳ Pendiente</div>` : ''}
+    </div>`;
+
+  const summary = mobileMatchup + `
     <div class="ap-fd-card">
       <div class="ap-fd-header">
         <div class="ap-fd-title">Santa Bárbara vs ${rivalDisplay}</div>
@@ -5843,7 +5938,7 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
           : `<div class="ap-fd-pending">⏳ Pendiente</div>`}
       </div>
       <div class="ap-fd-meta-pills">
-        ${pills.map(p => `<span class="ap-fd-pill${p.highlight?' highlight':''}">
+        ${pills.map(p => `<span class="ap-fd-pill${p.highlight?' highlight':''}${p.basic?' ap-fd-pill-basic':''}">
           <span class="ap-fd-pill-ico">${p.ico}</span>
           ${p.lbl && p.lbl !== p.val ? `<span class="ap-fd-pill-lbl">${p.lbl}</span>` : ''}
           <span class="ap-fd-pill-val">${p.val}</span>
@@ -5909,6 +6004,51 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
       ${redCards.length ? `<div class="ap-inc-group"><span class="ap-inc-label">🟥 Tarjetas rojas</span>${redCards.map(j=>`<span class="ap-inc-item">${pl(j.nombre)}</span>`).join('')}</div>` : ''}
     </div>` : '';
 
+  // Mobile: 3 pestañas (Titular/Suplentes/Cambios) en vez del scroll con las
+  // 3 listas siempre desplegadas — badge de posición coloreado por línea
+  // (ARQ dorado, DEF azul, MC/DEL verde) e indicación de salió/entró.
+  const squadPosColor = pos => {
+    const p = (pos || '').toUpperCase();
+    if (p === 'ARQ') return '#f59e0b';
+    if (/^(DEF|DFI|DFD|DFC|LI|LD)$/.test(p)) return '#3b82f6';
+    return '#22c55e';
+  };
+  const squadRowMobile = (j, state) => {
+    const pc = squadPosColor(j.pos);
+    const stateIco = state === 'salio' ? (j.salio ? ' 🔴' : '') : state === 'entro' ? (j.entro ? ' 🟢' : '') : '';
+    return `<div class="ap-squad-item-m">
+      <span class="ap-squad-pos-m" style="color:${pc};background:${pc}1a;border-color:${pc}44">${j.pos || '–'}</span>
+      <span class="ap-squad-name-m">${pl(j.nombre)}${stateIco}</span>
+      ${j.goles > 0 ? `<span class="ap-squad-stat-m gol">⚽${j.goles > 1 ? j.goles : ''}</span>` : ''}
+      ${j.asist > 0 ? `<span class="ap-squad-stat-m ast">🎯${j.asist > 1 ? j.asist : ''}</span>` : ''}
+      ${j.rojas > 0 ? `<span class="ap-squad-stat-m roja">🟥</span>` : ''}
+    </div>`;
+  };
+  const titRowsMobile = titulares.length
+    ? titulares.map(j => squadRowMobile(j, 'salio')).join('')
+    : `<div class="ap-squad-empty-m">Sin alineación cargada.</div>`;
+  const suplRowsMobile = banco.length
+    ? banco.map(j => squadRowMobile(j, 'entro')).join('')
+    : `<div class="ap-squad-empty-m">Sin suplentes cargados.</div>`;
+  const cambiosRowsMobile = cambios.length
+    ? cambios.map(c => `<div class="ap-change-m">
+        <span class="cin-m">🟢 ${pl(c.inp.nombre)}</span>
+        <span class="cmet-m">por</span>
+        <span class="cout-m">${c.out ? pl(c.out.nombre) : '?'} 🔴</span>
+      </div>`).join('')
+    : `<div class="ap-squad-empty-m">Sin cambios en este partido.</div>`;
+  const squadTabsMobile = `
+    <div class="ap-squad-tabs-m">
+      <div class="ap-squad-tabbar-m">
+        <button class="ap-squad-tabbtn-m active" onclick="_apSquadTabM(this,0)">11 Titular</button>
+        <button class="ap-squad-tabbtn-m" onclick="_apSquadTabM(this,1)">Suplentes</button>
+        <button class="ap-squad-tabbtn-m" onclick="_apSquadTabM(this,2)">Cambios</button>
+      </div>
+      <div class="ap-squad-tabpanel-m">${titRowsMobile}</div>
+      <div class="ap-squad-tabpanel-m" style="display:none">${suplRowsMobile}</div>
+      <div class="ap-squad-tabpanel-m" style="display:none">${cambiosRowsMobile}</div>
+    </div>`;
+
   const pitchSection = `
     <div class="ap-detail-grid">
       <div class="ap-pitch-outer">
@@ -5931,11 +6071,18 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
             <span class="cout">${c.out ? pl(c.out.nombre) : '?'}</span>
           </div>`).join('')}` : ''}
         </div>
+        ${squadTabsMobile}
       </div>
     </div>`;
 
   return summary + pitchSection;
 }
+window._apSquadTabM = function(btn, idx) {
+  const wrap = btn.closest('.ap-squad-tabs-m');
+  if (!wrap) return;
+  wrap.querySelectorAll('.ap-squad-tabbtn-m').forEach(b => b.classList.toggle('active', b === btn));
+  wrap.querySelectorAll('.ap-squad-tabpanel-m').forEach((p, i) => { p.style.display = i === idx ? 'block' : 'none'; });
+};
 
 function renderFechaDetail(basic, detail, targetId = 'ap-fecha-detail', fechaLabelOverride) {
   const el = document.getElementById(targetId);
