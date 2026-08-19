@@ -1717,7 +1717,7 @@
          funcionando igual, es un sticky en el eje horizontal, independiente
          de este que es en el eje vertical de la página). */
       .ap-tab-nav {
-        overflow-x:auto; flex-wrap:nowrap; position:sticky; top:60px; z-index:15;
+        overflow-x:auto; overflow-y:hidden; flex-wrap:nowrap; white-space:nowrap; position:sticky; top:60px; z-index:15;
         background:var(--azul);
         scrollbar-width:none; -ms-overflow-style:none;
       }
@@ -1771,6 +1771,19 @@
     .mrow-expand-content { margin-top:8px; font-size:0.78rem; color:#94a3b8; line-height:1.4; display:none; white-space:pre-wrap; }
     .mrow-expand-content.open { display:block; }
     .mrow-empty { color:#475569; padding:32px 16px; text-align:center; font-size:0.85rem; }
+
+    /* ── Centro de Datos mobile: header fecha+condición, resaltado de
+       Próximo Partido, y footer de crónica en vez de botón de expandir ── */
+    .cd-mcard-headrow { display:flex; align-items:center; gap:6px; margin-bottom:8px; font-size:0.68rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:#64748b; }
+    .cd-mcard-cond { color:#94a3b8; }
+    .cd-mcard-schedule { margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.06); font-size:0.78rem; color:#94a3b8; }
+    .cd-mcard-footer {
+      margin-top:10px; padding-top:9px; border-top:1px solid rgba(255,255,255,0.06);
+      font-size:0.76rem; font-weight:700; color:var(--dorado); text-align:right;
+    }
+    .cd-mcard-next { border-color:rgba(245,158,11,0.4); background:linear-gradient(135deg, rgba(245,158,11,0.08), #141d2e 60%); }
+    .cd-next-flag { font-size:0.66rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--dorado); margin-bottom:8px; }
+    .mrow-card .cd-badge-draw { background:rgba(148,163,184,0.12); color:#cbd5e1; border-color:rgba(148,163,184,0.3); }
 
     /* ── Plantel mobile: filtro Pos + Orden + buscador (ver _plantelMobileCardsHtml) ── */
     .pmf-bar { display:none; }
@@ -5636,7 +5649,7 @@ function _edMobileCard(p, i, key, unitLabel, favLabel) {
           <div class="mrow-highlight-label">${unitLabel}</div>
         </div>
       </div>
-      ${top ? `<div class="mrow-secondary">
+      ${top && key !== 'pj' ? `<div class="mrow-secondary">
         <div class="mrow-sec-item" style="flex:1 1 100%">
           <span class="mrow-sec-label">${favLabel}</span>
           <span class="mrow-sec-val">${top[0]} · ${top[1][key]} ${unitLabel}</span>
@@ -6775,36 +6788,49 @@ function _tablaMobileCardsHtml(tabla, legendItems) {
 function _cdMobileCardsHtml(rows, opts) {
   const tabFn = opts.tabFn || 'apSwitchTab';
   const fechaFn = opts.fechaFn || 'selectFecha';
+  // Próximo partido a jugar: el pendiente con la fecha numérica más baja
+  // (el primero en orden cronológico real, no en el orden reciente-primero
+  // en el que ya viene `rows`) — se resalta con borde dorado en vez de
+  // mostrar todos los pendientes igual.
+  const pendingAsc = rows
+    .filter(m => (m.gf == null || m.gc == null) && /^\d+$/.test(String(m.fecha ?? '').trim()))
+    .sort((a, b) => parseInt(a.fecha) - parseInt(b.fecha));
+  const nextMatchKey = pendingAsc[0] ? `${pendingAsc[0].rival}|${pendingAsc[0].fecha}` : null;
+
   const cardsHtml = rows.map(m => {
     const isCopaRow = opts.isCopa || !/^\d+$/.test(String(m.fecha ?? '').trim());
     const clickable = opts.clickable !== false && !isCopaRow;
-    const L = String(m.local || '').toUpperCase();
-    const condColor = L.includes('LOCAL') ? '#22c55e' : L.includes('VISIT') ? '#22d3ee' : '#64748b';
+    const played = m.gf != null && m.gc != null;
+    const isNext = !played && nextMatchKey === `${m.rival}|${m.fecha}`;
     const condLabel = _cdCondicion(m.local);
     const rachaChip = m._racha ? `<span class="cd-racha-chip">${m._racha}</span>` : '';
     const obsText = m.obs ? String(m.obs) : '';
-    const longObs = obsText.length > 90;
     const clickAttr = clickable ? ` onclick="_cdGoToFecha('${tabFn}','${fechaFn}',${parseInt(m.fecha)})"` : '';
+    // "básico" trae estadio/horario en algunas temporadas (parseMatches) —
+    // se muestran cuando existen en vez de dejar el partido pendiente sin
+    // ningún dato programado.
+    const scheduleBits = [
+      m.horario ? `🕐 ${m.horario}` : '',
+      m.estadio ? `📍 ${m.estadio}` : '',
+    ].filter(Boolean).join(' &bull; ');
     return `
-      <div class="mrow-card${clickable ? ' clickable' : ''}"${clickAttr}>
+      <div class="mrow-card${clickable ? ' clickable' : ''}${isNext ? ' cd-mcard-next' : ''}"${clickAttr}>
+        ${isNext ? `<div class="cd-next-flag">⭐ Próximo Partido</div>` : ''}
+        <div class="cd-mcard-headrow"><span>${_cdFechaLabel(m.fecha, isCopaRow)}</span><span class="cd-mcard-cond">${condLabel}</span></div>
         <div class="mrow-top">
           <div class="mrow-top-main">
-            <div class="mrow-eyebrow">${_cdFechaLabel(m.fecha, isCopaRow)}</div>
             <div class="mrow-title-row">${_rivalAvatarHtml(m.rival)}<div class="mrow-title">${m.rival}</div></div>
-            <div class="mrow-meta" style="color:${condColor}">${condLabel}</div>
           </div>
           <div class="mrow-highlight">${_cdResultadoBadge(m)}</div>
         </div>
-        <div class="mrow-secondary">
-          <div class="mrow-sec-item"><span class="mrow-sec-val">${_cdParciales(m.parciales)}</span><span class="mrow-sec-label">Parciales</span></div>
-          <div class="mrow-sec-item"><span class="mrow-sec-val">${_cdPosicion(m, isCopaRow)}</span><span class="mrow-sec-label">Posición / Instancia</span></div>
-        </div>
+        ${played
+          ? `<div class="mrow-secondary">
+              <div class="mrow-sec-item"><span class="mrow-sec-val">${_cdParciales(m.parciales)}</span><span class="mrow-sec-label">Parciales</span></div>
+              <div class="mrow-sec-item"><span class="mrow-sec-val">${_cdPosicion(m, isCopaRow)}</span><span class="mrow-sec-label">Posición / Instancia</span></div>
+            </div>`
+          : (scheduleBits ? `<div class="cd-mcard-schedule">${scheduleBits}</div>` : '')}
         ${rachaChip ? `<div style="margin-top:8px">${rachaChip}</div>` : ''}
-        ${obsText ? (longObs
-          ? `<button class="mrow-expand-btn" onclick="event.stopPropagation();this.nextElementSibling.classList.toggle('open');this.textContent=this.nextElementSibling.classList.contains('open')?'Ocultar crónica ▲':'Ver crónica completa ▼'">Ver crónica completa ▼</button>
-             <div class="mrow-expand-content">${obsText}</div>`
-          : `<div class="mrow-expand-content open" style="margin-top:8px">${obsText}</div>`)
-          : ''}
+        ${played && clickable ? `<div class="cd-mcard-footer">Ver Crónica y Ficha →</div>` : ''}
       </div>`;
   }).join('');
   return `<div class="mrow-cards">${cardsHtml || '<div class="mrow-empty">📭 Sin datos cargados para este torneo todavía.</div>'}</div>`;
