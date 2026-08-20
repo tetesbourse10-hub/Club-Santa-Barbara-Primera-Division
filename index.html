@@ -2194,6 +2194,20 @@
       margin:0 auto;
       overflow:hidden;
     }
+    /* En desktop probamos la cancha a lo ancho (horizontal, 105×68m) en vez
+       de a lo largo — se ve mejor con el espacio disponible del sidebar.
+       Mobile conserva la orientación vertical original. */
+    .ap-pitch-landscape { display:none; }
+    @media (min-width:769px) {
+      .ap-pitch-portrait { display:none; }
+      .ap-pitch-landscape {
+        display:block; position:relative;
+        background:linear-gradient(90deg,#166534 0%,#15803d 45%,#166534 100%);
+        border-radius:6px; width:100%; max-width:900px; aspect-ratio:105/68;
+        margin:0 auto;
+        overflow:hidden;
+      }
+    }
     .ap-pitch-line { position:absolute; background:rgba(255,255,255,0.30); }
     .ap-pitch-circle { position:absolute; border:2px solid rgba(255,255,255,0.30); border-radius:50%; transform:translate(-50%,-50%); }
     .ap-pitch-arc { position:absolute; border:2px solid rgba(255,255,255,0.30); border-radius:50%; }
@@ -2427,14 +2441,6 @@
     .ap-copa-legend { display:flex; flex-wrap:wrap; gap:10px 18px; margin-top:10px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.06); }
     .ap-legend-item { display:flex; align-items:center; gap:5px; font-size:0.68rem; color:var(--gris-texto); }
     .ap-legend-dot  { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
-    /* Posición en la tabla de ambos equipos — franja debajo de la cancha,
-       reemplaza tanto las pills que vivían junto al marcador como el
-       widget "Impacto en la Tabla" del sidebar (mismo dato, un solo
-       lugar). */
-    .ap-fd-postabla { display:flex; justify-content:center; gap:28px; margin-top:14px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.07); }
-    .ap-fd-postabla-item { display:flex; flex-direction:column; align-items:center; gap:3px; }
-    .ap-fd-postabla-team { font-size:0.72rem; font-weight:600; color:var(--gris-texto); }
-    .ap-fd-postabla-val { font-size:1rem; font-weight:800; color:#a5b4fc; background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.3); border-radius:999px; padding:2px 14px; }
     /* Alineación/Banco/Cambios como 3 pestañas en vez de 3 listas siempre
        desplegadas una debajo de la otra (hacían que el bloque derecho
        fuera más alto que la cancha) — max-height + scroll interno en el
@@ -6360,11 +6366,17 @@ function buildPitch(titulares) {
   }
   bands.forEach(b => b.sort((a, z) => a._horder - z._horder));
   let markers = '';
+  // Landscape (desktop) marcadores: misma agrupación por banda, pero rotada
+  // 90° — la banda pasa a determinar la posición horizontal (ARQ cerca del
+  // borde izquierdo, delanteros cerca del derecho) y el spread dentro de la
+  // banda pasa a ser vertical en vez de horizontal.
+  let markersLandscape = '';
   for (let bi = 0; bi < 5; bi++) {
     const group = bands[bi];
     const n = group.length;
     if (!n) continue;
     const y = AP_BAND_Y[bi];
+    const xLandscape = 100 - y;
     group.forEach((jug, i) => {
       const x = n === 1 ? 50 : (100 * (2*i + 1)) / (2*n);
       const isPlaceholder = !!jug._ph;
@@ -6403,16 +6415,16 @@ function buildPitch(titulares) {
       // Posición táctica debajo del nombre (ej. "DC", "MCO") — antes solo se
       // veía el nombre corto, sin indicar en qué posición jugó ese partido.
       const posLabel = (!isPlaceholder && jug.pos) ? `<div class="ap-ppos">${jug.pos}</div>` : '';
-      markers += `<div class="ap-player" style="left:${x.toFixed(1)}%;top:${y}%">
-        <div class="ap-player-wrap">
+      const playerInner = `<div class="ap-player-wrap">
           <div class="ap-pdot${isPlaceholder?' placeholder':isHat?' hat-trick':' csb'}">${initials}${topBadge}${rojaBadge}${subBadge}${capBadge}</div>
         </div>
         <div class="ap-pname${isPlaceholder?' ph':''}"${nameHl}>${displayName}</div>
-        ${posLabel}
-      </div>`;
+        ${posLabel}`;
+      markers += `<div class="ap-player" style="left:${x.toFixed(1)}%;top:${y}%">${playerInner}</div>`;
+      markersLandscape += `<div class="ap-player" style="left:${xLandscape}%;top:${x.toFixed(1)}%">${playerInner}</div>`;
     });
   }
-  // Realistic pitch markings (vertical orientation, attacking upward)
+  // Realistic pitch markings (vertical orientation, attacking upward) — mobile/portrait
   const markings = `
     <!-- Halfway line -->
     <div class="ap-pitch-line" style="left:0;right:0;top:50%;height:2px"></div>
@@ -6444,7 +6456,40 @@ function buildPitch(titulares) {
     <div class="ap-pitch-arc" style="left:0;bottom:0;width:5%;padding-top:3.5%;border-radius:0 100% 0 0;border-bottom:none;border-left:none"></div>
     <div class="ap-pitch-arc" style="right:0;bottom:0;width:5%;padding-top:3.5%;border-radius:100% 0 0 0;border-bottom:none;border-right:none"></div>
   `;
-  return `<div class="ap-pitch">${markings}${markers}</div>`;
+  // Landscape markings (desktop, se ataca de izquierda a derecha) — cada
+  // marca rotada 90° respecto de la versión portrait de arriba.
+  const markingsLandscape = `
+    <!-- Halfway line -->
+    <div class="ap-pitch-line" style="top:0;bottom:0;left:50%;width:2px"></div>
+    <!-- Center circle -->
+    <div class="ap-pitch-circle" style="left:50%;top:50%;height:20%;aspect-ratio:1;"></div>
+    <!-- Center spot -->
+    <div class="ap-pitch-line" style="left:50%;top:50%;width:5px;height:5px;border-radius:50%;transform:translate(-50%,-50%);background:rgba(255,255,255,0.5)"></div>
+    <!-- RIGHT penalty area -->
+    <div class="ap-pitch-line" style="top:22%;bottom:22%;right:0;width:12%;pointer-events:none;background:none;border:2px solid rgba(255,255,255,0.30);border-right:none"></div>
+    <!-- RIGHT goal area -->
+    <div class="ap-pitch-line" style="top:37%;bottom:37%;right:0;width:4%;pointer-events:none;background:none;border:2px solid rgba(255,255,255,0.30);border-right:none"></div>
+    <!-- RIGHT penalty spot -->
+    <div class="ap-pitch-line" style="left:91%;top:50%;width:5px;height:5px;border-radius:50%;transform:translate(-50%,-50%);background:rgba(255,255,255,0.5)"></div>
+    <!-- RIGHT penalty arc -->
+    <div class="ap-pitch-arc" style="left:88%;top:50%;height:20%;aspect-ratio:1;transform:translate(-50%,-50%);clip-path:ellipse(50% 50% at 100% 50%);border-right:none;border-color:rgba(255,255,255,0.28)"></div>
+    <!-- LEFT penalty area -->
+    <div class="ap-pitch-line" style="top:22%;bottom:22%;left:0;width:12%;pointer-events:none;background:none;border:2px solid rgba(255,255,255,0.30);border-left:none"></div>
+    <!-- LEFT goal area -->
+    <div class="ap-pitch-line" style="top:37%;bottom:37%;left:0;width:4%;pointer-events:none;background:none;border:2px solid rgba(255,255,255,0.30);border-left:none"></div>
+    <!-- LEFT penalty spot -->
+    <div class="ap-pitch-line" style="left:9%;top:50%;width:5px;height:5px;border-radius:50%;transform:translate(-50%,-50%);background:rgba(255,255,255,0.5)"></div>
+    <!-- RIGHT goal (net) -->
+    <div class="ap-pitch-line" style="top:42%;bottom:42%;right:0;width:2%;background:rgba(255,255,255,0.45)"></div>
+    <!-- LEFT goal (net) -->
+    <div class="ap-pitch-line" style="top:42%;bottom:42%;left:0;width:2%;background:rgba(255,255,255,0.45)"></div>
+    <!-- Corner arcs (invariantes ante la rotación de 90°) -->
+    <div class="ap-pitch-arc" style="left:0;top:0;width:5%;padding-top:3.5%;border-radius:0 0 100% 0;border-top:none;border-left:none"></div>
+    <div class="ap-pitch-arc" style="right:0;top:0;width:5%;padding-top:3.5%;border-radius:0 0 0 100%;border-top:none;border-right:none"></div>
+    <div class="ap-pitch-arc" style="left:0;bottom:0;width:5%;padding-top:3.5%;border-radius:0 100% 0 0;border-bottom:none;border-left:none"></div>
+    <div class="ap-pitch-arc" style="right:0;bottom:0;width:5%;padding-top:3.5%;border-radius:100% 0 0 0;border-bottom:none;border-right:none"></div>
+  `;
+  return `<div class="ap-pitch ap-pitch-portrait">${markings}${markers}</div><div class="ap-pitch ap-pitch-landscape">${markingsLandscape}${markersLandscape}</div>`;
 }
 
 function formatISODia(raw) {
@@ -6615,17 +6660,11 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
   // datos, otra plantilla de presentación (no se duplica ningún cálculo).
   const leftForm  = csbIsLeft ? formCSB : formRiv;
   const rightForm = csbIsLeft ? formRiv : formCSB;
-  // Posición en la tabla de ambos equipos — se muestra debajo de la fila de
-  // escudos/formaciones, dentro de esta misma casilla del marcador (antes
-  // vivía como pills sueltas en la barra de contexto de arriba, y después
-  // como franja aparte debajo de la cancha; ahora todo el resumen del
-  // partido — resultado, formación y posición — queda junto en un solo
-  // lugar).
-  const posTablaHtml = (posCSBClean !== '—' || posRivalClean !== '—') ? `
-    <div class="ap-fd-postabla">
-      ${posCSBClean !== '—' ? `<span class="ap-fd-postabla-item"><span class="ap-fd-postabla-team">Santa Bárbara</span><span class="ap-fd-postabla-val">${posCSBClean}º</span></span>` : ''}
-      ${posRivalClean !== '—' ? `<span class="ap-fd-postabla-item"><span class="ap-fd-postabla-team">${rivalDisplay}</span><span class="ap-fd-postabla-val">${posRivalClean}º</span></span>` : ''}
-    </div>` : '';
+  // Posición en la tabla de cada equipo — badge propio debajo de SU
+  // formación, dentro de la misma columna (antes era una franja aparte con
+  // los dos equipos juntos, separada del resto de la info del marcador).
+  const leftPosVal  = csbIsLeft ? posCSBClean : posRivalClean;
+  const rightPosVal = csbIsLeft ? posRivalClean : posCSBClean;
   const heroCtxPills = [
     fecha !== '—' ? `<span class="ap-fd-hero-d-ctxpill">📅 Fecha ${fecha}</span>` : '',
     dia !== '—' ? `<span class="ap-fd-hero-d-ctxpill">🗓️ ${dia}</span>` : '',
@@ -6641,6 +6680,7 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
           ${leftCrest}
           <div class="ap-fd-hero-d-name">${leftName}</div>
           ${leftForm !== '—' ? `<div class="ap-fd-hero-d-form">${leftForm}</div>` : ''}
+          ${leftPosVal !== '—' ? `<div class="ap-fd-mobile-pos">POS: ${leftPosVal}°</div>` : ''}
         </div>
         <div class="ap-fd-hero-d-center">
           <div class="ap-fd-hero-d-score" style="${played ? `color:${resColor}` : ''}">${played
@@ -6652,9 +6692,9 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
           ${rightCrest}
           <div class="ap-fd-hero-d-name">${rightName}</div>
           ${rightForm !== '—' ? `<div class="ap-fd-hero-d-form">${rightForm}</div>` : ''}
+          ${rightPosVal !== '—' ? `<div class="ap-fd-mobile-pos">POS: ${rightPosVal}°</div>` : ''}
         </div>
       </div>
-      ${posTablaHtml}
     </div>`;
 
   const summary = mobileMatchup + heroDesktop + `
