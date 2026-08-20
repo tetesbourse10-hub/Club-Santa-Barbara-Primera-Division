@@ -659,12 +659,11 @@
       }
       .nido-mobile-summary { font-size: 12px; color: #6b7280; margin-top: 12px; }
 
-      /* PLANTEL / RANKING POR — mismas pills que desktop (teamBtns/rankBtns
-         se generan una sola vez y se reusan acá), pero en una fila que
-         scrollea horizontalmente en vez de wrappear a varias líneas: en
-         mobile cada fila ya tiene su propio label arriba, así que dejar
-         que las pills bajen de línea solo hacía la sección más alta sin
-         ninguna ventaja. */
+      /* PLANTEL — mismas pills que desktop (teamBtns se genera una sola vez
+         y se reusa acá), en una fila que scrollea horizontalmente en vez de
+         wrappear a varias líneas: en mobile cada fila ya tiene su propio
+         label arriba, así que dejar que las pills bajen de línea solo hacía
+         la sección más alta sin ninguna ventaja. */
       .nido-mobile-filter-label {
         font-size: 0.65rem; color: #6b7280; font-weight: 700; text-transform: uppercase;
         letter-spacing: .05em; margin: 10px 0 6px;
@@ -675,9 +674,18 @@
       }
       .nido-mobile-filter-row::-webkit-scrollbar { display: none; }
       .nido-mobile-filter-row button { flex-shrink: 0; }
-      .nido-mobile-rank-clear {
-        padding: 6px 10px; border-radius: 20px; background: rgba(239,68,68,0.1); color: #f87171;
-        border: 1px solid rgba(239,68,68,0.25); font-size: 11px; cursor: pointer; flex-shrink: 0;
+
+      /* POSICIÓN / RANKING POR — mismo <select> nativo lado a lado (2
+         columnas), en vez de la fila de pills que tenía "Ranking por" antes:
+         un dropdown ya reserva más espacio vertical por sí solo (10
+         métricas) que una fila con scroll horizontal, así que aquí sí gana
+         el select nativo. RANKING POR queda con acento índigo para
+         distinguirse de POSICIÓN a simple vista. */
+      .nido-mobile-select-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 4px; }
+      .nido-mobile-select-grid .nido-mobile-select { margin-bottom: 0; }
+      .nido-mobile-select-rank {
+        border-color: rgba(99,102,241,0.4) !important; color: #a5b4fc !important;
+        background: rgba(99,102,241,0.2) !important;
       }
 
       /* Sub-selector propio del filtro "Partidos Jugados" — solo se muestra
@@ -737,15 +745,23 @@
       .nido-mtable tbody tr:nth-child(even) .nido-mtable-td:not(.nido-mtable-active) { background: rgba(255,255,255,0.02); }
       .nido-mtable-rank-name { display: flex; align-items: baseline; gap: 5px; }
       .nido-mtable-rank { font-size: 0.8rem; font-weight: 900; flex-shrink: 0; }
+      /* Nombre con más peso visual (font-black) que las badges de abajo —
+         el foco tiene que ir al nombre, no a la posición/plantel. */
       .nido-mtable-name {
-        font-size: 0.8rem; font-weight: 700; color: #f1f5f9; white-space: nowrap;
+        font-size: 0.8rem; font-weight: 900; color: #ffffff; white-space: nowrap;
         overflow: hidden; text-overflow: ellipsis;
       }
       .nido-mtable-badges { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; align-items: center; }
-      .nido-mtable-pos {
-        display: inline-block; font-size: 0.62rem; font-weight: 700; padding: 1px 6px;
-        border-radius: 5px; border: 1px solid; letter-spacing: .03em;
+      /* Ambas badges (posición y plantel) achicadas y en gris neutro —
+         antes tenían el color propio de la posición/plantel (ver posColor()/
+         teamBadge()), que competía visualmente con el nombre; acá se pisa
+         ese color inline con !important a propósito, solo en esta celda. */
+      .nido-mtable-badges span {
+        font-size: 8px !important; font-weight: 700 !important; padding: 1px 5px !important;
+        border-radius: 4px !important; background: #1e293b !important; color: #64748b !important;
+        border: 1px solid rgba(51,65,85,0.5) !important; letter-spacing: .02em;
       }
+      .nido-mtable-pos { display: inline-block; }
       .nido-mtable-empty { text-align: center; padding: 30px; color: #6b7280; font-size: 0.85rem; }
 
       .nido-load-more {
@@ -14995,6 +15011,16 @@ async function loadLiveData() {
       { key: 'vallas',  label: promSwap?.replaces === 'vallas' ? promSwap.header : 'VALLAS' },
     ];
 
+    // Con un ranking activo (dropdown "RANKING POR"), la columna por la que
+    // se está ordenando pasa a ser la primera después de la columna fija de
+    // Jugador — así queda pegada sin tener que scrollear horizontal para
+    // verla. Sin ranking activo (orden por defecto/columna del desktop),
+    // se deja el orden fijo de siempre.
+    if (_nidoRank) {
+      const activeIdx = cols.findIndex(c => c.key === activeColKey);
+      if (activeIdx > 0) cols.unshift(cols.splice(activeIdx, 1)[0]);
+    }
+
     const theadCells = cols.map(c =>
       `<th class="nido-mtable-th${activeColKey === c.key ? ' nido-mtable-th-active' : ''}">${c.label}</th>`
     ).join('');
@@ -15112,14 +15138,20 @@ async function loadLiveData() {
           oninput="window._nidoSearch(this.value)" />
         <div class="nido-mobile-filter-label">PLANTEL</div>
         <div class="nido-mobile-filter-row">${teamBtns}</div>
-        <div class="nido-mobile-filter-label">POSICIÓN</div>
-        <select class="nido-mobile-select" onchange="window._nidoPosSelect(this.value)">
-          ${posOptions.map(p => `<option value="${p}" ${p === _nidoPos ? 'selected' : ''}>${p === 'todas' ? 'Posición: Todas' : 'Posición: ' + p}</option>`).join('')}
-        </select>
-        <div class="nido-mobile-filter-label">RANKING POR</div>
-        <div class="nido-mobile-filter-row">
-          ${rankBtns}
-          ${_nidoRank ? `<button onclick="window._nidoRankMode(null)" class="nido-mobile-rank-clear">✕ Quitar</button>` : ''}
+        <div class="nido-mobile-select-grid">
+          <div>
+            <div class="nido-mobile-filter-label">POSICIÓN</div>
+            <select class="nido-mobile-select" onchange="window._nidoPosSelect(this.value)">
+              ${posOptions.map(p => `<option value="${p}" ${p === _nidoPos ? 'selected' : ''}>${p === 'todas' ? 'Todas' : p}</option>`).join('')}
+            </select>
+          </div>
+          <div>
+            <div class="nido-mobile-filter-label">RANKING POR</div>
+            <select class="nido-mobile-select nido-mobile-select-rank" onchange="window._nidoRankMode(this.value)">
+              <option value="" ${!_nidoRank ? 'selected' : ''}>Sin ranking</option>
+              ${RANK_METRICS.map(m => `<option value="${m.key}" ${_nidoRank === m.key ? 'selected' : ''}>${m.label}</option>`).join('')}
+            </select>
+          </div>
         </div>
         ${_nidoRank === 'pj' ? `
         <div class="nido-pj-subsort">
