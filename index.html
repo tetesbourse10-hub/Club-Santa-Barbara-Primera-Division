@@ -6165,37 +6165,41 @@ function _aggregatePlayerRivalStats(matches) {
   return Object.values(map);
 }
 
-// Compact mobile card por jugador: ranking + valor grande + "víctima/asistencia
-// favorita" (el rival top del desglose ya calculado por _aggregatePlayerRivalStats),
-// en vez de la fila expandible con el desglose completo que usa el desktop.
-function _edMobileCard(p, i, key, unitLabel, favLabel) {
+// Compact mobile card por jugador: ranking + valor grande, sin el bloque de
+// "víctima/asistencia favorita" (removido a pedido — quedaba redundante con
+// el desglose completo, que ahora vuelve a estar disponible tocando la
+// tarjeta, igual que la fila expandible que ya usa desktop). id único por
+// tarjeta (`ed-m-...`, distinto del `ed-...` de desktop) para que
+// window.edToggle pueda abrir/cerrar cada una sin colisionar ids en el DOM.
+function _edMobileCard(p, i, key, unitLabel, rid) {
   const PODIO = ['🥇', '🥈', '🥉'];
   const rankDisplay = i < 3 ? PODIO[i] : (i + 1);
   const topClass = i < 3 ? ` ed-top${i + 1}` : '';
-  const top = Object.entries(p.porRival)
+  const rivales = Object.entries(p.porRival)
     .filter(([, v]) => v[key] > 0)
-    .sort((a, b) => b[1][key] - a[1][key])[0];
+    .sort((a, b) => b[1][key] - a[1][key])
+    .map(([riv, v]) => `<div class="ed-drill-row"><span>${riv}</span><span>${v[key]} ${unitLabel}</span></div>`)
+    .join('');
+  const nombreEsc = p.nombre.replace(/'/g, "\\'");
   return `
-    <div class="mrow-card${topClass}">
+    <div class="mrow-card clickable${topClass}" onclick="edToggle('${rid}')">
       <div class="mrow-top">
         <div class="mrow-top-main">
           <div class="mrow-title-row">
             <span class="ed-rank${i < 3 ? ' ed-medal' : ''}">${rankDisplay}</span>
-            ${_rivalAvatarHtml(p.nombre)}
+            <span style="cursor:pointer" onclick="event.stopPropagation();goToPlayer('${nombreEsc}')">${_rivalAvatarHtml(p.nombre)}</span>
             <div class="mrow-title">${pl(p.nombre)}</div>
           </div>
         </div>
-        <div class="mrow-highlight">
-          <div class="mrow-highlight-val" style="color:var(--dorado)">${p[key]}</div>
-          <div class="mrow-highlight-label">${unitLabel}</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          <div class="mrow-highlight">
+            <div class="mrow-highlight-val" style="color:var(--dorado)">${p[key]}</div>
+            <div class="mrow-highlight-label">${unitLabel}</div>
+          </div>
+          <span class="mrow-chevron" id="${rid}-chev">▾</span>
         </div>
       </div>
-      ${top && key !== 'pj' ? `<div class="mrow-secondary">
-        <div class="mrow-sec-item" style="flex:1 1 100%">
-          <span class="mrow-sec-label">${favLabel}</span>
-          <span class="mrow-sec-val">${top[0]} · ${top[1][key]} ${unitLabel}</span>
-        </div>
-      </div>` : ''}
+      <div class="ed-drill" id="${rid}" style="display:none">${rivales || '<div class="ed-drill-row">Sin desglose disponible.</div>'}</div>
     </div>`;
 }
 
@@ -6206,7 +6210,7 @@ function _edMobileCard(p, i, key, unitLabel, favLabel) {
 function buildEstadisticasDetalladasTab(matches, idPrefix) {
   const players = _aggregatePlayerRivalStats(matches);
 
-  function rankTable(title, icon, key, unitLabel, favLabel) {
+  function rankTable(title, icon, key, unitLabel) {
     const rows = [...players].filter(p => p[key] > 0).sort((a, b) => b[key] - a[key]);
     if (!rows.length) {
       return `<div class="ed-card mrow-desktop-only"><div class="ed-card-title">${icon} ${title}</div><div class="ed-empty">Sin datos registrados.</div></div>
@@ -6231,15 +6235,18 @@ function buildEstadisticasDetalladasTab(matches, idPrefix) {
         </div>
         <div class="ed-drill" id="${rid}" style="display:none">${rivales || '<div class="ed-drill-row">Sin desglose disponible.</div>'}</div>`;
     }).join('');
-    const mobileCards = rows.map((p, i) => _edMobileCard(p, i, key, unitLabel, favLabel)).join('');
+    // ids de mobile prefijados con "ed-m-" (en vez de "ed-") para no
+    // colisionar con los ids de las filas expandibles de desktop — ambas
+    // viven en el DOM al mismo tiempo, solo una se muestra según el ancho.
+    const mobileCards = rows.map((p, i) => _edMobileCard(p, i, key, unitLabel, `ed-m-${idPrefix}-${key}-${i}`)).join('');
     return `<div class="ed-card mrow-desktop-only"><div class="ed-card-title">${icon} ${title}</div><div class="ed-rows">${body}</div></div>
       <div class="ed-mobile-section"><div class="ed-card-title">${icon} ${title}</div><div class="mrow-cards">${mobileCards}</div></div>`;
   }
 
   return `<div class="ed-grid">
-    ${rankTable('Goleadores', '⚽', 'goles', 'goles', 'Víctima favorita')}
-    ${rankTable('Asistidores', '🎯', 'asist', 'asist.', 'Asistencia favorita')}
-    ${rankTable('Presencias', '🎮', 'pj', 'PJ', 'Rival más enfrentado')}
+    ${rankTable('Goleadores', '⚽', 'goles', 'goles')}
+    ${rankTable('Asistidores', '🎯', 'asist', 'asist.')}
+    ${rankTable('Presencias', '🎮', 'pj', 'PJ')}
   </div>`;
 }
 window.edToggle = function(id) {
