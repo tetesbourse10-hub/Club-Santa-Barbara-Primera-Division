@@ -2180,10 +2180,18 @@
     }
     .ap-right-col { display:flex; flex-direction:column; gap:12px; }
     .ap-pitch-label { font-size:0.68rem; text-transform:uppercase; letter-spacing:0.1em; color:var(--gris-texto); margin-bottom:10px; font-weight:700; }
+    /* Proporción real de cancha de fútbol (68m ancho × 105m largo ≈ 0.648:1,
+       orientación vertical) en vez de flex:1 estirando a lo que sobre del
+       layout — eso la dejaba achatada/ancha y los 11 amontonados. Con un
+       ancho máximo fijo + aspect-ratio, la altura queda proporcional al
+       ancho real de la cancha aunque la columna disponible sea más ancha
+       (no importa si el sidebar de la derecha queda con espacio libre
+       abajo — a propósito). */
     .ap-pitch {
       position:relative;
       background:linear-gradient(180deg,#166534 0%,#15803d 45%,#166534 100%);
-      border-radius:6px; width:100%; flex:1; min-height:320px;
+      border-radius:6px; width:100%; max-width:640px; aspect-ratio:68/105;
+      margin:0 auto;
       overflow:hidden;
     }
     .ap-pitch-line { position:absolute; background:rgba(255,255,255,0.30); }
@@ -2239,7 +2247,6 @@
        and become unreadable. Shrinking both (and dropping the name's max-width
        in proportion) keeps every player's tag legible and non-overlapping. */
     @media (max-width:640px) {
-      .ap-pitch { min-height:260px; }
       .ap-pdot { width:34px; height:34px; font-size:0.6rem; border-width:2px; }
       .ap-pdot-badge, .ap-pdot-roja, .ap-pdot-sub { font-size:0.62rem; }
       .ap-pdot-cap { width:13px; height:13px; font-size:0.5rem; }
@@ -6608,9 +6615,17 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
   // datos, otra plantilla de presentación (no se duplica ningún cálculo).
   const leftForm  = csbIsLeft ? formCSB : formRiv;
   const rightForm = csbIsLeft ? formRiv : formCSB;
-  // Posición CSB/Rival ya NO va acá — se mudó debajo de la cancha/formación
-  // (ver posTablaHtml más abajo), junto con el widget "Impacto en la Tabla"
-  // del sidebar que quedaba redundante mostrando el mismo dato dos veces.
+  // Posición en la tabla de ambos equipos — se muestra debajo de la fila de
+  // escudos/formaciones, dentro de esta misma casilla del marcador (antes
+  // vivía como pills sueltas en la barra de contexto de arriba, y después
+  // como franja aparte debajo de la cancha; ahora todo el resumen del
+  // partido — resultado, formación y posición — queda junto en un solo
+  // lugar).
+  const posTablaHtml = (posCSBClean !== '—' || posRivalClean !== '—') ? `
+    <div class="ap-fd-postabla">
+      ${posCSBClean !== '—' ? `<span class="ap-fd-postabla-item"><span class="ap-fd-postabla-team">Santa Bárbara</span><span class="ap-fd-postabla-val">${posCSBClean}º</span></span>` : ''}
+      ${posRivalClean !== '—' ? `<span class="ap-fd-postabla-item"><span class="ap-fd-postabla-team">${rivalDisplay}</span><span class="ap-fd-postabla-val">${posRivalClean}º</span></span>` : ''}
+    </div>` : '';
   const heroCtxPills = [
     fecha !== '—' ? `<span class="ap-fd-hero-d-ctxpill">📅 Fecha ${fecha}</span>` : '',
     dia !== '—' ? `<span class="ap-fd-hero-d-ctxpill">🗓️ ${dia}</span>` : '',
@@ -6639,6 +6654,7 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
           ${rightForm !== '—' ? `<div class="ap-fd-hero-d-form">${rightForm}</div>` : ''}
         </div>
       </div>
+      ${posTablaHtml}
     </div>`;
 
   const summary = mobileMatchup + heroDesktop + `
@@ -6774,16 +6790,6 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
       <div class="ap-squad-tabpanel-m" style="display:none">${cambiosRowsMobile}</div>
     </div>`;
 
-  // Posición en la tabla de ambos equipos — antes vivía como pills sueltas
-  // arriba junto al marcador (.ap-fd-hero-d-pos, ver heroCtxPills) y como
-  // widget aparte "Impacto en la Tabla" en el sidebar; ahora es una sola
-  // franja debajo de la cancha/formación, sin duplicar el dato.
-  const posTablaHtml = (posCSBClean !== '—' || posRivalClean !== '—') ? `
-    <div class="ap-fd-postabla">
-      ${posCSBClean !== '—' ? `<span class="ap-fd-postabla-item"><span class="ap-fd-postabla-team">Santa Bárbara</span><span class="ap-fd-postabla-val">${posCSBClean}º</span></span>` : ''}
-      ${posRivalClean !== '—' ? `<span class="ap-fd-postabla-item"><span class="ap-fd-postabla-team">${rivalDisplay}</span><span class="ap-fd-postabla-val">${posRivalClean}º</span></span>` : ''}
-    </div>` : '';
-
   // Alineación/Banco/Cambios como 3 pestañas intercambiables (antes las 3
   // listas completas quedaban siempre desplegadas una debajo de la otra —
   // con Titular+Suplentes+Cambios juntos, el bloque de la derecha solía
@@ -6814,7 +6820,6 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
       <div class="ap-pitch-outer">
         <div class="ap-pitch-label">Formación · ${formCSB !== '—' ? formCSB : '?'}</div>
         ${buildPitch(titulares.length > 0 ? titulares : null)}
-        ${posTablaHtml}
       </div>
       <div class="ap-right-col">
         ${incidenciasHtml}
