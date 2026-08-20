@@ -2307,10 +2307,74 @@
     .ap-fd-form-chip { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.09); border-radius:8px; padding:6px 14px; font-size:0.8rem; font-weight:700; color:var(--blanco); display:flex; flex-direction:column; gap:2px; }
     .ap-fd-form-chip span { font-size:0.58rem; text-transform:uppercase; letter-spacing:0.08em; color:var(--gris-texto); font-weight:400; }
     .ap-fd-ph { color:rgba(255,255,255,0.2); font-style:italic; }
+    .ap-fd-obs-title { font-size:0.72rem; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:var(--gris-texto); margin-top:14px; }
+    .ap-fd-obs-title + .ap-fd-obs { margin-top:6px; }
+
+    /* El header clásico (título+score grande), sus pills de fecha/hora/
+       lugar/localía y Pos CSB/Pos Rival/Categoría Rival, y los chips de
+       Formación CSB/Rival quedan reemplazados por el Hero Scoreboard
+       (mobile: .ap-fd-mobile; desktop: .ap-fd-hero-d, ver más abajo) — se
+       ocultan siempre, dejando en .ap-fd-card solo el parcial (mobile) y
+       la crónica. */
+    .ap-fd-header { display:none; }
+    .ap-fd-pill-basic { display:none; }
+    .ap-fd-pill-postab { display:none; }
+    .ap-fd-form-row { display:none; }
+
+    /* ── Hero Scoreboard desktop (>768px) — escudo real de Santa Bárbara,
+       avatar de iniciales para el rival, formación y posición en la tabla
+       al momento del partido. Réplica en espíritu de .ap-fd-mobile pero
+       pensada para el ancho de escritorio (escudos más grandes, marcador
+       más grande, barra de contexto con más pills en una sola fila). ── */
+    .ap-fd-hero-d {
+      display:flex; flex-direction:column; gap:18px;
+      background:linear-gradient(160deg, rgba(16,22,38,0.9), rgba(8,12,22,0.95));
+      border:1px solid rgba(255,255,255,0.08); border-radius:16px; padding:22px 28px;
+      margin-bottom:16px; box-shadow:0 12px 32px rgba(0,0,0,0.35);
+    }
+    .ap-fd-hero-d-ctx { display:flex; flex-wrap:wrap; gap:8px; }
+    .ap-fd-hero-d-ctxpill {
+      font-size:0.74rem; font-weight:700; color:var(--blanco); background:rgba(255,255,255,0.06);
+      border:1px solid rgba(255,255,255,0.1); border-radius:999px; padding:5px 13px;
+    }
+    .ap-fd-hero-d-pos { color:#a5b4fc; background:rgba(99,102,241,0.1); border-color:rgba(99,102,241,0.3); }
+    .ap-fd-hero-d-row { display:flex; align-items:center; justify-content:center; gap:36px; }
+    .ap-fd-hero-d-team { flex:1 1 260px; max-width:280px; display:flex; flex-direction:column; align-items:center; gap:10px; text-align:center; }
+    .ap-fd-hero-d-team .ap-fd-mobile-crest { width:64px; height:64px; }
+    .ap-fd-hero-d-team .ap-fd-mobile-crest-rival { font-size:1.05rem; }
+    .ap-fd-hero-d-name { font-size:1.05rem; font-weight:800; color:var(--blanco); }
+    /* Escudo/avatar+nombre+posición — usados tanto acá (hero desktop) como
+       en .ap-fd-mobile (hero mobile, ver más abajo): mismas clases, mismos
+       datos, un solo lugar de estilo base (los dos heros solo ajustan
+       tamaño puntual, ver .ap-fd-hero-d-team de arriba). */
+    .ap-fd-mobile-crest { width:36px; height:36px; object-fit:contain; flex-shrink:0; }
+    .ap-fd-mobile-crest-rival {
+      display:flex; align-items:center; justify-content:center; border-radius:50%;
+      background:rgba(255,255,255,0.08); color:var(--gris-texto); font-size:0.68rem; font-weight:800;
+    }
+    .ap-fd-mobile-team-name { font-size:0.72rem; font-weight:700; color:var(--blanco); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+    .ap-fd-mobile-pos {
+      font-size:0.62rem; font-weight:800; color:#a5b4fc; background:rgba(99,102,241,0.12);
+      border:1px solid rgba(99,102,241,0.3); border-radius:999px; padding:2px 8px; white-space:nowrap;
+    }
+    .ap-fd-hero-d-form {
+      font-size:0.72rem; font-weight:700; color:#97c459; background:rgba(151,196,89,0.1);
+      border:1px solid rgba(151,196,89,0.3); border-radius:999px; padding:3px 12px;
+    }
+    .ap-fd-hero-d-center { flex-shrink:0; text-align:center; min-width:160px; }
+    .ap-fd-hero-d-score { font-size:3.2rem; font-weight:900; line-height:1; color:var(--blanco); text-shadow:0 0 24px currentColor; }
+    .ap-fd-hero-d-pen { display:block; font-size:0.9rem; font-weight:700; opacity:.7; margin-top:4px; }
+    .ap-fd-hero-d-pending { font-size:1.3rem; color:var(--dorado); }
+    .ap-fd-hero-d-parcial { margin-top:8px; font-size:0.76rem; font-weight:700; color:var(--gris-texto); }
+    @media (max-width:768px) { .ap-fd-hero-d { display:none; } }
+    /* El parcial ya se muestra en el Hero Scoreboard desktop — la pill
+       suelta de más abajo (.ap-fd-card) queda solo para mobile, que sigue
+       necesitándola ahí (ver spec de la caja secundaria mobile). */
+    @media (min-width:769px) { .ap-fd-pill-parcial { display:none; } }
 
     /* ── Marcador mobile estilo Sofascore/Promiedos: escudos+equipos en
        horizontal con el resultado al medio, fecha/hora/lugar como barra
-       superior sutil. Oculto en desktop (queda el header clásico). ── */
+       superior sutil. Oculto en desktop (queda el Hero Scoreboard). ── */
     .ap-fd-mobile { display:none; }
     @media (max-width:768px) {
       .ap-fd-mobile { display:block; background:var(--azul-card); border:1px solid rgba(255,255,255,0.06); border-radius:14px; padding:14px 16px; margin-bottom:16px; }
@@ -2329,31 +2393,9 @@
       .ap-fd-mp-lugar  { background:rgba(34,197,94,0.1); border-color:rgba(34,197,94,0.3); }
       .ap-fd-mobile-matchup { display:flex; align-items:center; justify-content:space-between; gap:6px; }
       .ap-fd-mobile-team { flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center; min-width:0; }
-      .ap-fd-mobile-crest { width:36px; height:36px; object-fit:contain; flex-shrink:0; }
-      .ap-fd-mobile-crest-rival {
-        display:flex; align-items:center; justify-content:center; border-radius:50%;
-        background:rgba(255,255,255,0.08); color:var(--gris-texto); font-size:0.68rem; font-weight:800;
-      }
-      .ap-fd-mobile-team-name { font-size:0.72rem; font-weight:700; color:var(--blanco); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
-      /* Posición en la tabla debajo de cada escudo/nombre — antes vivía como
-         pill "Pos CSB"/"Pos Rival" en la caja de crónica de más abajo. */
-      .ap-fd-mobile-pos {
-        font-size:0.62rem; font-weight:800; color:#a5b4fc; background:rgba(99,102,241,0.12);
-        border:1px solid rgba(99,102,241,0.3); border-radius:999px; padding:2px 8px; white-space:nowrap;
-      }
       .ap-fd-mobile-score { font-size:1.7rem; font-weight:900; line-height:1; flex-shrink:0; padding:0 8px; color:var(--blanco); text-align:center; }
       .ap-fd-mobile-score small { display:block; font-size:0.5rem; font-weight:600; opacity:.75; }
       .ap-fd-mobile-pending { text-align:center; margin-top:10px; font-size:0.78rem; font-weight:700; color:var(--dorado); }
-
-      /* El header clásico (título+score grande+pills de fecha/hora/lugar) y
-         los chips de Formación CSB/Rival quedan redundantes con el marcador
-         de arriba — se ocultan. Pos CSB/Pos Rival/Categoría Rival se mudan
-         debajo de los escudos (.ap-fd-mobile-pos) y también se ocultan acá,
-         dejando en .ap-fd-card únicamente el parcial y la crónica. */
-      .ap-fd-header { display:none; }
-      .ap-fd-pill-basic { display:none; }
-      .ap-fd-pill-postab { display:none; }
-      .ap-fd-form-row { display:none; }
 
       /* Flechas de sustitución (11 Titular: salió / Suplentes: entró) — antes
          eran círculos 🔴/🟢, ahora un ícono diagonal a color exacto. */
@@ -6461,7 +6503,7 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
   // disponibles ahí mismo para desktop (que no tiene escudos ni ese layout),
   // ocultas solo en mobile vía .ap-fd-pill-postab (ver CSS ≤768px).
   const extraMeta = [
-    parcialesVal !== '—'     ? `<span class="ap-fd-pill"><span class="ap-fd-pill-ico">⏱</span><span class="ap-fd-pill-lbl">Parcial</span><span class="ap-fd-pill-val">${parcialesVal}</span></span>` : '',
+    parcialesVal !== '—'     ? `<span class="ap-fd-pill ap-fd-pill-parcial"><span class="ap-fd-pill-ico">⏱</span><span class="ap-fd-pill-lbl">Parcial</span><span class="ap-fd-pill-val">${parcialesVal}</span></span>` : '',
     posCSBClean !== '—'   ? `<span class="ap-fd-pill ap-fd-pill-postab"><span class="ap-fd-pill-ico">📊</span><span class="ap-fd-pill-lbl">Pos CSB</span><span class="ap-fd-pill-val">${posCSBClean}°</span></span>` : '',
     posRivalClean !== '—' ? `<span class="ap-fd-pill ap-fd-pill-postab"><span class="ap-fd-pill-ico">📊</span><span class="ap-fd-pill-lbl">Pos Rival</span><span class="ap-fd-pill-val">${posRivalClean}°</span></span>` : '',
     categoriaRival ? `<span class="ap-fd-pill ap-fd-pill-postab"><span class="ap-fd-pill-ico">🏷️</span><span class="ap-fd-pill-lbl">Categoría Rival</span><span class="ap-fd-pill-val">${categoriaRival}</span></span>` : '',
@@ -6514,7 +6556,48 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
       ${!played ? `<div class="ap-fd-mobile-pending">⏳ Pendiente</div>` : ''}
     </div>`;
 
-  const summary = mobileMatchup + `
+  // ── Hero Scoreboard desktop (>768px) ── Reemplaza al viejo título+score
+  // grande (.ap-fd-header, ahora oculto en todos los anchos) por un
+  // marcador de 3 columnas con escudos, formación y posición en la tabla
+  // al momento del partido — la versión desktop del mismo marcador que
+  // .ap-fd-mobile ya resuelve para mobile. Reusa leftCrest/rightCrest/
+  // leftName/rightName/csbIsLeft ya calculados arriba para mobile: mismos
+  // datos, otra plantilla de presentación (no se duplica ningún cálculo).
+  const leftForm  = csbIsLeft ? formCSB : formRiv;
+  const rightForm = csbIsLeft ? formRiv : formCSB;
+  const heroCtxPills = [
+    fecha !== '—' ? `<span class="ap-fd-hero-d-ctxpill">📅 Fecha ${fecha}</span>` : '',
+    dia !== '—' ? `<span class="ap-fd-hero-d-ctxpill">🗓️ ${dia}</span>` : '',
+    horaVal !== '—' ? `<span class="ap-fd-hero-d-ctxpill">⏰ ${horaVal}</span>` : '',
+    lugarVal !== '—' ? `<span class="ap-fd-hero-d-ctxpill">📍 ${lugarVal}</span>` : '',
+    posCSBClean !== '—' ? `<span class="ap-fd-hero-d-ctxpill ap-fd-hero-d-pos">Posición CSB: ${posCSBClean}º</span>` : '',
+    posRivalClean !== '—' ? `<span class="ap-fd-hero-d-ctxpill ap-fd-hero-d-pos">Posición Rival: ${posRivalClean}º</span>` : '',
+    categoriaRival ? `<span class="ap-fd-hero-d-ctxpill">🏷️ ${categoriaRival}</span>` : '',
+  ].filter(Boolean).join('');
+  const heroDesktop = `
+    <div class="ap-fd-hero-d">
+      ${heroCtxPills ? `<div class="ap-fd-hero-d-ctx">${heroCtxPills}</div>` : ''}
+      <div class="ap-fd-hero-d-row">
+        <div class="ap-fd-hero-d-team">
+          ${leftCrest}
+          <div class="ap-fd-hero-d-name">${leftName}</div>
+          ${leftForm !== '—' ? `<div class="ap-fd-hero-d-form">${leftForm}</div>` : ''}
+        </div>
+        <div class="ap-fd-hero-d-center">
+          <div class="ap-fd-hero-d-score" style="${played ? `color:${resColor}` : ''}">${played
+            ? `${resultado}${penales ? `<span class="ap-fd-hero-d-pen">(pen. ${penales})</span>` : ''}`
+            : `<span class="ap-fd-hero-d-pending">⏳ Pendiente</span>`}</div>
+          ${played && parcialesVal !== '—' ? `<div class="ap-fd-hero-d-parcial">Parcial: ${parcialesVal}</div>` : ''}
+        </div>
+        <div class="ap-fd-hero-d-team">
+          ${rightCrest}
+          <div class="ap-fd-hero-d-name">${rightName}</div>
+          ${rightForm !== '—' ? `<div class="ap-fd-hero-d-form">${rightForm}</div>` : ''}
+        </div>
+      </div>
+    </div>`;
+
+  const summary = mobileMatchup + heroDesktop + `
     <div class="ap-fd-card">
       <div class="ap-fd-header">
         <div class="ap-fd-title">Santa Bárbara vs ${rivalDisplay}</div>
@@ -6531,7 +6614,7 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
         ${extraMeta}
       </div>
       ${formRow}
-      ${obs ? `<div class="ap-fd-obs">${obs}</div>` : ''}
+      ${obs ? `<div class="ap-fd-obs-title">💬 Comentario del Partido</div><div class="ap-fd-obs">${obs}</div>` : ''}
     </div>`;
 
   const titulares  = jugadores.filter(j => j.titular);
