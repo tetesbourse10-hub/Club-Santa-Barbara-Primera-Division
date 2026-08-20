@@ -1631,6 +1631,14 @@
     .rsm-actualidad-card .rsm-match-rival { text-align:left; }
     .rsm-actualidad-meta { font-size:0.72rem; color:var(--gris-texto); margin-top:2px; }
     .rsm-actualidad-empty { font-size:0.74rem; color:#475569; }
+    /* "Próximo Partido" no tiene resultado (sin border-top de color ni
+       fondo distinguido, a diferencia de "Último Partido" con .win/.draw/
+       .loss) — quedaba apagada/gris al lado de la otra. Mismo tratamiento
+       vivo que las cards de "Próximos Partidos" del Home. */
+    .rsm-proximo-card {
+      background: linear-gradient(180deg, #1c263f 0%, #121826 100%);
+      border: 1px solid rgba(245,158,11,0.4);
+    }
 
     /* Módulo "Glorias" — cierre en 1 sola tarjeta compacta (antes eran 2
        tarjetas separadas, .titulos-card/.records-card, que desktop sigue
@@ -2306,7 +2314,19 @@
     .ap-fd-mobile { display:none; }
     @media (max-width:768px) {
       .ap-fd-mobile { display:block; background:var(--azul-card); border:1px solid rgba(255,255,255,0.06); border-radius:14px; padding:14px 16px; margin-bottom:16px; }
-      .ap-fd-mobile-topbar { display:flex; flex-wrap:wrap; gap:10px; font-size:0.68rem; color:var(--gris-texto); padding-bottom:10px; margin-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.07); }
+      /* Barra de metadatos como píldoras (antes texto plano suelto) — fondo
+         semi-transparente + borde propio, un color de ícono distinto por
+         tipo de dato para que se lea de un vistazo. */
+      .ap-fd-mobile-topbar { display:flex; flex-wrap:wrap; gap:6px; padding-bottom:12px; margin-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.07); }
+      .ap-fd-mobile-pill {
+        display:inline-flex; align-items:center; gap:4px; font-size:0.68rem; font-weight:700;
+        color:var(--blanco); background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12);
+        border-radius:999px; padding:4px 10px; white-space:nowrap;
+      }
+      .ap-fd-mp-fecha { background:rgba(245,158,11,0.1); border-color:rgba(245,158,11,0.3); }
+      .ap-fd-mp-dia    { background:rgba(56,189,248,0.1); border-color:rgba(56,189,248,0.3); }
+      .ap-fd-mp-hora   { background:rgba(168,85,247,0.1); border-color:rgba(168,85,247,0.3); }
+      .ap-fd-mp-lugar  { background:rgba(34,197,94,0.1); border-color:rgba(34,197,94,0.3); }
       .ap-fd-mobile-matchup { display:flex; align-items:center; justify-content:space-between; gap:6px; }
       .ap-fd-mobile-team { flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center; min-width:0; }
       .ap-fd-mobile-crest { width:36px; height:36px; object-fit:contain; flex-shrink:0; }
@@ -2315,18 +2335,30 @@
         background:rgba(255,255,255,0.08); color:var(--gris-texto); font-size:0.68rem; font-weight:800;
       }
       .ap-fd-mobile-team-name { font-size:0.72rem; font-weight:700; color:var(--blanco); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+      /* Posición en la tabla debajo de cada escudo/nombre — antes vivía como
+         pill "Pos CSB"/"Pos Rival" en la caja de crónica de más abajo. */
+      .ap-fd-mobile-pos {
+        font-size:0.62rem; font-weight:800; color:#a5b4fc; background:rgba(99,102,241,0.12);
+        border:1px solid rgba(99,102,241,0.3); border-radius:999px; padding:2px 8px; white-space:nowrap;
+      }
       .ap-fd-mobile-score { font-size:1.7rem; font-weight:900; line-height:1; flex-shrink:0; padding:0 8px; color:var(--blanco); text-align:center; }
       .ap-fd-mobile-score small { display:block; font-size:0.5rem; font-weight:600; opacity:.75; }
       .ap-fd-mobile-pending { text-align:center; margin-top:10px; font-size:0.78rem; font-weight:700; color:var(--dorado); }
 
       /* El header clásico (título+score grande+pills de fecha/hora/lugar) y
          los chips de Formación CSB/Rival quedan redundantes con el marcador
-         de arriba — se ocultan, dejando en .ap-fd-card solo lo que el
-         marcador mobile no cubre (parciales/posición/categoría rival y la
-         crónica). */
+         de arriba — se ocultan. Pos CSB/Pos Rival/Categoría Rival se mudan
+         debajo de los escudos (.ap-fd-mobile-pos) y también se ocultan acá,
+         dejando en .ap-fd-card únicamente el parcial y la crónica. */
       .ap-fd-header { display:none; }
       .ap-fd-pill-basic { display:none; }
+      .ap-fd-pill-postab { display:none; }
       .ap-fd-form-row { display:none; }
+
+      /* Flechas de sustitución (11 Titular: salió / Suplentes: entró) — antes
+         eran círculos 🔴/🟢, ahora un ícono diagonal a color exacto. */
+      .ap-squad-arrow-out { display:inline-flex; color:#f43f5e; flex-shrink:0; } /* rose-500 */
+      .ap-squad-arrow-in  { display:inline-flex; color:#34d399; flex-shrink:0; } /* emerald-400 */
     }
     .ap-squad-num { font-size:0.65rem; color:var(--gris-texto); min-width:20px; text-align:right; flex-shrink:0; }
     .ap-squad-empty { color:rgba(255,255,255,0.2); font-style:italic; }
@@ -3667,8 +3699,8 @@ const DATA_A = {
   apertura: [],
   historico: { pj:266, pg:123, pe:57, pp:87, gf:501, gc:365, vi:57 },
   titulos: [
-    { nombre:'Campeón Apertura AIFA B', anio:'2019' },
-    { nombre:'Campeón Copa Maradona',   anio:'2020' },
+    { nombre:'Campeón Apertura AIFA B',        anio:'2019' },
+    { nombre:'Campeón Copa Maradona Luefi',    anio:'2020' },
   ],
 };
 
@@ -6381,7 +6413,6 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
   const jugadores = (detail && detail.jugadores)      || [];
 
   const played   = resultado !== null;
-  const resColor = gf === null ? '' : gf > gc ? 'var(--verde)' : gf < gc ? 'var(--rojo)' : 'var(--dorado)';
 
   const rivalDisplay = rival !== '—' ? rival : `<span class="ap-fd-ph">Rival</span>`;
 
@@ -6399,6 +6430,17 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
   const localVal  = isLocal ? 'Local' : isNeutral ? 'Neutral' : localNorm === 'VISITANTE' ? 'Visitante' : null;
   const localIco  = isNeutral ? '🏟️' : isLocal ? '🏠' : '✈️';
 
+  // El "X-Y" de la sheet viene en orden Local-Visitante (convención estándar
+  // de fútbol), NO "CSB-Rival" fijo — de visitante, el gol de CSB es el
+  // SEGUNDO número del string, no el primero. Antes esto asumía siempre
+  // gf=CSB, así que un partido ganado de visitante por "2-6" (CSB metió 6)
+  // se pintaba como derrota (comparaba 2 contra 6). El string `resultado`
+  // que se muestra queda intacto — solo cambia cuál de los dos números se
+  // usa para decidir el color.
+  const csbGoles   = gf === null ? null : (localNorm === 'VISITANTE' ? gc : gf);
+  const rivalGoles = gf === null ? null : (localNorm === 'VISITANTE' ? gf : gc);
+  const resColor = csbGoles === null ? '' : csbGoles > rivalGoles ? 'var(--verde)' : csbGoles < rivalGoles ? 'var(--rojo)' : 'var(--dorado)';
+
   const pills = [
     { ico: '📅', lbl: 'Fecha', val: fecha !== '—' ? `${fecha}` : null, basic: true },
     { ico: '📆', lbl: 'Día',   val: dia !== '—' ? dia : null, basic: true },
@@ -6407,11 +6449,15 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
     { ico: localIco, lbl: localVal, val: localVal, highlight: isLocal, basic: true },
   ].filter(p => p.val);
 
+  // Pos CSB / Pos Rival ya NO se muestran acá — se mudaron debajo de cada
+  // escudo en el marcador mobile (ver mobileMatchup más abajo). Siguen
+  // disponibles ahí mismo para desktop (que no tiene escudos ni ese layout),
+  // ocultas solo en mobile vía .ap-fd-pill-postab (ver CSS ≤768px).
   const extraMeta = [
     parcialesVal !== '—'     ? `<span class="ap-fd-pill"><span class="ap-fd-pill-ico">⏱</span><span class="ap-fd-pill-lbl">Parcial</span><span class="ap-fd-pill-val">${parcialesVal}</span></span>` : '',
-    posCSBClean !== '—'   ? `<span class="ap-fd-pill"><span class="ap-fd-pill-ico">📊</span><span class="ap-fd-pill-lbl">Pos CSB</span><span class="ap-fd-pill-val">${posCSBClean}°</span></span>` : '',
-    posRivalClean !== '—' ? `<span class="ap-fd-pill"><span class="ap-fd-pill-ico">📊</span><span class="ap-fd-pill-lbl">Pos Rival</span><span class="ap-fd-pill-val">${posRivalClean}°</span></span>` : '',
-    categoriaRival ? `<span class="ap-fd-pill"><span class="ap-fd-pill-ico">🏷️</span><span class="ap-fd-pill-lbl">Categoría Rival</span><span class="ap-fd-pill-val">${categoriaRival}</span></span>` : '',
+    posCSBClean !== '—'   ? `<span class="ap-fd-pill ap-fd-pill-postab"><span class="ap-fd-pill-ico">📊</span><span class="ap-fd-pill-lbl">Pos CSB</span><span class="ap-fd-pill-val">${posCSBClean}°</span></span>` : '',
+    posRivalClean !== '—' ? `<span class="ap-fd-pill ap-fd-pill-postab"><span class="ap-fd-pill-ico">📊</span><span class="ap-fd-pill-lbl">Pos Rival</span><span class="ap-fd-pill-val">${posRivalClean}°</span></span>` : '',
+    categoriaRival ? `<span class="ap-fd-pill ap-fd-pill-postab"><span class="ap-fd-pill-ico">🏷️</span><span class="ap-fd-pill-lbl">Categoría Rival</span><span class="ap-fd-pill-val">${categoriaRival}</span></span>` : '',
   ].filter(Boolean).join('');
 
   const formRow = (formCSB !== '—' || formRiv !== '—') ? `
@@ -6432,21 +6478,31 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
   const rightName = csbIsLeft ? rivalDisplay : 'Santa Bárbara';
   const leftCrest  = csbIsLeft ? csbCrestHtml : rivalCrestHtml;
   const rightCrest = csbIsLeft ? rivalCrestHtml : csbCrestHtml;
+  // Pos CSB / Pos Rival debajo del escudo/nombre de cada equipo (antes
+  // vivían como pills sueltas dentro de la caja de crónica — ver
+  // .ap-fd-pill-postab arriba, ahora ocultas en mobile porque el dato ya
+  // se muestra acá).
+  const csbPosBadge   = posCSBClean   !== '—' ? `<span class="ap-fd-mobile-pos">Pos: ${posCSBClean}º</span>` : '';
+  const rivalPosBadge = posRivalClean !== '—' ? `<span class="ap-fd-mobile-pos">Pos: ${posRivalClean}º</span>` : '';
+  const leftPos  = csbIsLeft ? csbPosBadge : rivalPosBadge;
+  const rightPos = csbIsLeft ? rivalPosBadge : csbPosBadge;
+  // Barra de metadatos como píldoras con fondo/borde propios en vez de
+  // texto plano suelto — cada una con su ícono a color.
   const topbarHtml = [
-    fecha !== '—' ? `<span>📅 Fecha ${fecha}</span>` : '',
-    dia !== '—' ? `<span>${dia}</span>` : '',
-    horaVal !== '—' ? `<span>🕐 ${horaVal}</span>` : '',
-    lugarVal !== '—' ? `<span>📍 ${lugarVal}</span>` : '',
+    fecha !== '—' ? `<span class="ap-fd-mobile-pill ap-fd-mp-fecha">📅 Fecha ${fecha}</span>` : '',
+    dia !== '—' ? `<span class="ap-fd-mobile-pill ap-fd-mp-dia">🗓️ ${dia}</span>` : '',
+    horaVal !== '—' ? `<span class="ap-fd-mobile-pill ap-fd-mp-hora">⏰ ${horaVal}</span>` : '',
+    lugarVal !== '—' ? `<span class="ap-fd-mobile-pill ap-fd-mp-lugar">📍 ${lugarVal}</span>` : '',
   ].filter(Boolean).join('');
   const mobileMatchup = `
     <div class="ap-fd-mobile">
       ${topbarHtml ? `<div class="ap-fd-mobile-topbar">${topbarHtml}</div>` : ''}
       <div class="ap-fd-mobile-matchup">
-        <div class="ap-fd-mobile-team">${leftCrest}<span class="ap-fd-mobile-team-name">${leftName}</span></div>
+        <div class="ap-fd-mobile-team">${leftCrest}<span class="ap-fd-mobile-team-name">${leftName}</span>${leftPos}</div>
         <div class="ap-fd-mobile-score" style="${played ? `color:${resColor}` : ''}">${played
           ? `${resultado}${penales ? `<small>(pen. ${penales})</small>` : ''}`
           : 'vs'}</div>
-        <div class="ap-fd-mobile-team">${rightCrest}<span class="ap-fd-mobile-team-name">${rightName}</span></div>
+        <div class="ap-fd-mobile-team">${rightCrest}<span class="ap-fd-mobile-team-name">${rightName}</span>${rightPos}</div>
       </div>
       ${!played ? `<div class="ap-fd-mobile-pending">⏳ Pendiente</div>` : ''}
     </div>`;
@@ -6528,19 +6584,32 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
 
   // Mobile: 3 pestañas (Titular/Suplentes/Cambios) en vez del scroll con las
   // 3 listas siempre desplegadas — badge de posición coloreado por línea
-  // (ARQ dorado, DEF azul, MC/DEL verde) e indicación de salió/entró.
+  // (ARQ ámbar, DEF sky, MC emerald, DEL rose) e indicación de salió/entró
+  // como flecha (no círculo — ver ARROW_DOWN_SVG/ARROW_UP_SVG).
   const squadPosColor = pos => {
     const p = (pos || '').toUpperCase();
-    if (p === 'ARQ') return '#f59e0b';
-    if (/^(DEF|DFI|DFD|DFC|LI|LD)$/.test(p)) return '#3b82f6';
-    return '#22c55e';
+    if (p === 'ARQ') return '#fbbf24'; // amber-400
+    if (/^(DEF|DFI|DFD|DFC|LI|LD)$/.test(p)) return '#38bdf8'; // sky-400
+    if (/^(EI|ED|DC|SD|DEL)$/.test(p)) return '#fb7185'; // rose-400 (delanteros)
+    return '#34d399'; // emerald-400 (MC/MCD/MCO/MI/MD y el resto de mediocampo)
   };
+  // Flecha diagonal (ArrowDownRight/ArrowUpRight) en vez de emoji — un
+  // emoji de color no se puede repintar con CSS `color`, así que para
+  // garantizar rose-500/emerald-400 exactos se usa un SVG con
+  // stroke="currentColor".
+  const ARROW_DOWN_SVG = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="7" x2="17" y2="17"></line><polyline points="17 7 17 17 7 17"></polyline></svg>`;
+  const ARROW_UP_SVG = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg>`;
   const squadRowMobile = (j, state) => {
     const pc = squadPosColor(j.pos);
-    const stateIco = state === 'salio' ? (j.salio ? ' 🔴' : '') : state === 'entro' ? (j.entro ? ' 🟢' : '') : '';
+    const stateIco = state === 'salio'
+      ? (j.salio ? `<span class="ap-squad-arrow-out" title="Salió">${ARROW_DOWN_SVG}</span>` : '')
+      : state === 'entro'
+        ? (j.entro ? `<span class="ap-squad-arrow-in" title="Entró">${ARROW_UP_SVG}</span>` : '')
+        : '';
     return `<div class="ap-squad-item-m">
-      <span class="ap-squad-pos-m" style="color:${pc};background:${pc}1a;border-color:${pc}44">${j.pos || '–'}</span>
-      <span class="ap-squad-name-m">${pl(j.nombre)}${stateIco}</span>
+      <span class="ap-squad-pos-m" style="color:${pc};background:${pc}33;border-color:${pc}66">${j.pos || '–'}</span>
+      <span class="ap-squad-name-m">${pl(j.nombre)}</span>
+      ${stateIco}
       ${j.goles > 0 ? `<span class="ap-squad-stat-m gol">⚽${j.goles > 1 ? j.goles : ''}</span>` : ''}
       ${j.asist > 0 ? `<span class="ap-squad-stat-m ast">🎯${j.asist > 1 ? j.asist : ''}</span>` : ''}
       ${j.rojas > 0 ? `<span class="ap-squad-stat-m roja">🟥</span>` : ''}
@@ -9405,6 +9474,12 @@ function renderResumen() {
     return /apertura/i.test(torneoLabel) ? 'badge-apertura'
       : /clausura/i.test(torneoLabel) ? 'badge-clausura' : 'badge-copa';
   }
+  // Condición Local/Visitante para la tarjeta "Próximo Partido" del módulo
+  // Actualidad — mismo criterio de regex que _fmtProximoMeta (landing),
+  // repetido acá liviano porque esa función espera un shape distinto (m.dt).
+  function _rsmLocalTxt(local) {
+    return /visit/i.test(local || '') ? 'Visitante' : /local/i.test(local || '') ? 'Local' : '';
+  }
   // Módulo "Actualidad" (Resumen mobile) — último resultado (ya viene de
   // `ultimos`, el más reciente) y próximo partido pendiente (primer partido
   // de la temporada en curso sin resultado cargado, en el orden en que ya
@@ -9412,9 +9487,6 @@ function renderResumen() {
   const ultimo = ultimos[0] || null;
   const ultimoRes = ultimo ? (ultimo.gf > ultimo.gc ? 'win' : ultimo.gf < ultimo.gc ? 'loss' : 'draw') : null;
   const proximo = (d.partidos || []).find(p => p.gf == null || p.gc == null) || null;
-  // Glorias (Resumen mobile) — título más reciente del array (orden
-  // cronológico ascendente, ver DATA_A/DATA_B.titulos).
-  const ultimoTitulo = (d.titulos && d.titulos.length) ? d.titulos[d.titulos.length - 1] : null;
 
   const container = document.getElementById('resumen-content');
   container.innerHTML = `
@@ -9452,12 +9524,13 @@ function renderResumen() {
               <span class="rsm-match-torneo ${ultimoBadgeCls(ultimo._torneoLabel)}">${ultimo._torneoLabel}</span>
             ` : `<div class="rsm-actualidad-empty">Sin partidos jugados</div>`}
           </div>
-          <div class="rsm-match-card rsm-actualidad-card">
+          <div class="rsm-match-card rsm-actualidad-card rsm-proximo-card">
             <div class="rsm-actualidad-label">🗓 Próximo Partido</div>
             ${proximo ? `
               <div class="rsm-match-rival">vs ${proximo.rival}</div>
-              <div class="rsm-actualidad-meta">${proximo.fecha ? 'Fecha ' + proximo.fecha : ''}</div>
+              <div class="rsm-actualidad-meta">${[proximo.fecha ? 'Fecha ' + proximo.fecha : '', _rsmLocalTxt(proximo.local)].filter(Boolean).join(' · ')}</div>
               ${proximo.horario ? `<div class="rsm-actualidad-meta">${proximo.horario}</div>` : ''}
+              <span class="rsm-match-torneo ${ultimoBadgeCls(clausuraLabel)}">${clausuraLabel}</span>
             ` : `<div class="rsm-actualidad-empty">Torneo finalizado</div>`}
           </div>
         </div>
@@ -9499,15 +9572,17 @@ function renderResumen() {
         </div>
       </div>
 
-      <!-- Módulo 6: Glorias — cierre en 1 sola tarjeta con el título más
-           reciente y el récord destacado (antes eran 2 tarjetas separadas,
-           .titulos-card/.records-card, que desktop sigue usando tal cual). -->
+      <!-- Módulo 6: Títulos y Récords Históricos — cierre en 1 sola tarjeta
+           compacta (antes eran 2 tarjetas separadas, .titulos-card/
+           .records-card, que desktop sigue usando tal cual), con TODOS los
+           títulos de la categoría activa (antes solo el más reciente) y
+           los récords con etiqueta explícita en vez de solo el ícono. -->
       <div class="rsm-section" style="margin-bottom:0">
-        <div class="rsm-section-title">Glorias</div>
+        <div class="rsm-section-title">Títulos y Récords Históricos</div>
         <div class="rsm-glorias-card">
-          ${ultimoTitulo ? `<div class="rsm-glorias-item">🏅 <strong>${ultimoTitulo.nombre}</strong> <span class="rsm-glorias-year">${ultimoTitulo.anio}</span></div>` : ''}
-          <div class="rsm-glorias-item">⚡ ${isA ? '<strong>8 – 0</strong> vs Sitas (Apertura 2023)' : '<strong>13 – 0</strong> vs República del Oeste (Apertura 2023)'}</div>
-          <div class="rsm-glorias-item">🔥 ${isA ? '<strong>15 partidos</strong> invicto (Apertura 2026)' : '<strong>14 partidos</strong> invicto (Clausura 2023)'}</div>
+          ${d.titulos.map(t => `<div class="rsm-glorias-item">🏅 <strong>${t.nombre}</strong> <span class="rsm-glorias-year">(${t.anio})</span></div>`).join('')}
+          <div class="rsm-glorias-item">⚡ Mayor goleada: ${isA ? '<strong>8 – 0</strong> vs Sitas (Apertura 2023)' : '<strong>13 – 0</strong> vs República del Oeste (Apertura 2023)'}</div>
+          <div class="rsm-glorias-item">🔥 Mayor racha invicta: ${isA ? '<strong>15 partidos</strong> (Apertura 2026)' : '<strong>14 partidos</strong> (Clausura 2023)'}</div>
         </div>
       </div>
     </div>
