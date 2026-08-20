@@ -2246,11 +2246,8 @@
       .ap-pname { font-size:0.52rem; max-width:58px; padding:1px 4px; }
       .ap-ppos { font-size:0.46rem; padding:1px 4px; }
     }
-    /* .ap-squad-panel (las 3 listas Titular/Banco/Cambios siempre
-       desplegadas una debajo de la otra) queda reemplazada por pestañas en
-       ambos anchos — .ap-squad-tabs-d en desktop (ver más abajo) y
-       .ap-squad-tabs-m en mobile, debajo. */
-    .ap-squad-panel { display:none; }
+    /* Alineación/Banco/Cambios: pestañas en ambos anchos — .ap-squad-tabs-d
+       en desktop (ver más abajo) y .ap-squad-tabs-m en mobile, debajo. */
     .ap-squad-tabs-m { display:none; }
     @media (max-width:768px) {
       .ap-squad-tabs-d { display:none; }
@@ -2348,7 +2345,6 @@
       font-size:0.74rem; font-weight:700; color:var(--blanco); background:rgba(255,255,255,0.06);
       border:1px solid rgba(255,255,255,0.1); border-radius:999px; padding:5px 13px;
     }
-    .ap-fd-hero-d-pos { color:#a5b4fc; background:rgba(99,102,241,0.1); border-color:rgba(99,102,241,0.3); }
     .ap-fd-hero-d-row { display:flex; align-items:center; justify-content:center; gap:36px; }
     .ap-fd-hero-d-team { flex:1 1 260px; max-width:280px; display:flex; flex-direction:column; align-items:center; gap:10px; text-align:center; }
     .ap-fd-hero-d-team .ap-fd-mobile-crest { width:64px; height:64px; }
@@ -2432,11 +2428,10 @@
     .ap-fd-postabla-item { display:flex; flex-direction:column; align-items:center; gap:3px; }
     .ap-fd-postabla-team { font-size:0.72rem; font-weight:600; color:var(--gris-texto); }
     .ap-fd-postabla-val { font-size:1rem; font-weight:800; color:#a5b4fc; background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.3); border-radius:999px; padding:2px 14px; }
-    /* Alineación/Banco/Cambios como 3 pestañas — reemplaza las 3 listas
-       siempre desplegadas de .ap-squad-panel (ver display:none más arriba),
-       que hacían que el bloque derecho fuera más alto que la cancha.
-       max-height + scroll interno en el panel activo en vez de estirar
-       todo el contenedor. */
+    /* Alineación/Banco/Cambios como 3 pestañas en vez de 3 listas siempre
+       desplegadas una debajo de la otra (hacían que el bloque derecho
+       fuera más alto que la cancha) — max-height + scroll interno en el
+       panel activo en vez de estirar todo el contenedor. */
     .ap-squad-tabs-d {
       background:var(--azul-card); border:1px solid rgba(255,255,255,0.06);
       border-radius:14px; overflow:hidden;
