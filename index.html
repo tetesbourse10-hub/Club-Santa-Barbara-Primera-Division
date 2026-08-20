@@ -1515,7 +1515,9 @@
         background: var(--azul); padding: 10px 0 12px; margin-bottom: 0;
       }
     }
-    .rsm-section { margin-bottom: 18px; }
+    /* space-y-3.5 (0.875rem/14px) entre módulos — antes 18px, un poco más
+       de aire del necesario para 6 módulos apilados en una sola pantalla. */
+    .rsm-section { margin-bottom: 14px; }
     .rsm-section-title {
       font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em;
       color: var(--gris-texto); font-weight: 700; margin-bottom: 10px;
@@ -1528,8 +1530,6 @@
     .rsm-stat-val { font-size:0.92rem; font-weight:800; color:var(--blanco); line-height:1.1; }
     .rsm-stat-label { font-size:0.56rem; color:var(--gris-texto); margin-top:3px; text-transform:uppercase; letter-spacing:.03em; }
 
-    .rsm-carousel { display:flex; gap:8px; overflow-x:auto; padding-bottom:2px; scrollbar-width:none; }
-    .rsm-carousel::-webkit-scrollbar { display:none; }
     .rsm-match-card {
       flex-shrink:0; width:92px; background:var(--azul-card); border:1px solid rgba(255,255,255,0.06);
       border-top:2px solid var(--gris-texto); border-radius:10px; padding:10px 6px; text-align:center; cursor:pointer;
@@ -1549,6 +1549,33 @@
     }
     .rsm-match-torneo.badge-apertura { color:#60a5fa; background:rgba(59,130,246,0.1); border-color:rgba(59,130,246,0.3); }
     .rsm-match-torneo.badge-copa     { color:#c084fc; background:rgba(168,85,247,0.12); border-color:rgba(168,85,247,0.3); }
+
+    /* Módulo "Actualidad" — reusa la misma tarjeta .rsm-match-card (borde
+       superior de color según resultado, mismo fondo/radio que el resto del
+       Resumen mobile) pero en un grid de 2 columnas a ancho completo en vez
+       del carril horizontal angosto de 92px que usaba el carrusel. */
+    .rsm-actualidad-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
+    .rsm-actualidad-card { width:auto; text-align:left; padding:12px; cursor:default; }
+    .rsm-match-card.rsm-actualidad-card[onclick] { cursor:pointer; }
+    .rsm-actualidad-label {
+      font-size:0.6rem; font-weight:800; text-transform:uppercase; letter-spacing:.04em;
+      color:var(--gris-texto); margin-bottom:8px;
+    }
+    .rsm-actualidad-card .rsm-match-rival { text-align:left; }
+    .rsm-actualidad-meta { font-size:0.72rem; color:var(--gris-texto); margin-top:2px; }
+    .rsm-actualidad-empty { font-size:0.74rem; color:#475569; }
+
+    /* Módulo "Glorias" — cierre en 1 sola tarjeta compacta (antes eran 2
+       tarjetas separadas, .titulos-card/.records-card, que desktop sigue
+       usando sin cambios) con el título más reciente y los récords
+       destacados como líneas cortas en vez de listas completas. */
+    .rsm-glorias-card {
+      background: var(--azul-card); border:1px solid rgba(255,255,255,0.06);
+      border-radius:14px; padding:12px 14px; display:flex; flex-direction:column; gap:8px;
+    }
+    .rsm-glorias-item { font-size:0.78rem; color:var(--texto); line-height:1.4; }
+    .rsm-glorias-item strong { color:var(--dorado); }
+    .rsm-glorias-year { color:var(--gris-texto); font-weight:600; font-size:0.72rem; }
 
     .rsm-card { background:var(--azul-card); border:1px solid rgba(255,255,255,0.06); border-radius:14px; overflow:hidden; }
     .rsm-tabs { display:flex; border-bottom:1px solid rgba(255,255,255,0.08); }
@@ -9220,6 +9247,32 @@ function renderResumen() {
       </table>
     </div>`;
   }
+  // Extracto de solo 3 filas (rival superior, CSB destacado, rival inferior)
+  // para el módulo "Tabla Corta" del Resumen mobile — misma fuente/CSS que
+  // miniTablaHtml (que sigue usándose tal cual en desktop), recortada a lo
+  // mínimo para un vistazo rápido en vez de las ~9 filas de contexto.
+  function miniTablaCortaHtml(tabla) {
+    if (!tabla || !tabla.length) {
+      return `<div class="mini-tabla-wrap"><div style="color:var(--gris-texto);font-size:0.82rem;text-align:center;padding:16px">Tabla no disponible</div></div>`;
+    }
+    const idx = tabla.findIndex(t => t.csb);
+    if (idx === -1) {
+      return `<div class="mini-tabla-wrap"><div style="color:var(--gris-texto);font-size:0.82rem;text-align:center;padding:16px">Tabla no disponible</div></div>`;
+    }
+    const start = Math.max(0, idx - 1);
+    const end = Math.min(tabla.length, idx + 2);
+    const slice = tabla.slice(start, end);
+    const rows = slice.map(t => `<tr class="${t.csb ? 'csb-row' : ''}">
+      <td>${t.pos}</td><td><span class="mini-tabla-team"><span class="mini-tabla-avatar">${_rivalInitials(t.equipo)}</span><span class="mini-tabla-team-name">${t.csb ? '⭐ ' : ''}${t.equipo}</span></span></td>
+      <td>${t.pts}</td><td>${t.pj}</td>
+    </tr>`).join('');
+    return `<div class="mini-tabla-wrap">
+      <table class="mini-tabla">
+        <thead><tr><th>#</th><th>Equipo</th><th>Pts</th><th>PJ</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+  }
 
   // Cola móvil: los últimos 5 partidos JUGADOS del equipo, sin importar el
   // torneo — cuando el Clausura recién arranca y todavía no tiene (o no
@@ -9251,6 +9304,16 @@ function renderResumen() {
     return /apertura/i.test(torneoLabel) ? 'badge-apertura'
       : /clausura/i.test(torneoLabel) ? 'badge-clausura' : 'badge-copa';
   }
+  // Módulo "Actualidad" (Resumen mobile) — último resultado (ya viene de
+  // `ultimos`, el más reciente) y próximo partido pendiente (primer partido
+  // de la temporada en curso sin resultado cargado, en el orden en que ya
+  // vienen las filas del sheet).
+  const ultimo = ultimos[0] || null;
+  const ultimoRes = ultimo ? (ultimo.gf > ultimo.gc ? 'win' : ultimo.gf < ultimo.gc ? 'loss' : 'draw') : null;
+  const proximo = (d.partidos || []).find(p => p.gf == null || p.gc == null) || null;
+  // Glorias (Resumen mobile) — título más reciente del array (orden
+  // cronológico ascendente, ver DATA_A/DATA_B.titulos).
+  const ultimoTitulo = (d.titulos && d.titulos.length) ? d.titulos[d.titulos.length - 1] : null;
 
   const container = document.getElementById('resumen-content');
   container.innerHTML = `
@@ -9262,8 +9325,12 @@ function renderResumen() {
       </div>
     </div>
 
-    <!-- ═══ VISTA MOBILE (≤768px) ═══ -->
+    <!-- ═══ VISTA MOBILE (≤768px) ═══ — orden de actualidad a historia:
+         1) header/selector Plantel, 2) actualidad (último+próximo
+         partido), 3) tabla corta, 4) KPIs históricos, 5) TOP 5, 6) Glorias
+         (título + récord destacado) al cierre. ═══ -->
     <div class="rsm-mobile">
+      <!-- Módulo 1: header + selector de Plantel -->
       <div class="resumen-mobile-head">
         <div class="section-title" style="margin-bottom:10px">${isA ? '🏆' : '⚽'} Resumen – ${d.nombre}</div>
         <div class="resumen-cat-switch">
@@ -9272,6 +9339,36 @@ function renderResumen() {
         </div>
       </div>
 
+      <!-- Módulo 2: Actualidad — Último Partido + Próximo Partido -->
+      <div class="rsm-section">
+        <div class="rsm-section-title">Actualidad</div>
+        <div class="rsm-actualidad-grid">
+          <div class="rsm-match-card rsm-actualidad-card ${ultimoRes || ''}" ${ultimo ? `onclick="goToMatchFecha('${ultimo._navKey}', '${String(ultimo.fecha).replace(/'/g, "\\'")}')" title="Ver en Fecha a Fecha"` : ''}>
+            <div class="rsm-actualidad-label">⚽ Último Partido</div>
+            ${ultimo ? `
+              <div class="rsm-match-rival">vs ${ultimo.rival}</div>
+              <div class="rsm-match-score ${ultimoRes}">${ultimo.resultado}</div>
+              <span class="rsm-match-torneo ${ultimoBadgeCls(ultimo._torneoLabel)}">${ultimo._torneoLabel}</span>
+            ` : `<div class="rsm-actualidad-empty">Sin partidos jugados</div>`}
+          </div>
+          <div class="rsm-match-card rsm-actualidad-card">
+            <div class="rsm-actualidad-label">🗓 Próximo Partido</div>
+            ${proximo ? `
+              <div class="rsm-match-rival">vs ${proximo.rival}</div>
+              <div class="rsm-actualidad-meta">${proximo.fecha ? 'Fecha ' + proximo.fecha : ''}</div>
+              ${proximo.horario ? `<div class="rsm-actualidad-meta">${proximo.horario}</div>` : ''}
+            ` : `<div class="rsm-actualidad-empty">Torneo finalizado</div>`}
+          </div>
+        </div>
+      </div>
+
+      <!-- Módulo 3: Tabla corta (solo 3 filas: rival superior/CSB/rival inferior) -->
+      <div class="rsm-section">
+        <div class="rsm-section-title">Tabla de posiciones</div>
+        ${miniTablaCortaHtml(d.tabla)}
+      </div>
+
+      <!-- Módulo 4: KPIs históricos, grilla 4x2 -->
       <div class="rsm-section">
         <div class="rsm-section-title">Estadísticas históricas</div>
         <div class="rsm-stats-grid">
@@ -9286,46 +9383,7 @@ function renderResumen() {
         </div>
       </div>
 
-      <div class="rsm-section">
-        <div class="titulos-card">
-          <div class="titulos-card-title">🏅 Títulos Oficiales</div>
-          ${d.titulos.map(t => `
-            <div class="titulo-item">
-              <span class="titulo-name">${t.nombre}</span>
-              <span class="titulo-count">${t.anio}</span>
-            </div>`).join('')}
-        </div>
-      </div>
-      <div class="rsm-section">
-        <div class="records-card">
-          <div class="records-card-title">⚡ Récords Históricos</div>
-          <div class="record-item">
-            <div class="record-label">Máxima goleada histórica</div>
-            <div class="record-val">${isA ? '<span>8 – 0</span> vs Sitas (Apertura 2023)' : '<span>13 – 0</span> vs República del Oeste (Apertura 2023)'}</div>
-          </div>
-          <div class="record-item">
-            <div class="record-label">Racha invicta más larga</div>
-            <div class="record-val">${isA ? '<span>15 partidos</span> (Apertura 2026)' : '<span>14 partidos</span> (Clausura 2023)'}</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="rsm-section">
-        <div class="rsm-section-title">Últimos partidos</div>
-        <div class="rsm-carousel">
-          ${ultimos.length ? ultimos.map(p => {
-            const res = p.gf > p.gc ? 'win' : p.gf < p.gc ? 'loss' : 'draw';
-            const fechaArg = String(p.fecha).replace(/'/g, "\\'");
-            return `<div class="rsm-match-card ${res}" onclick="goToMatchFecha('${p._navKey}', '${fechaArg}')" title="Ver en Fecha a Fecha">
-              ${_rivalAvatarHtml(p.rival)}
-              <div class="rsm-match-rival">vs ${p.rival}</div>
-              <div class="rsm-match-score ${res}">${p.resultado}</div>
-              <span class="rsm-match-torneo ${ultimoBadgeCls(p._torneoLabel)}">${p._torneoLabel}</span>
-            </div>`;
-          }).join('') : '<div style="color:#475569;padding:16px;font-size:0.8rem">Sin partidos jugados aún</div>'}
-        </div>
-      </div>
-
+      <!-- Módulo 5: TOP 5 histórico, podio de 3 con filtro Partidos/Goles/Asist. -->
       <div class="rsm-section">
         <div class="rsm-section-title">TOP 5 histórico</div>
         <div class="rsm-card">
@@ -9340,9 +9398,16 @@ function renderResumen() {
         </div>
       </div>
 
+      <!-- Módulo 6: Glorias — cierre en 1 sola tarjeta con el título más
+           reciente y el récord destacado (antes eran 2 tarjetas separadas,
+           .titulos-card/.records-card, que desktop sigue usando tal cual). -->
       <div class="rsm-section" style="margin-bottom:0">
-        <div class="rsm-section-title">Tabla de posiciones</div>
-        ${miniTablaHtml(d.tabla, d.badge || d.nombre)}
+        <div class="rsm-section-title">Glorias</div>
+        <div class="rsm-glorias-card">
+          ${ultimoTitulo ? `<div class="rsm-glorias-item">🏅 <strong>${ultimoTitulo.nombre}</strong> <span class="rsm-glorias-year">${ultimoTitulo.anio}</span></div>` : ''}
+          <div class="rsm-glorias-item">⚡ ${isA ? '<strong>8 – 0</strong> vs Sitas (Apertura 2023)' : '<strong>13 – 0</strong> vs República del Oeste (Apertura 2023)'}</div>
+          <div class="rsm-glorias-item">🔥 ${isA ? '<strong>15 partidos</strong> invicto (Apertura 2026)' : '<strong>14 partidos</strong> invicto (Clausura 2023)'}</div>
+        </div>
       </div>
     </div>
 
