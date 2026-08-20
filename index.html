@@ -2246,15 +2246,14 @@
       .ap-pname { font-size:0.52rem; max-width:58px; padding:1px 4px; }
       .ap-ppos { font-size:0.46rem; padding:1px 4px; }
     }
-    .ap-squad-panel {
-      background:var(--azul-card); border:1px solid rgba(255,255,255,0.06);
-      border-radius:14px; padding:16px 18px;
-    }
-    /* ── Mobile: pestañas Titular/Suplentes/Cambios en vez del scroll con
-       las 3 listas siempre desplegadas (.ap-squad-panel de arriba). ── */
+    /* .ap-squad-panel (las 3 listas Titular/Banco/Cambios siempre
+       desplegadas una debajo de la otra) queda reemplazada por pestañas en
+       ambos anchos — .ap-squad-tabs-d en desktop (ver más abajo) y
+       .ap-squad-tabs-m en mobile, debajo. */
+    .ap-squad-panel { display:none; }
     .ap-squad-tabs-m { display:none; }
     @media (max-width:768px) {
-      .ap-squad-panel { display:none; }
+      .ap-squad-tabs-d { display:none; }
       .ap-squad-tabs-m {
         display:block; background:var(--azul-card); border:1px solid rgba(255,255,255,0.06);
         border-radius:14px; overflow:hidden;
@@ -2374,7 +2373,10 @@
       border:1px solid rgba(151,196,89,0.3); border-radius:999px; padding:3px 12px;
     }
     .ap-fd-hero-d-center { flex-shrink:0; text-align:center; min-width:160px; }
-    .ap-fd-hero-d-score { font-size:3.2rem; font-weight:900; line-height:1; color:var(--blanco); text-shadow:0 0 24px currentColor; }
+    /* Sin resplandor/neón detrás del número — un color sólido y fuerte
+       (verde/rojo/dorado, ver resColor) ya da contraste de sobra y se lee
+       mejor que el glow. */
+    .ap-fd-hero-d-score { font-size:3.2rem; font-weight:900; line-height:1; color:var(--blanco); }
     .ap-fd-hero-d-pen { display:block; font-size:0.9rem; font-weight:700; opacity:.7; margin-top:4px; }
     .ap-fd-hero-d-pending { font-size:1.3rem; color:var(--dorado); }
     .ap-fd-hero-d-parcial { margin-top:8px; font-size:0.76rem; font-weight:700; color:var(--gris-texto); }
@@ -2422,15 +2424,32 @@
     .ap-copa-legend { display:flex; flex-wrap:wrap; gap:10px 18px; margin-top:10px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.06); }
     .ap-legend-item { display:flex; align-items:center; gap:5px; font-size:0.68rem; color:var(--gris-texto); }
     .ap-legend-dot  { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
-    /* Widget "Impacto en la Tabla" — sidebar de Fecha a Fecha, posición de
-       ambos equipos en la tabla al momento de este partido puntual (no la
-       posición actual/final de temporada). */
-    .ap-fd-impact-card { background:var(--azul-card); border:1px solid rgba(255,255,255,0.06); border-radius:14px; padding:14px 18px; }
-    .ap-fd-impact-title { font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--gris-texto); margin-bottom:8px; }
-    .ap-fd-impact-row { display:flex; align-items:center; justify-content:space-between; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.04); }
-    .ap-fd-impact-row:last-child { border-bottom:none; }
-    .ap-fd-impact-team { font-size:0.82rem; font-weight:600; color:var(--texto); }
-    .ap-fd-impact-pos { font-size:0.86rem; font-weight:800; color:#a5b4fc; background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.3); border-radius:999px; padding:2px 12px; }
+    /* Posición en la tabla de ambos equipos — franja debajo de la cancha,
+       reemplaza tanto las pills que vivían junto al marcador como el
+       widget "Impacto en la Tabla" del sidebar (mismo dato, un solo
+       lugar). */
+    .ap-fd-postabla { display:flex; justify-content:center; gap:28px; margin-top:14px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.07); }
+    .ap-fd-postabla-item { display:flex; flex-direction:column; align-items:center; gap:3px; }
+    .ap-fd-postabla-team { font-size:0.72rem; font-weight:600; color:var(--gris-texto); }
+    .ap-fd-postabla-val { font-size:1rem; font-weight:800; color:#a5b4fc; background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.3); border-radius:999px; padding:2px 14px; }
+    /* Alineación/Banco/Cambios como 3 pestañas — reemplaza las 3 listas
+       siempre desplegadas de .ap-squad-panel (ver display:none más arriba),
+       que hacían que el bloque derecho fuera más alto que la cancha.
+       max-height + scroll interno en el panel activo en vez de estirar
+       todo el contenedor. */
+    .ap-squad-tabs-d {
+      background:var(--azul-card); border:1px solid rgba(255,255,255,0.06);
+      border-radius:14px; overflow:hidden;
+    }
+    .ap-squad-tabbar-d { display:flex; border-bottom:1px solid rgba(255,255,255,0.08); }
+    .ap-squad-tabbtn-d {
+      flex:1; background:none; border:none; color:var(--gris-texto); font-size:0.78rem; font-weight:700;
+      padding:12px 6px; cursor:pointer; border-bottom:2px solid transparent; font-family:inherit;
+      transition:color .15s, border-color .15s;
+    }
+    .ap-squad-tabbtn-d:hover { color:#e2e8f0; }
+    .ap-squad-tabbtn-d.active { color:var(--dorado); border-bottom-color:var(--dorado); }
+    .ap-squad-tabpanel-d { padding:10px 18px 14px; max-height:420px; overflow-y:auto; }
     .ap-incidencias { background:var(--azul-card); border:1px solid rgba(255,255,255,0.06); border-radius:14px; padding:14px 18px; }
     .ap-inc-group { display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; padding:5px 0; border-bottom:1px solid rgba(255,255,255,0.04); font-size:0.78rem; }
     .ap-inc-group:last-child { border-bottom:none; }
@@ -6594,13 +6613,14 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
   // datos, otra plantilla de presentación (no se duplica ningún cálculo).
   const leftForm  = csbIsLeft ? formCSB : formRiv;
   const rightForm = csbIsLeft ? formRiv : formCSB;
+  // Posición CSB/Rival ya NO va acá — se mudó debajo de la cancha/formación
+  // (ver posTablaHtml más abajo), junto con el widget "Impacto en la Tabla"
+  // del sidebar que quedaba redundante mostrando el mismo dato dos veces.
   const heroCtxPills = [
     fecha !== '—' ? `<span class="ap-fd-hero-d-ctxpill">📅 Fecha ${fecha}</span>` : '',
     dia !== '—' ? `<span class="ap-fd-hero-d-ctxpill">🗓️ ${dia}</span>` : '',
     horaVal !== '—' ? `<span class="ap-fd-hero-d-ctxpill">⏰ ${horaVal}</span>` : '',
     lugarVal !== '—' ? `<span class="ap-fd-hero-d-ctxpill">📍 ${lugarVal}</span>` : '',
-    posCSBClean !== '—' ? `<span class="ap-fd-hero-d-ctxpill ap-fd-hero-d-pos">Posición CSB: ${posCSBClean}º</span>` : '',
-    posRivalClean !== '—' ? `<span class="ap-fd-hero-d-ctxpill ap-fd-hero-d-pos">Posición Rival: ${posRivalClean}º</span>` : '',
     categoriaRival ? `<span class="ap-fd-hero-d-ctxpill">🏷️ ${categoriaRival}</span>` : '',
   ].filter(Boolean).join('');
   const heroDesktop = `
@@ -6759,47 +6779,63 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
       <div class="ap-squad-tabpanel-m" style="display:none">${cambiosRowsMobile}</div>
     </div>`;
 
-  // Widget "Impacto en la Tabla" (sidebar desktop) — posición de ambos
-  // equipos al momento de este partido. Sin variación (▲/▼ puestos): eso
-  // requeriría comparar contra el partido anterior de la temporada, dato
-  // que esta función no recibe (solo el partido puntual) — se deja para
-  // una eventual etapa 3 si se agrega esa comparación en el llamador.
-  const impactoHtml = (posCSBClean !== '—' || posRivalClean !== '—') ? `
-    <div class="ap-fd-impact-card">
-      <div class="ap-fd-impact-title">📊 Impacto en la Tabla</div>
-      ${posCSBClean !== '—' ? `<div class="ap-fd-impact-row"><span class="ap-fd-impact-team">Santa Bárbara</span><span class="ap-fd-impact-pos">${posCSBClean}º</span></div>` : ''}
-      ${posRivalClean !== '—' ? `<div class="ap-fd-impact-row"><span class="ap-fd-impact-team">${rivalDisplay}</span><span class="ap-fd-impact-pos">${posRivalClean}º</span></div>` : ''}
+  // Posición en la tabla de ambos equipos — antes vivía como pills sueltas
+  // arriba junto al marcador (.ap-fd-hero-d-pos, ver heroCtxPills) y como
+  // widget aparte "Impacto en la Tabla" en el sidebar; ahora es una sola
+  // franja debajo de la cancha/formación, sin duplicar el dato.
+  const posTablaHtml = (posCSBClean !== '—' || posRivalClean !== '—') ? `
+    <div class="ap-fd-postabla">
+      ${posCSBClean !== '—' ? `<span class="ap-fd-postabla-item"><span class="ap-fd-postabla-team">Santa Bárbara</span><span class="ap-fd-postabla-val">${posCSBClean}º</span></span>` : ''}
+      ${posRivalClean !== '—' ? `<span class="ap-fd-postabla-item"><span class="ap-fd-postabla-team">${rivalDisplay}</span><span class="ap-fd-postabla-val">${posRivalClean}º</span></span>` : ''}
     </div>` : '';
+
+  // Alineación/Banco/Cambios como 3 pestañas intercambiables (antes las 3
+  // listas completas quedaban siempre desplegadas una debajo de la otra —
+  // con Titular+Suplentes+Cambios juntos, el bloque de la derecha solía
+  // ser más alto que la cancha y obligaba a scrollear la pantalla entera
+  // para ver el equipo completo). Mismo patrón que ya usa mobile
+  // (.ap-squad-tabs-m/_apSquadTabM), pero con las listas completas
+  // (titRows/suplRows/cambios) en vez de las compactas.
+  const squadTabsDesktop = `
+    <div class="ap-squad-tabs-d">
+      <div class="ap-squad-tabbar-d">
+        <button class="ap-squad-tabbtn-d active" onclick="_apSquadTabD(this,0)">11 Titular</button>
+        <button class="ap-squad-tabbtn-d" onclick="_apSquadTabD(this,1)">Banco de Suplentes</button>
+        <button class="ap-squad-tabbtn-d" onclick="_apSquadTabD(this,2)">Cambios</button>
+      </div>
+      <div class="ap-squad-tabpanel-d">${titRows}</div>
+      <div class="ap-squad-tabpanel-d" style="display:none">${suplRows}</div>
+      <div class="ap-squad-tabpanel-d" style="display:none">${cambios.length
+        ? cambios.map(c => `<div class="ap-change">
+            <span class="cin">Entró: ${pl(c.inp.nombre)}</span>
+            <span class="cmet">·</span>
+            <span class="cout">Salió: ${c.out ? pl(c.out.nombre) : '?'}</span>
+          </div>`).join('')
+        : `<div class="ap-squad-item"><span class="ap-squad-empty">Sin cambios en este partido.</span></div>`}</div>
+    </div>`;
 
   const pitchSection = `
     <div class="ap-detail-grid">
       <div class="ap-pitch-outer">
         <div class="ap-pitch-label">Formación · ${formCSB !== '—' ? formCSB : '?'}</div>
         ${buildPitch(titulares.length > 0 ? titulares : null)}
+        ${posTablaHtml}
       </div>
       <div class="ap-right-col">
-        ${impactoHtml}
         ${incidenciasHtml}
-        <div class="ap-squad-panel">
-          <div class="ap-aling-title">Alineación</div>
-          <div class="ap-squad-sec">Once Titular</div>
-          ${titRows}
-          <div class="ap-squad-sec" style="margin-top:14px">Banco de Suplentes</div>
-          ${suplRows}
-          ${cambios.length ? `
-          <div class="ap-squad-sec" style="margin-top:14px">Cambios</div>
-          ${cambios.map(c => `<div class="ap-change">
-            <span class="cin">Entró: ${pl(c.inp.nombre)}</span>
-            <span class="cmet">·</span>
-            <span class="cout">Salió: ${c.out ? pl(c.out.nombre) : '?'}</span>
-          </div>`).join('')}` : ''}
-        </div>
+        ${squadTabsDesktop}
         ${squadTabsMobile}
       </div>
     </div>`;
 
   return summary + pitchSection;
 }
+window._apSquadTabD = function(btn, idx) {
+  const wrap = btn.closest('.ap-squad-tabs-d');
+  if (!wrap) return;
+  wrap.querySelectorAll('.ap-squad-tabbtn-d').forEach(b => b.classList.toggle('active', b === btn));
+  wrap.querySelectorAll('.ap-squad-tabpanel-d').forEach((p, i) => { p.style.display = i === idx ? 'block' : 'none'; });
+};
 window._apSquadTabM = function(btn, idx) {
   const wrap = btn.closest('.ap-squad-tabs-m');
   if (!wrap) return;
