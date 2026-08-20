@@ -13,6 +13,16 @@
   <meta property="og:description" content="Estadísticas, resultados y jugadores de Club Santa Bárbara — Primera A y Primera B." />
   <meta property="og:image" content="/logo-csb.webp" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- Utilidades Tailwind pre-compiladas (tailwindcss v3 CLI, preflight
+       desactivado para no pisar el CSS a medida de más abajo) — usadas solo
+       por el rediseño desktop de Inicio/Resumen del Plantel (ver
+       .resumen-desktop-only en renderResumen). Inline en vez del CDN
+       (cdn.tailwindcss.com) para que la página principal no dependa de un
+       script externo en tiempo de ejecución: si ese CDN no cargara, todo el
+       diseño de Inicio se vería sin estilos. Regenerar con:
+       npx tailwindcss -i input.css -o output.css --minify
+       (config: content: ['index.html'], corePlugins: { preflight: false }) -->
+  <style>.visible{visibility:visible}.invisible{visibility:hidden}.collapse{visibility:collapse}.static{position:static}.fixed{position:fixed}.absolute{position:absolute}.relative{position:relative}.sticky{position:sticky}.top-3{top:.75rem}.col-span-4{grid-column:span 4/span 4}.col-span-8{grid-column:span 8/span 8}.my-4{margin-top:1rem;margin-bottom:1rem}.my-8{margin-top:2rem;margin-bottom:2rem}.mb-1{margin-bottom:.25rem}.mb-3{margin-bottom:.75rem}.mb-4{margin-bottom:1rem}.mb-5{margin-bottom:1.25rem}.mb-6{margin-bottom:1.5rem}.ml-auto{margin-left:auto}.mt-1{margin-top:.25rem}.mt-1\.5{margin-top:.375rem}.mt-2{margin-top:.5rem}.mt-2\.5{margin-top:.625rem}.mt-auto{margin-top:auto}.block{display:block}.inline{display:inline}.flex{display:flex}.inline-flex{display:inline-flex}.table{display:table}.grid{display:grid}.contents{display:contents}.hidden{display:none}.h-16{height:4rem}.h-7{height:1.75rem}.h-8{height:2rem}.h-9{height:2.25rem}.h-px{height:1px}.w-16{width:4rem}.w-5{width:1.25rem}.w-7{width:1.75rem}.w-8{width:2rem}.w-9{width:2.25rem}.w-full{width:100%}.min-w-0{min-width:0}.min-w-\[300px\]{min-width:300px}.flex-1{flex:1 1 0%}.flex-shrink,.shrink{flex-shrink:1}.shrink-0{flex-shrink:0}.border-collapse{border-collapse:collapse}.transform{transform:translate(var(--tw-translate-x),var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.cursor-pointer{cursor:pointer}.resize{resize:both}.appearance-none{-webkit-appearance:none;-moz-appearance:none;appearance:none}.grid-cols-12{grid-template-columns:repeat(12,minmax(0,1fr))}.grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}.grid-cols-4{grid-template-columns:repeat(4,minmax(0,1fr))}.grid-rows-2{grid-template-rows:repeat(2,minmax(0,1fr))}.flex-col{flex-direction:column}.flex-wrap{flex-wrap:wrap}.items-center{align-items:center}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.gap-1{gap:.25rem}.gap-1\.5{gap:.375rem}.gap-2{gap:.5rem}.gap-2\.5{gap:.625rem}.gap-3{gap:.75rem}.gap-3\.5{gap:.875rem}.gap-4{gap:1rem}.gap-5{gap:1.25rem}.gap-6{gap:1.5rem}.space-y-1>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(.25rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(.25rem*var(--tw-space-y-reverse))}.space-y-1\.5>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(.375rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(.375rem*var(--tw-space-y-reverse))}.space-y-3>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(.75rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(.75rem*var(--tw-space-y-reverse))}.space-y-3\.5>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(.875rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(.875rem*var(--tw-space-y-reverse))}.truncate{overflow:hidden;text-overflow:ellipsis}.truncate,.whitespace-nowrap{white-space:nowrap}.rounded-2xl{border-radius:1rem}.rounded-3xl{border-radius:1.5rem}.rounded-full{border-radius:9999px}.rounded-xl{border-radius:.75rem}.border{border-width:1px}.border-0{border-width:0}.border-b{border-bottom-width:1px}.border-r{border-right-width:1px}.border-t{border-top-width:1px}.border-amber-500{--tw-border-opacity:1;border-color:rgb(245 158 11/var(--tw-border-opacity,1))}.border-amber-500\/20{border-color:rgba(245,158,11,.2)}.border-amber-500\/30{border-color:rgba(245,158,11,.3)}.border-emerald-500{--tw-border-opacity:1;border-color:rgb(16 185 129/var(--tw-border-opacity,1))}.border-emerald-500\/20{border-color:rgba(16,185,129,.2)}.border-sky-500{--tw-border-opacity:1;border-color:rgb(14 165 233/var(--tw-border-opacity,1))}.border-sky-500\/20{border-color:rgba(14,165,233,.2)}.border-slate-700{--tw-border-opacity:1;border-color:rgb(51 65 85/var(--tw-border-opacity,1))}.border-slate-800{--tw-border-opacity:1;border-color:rgb(30 41 59/var(--tw-border-opacity,1))}.border-slate-800\/60{border-color:rgba(30,41,59,.6)}.border-slate-800\/80{border-color:rgba(30,41,59,.8)}.bg-\[\#090d16\]{--tw-bg-opacity:1;background-color:rgb(9 13 22/var(--tw-bg-opacity,1))}.bg-amber-500{--tw-bg-opacity:1;background-color:rgb(245 158 11/var(--tw-bg-opacity,1))}.bg-amber-500\/10{background-color:rgba(245,158,11,.1)}.bg-amber-500\/15{background-color:rgba(245,158,11,.15)}.bg-emerald-500{--tw-bg-opacity:1;background-color:rgb(16 185 129/var(--tw-bg-opacity,1))}.bg-emerald-500\/10{background-color:rgba(16,185,129,.1)}.bg-emerald-500\/15{background-color:rgba(16,185,129,.15)}.bg-purple-500{--tw-bg-opacity:1;background-color:rgb(168 85 247/var(--tw-bg-opacity,1))}.bg-purple-500\/10{background-color:rgba(168,85,247,.1)}.bg-red-500{--tw-bg-opacity:1;background-color:rgb(239 68 68/var(--tw-bg-opacity,1))}.bg-red-500\/15{background-color:rgba(239,68,68,.15)}.bg-sky-500{--tw-bg-opacity:1;background-color:rgb(14 165 233/var(--tw-bg-opacity,1))}.bg-sky-500\/10{background-color:rgba(14,165,233,.1)}.bg-slate-800{--tw-bg-opacity:1;background-color:rgb(30 41 59/var(--tw-bg-opacity,1))}.bg-slate-800\/80{background-color:rgba(30,41,59,.8)}.bg-slate-900{--tw-bg-opacity:1;background-color:rgb(15 23 42/var(--tw-bg-opacity,1))}.bg-slate-900\/40{background-color:rgba(15,23,42,.4)}.bg-slate-950{--tw-bg-opacity:1;background-color:rgb(2 6 23/var(--tw-bg-opacity,1))}.bg-slate-950\/40{background-color:rgba(2,6,23,.4)}.bg-slate-950\/50{background-color:rgba(2,6,23,.5)}.bg-slate-950\/60{background-color:rgba(2,6,23,.6)}.bg-transparent{background-color:transparent}.object-contain{-o-object-fit:contain;object-fit:contain}.p-0{padding:0}.p-1{padding:.25rem}.p-2{padding:.5rem}.p-5{padding:1.25rem}.p-6{padding:1.5rem}.px-2{padding-left:.5rem;padding-right:.5rem}.px-2\.5{padding-left:.625rem;padding-right:.625rem}.px-3{padding-left:.75rem;padding-right:.75rem}.px-3\.5{padding-left:.875rem;padding-right:.875rem}.px-4{padding-left:1rem;padding-right:1rem}.px-5{padding-left:1.25rem;padding-right:1.25rem}.px-6{padding-left:1.5rem;padding-right:1.5rem}.py-0{padding-top:0;padding-bottom:0}.py-0\.5{padding-top:.125rem;padding-bottom:.125rem}.py-1{padding-top:.25rem;padding-bottom:.25rem}.py-1\.5{padding-top:.375rem;padding-bottom:.375rem}.py-10{padding-top:2.5rem;padding-bottom:2.5rem}.py-2{padding-top:.5rem;padding-bottom:.5rem}.py-2\.5{padding-top:.625rem;padding-bottom:.625rem}.py-3{padding-top:.75rem;padding-bottom:.75rem}.py-3\.5{padding-top:.875rem;padding-bottom:.875rem}.pb-3{padding-bottom:.75rem}.pl-6{padding-left:1.5rem}.pr-6{padding-right:1.5rem}.text-left{text-align:left}.text-center{text-align:center}.text-right{text-align:right}.text-2xl{font-size:1.5rem;line-height:2rem}.text-4xl{font-size:2.25rem;line-height:2.5rem}.text-\[0\.65rem\]{font-size:.65rem}.text-\[0\.68rem\]{font-size:.68rem}.text-\[0\.6rem\]{font-size:.6rem}.text-\[10px\]{font-size:10px}.text-base{font-size:1rem;line-height:1.5rem}.text-lg{font-size:1.125rem;line-height:1.75rem}.text-sm{font-size:.875rem;line-height:1.25rem}.text-xs{font-size:.75rem;line-height:1rem}.font-black{font-weight:900}.font-bold{font-weight:700}.font-extrabold{font-weight:800}.font-medium{font-weight:500}.font-semibold{font-weight:600}.uppercase{text-transform:uppercase}.italic{font-style:italic}.ordinal{--tw-ordinal:ordinal;font-variant-numeric:var(--tw-ordinal) var(--tw-slashed-zero) var(--tw-numeric-figure) var(--tw-numeric-spacing) var(--tw-numeric-fraction)}.leading-none{line-height:1}.tracking-tight{letter-spacing:-.025em}.tracking-wider{letter-spacing:.05em}.text-amber-400{--tw-text-opacity:1;color:rgb(251 191 36/var(--tw-text-opacity,1))}.text-emerald-400{--tw-text-opacity:1;color:rgb(52 211 153/var(--tw-text-opacity,1))}.text-orange-400{--tw-text-opacity:1;color:rgb(251 146 60/var(--tw-text-opacity,1))}.text-purple-400{--tw-text-opacity:1;color:rgb(192 132 252/var(--tw-text-opacity,1))}.text-red-400{--tw-text-opacity:1;color:rgb(248 113 113/var(--tw-text-opacity,1))}.text-sky-400{--tw-text-opacity:1;color:rgb(56 189 248/var(--tw-text-opacity,1))}.text-slate-300{--tw-text-opacity:1;color:rgb(203 213 225/var(--tw-text-opacity,1))}.text-slate-400{--tw-text-opacity:1;color:rgb(148 163 184/var(--tw-text-opacity,1))}.text-slate-500{--tw-text-opacity:1;color:rgb(100 116 139/var(--tw-text-opacity,1))}.text-slate-600{--tw-text-opacity:1;color:rgb(71 85 105/var(--tw-text-opacity,1))}.text-slate-950{--tw-text-opacity:1;color:rgb(2 6 23/var(--tw-text-opacity,1))}.text-white{--tw-text-opacity:1;color:rgb(255 255 255/var(--tw-text-opacity,1))}.outline{outline-style:solid}.blur{--tw-blur:blur(8px)}.blur,.drop-shadow{filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.drop-shadow{--tw-drop-shadow:drop-shadow(0 1px 2px rgba(0,0,0,.1)) drop-shadow(0 1px 1px rgba(0,0,0,.06))}.filter{filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.backdrop-filter{-webkit-backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia);backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia)}.transition{transition-property:color,background-color,border-color,text-decoration-color,fill,stroke,opacity,box-shadow,transform,filter,-webkit-backdrop-filter;transition-property:color,background-color,border-color,text-decoration-color,fill,stroke,opacity,box-shadow,transform,filter,backdrop-filter;transition-property:color,background-color,border-color,text-decoration-color,fill,stroke,opacity,box-shadow,transform,filter,backdrop-filter,-webkit-backdrop-filter;transition-timing-function:cubic-bezier(.4,0,.2,1);transition-duration:.15s}.transition-colors{transition-property:color,background-color,border-color,text-decoration-color,fill,stroke;transition-timing-function:cubic-bezier(.4,0,.2,1);transition-duration:.15s}.ease-in-out{transition-timing-function:cubic-bezier(.4,0,.2,1)}.hover\:text-amber-300:hover{--tw-text-opacity:1;color:rgb(252 211 77/var(--tw-text-opacity,1))}.hover\:text-white:hover{--tw-text-opacity:1;color:rgb(255 255 255/var(--tw-text-opacity,1))}</style>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
@@ -9480,13 +9490,6 @@ async function fetchAifaTabla(slug, isA, copaLegendItems, renderTablaRows) {
 // ──────────────────────────────────────────────
 // RENDER: RESUMEN
 // ──────────────────────────────────────────────
-function rankClass(i) {
-  return i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : 'rank-n';
-}
-function rankLabel(i) {
-  return i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '';
-}
-
 // Switch Primera A/B sin salir de Resumen ni pasar por la landing — mismo
 // side-effect (currentData + badge del header) que ya hacen openSection()/
 // goToMatchFecha() en otros puntos de entrada, seguido de un re-render de
@@ -9574,61 +9577,10 @@ function renderResumen() {
     });
   }
 
-  function top10Row(jug, i) {
-    const rowClass = i === 0 ? 'rank-1-row' : i === 1 ? 'rank-2-row' : i === 2 ? 'rank-3-row' : '';
-    const valClass = i === 0 ? 'val-1' : i === 1 ? 'val-2' : i === 2 ? 'val-3' : 'val-n';
-    return `<div class="top10-row${rowClass ? ' ' + rowClass : ''}">
-      <span class="top10-rank ${rankClass(i)}">${rankLabel(i)}</span>
-      <span class="top10-avatar ${valClass}">${_rivalInitials(jug.nombre)}</span>
-      <span class="top10-name"><strong>${pl(jug.nombre)}</strong></span>
-      <span class="top10-val${valClass ? ' ' + valClass : ''}">${jug.valor}</span>
-    </div>`;
-  }
-
-  // Compact standings centered on Santa Bárbara: 3 teams above, CSB itself
-  // (highlighted), 3 teams below — instead of the full table.
-  // Same badge markup/regex-to-color mapping as the other Tabla Completa
-  // views (copaBadge in renderTorneoApertura et al.) — kept local here since
-  // this is the only render site in renderResumen's scope that needs it.
-  function miniCopaBadge(copa) {
-    if (!copa || copa === '-' || copa === '–') return '<span style="color:rgba(255,255,255,.15)">—</span>';
-    if (/campe[oó]n|supercopa/i.test(copa)) return `<span class="copa-badge copa-campeon">${copa}</span>`;
-    if (/recopa/i.test(copa))               return `<span class="copa-badge copa-recopa">${copa}</span>`;
-    if (/promoci[oó]n/i.test(copa))         return `<span class="copa-badge copa-promocion">${copa}</span>`;
-    if (/copa de honor/i.test(copa))        return `<span class="copa-badge copa-honor">${copa}</span>`;
-    if (/descenso/i.test(copa))             return `<span class="copa-badge copa-descenso">${copa}</span>`;
-    return `<span style="color:rgba(255,255,255,.4);font-size:0.68rem">${copa}</span>`;
-  }
-  function miniTablaHtml(tabla, torneoLabel) {
-    const badge = `<div class="mini-tabla-badge">📊 Tabla de Posiciones${torneoLabel ? ' – ' + torneoLabel : ''}</div>`;
-    if (!tabla || !tabla.length) {
-      return `${badge}<div class="mini-tabla-wrap"><div style="color:var(--gris-texto);font-size:0.82rem;text-align:center;padding:20px">Tabla no disponible</div></div>`;
-    }
-    const idx = tabla.findIndex(t => t.csb);
-    if (idx === -1) return `${badge}<div class="mini-tabla-wrap"><div style="color:var(--gris-texto);font-size:0.82rem;text-align:center;padding:20px">Tabla no disponible</div></div>`;
-    // ~8-9 rows total (4 above CSB, CSB, 4 below) so the card's bottom edge
-    // lines up with the 5-card "Últimos Partidos" column instead of leaving
-    // empty space beneath it.
-    const start = Math.max(0, idx - 4);
-    const end = Math.min(tabla.length, idx + 5);
-    const slice = tabla.slice(start, end);
-    const rows = slice.map(t => `<tr class="${t.csb ? 'csb-row' : ''}">
-      <td>${t.pos}</td><td><span class="mini-tabla-team"><span class="mini-tabla-avatar">${_rivalInitials(t.equipo)}</span><span class="mini-tabla-team-name">${t.csb ? '⭐ ' : ''}${t.equipo}</span></span></td>
-      <td>${miniCopaBadge(t.copas)}</td>
-      <td>${t.pts}</td><td>${t.pj}</td>
-      <td style="color:${t.df > 0 ? '#22c55e' : t.df < 0 ? '#ef4444' : 'inherit'}">${t.df > 0 ? '+' : ''}${t.df ?? '–'}</td>
-    </tr>`).join('');
-    return `${badge}<div class="mini-tabla-wrap">
-      <table class="mini-tabla">
-        <thead><tr><th>#</th><th>Equipo</th><th>Clasif.</th><th>Pts</th><th>PJ</th><th>DIF</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>`;
-  }
   // Extracto de solo 3 filas (rival superior, CSB destacado, rival inferior)
-  // para el módulo "Tabla Corta" del Resumen mobile — misma fuente/CSS que
-  // miniTablaHtml (que sigue usándose tal cual en desktop), recortada a lo
-  // mínimo para un vistazo rápido en vez de las ~9 filas de contexto.
+  // para el módulo "Tabla Corta" del Resumen mobile — el desktop tiene su
+  // propio recorte centrado en CSB (ver tablaCorta más abajo, con su propia
+  // card Tailwind en vez de esta tabla HTML clásica).
   function miniTablaCortaHtml(tabla) {
     if (!tabla || !tabla.length) {
       return `<div class="mini-tabla-wrap"><div style="color:var(--gris-texto);font-size:0.82rem;text-align:center;padding:16px">Tabla no disponible</div></div>`;
@@ -9696,16 +9648,71 @@ function renderResumen() {
   const ultimoRes = ultimo ? (ultimo.gf > ultimo.gc ? 'win' : ultimo.gf < ultimo.gc ? 'loss' : 'draw') : null;
   const proximo = (d.partidos || []).find(p => p.gf == null || p.gc == null) || null;
 
+  // ── Datos para el rediseño desktop (Tailwind) del Bloque 1 ──
+  // "Último Partido": goleadores/asistidores del partido puntual, derivados
+  // del detalle de esa fecha (misma fuente que Fecha a Fecha — d.apertura —
+  // no un fetch aparte).
+  const ultimoDetail = ultimo ? (d.apertura || []).find(m => String(m.fecha) === String(ultimo.fecha)) : null;
+  const _plNm = nm => (nm || '').replace(/\s*\(c\)/i, '').trim();
+  const ultimoGoleadores = ultimoDetail ? (ultimoDetail.jugadores || []).filter(j => j.goles > 0).map(j => `${_plNm(j.nombre)}${j.goles > 1 ? ' x' + j.goles : ''}`) : [];
+  const ultimoAsistidores = ultimoDetail ? (ultimoDetail.jugadores || []).filter(j => j.asist > 0).map(j => `${_plNm(j.nombre)}${j.asist > 1 ? ' x' + j.asist : ''}`) : [];
+
+  // Tabla recortada centrada en CSB: 1 equipo arriba, CSB, 2 abajo.
+  const tablaIdx = (d.tabla || []).findIndex(t => t.csb);
+  const tablaCorta = tablaIdx === -1 ? null : d.tabla.slice(Math.max(0, tablaIdx - 1), Math.min(d.tabla.length, tablaIdx + 3));
+
+  // Destacados del torneo EN CURSO (Clausura) — goles/asistencias/vallas
+  // invictas agregados partido a partido desde d.apertura (mismo detalle de
+  // Fecha a Fecha), a diferencia del TOP 5 histórico de abajo que sale de
+  // "Estadísticas Totales" (career, todas las temporadas). Se recalcula acá
+  // porque no existe una fuente de "solo esta temporada" ya armada.
+  const ligaClausura = (d.apertura || []).filter(m => /^\d+$/.test(String(m.fecha)) && m.resultado !== null);
+  const _golCount = {}, _asistCount = {}, _vallaCount = {};
+  for (const m of ligaClausura) {
+    const mLocalNorm = String(m.local || '').trim().toUpperCase();
+    const rivalGoles = mLocalNorm === 'VISITANTE' ? m.gf : m.gc;
+    let arqTitular = null;
+    for (const j of (m.jugadores || [])) {
+      if (!j.nombre) continue;
+      const nm = _plNm(j.nombre);
+      if (j.goles) _golCount[nm] = (_golCount[nm] || 0) + j.goles;
+      if (j.asist) _asistCount[nm] = (_asistCount[nm] || 0) + j.asist;
+      if (j.titular && (j.pos || '').toUpperCase() === 'ARQ') arqTitular = nm;
+    }
+    if (rivalGoles === 0 && arqTitular) _vallaCount[arqTitular] = (_vallaCount[arqTitular] || 0) + 1;
+  }
+  const _top1 = obj => Object.entries(obj).sort((a, b) => b[1] - a[1])[0] || null;
+  const golLeader = _top1(_golCount), asistLeader = _top1(_asistCount), vallaLeader = _top1(_vallaCount);
+
+  const totalesHistItems = [
+    { label: 'Partidos Jugados',   val: h.pj,                                       color: 'text-white' },
+    { label: 'Victorias',          val: h.pg,                                       color: 'text-emerald-400' },
+    { label: 'Empates',            val: h.pe,                                       color: 'text-amber-400' },
+    { label: 'Derrotas',           val: h.pp,                                       color: 'text-red-400' },
+    { label: 'Goles a Favor',      val: h.gf,                                       color: 'text-sky-400' },
+    { label: 'Goles en Contra',    val: h.gc,                                       color: 'text-red-400' },
+    { label: 'Diferencia de Gol',  val: (h.gf - h.gc >= 0 ? '+' : '') + (h.gf - h.gc), color: (h.gf - h.gc) >= 0 ? 'text-emerald-400' : 'text-red-400' },
+    { label: 'Vallas Invictas',    val: h.vi,                                       color: 'text-purple-400' },
+  ];
+
+  function top10RowTw(jug, i) {
+    const rankColors = ['text-amber-400', 'text-slate-300', 'text-orange-400'];
+    const rankCls = i < 3 ? rankColors[i] : 'text-slate-500';
+    return `<div class="flex items-center gap-3 py-2${i > 0 ? ' border-t border-slate-800/60' : ''}">
+      <span class="w-5 text-sm font-extrabold ${rankCls}">${i + 1}</span>
+      <span class="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[0.65rem] font-extrabold text-slate-300 shrink-0">${_rivalInitials(jug.nombre)}</span>
+      <span class="flex-1 text-sm text-white font-medium truncate">${pl(jug.nombre)}</span>
+      <span class="text-sm font-extrabold ${rankCls}">${jug.valor}</span>
+    </div>`;
+  }
+
+  // Navega a la Tabla Completa del plantel activo dentro de "Torneos
+  // Actuales" — mismo patrón que el resto de los atajos cross-sección
+  // (_navPush + showTab), sumando el cambio a la sub-pestaña "tabla".
+  const verTablaCompletaAttr = `_navPush('Resumen', () => renderResumen()); showTab('posiciones', document.querySelectorAll('#main-nav button')[1]); if (window.apSwitchTab) apSwitchTab('tabla');`;
+
   const container = document.getElementById('resumen-content');
   container.innerHTML = `
-    <div class="resumen-desktop-only" style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap">
-      <div class="section-title" style="margin-bottom:0">${isA ? '🏆' : '⚽'} Resumen – ${d.nombre}</div>
-      <div class="resumen-cat-switch">
-        <button class="resumen-cat-btn${isA ? ' active' : ''}" onclick="_resumenSwitchCategory('a')">Primera A</button>
-        <button class="resumen-cat-btn${isA ? '' : ' active'}" onclick="_resumenSwitchCategory('b')">Primera B</button>
-      </div>
-    </div>
-
     <!-- ═══ VISTA MOBILE (≤768px) ═══ — orden de actualidad a historia:
          1) header/selector Plantel, 2) actualidad (último+próximo
          partido), 3) tabla corta, 4) KPIs históricos, 5) TOP 5, 6) Glorias
@@ -9795,119 +9802,161 @@ function renderResumen() {
       </div>
     </div>
 
-    <!-- ═══ VISTA ESCRITORIO (>768px) ═══ -->
-    <!-- Estadísticas históricas + columna derecha -->
-    <div class="resumen-desktop-only resumen-grid">
-      <div class="stats-hist">
-        <div class="stats-hist-title">📊 Estadísticas Históricas</div>
-        <div class="stats-hist-grid">
-          <div class="sh-item">
-            <div class="sh-label">Partidos Jugados</div>
-            <div class="sh-value">${h.pj}</div>
-            <div class="sh-pct">${isA ? 'Desde 2016' : 'Desde 2021'}</div>
-          </div>
-          <div class="sh-item">
-            <div class="sh-label">Victorias</div>
-            <div class="sh-value" style="color:#22c55e">${h.pg}</div>
-            <div class="sh-pct">${pct(h.pg)} ganados</div>
-          </div>
-          <div class="sh-item">
-            <div class="sh-label">Empates</div>
-            <div class="sh-value" style="color:#f59e0b">${h.pe}</div>
-            <div class="sh-pct">${pct(h.pe)} de los PJ</div>
-          </div>
-          <div class="sh-item">
-            <div class="sh-label">Derrotas</div>
-            <div class="sh-value" style="color:#ef4444">${h.pp}</div>
-            <div class="sh-pct">${pct(h.pp)} perdidos</div>
-          </div>
-          <div class="sh-item">
-            <div class="sh-label">Goles a Favor</div>
-            <div class="sh-value" style="color:#38bdf8">${h.gf}</div>
-            <div class="sh-pct">${(h.gf/h.pj).toFixed(1)} por partido</div>
-          </div>
-          <div class="sh-item">
-            <div class="sh-label">Goles en Contra</div>
-            <div class="sh-value" style="color:#f87171">${h.gc}</div>
-            <div class="sh-pct">${(h.gc/h.pj).toFixed(1)} por partido</div>
-          </div>
-          <div class="sh-item">
-            <div class="sh-label">Vallas Invictas</div>
-            <div class="sh-value">${h.vi}</div>
-            <div class="sh-pct">${pct(h.vi)} de los PJ</div>
-          </div>
-          <div class="sh-item">
-            <div class="sh-label">Diferencia de Goles</div>
-            <div class="sh-value" style="color:${(h.gf-h.gc)>=0?'#22c55e':'#ef4444'}">${h.gf-h.gc>=0?'+':''}${h.gf-h.gc}</div>
-            <div class="sh-pct">GF − GC</div>
-          </div>
-        </div>
-      </div>
+    <!-- ═══ VISTA ESCRITORIO (>768px) — Tailwind ═══ -->
+    <div class="resumen-desktop-only bg-[#090d16]">
 
-      <div class="resumen-right-col">
-        <div class="titulos-card">
-          <div class="titulos-card-title">🏅 Títulos Oficiales</div>
-          ${d.titulos.map(t => `
-            <div class="titulo-item">
-              <span class="titulo-name">${t.nombre}</span>
-              <span class="titulo-count">${t.anio}</span>
-            </div>`).join('')}
-        </div>
-        <div class="records-card">
-          <div class="records-card-title">⚡ Récords Históricos</div>
-          <div class="record-item">
-            <div class="record-label">Máxima goleada histórica</div>
-            <div class="record-val">${isA ? '<span>8 – 0</span> vs Sitas (Apertura 2023)' : '<span>13 – 0</span> vs República del Oeste (Apertura 2023)'}</div>
-          </div>
-          <div class="record-item">
-            <div class="record-label">Racha invicta más larga</div>
-            <div class="record-val">${isA ? '<span>15 partidos</span> (Apertura 2026)' : '<span>14 partidos</span> (Clausura 2023)'}</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- TOP 5 histórico -->
-    <div class="resumen-desktop-only top10-grid">
-      <div class="top10-card">
-        <div class="top10-header" style="color:#fac775;border-bottom-color:#fac775">👟 TOP 5 – Más partidos</div>
-        ${byPartidos.map((j,i) => top10Row(j, i)).join('')}
-      </div>
-      <div class="top10-card">
-        <div class="top10-header" style="color:#22c55e;border-bottom-color:#22c55e">⚽ TOP 5 – Máximos goleadores</div>
-        ${byGoles.map((j,i) => top10Row(j, i)).join('')}
-      </div>
-      <div class="top10-card">
-        <div class="top10-header" style="color:#85b7eb;border-bottom-color:#85b7eb">🎯 TOP 5 – Máximos asistidores</div>
-        ${byAsist.map((j,i) => top10Row(j, i)).join('')}
-      </div>
-    </div>
-
-    <!-- Últimos 5 partidos + mini tabla, lado a lado -->
-    <div class="resumen-desktop-only resumen-split">
-      <div class="ultimos-col">
-        <div class="section-title" style="margin-bottom:14px">🕐 Últimos 5 Partidos</div>
-        <div class="ultimos-grid">
-          ${ultimos.length ? ultimos.map(p => {
-            const res = p.gf > p.gc ? 'win' : p.gf < p.gc ? 'loss' : 'draw';
-            const resLabel = p.gf > p.gc ? 'Victoria' : p.gf < p.gc ? 'Derrota' : 'Empate';
-            const esCopa = isNaN(parseInt(p.fecha));
-            const fechaLabel = esCopa ? p.fecha : `Fecha ${p.fecha}`;
-            const fechaArg = String(p.fecha).replace(/'/g, "\\'");
-            return `<div class="ultimo-card ultimo-card-link ${res}" onclick="goToMatchFecha('${p._navKey}', '${fechaArg}')" title="Ver en Fecha a Fecha">
-              <div class="ultimo-fecha">${fechaLabel}<span class="ultimo-torneo-badge ${ultimoBadgeCls(p._torneoLabel)}">${p._torneoLabel}</span></div>
-              <div>
-                <div class="ultimo-rival">${_rivalAvatarHtml(p.rival)}vs ${p.rival}</div>
-                <div class="ultimo-local">${p.local || ''}</div>
+      <!-- Header: escudo + título + badge torneo + selector, y Próximo Partido -->
+      <div class="bg-slate-900/40 border border-slate-800/80 rounded-3xl p-6 mb-5 flex items-center justify-between gap-6 flex-wrap">
+        <div class="flex items-center gap-4">
+          <img src="logo-csb.webp" alt="Escudo Club Santa Bárbara" class="w-16 h-16 rounded-2xl object-contain bg-slate-950/60 border border-slate-800/80 p-2" />
+          <div>
+            <h1 class="text-2xl font-extrabold text-white tracking-tight leading-none">Plantel Superior</h1>
+            <div class="flex items-center gap-2 mt-2.5">
+              <span class="inline-flex items-center gap-1.5 bg-amber-500/10 text-amber-400 border border-amber-500/30 text-xs font-bold px-3 py-1 rounded-full">🏆 ${d.badge || d.nombre}</span>
+              <div class="inline-flex bg-slate-950/60 border border-slate-800/80 rounded-full p-1 gap-1">
+                <button class="${isA ? 'bg-amber-500 text-slate-950' : 'bg-transparent text-slate-400 hover:text-white'} appearance-none border-0 text-xs font-bold px-3 py-1.5 rounded-full transition-colors cursor-pointer" onclick="_resumenSwitchCategory('a')">Primera A</button>
+                <button class="${isA ? 'bg-transparent text-slate-400 hover:text-white' : 'bg-amber-500 text-slate-950'} appearance-none border-0 text-xs font-bold px-3 py-1.5 rounded-full transition-colors cursor-pointer" onclick="_resumenSwitchCategory('b')">Primera B</button>
               </div>
-              <div class="ultimo-resultado ${res}">${p.resultado}</div>
-              <div class="ultimo-pos">${p.posCSB || resLabel}</div>
-            </div>`;
-          }).join('') : '<div style="color:#475569;padding:20px;text-align:center;font-size:0.82rem">Sin partidos jugados aún</div>'}
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-slate-950/50 border border-slate-800/80 rounded-2xl px-5 py-3 flex items-center gap-5 min-w-[300px]">
+          ${proximo ? `
+            <div>
+              <div class="text-[0.65rem] uppercase tracking-wider text-slate-500 font-bold">🗓 Próximo Partido${proximo.fecha ? ' · Fecha ' + proximo.fecha : ''}</div>
+              <div class="flex items-center gap-2 mt-1.5">
+                <span class="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[0.68rem] font-extrabold text-slate-300 shrink-0">${_rivalInitials(proximo.rival)}</span>
+                <span class="text-white font-bold text-sm">vs ${proximo.rival}</span>
+              </div>
+            </div>
+            <div class="ml-auto text-right">
+              ${proximo.horario ? `<div class="text-amber-400 font-extrabold text-sm">${proximo.horario}</div>` : ''}
+              <div class="text-slate-500 text-xs font-semibold">${_rsmLocalTxt(proximo.local)}</div>
+            </div>
+          ` : `<span class="text-slate-500 text-sm font-semibold">Torneo finalizado</span>`}
         </div>
       </div>
-      <div class="mini-tabla-col">
-        ${miniTablaHtml(d.tabla, d.badge || d.nombre)}
+
+      <!-- Bloque 1: Actualidad del Torneo — 3 columnas -->
+      <div class="grid grid-cols-3 gap-5 mb-6">
+        <!-- Columna 1: Último Partido -->
+        <div class="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-5 flex flex-col">
+          <div class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4">⚽ Último Partido</div>
+          ${ultimo ? `
+            <div class="flex items-center justify-between mb-1">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-extrabold text-slate-300 shrink-0">${_rivalInitials(ultimo.rival)}</span>
+                <span class="text-white font-semibold text-sm truncate">vs ${ultimo.rival}</span>
+              </div>
+              <span class="text-[0.65rem] font-bold px-2 py-0.5 rounded-full shrink-0 ${ultimoRes === 'win' ? 'bg-emerald-500/15 text-emerald-400' : ultimoRes === 'loss' ? 'bg-red-500/15 text-red-400' : 'bg-amber-500/15 text-amber-400'}">${ultimoRes === 'win' ? 'Victoria' : ultimoRes === 'loss' ? 'Derrota' : 'Empate'}</span>
+            </div>
+            <div class="text-4xl font-black text-center my-4 ${ultimoRes === 'win' ? 'text-emerald-400' : ultimoRes === 'loss' ? 'text-red-400' : 'text-amber-400'}">${ultimo.resultado}</div>
+            <div class="text-xs text-slate-400 space-y-1.5 mb-5">
+              ${ultimoGoleadores.length ? `<div class="truncate"><span class="text-slate-500">⚽ Goles:</span> ${ultimoGoleadores.join(', ')}</div>` : ''}
+              ${ultimoAsistidores.length ? `<div class="truncate"><span class="text-slate-500">🎯 Asist.:</span> ${ultimoAsistidores.join(', ')}</div>` : ''}
+              ${!ultimoGoleadores.length && !ultimoAsistidores.length ? `<div class="text-slate-600">Sin datos de goleadores para este partido.</div>` : ''}
+            </div>
+            <button onclick="goToMatchFecha('${ultimo._navKey}', '${String(ultimo.fecha).replace(/'/g, "\\'")}')" class="mt-auto bg-transparent appearance-none border-0 p-0 text-amber-400 hover:text-amber-300 text-xs font-bold text-left transition-colors cursor-pointer">Ver Ficha Completa →</button>
+          ` : `<div class="text-slate-500 text-sm text-center py-10">Sin partidos jugados aún</div>`}
+        </div>
+
+        <!-- Columna 2: Posición en la Tabla -->
+        <div class="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-5 flex flex-col">
+          <div class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">📊 Posición en la Tabla</div>
+          ${tablaCorta ? `
+            <div class="flex flex-col gap-1.5 mb-4">
+              ${tablaCorta.map(t => `
+                <div class="flex items-center gap-2.5 px-2.5 py-2 rounded-xl ${t.csb ? 'bg-amber-500/10 border border-amber-500/30' : ''}">
+                  <span class="w-5 text-xs font-extrabold shrink-0 ${t.csb ? 'text-amber-400' : 'text-slate-500'}">${t.pos}</span>
+                  <span class="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[0.6rem] font-extrabold text-slate-300 shrink-0">${_rivalInitials(t.equipo)}</span>
+                  <span class="flex-1 text-xs font-semibold truncate ${t.csb ? 'text-white' : 'text-slate-400'}">${t.csb ? '⭐ ' : ''}${t.equipo}</span>
+                  <span class="text-xs font-extrabold shrink-0 ${t.csb ? 'text-amber-400' : 'text-slate-300'}">${t.pts} pts</span>
+                </div>`).join('')}
+            </div>
+          ` : `<div class="text-slate-500 text-sm text-center py-10 flex-1">Tabla no disponible</div>`}
+          <button onclick="${verTablaCompletaAttr}" class="mt-auto bg-transparent appearance-none border-0 p-0 text-amber-400 hover:text-amber-300 text-xs font-bold text-left transition-colors cursor-pointer">Ver Tabla Completa →</button>
+        </div>
+
+        <!-- Columna 3: Destacados Clausura -->
+        <div class="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-5">
+          <div class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4">🌟 Destacados ${clausuraLabel}</div>
+          <div class="flex flex-col gap-3.5">
+            <div class="flex items-center gap-3">
+              <span class="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center text-base shrink-0">⚽</span>
+              <div class="flex-1 min-w-0"><div class="text-[0.65rem] text-slate-500 font-semibold">Goleador</div><div class="text-white text-sm font-bold truncate">${golLeader ? golLeader[0] : '—'}</div></div>
+              <div class="text-emerald-400 font-extrabold text-lg shrink-0">${golLeader ? golLeader[1] : '—'}</div>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="w-9 h-9 rounded-xl bg-sky-500/10 flex items-center justify-center text-base shrink-0">🎯</span>
+              <div class="flex-1 min-w-0"><div class="text-[0.65rem] text-slate-500 font-semibold">Asistidor</div><div class="text-white text-sm font-bold truncate">${asistLeader ? asistLeader[0] : '—'}</div></div>
+              <div class="text-sky-400 font-extrabold text-lg shrink-0">${asistLeader ? asistLeader[1] : '—'}</div>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="w-9 h-9 rounded-xl bg-purple-500/10 flex items-center justify-center text-base shrink-0">🧤</span>
+              <div class="flex-1 min-w-0"><div class="text-[0.65rem] text-slate-500 font-semibold">Valla Invicta</div><div class="text-white text-sm font-bold truncate">${vallaLeader ? vallaLeader[0] : '—'}</div></div>
+              <div class="text-purple-400 font-extrabold text-lg shrink-0">${vallaLeader ? vallaLeader[1] : '—'}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Divisor -->
+      <div class="flex items-center gap-4 my-8">
+        <div class="h-px flex-1 bg-slate-800/80"></div>
+        <span class="text-sm font-bold text-slate-400 whitespace-nowrap">🏛️ Historia y Récords del Club</span>
+        <div class="h-px flex-1 bg-slate-800/80"></div>
+      </div>
+
+      <!-- Bloque 2, Fila 1: Palmarés (4 cols) + Totales Históricos (8 cols) -->
+      <div class="grid grid-cols-12 gap-5 mb-5">
+        <div class="col-span-4 bg-slate-900/40 border border-slate-800/80 rounded-2xl p-5">
+          <div class="text-xs font-bold uppercase tracking-wider text-amber-400 mb-3">🏅 Palmarés Oficial</div>
+          <div class="flex flex-col gap-2.5">
+            ${d.titulos.map(t => `
+              <div class="flex items-center justify-between bg-slate-950/40 rounded-xl px-3.5 py-2.5">
+                <span class="text-white text-sm font-semibold">${t.nombre}</span>
+                <span class="text-amber-400 text-xs font-extrabold">${t.anio}</span>
+              </div>`).join('')}
+            <div class="flex items-center justify-between bg-slate-950/40 rounded-xl px-3.5 py-2.5">
+              <span class="text-slate-400 text-xs">🔥 Racha invicta</span>
+              <span class="text-white text-xs font-bold text-right">${isA ? '15 partidos' : '14 partidos'}</span>
+            </div>
+            <div class="flex items-center justify-between bg-slate-950/40 rounded-xl px-3.5 py-2.5">
+              <span class="text-slate-400 text-xs">⚡ Máxima goleada</span>
+              <span class="text-white text-xs font-bold text-right">${isA ? '8–0 vs Sitas' : '13–0 vs Rep. del Oeste'}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-span-8 bg-slate-900/40 border border-slate-800/80 rounded-2xl p-5">
+          <div class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">📊 Totales Históricos</div>
+          <div class="grid grid-cols-4 grid-rows-2 gap-3">
+            ${totalesHistItems.map(it => `
+              <div class="bg-slate-950/40 rounded-xl px-4 py-3.5 text-center">
+                <div class="text-2xl font-black ${it.color}">${it.val}</div>
+                <div class="text-[0.65rem] text-slate-500 font-semibold mt-1">${it.label}</div>
+              </div>`).join('')}
+          </div>
+        </div>
+      </div>
+
+      <!-- Bloque 2, Fila 2: Rankings Históricos — ancho completo -->
+      <div class="bg-slate-900/40 border border-slate-800/80 rounded-3xl p-6 w-full">
+        <div class="grid grid-cols-3 gap-6">
+          <div class="pr-6 border-r border-slate-800/80">
+            <div class="text-sm font-bold text-emerald-400 mb-4 pb-3 border-b border-emerald-500/20">⚽ Top 5 Goleadores</div>
+            ${byGoles.map((j, i) => top10RowTw(j, i)).join('')}
+          </div>
+          <div class="px-6 border-r border-slate-800/80">
+            <div class="text-sm font-bold text-sky-400 mb-4 pb-3 border-b border-sky-500/20">🎯 Top 5 Asistidores</div>
+            ${byAsist.map((j, i) => top10RowTw(j, i)).join('')}
+          </div>
+          <div class="pl-6">
+            <div class="text-sm font-bold text-amber-400 mb-4 pb-3 border-b border-amber-500/20">👟 Top 5 Presencias</div>
+            ${byPartidos.map((j, i) => top10RowTw(j, i)).join('')}
+          </div>
+        </div>
       </div>
     </div>`;
 }
