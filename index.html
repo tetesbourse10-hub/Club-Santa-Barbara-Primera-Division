@@ -83,6 +83,10 @@
       text-transform: uppercase;
     }
 
+    /* Solo mobile (ver @media más abajo) — desktop no tenía ni necesita un
+       label sobre las 3 tarjetas de torneo. */
+    .landing-cards-label { display: none; }
+
     .landing-cards {
       display: flex;
       gap: 24px;
@@ -859,13 +863,21 @@
         margin-bottom: 12px;
       }
       .landing-title { font-size: 1.35rem; margin-bottom: 2px; }
-      .landing-sub { font-size: 0.66rem; margin-bottom: 22px; }
+      /* text-slate-400 (#94a3b8) en vez de --gris-texto (slate-500,
+         #64748b) — el subtítulo se leía muy apagado sobre el fondo oscuro. */
+      .landing-sub { font-size: 0.66rem; margin-bottom: 22px; color: #94a3b8; }
 
       /* Oculta el banner de escritorio, prende el carrusel */
       .next-match-row { display: none; }
       .pm-carousel-wrap { display: block; width: 100%; margin-bottom: 20px; }
       .pm-carousel-label {
-        font-size: 0.68rem; font-weight: 700; color: var(--gris-texto);
+        font-size: 0.68rem; font-weight: 700; color: #94a3b8;
+        text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px;
+      }
+      /* Mismo tratamiento de subtítulo para el bloque de tarjetas de torneo
+         — antes no tenía ningún label propio. */
+      .landing-cards-label {
+        display: block; font-size: 0.68rem; font-weight: 700; color: #94a3b8;
         text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px;
       }
       /* Ya no es un carrusel con scroll horizontal — con 2 casillas nomás,
@@ -900,13 +912,26 @@
       .pm-avatar-us    { background: rgba(151,196,89,0.15); color: #97c459; border: 1px solid rgba(151,196,89,0.35); }
       .pm-avatar-rival { background: rgba(240,149,149,0.15); color: #f09595; border: 1px solid rgba(240,149,149,0.35); }
       .pm-vs { font-size: 0.66rem; color: var(--gris-texto); font-weight: 700; }
+      /* truncate + text-[10px] — "Santa Bárbara vs Rival Con Nombre Largo"
+         partía a 2 líneas en celulares angostos (la card ocupa la mitad del
+         ancho, flex:1 con las 2 casillas lado a lado); ahora una sola línea
+         con "…" en vez del salto. */
       .pm-team-names {
-        font-size: 0.76rem; font-weight: 700; color: #e2e8f0; line-height: 1.25;
-        margin-bottom: 12px; word-break: break-word;
+        font-size: 10px; font-weight: 700; color: #e2e8f0; line-height: 1.25;
+        margin-bottom: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       }
-      .pm-team-names .pm-vs-inline { color: var(--gris-texto); font-weight: 600; font-size: 0.68rem; }
+      .pm-team-names .pm-vs-inline { color: var(--gris-texto); font-weight: 600; font-size: 9px; }
       .pm-card-meta { font-size: 0.72rem; color: var(--gris-texto); margin-bottom: 8px; }
-      .pm-card-countdown { font-size: 1.2rem; font-weight: 900; color: #ef9f27; }
+      /* Badge centrada en vez de texto suelto, coloreada por categoría —
+         dorado para Primera A, sky para Primera B (ver .pm-cd-a/.pm-cd-b,
+         seteadas por _pmCard() en JS junto con pm-label-a/pm-label-b). */
+      .pm-card-countdown {
+        display: inline-flex; align-items: center; justify-content: center;
+        margin: 0 auto; padding: 5px 14px; border-radius: 999px;
+        font-size: 0.9rem; font-weight: 900;
+      }
+      .pm-card-countdown.pm-cd-a { background: rgba(245,158,11,0.15); color: #fac775; border: 1px solid rgba(245,158,11,0.35); }
+      .pm-card-countdown.pm-cd-b { background: rgba(59,130,246,0.15); color: #85b7eb; border: 1px solid rgba(59,130,246,0.35); }
 
       /* Cards principales: de stack centrado a fila compacta */
       .landing-cards { flex-direction: column; align-items: stretch; gap: 12px; width: 100%; max-width: none; }
@@ -924,7 +949,25 @@
       .landing-card .card-desc { font-size: 0.7rem; line-height: 1.3; }
       .landing-card .card-badge { display: inline-block; margin: 10px 0 12px; align-self: flex-start; }
       .lc-badge { position: static; flex-shrink: 0; }
-      .lc-footer { margin-top: 0; }
+      .lc-footer { margin-top: 0; border-top-color: #1e293b; }
+
+      /* Tarjetas de Primera A/Primera B (1ª y 2ª de .landing-cards): mismo
+         ícono para las dos — antes 🏆/⚽ desequilibraban la tarjeta al
+         quedar una más "pesada" que la otra visualmente. Solo mobile: se
+         apaga el emoji real (font-size:0) y se pinta uno fijo por CSS. */
+      .landing-cards .landing-card:nth-child(-n+2) .card-icon { font-size: 0; }
+      .landing-cards .landing-card:nth-child(-n+2) .card-icon::before { content: '🏆'; font-size: 1.6rem; }
+
+      /* El Nido (3ra tarjeta): compactada a un solo renglón — ícono +
+         nombre a la izquierda, badge "N jugadores" a la derecha (ambos ya
+         vienen así de .lc-card-head, sin cambios); se esconde la bajada
+         ("Jugadores de la Primera...") y el badge estático "NUESTROS
+         JUGADORES" (redundante con la badge de jugadores) para que ese
+         renglón sea lo único arriba, dejando el dato aleatorio rotativo
+         (.lc-footer-nido) como única línea debajo. */
+      .landing-cards .landing-card:nth-child(3) .card-desc { display: none; }
+      .landing-cards .landing-card:nth-child(3) > .card-badge { display: none; }
+      .landing-cards .landing-card:nth-child(3) .lc-footer { margin-top: 10px; padding-top: 10px; }
     }
 
     footer { text-align: center; padding: 24px; font-size: 0.72rem; color: var(--gris-texto); border-top: 1px solid var(--gris); margin-top: 40px; }
@@ -2649,6 +2692,7 @@
     <div class="pm-carousel" id="landing-next-match-carousel"></div>
   </div>
 
+  <div class="landing-cards-label">Torneos en curso</div>
   <div class="landing-cards">
     <!-- Los wrapper .lc-card-head/-left/-info de acá abajo son
          display:contents en desktop (no existen para el layout — el ícono,
@@ -13955,6 +13999,7 @@ function _pmCard(label, labelClass, m, navKey) {
   const clickNavKey = m.navKey || navKey;
   const clickLocator = m.locator != null ? m.locator : m.fecha;
   const clickAttr = clickLocator != null ? ` onclick="goToMatchFecha('${clickNavKey}', '${String(clickLocator).replace(/'/g, "\\'")}')"` : '';
+  const cdClass = labelClass === 'pm-label-a' ? 'pm-cd-a' : 'pm-cd-b';
   return `<div class="pm-card${clickAttr ? ' clickable' : ''}"${clickAttr}>
     <div class="pm-card-label ${labelClass}">${label}</div>
     <div class="pm-avatars">
@@ -13964,7 +14009,7 @@ function _pmCard(label, labelClass, m, navKey) {
     </div>
     <div class="pm-team-names">Santa Bárbara <span class="pm-vs-inline">vs</span> ${m.rival}</div>
     <div class="pm-card-meta">${metaLine || 'Fecha a confirmar'}${meta.localTxt ? ' · ' + meta.localTxt : ''}</div>
-    ${cd ? `<div class="pm-card-countdown">${cdVal}</div>` : ''}
+    ${cd ? `<div class="pm-card-countdown ${cdClass}">${cdVal}</div>` : ''}
   </div>`;
 }
 function renderLandingNextMatchCarousel(matchA, matchB) {
@@ -13994,7 +14039,7 @@ function renderLandingCardStats() {
     const tabla = d.tabla || [];
     const own = tabla.find(t => t.csb);
     if (badgeEl) _softSetHtml(badgeEl, own
-      ? `<span class="lc-badge-pill ${_posBadgeClass(parseInt(own.pos) || 0, tabla.length)}">${own.pos} puesto</span>` : '');
+      ? `<span class="lc-badge-pill ${_posBadgeClass(parseInt(own.pos) || 0, tabla.length)}">${own.pos}º puesto</span>` : '');
     if (footEl) {
       const partidos = (d.partidos || []).filter(m => /^\d+$/.test(m.fecha));
       const played = partidos.filter(m => m.resultado !== null);
