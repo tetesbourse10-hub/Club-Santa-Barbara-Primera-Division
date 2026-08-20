@@ -885,10 +885,15 @@
          de quedar angostas y alineadas a la izquierda. Se mantiene el
          nombre de clase (pm-carousel) para no tocar el JS que lo puebla. */
       .pm-carousel { display: flex; gap: 12px; width: 100%; }
+      /* Degradé oscuro + borde iluminado + sombra — antes era un fondo
+         plano (#141d2e), quedaba sin presencia frente al resto de la
+         pantalla. */
       .pm-card {
-        flex: 1 1 0; min-width: 0; background: #141d2e;
-        border: 1px solid rgba(255,255,255,0.08); border-radius: 14px;
+        flex: 1 1 0; min-width: 0;
+        background: linear-gradient(180deg, #1c263f 0%, #121826 100%);
+        border: 1px solid rgba(100,116,139,0.6); border-radius: 14px;
         padding: 18px 14px; text-align: center;
+        box-shadow: 0 12px 28px -8px rgba(0,0,0,0.5);
       }
       .pm-card.clickable { cursor: pointer; }
       .pm-card-label {
@@ -897,21 +902,31 @@
       }
       .pm-card-label.pm-label-a { color: #fac775; }
       .pm-card-label.pm-label-b { color: #85b7eb; }
-      /* Avatares arriba (siguen indicando de un vistazo quién es "nosotros"
-         vs "el rival"), nombres completos en una sola línea debajo —
-         algunas iniciales de rivales se repiten entre sí (ver pedido: "con
-         el avatar algunos rivales comparten las iniciales"), así que el
-         nombre real es lo que realmente desambigua, y necesita el ancho
-         completo de la card en vez de quedar partido en 2 columnas angostas. */
+      /* Escudos arriba — antes círculos con solo iniciales; ahora <img> con
+         fallback automático a las iniciales si la imagen no existe o falla
+         (ver onerror en _pmCard()/JS — mismo patrón que usa Fecha a Fecha).
+         El propio (.pm-crest-us) usa el verde institucional #00875a como
+         fondo del círculo; el rival apunta a escudos/<slug>.webp — el sitio
+         hoy no tiene esos archivos todavía, así que en la práctica sigue
+         mostrando el fallback de iniciales hasta que se sumen. Izquierda/
+         derecha ya no son fijos "nosotros/rival": los arma _pmCard() según
+         la localía real del partido (local a la izquierda). */
       .pm-avatars { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 8px; }
-      .pm-avatar {
+      .pm-vs { font-size: 0.66rem; color: var(--gris-texto); font-weight: 700; }
+      .pm-crest {
         width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
         display: inline-flex; align-items: center; justify-content: center;
-        font-size: 0.8rem; font-weight: 800;
+        overflow: hidden; position: relative;
       }
-      .pm-avatar-us    { background: rgba(151,196,89,0.15); color: #97c459; border: 1px solid rgba(151,196,89,0.35); }
-      .pm-avatar-rival { background: rgba(240,149,149,0.15); color: #f09595; border: 1px solid rgba(240,149,149,0.35); }
-      .pm-vs { font-size: 0.66rem; color: var(--gris-texto); font-weight: 700; }
+      .pm-crest img { width: 100%; height: 100%; object-fit: contain; }
+      .pm-crest-us { background: #00875a; padding: 6px; box-sizing: border-box; }
+      .pm-crest-us img { object-fit: contain; }
+      .pm-crest-rival { background: rgba(240,149,149,0.15); border: 1px solid rgba(240,149,149,0.35); }
+      .pm-crest-rival img { padding: 5px; box-sizing: border-box; }
+      .pm-crest-fallback {
+        display: none; width: 100%; height: 100%; align-items: center; justify-content: center;
+        font-size: 0.8rem; font-weight: 800; color: #f09595;
+      }
       /* truncate + text-[10px] — "Santa Bárbara vs Rival Con Nombre Largo"
          partía a 2 líneas en celulares angostos (la card ocupa la mitad del
          ancho, flex:1 con las 2 casillas lado a lado); ahora una sola línea
@@ -922,16 +937,25 @@
       }
       .pm-team-names .pm-vs-inline { color: var(--gris-texto); font-weight: 600; font-size: 9px; }
       .pm-card-meta { font-size: 0.72rem; color: var(--gris-texto); margin-bottom: 8px; }
-      /* Badge centrada en vez de texto suelto, coloreada por categoría —
-         dorado para Primera A, sky para Primera B (ver .pm-cd-a/.pm-cd-b,
-         seteadas por _pmCard() en JS junto con pm-label-a/pm-label-b). */
+      .pm-local-tag { color: #cbd5e1; font-weight: 700; }
+      /* Cápsula de alto contraste — el elemento más llamativo de la card,
+         a propósito: fondo ámbar sólido (no translúcido como antes) +
+         sombra ámbar + borde, en vez de una badge tenue del mismo tono que
+         el resto. Primera B mantiene su propio acento (sky) con el mismo
+         tratamiento de "cápsula sólida". */
       .pm-card-countdown {
         display: inline-flex; align-items: center; justify-content: center;
-        margin: 0 auto; padding: 5px 14px; border-radius: 999px;
-        font-size: 0.9rem; font-weight: 900;
+        margin: 0 auto; padding: 6px 16px; border-radius: 999px;
+        font-size: 0.92rem; font-weight: 900;
       }
-      .pm-card-countdown.pm-cd-a { background: rgba(245,158,11,0.15); color: #fac775; border: 1px solid rgba(245,158,11,0.35); }
-      .pm-card-countdown.pm-cd-b { background: rgba(59,130,246,0.15); color: #85b7eb; border: 1px solid rgba(59,130,246,0.35); }
+      .pm-card-countdown.pm-cd-a {
+        background: #f59e0b; color: #020617; border: 1px solid rgba(251,191,36,0.4);
+        box-shadow: 0 6px 16px -4px rgba(245,158,11,0.5);
+      }
+      .pm-card-countdown.pm-cd-b {
+        background: #38bdf8; color: #020617; border: 1px solid rgba(56,189,248,0.4);
+        box-shadow: 0 6px 16px -4px rgba(56,189,248,0.5);
+      }
 
       /* Cards principales: de stack centrado a fila compacta */
       .landing-cards { flex-direction: column; align-items: stretch; gap: 12px; width: 100%; max-width: none; }
@@ -14020,6 +14044,20 @@ function _renderNextMatchBox(elId, boxClass, label, m, navKey) {
 // "SB" hardcodeado para nuestro escudo (ver pedido: "iniciales SB por
 // ahora") — el rival usa _rivalInitials, igual que en Últimos Partidos,
 // Centro de Datos, etc.
+// Escudo propio: logo-csb.webp (imagen real) sobre fondo verde
+// institucional. Escudo rival: apunta a escudos/<slug>.webp — el sitio no
+// tiene esos archivos todavía, así que onerror lo esconde y muestra el
+// fallback de iniciales (.pm-crest-fallback, ya en el DOM) automáticamente;
+// el día que se sumen imágenes reales ahí, empiezan a mostrarse solas sin
+// tocar este código.
+function _pmCrestHtml(rival) {
+  const slug = slugify(rival);
+  return `<span class="pm-crest pm-crest-rival">
+    <img src="escudos/${slug}.webp" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+    <span class="pm-crest-fallback">${_rivalInitials(rival)}</span>
+  </span>`;
+}
+const PM_CSB_CREST_HTML = `<span class="pm-crest pm-crest-us"><img src="logo-csb.webp" alt=""></span>`;
 function _pmCard(label, labelClass, m, navKey) {
   if (!m) return '';
   const meta = _fmtProximoMeta(m);
@@ -14033,15 +14071,24 @@ function _pmCard(label, labelClass, m, navKey) {
   const clickLocator = m.locator != null ? m.locator : m.fecha;
   const clickAttr = clickLocator != null ? ` onclick="goToMatchFecha('${clickNavKey}', '${String(clickLocator).replace(/'/g, "\\'")}')"` : '';
   const cdClass = labelClass === 'pm-label-a' ? 'pm-cd-a' : 'pm-cd-b';
+  // Local a la izquierda, visitante a la derecha — de visitante, el rival
+  // pasa a la izquierda y el propio escudo a la derecha (antes siempre
+  // mostraba "Santa Bárbara vs Rival" fijo, sin importar la localía real).
+  const isVisitante = /visit/i.test(m.local || '');
+  const rivalCrest = _pmCrestHtml(m.rival);
+  const leftCrest  = isVisitante ? rivalCrest : PM_CSB_CREST_HTML;
+  const rightCrest = isVisitante ? PM_CSB_CREST_HTML : rivalCrest;
+  const leftName  = isVisitante ? m.rival : 'Santa Bárbara';
+  const rightName = isVisitante ? 'Santa Bárbara' : m.rival;
   return `<div class="pm-card${clickAttr ? ' clickable' : ''}"${clickAttr}>
     <div class="pm-card-label ${labelClass}">${label}</div>
     <div class="pm-avatars">
-      <span class="pm-avatar pm-avatar-us">SB</span>
+      ${leftCrest}
       <span class="pm-vs">vs</span>
-      <span class="pm-avatar pm-avatar-rival">${_rivalInitials(m.rival)}</span>
+      ${rightCrest}
     </div>
-    <div class="pm-team-names">Santa Bárbara <span class="pm-vs-inline">vs</span> ${m.rival}</div>
-    <div class="pm-card-meta">${metaLine || 'Fecha a confirmar'}${meta.localTxt ? ' · ' + meta.localTxt : ''}</div>
+    <div class="pm-team-names">${leftName} <span class="pm-vs-inline">vs</span> ${rightName}</div>
+    <div class="pm-card-meta">${metaLine || 'Fecha a confirmar'}${meta.localTxt ? ` · <span class="pm-local-tag">${meta.localTxt}</span>` : ''}</div>
     ${cd ? `<div class="pm-card-countdown ${cdClass}">${cdVal}</div>` : ''}
   </div>`;
 }
@@ -14071,8 +14118,11 @@ function renderLandingCardStats() {
     const footEl  = document.getElementById('lc-footer-' + key);
     const tabla = d.tabla || [];
     const own = tabla.find(t => t.csb);
+    // own.pos ya viene con su propio símbolo ordinal (parseTablaSheet arma
+    // "N°", grado — no "º" masculino) — sin el replace de acá quedaba
+    // "4°º puesto", dos símbolos de ordinal pegados uno atrás del otro.
     if (badgeEl) _softSetHtml(badgeEl, own
-      ? `<span class="lc-badge-pill ${_posBadgeClass(parseInt(own.pos) || 0, tabla.length)}">${own.pos}º puesto</span>` : '');
+      ? `<span class="lc-badge-pill ${_posBadgeClass(parseInt(own.pos) || 0, tabla.length)}">${String(own.pos).replace(/[°º]/g, '')}º puesto</span>` : '');
     if (footEl) {
       const partidos = (d.partidos || []).filter(m => /^\d+$/.test(m.fecha));
       const played = partidos.filter(m => m.resultado !== null);
