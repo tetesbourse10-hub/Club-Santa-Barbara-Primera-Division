@@ -646,6 +646,12 @@
       .nido-desktop-only { display: none !important; }
       .nido-mobile-only { display: block; }
 
+      /* Padding lateral del contenedor general al mínimo estético — el
+         inline style (20px 16px, pensado para desktop) gana por
+         especificidad sobre cualquier regla externa salvo !important;
+         acá sí hace falta para poder achicarlo solo en mobile. */
+      #nido-content { padding: 14px 6px !important; }
+
       .nido-mobile-filters { margin-bottom: 16px; }
       .nido-mobile-select {
         width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 8px;
@@ -728,7 +734,7 @@
       .nido-mtable-sticky-th {
         position: sticky; left: 0; z-index: 11; text-align: left; padding: 9px 12px;
         background: #151c2c; border-right: 1px solid #1e293b; box-shadow: 2px 0 6px rgba(0,0,0,0.35);
-        min-width: 140px; max-width: 150px;
+        min-width: 175px;
       }
       .nido-mtable-td {
         padding: 9px 10px; font-size: 12.5px; font-weight: 600; color: #cbd5e1;
@@ -740,7 +746,7 @@
       .nido-mtable-sticky-td {
         position: sticky; left: 0; z-index: 10; padding: 8px 12px;
         background: #151c2c; border-right: 1px solid #1e293b; box-shadow: 2px 0 6px rgba(0,0,0,0.35);
-        border-bottom: 1px solid rgba(255,255,255,0.05); min-width: 140px; max-width: 150px;
+        border-bottom: 1px solid rgba(255,255,255,0.05); min-width: 175px;
       }
       .nido-mtable tbody tr:nth-child(even) .nido-mtable-td:not(.nido-mtable-active) { background: rgba(255,255,255,0.02); }
       .nido-mtable-rank-name { display: flex; align-items: baseline; gap: 5px; }
@@ -752,14 +758,13 @@
         overflow: hidden; text-overflow: ellipsis;
       }
       .nido-mtable-badges { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; align-items: center; }
-      /* Ambas badges (posición y plantel) achicadas y en gris neutro —
-         antes tenían el color propio de la posición/plantel (ver posColor()/
-         teamBadge()), que competía visualmente con el nombre; acá se pisa
-         ese color inline con !important a propósito, solo en esta celda. */
+      /* Tamaño/forma achicados para que el foco siga yendo al nombre — el
+         color de cada badge (posición por línea / plantel) ya viene resuelto
+         inline por NIDO_MOBILE_POS_COLOR/NIDO_MOBILE_TEAM_COLOR en JS, acá
+         solo se define la forma común. */
       .nido-mtable-badges span {
-        font-size: 8px !important; font-weight: 700 !important; padding: 1px 5px !important;
-        border-radius: 4px !important; background: #1e293b !important; color: #64748b !important;
-        border: 1px solid rgba(51,65,85,0.5) !important; letter-spacing: .02em;
+        display: inline-block; font-size: 8px; font-weight: 700; padding: 1px 5px;
+        border-radius: 4px; letter-spacing: .02em; white-space: nowrap;
       }
       .nido-mtable-pos { display: inline-block; }
       .nido-mtable-empty { text-align: center; padding: 30px; color: #6b7280; font-size: 0.85rem; }
@@ -15088,6 +15093,36 @@ async function loadLiveData() {
     return raw;
   }
 
+  // Colores vivos por línea de posición y por plantel — solo para la celda
+  // sticky de El Nido en mobile (ver _nidoMobileStickyCell). Independiente
+  // de posColor()/teamBadge() (que alimentan tanto esta tabla como la de
+  // escritorio) porque acá se pide explícitamente una paleta Tailwind
+  // distinta (emerald/rose/sky/amber/indigo) — cambiar posColor() directo
+  // hubiera corrido también los colores de la tabla desktop.
+  const NIDO_MOBILE_POS_COLOR = {
+    ARQ: { bg: 'rgba(167,139,250,0.2)', text: '#c4b5fd', border: 'rgba(167,139,250,0.3)' },   // violet
+    LI:  { bg: 'rgba(45,212,191,0.2)',  text: '#5eead4', border: 'rgba(45,212,191,0.3)' },    // teal
+    LD:  { bg: 'rgba(45,212,191,0.2)',  text: '#5eead4', border: 'rgba(45,212,191,0.3)' },
+    DFI: { bg: 'rgba(45,212,191,0.2)',  text: '#5eead4', border: 'rgba(45,212,191,0.3)' },
+    DFD: { bg: 'rgba(45,212,191,0.2)',  text: '#5eead4', border: 'rgba(45,212,191,0.3)' },
+    DEF: { bg: 'rgba(14,165,233,0.2)',  text: '#7dd3fc', border: 'rgba(14,165,233,0.3)' },    // sky
+    DFC: { bg: 'rgba(14,165,233,0.2)',  text: '#7dd3fc', border: 'rgba(14,165,233,0.3)' },
+    MC:  { bg: 'rgba(16,185,129,0.2)',  text: '#6ee7b7', border: 'rgba(16,185,129,0.3)' },    // emerald
+    MCO: { bg: 'rgba(16,185,129,0.2)',  text: '#6ee7b7', border: 'rgba(16,185,129,0.3)' },
+    DEL: { bg: 'rgba(244,63,94,0.2)',   text: '#fda4af', border: 'rgba(244,63,94,0.3)' },     // rose
+    DC:  { bg: 'rgba(244,63,94,0.2)',   text: '#fda4af', border: 'rgba(244,63,94,0.3)' },
+    ED:  { bg: 'rgba(244,63,94,0.2)',   text: '#fda4af', border: 'rgba(244,63,94,0.3)' },
+    EI:  { bg: 'rgba(244,63,94,0.2)',   text: '#fda4af', border: 'rgba(244,63,94,0.3)' },
+  };
+  const NIDO_MOBILE_POS_COLOR_DEFAULT = { bg: 'rgba(100,116,139,0.2)', text: '#94a3b8', border: 'rgba(100,116,139,0.3)' };
+  const NIDO_MOBILE_TEAM_COLOR = {
+    a: { bg: 'rgba(245,158,11,0.2)', text: '#fcd34d', border: 'rgba(245,158,11,0.3)', label: '1ra A' }, // amber
+    b: { bg: 'rgba(99,102,241,0.2)', text: '#a5b4fc', border: 'rgba(99,102,241,0.3)', label: '1ra B' }, // indigo
+  };
+  function _nidoMobileBadgeHtml(c, label) {
+    return `<span style="background:${c.bg};color:${c.text};border:1px solid ${c.border}">${label}</span>`;
+  }
+
   // Tabla mobile (≤768px) — misma data-table analítica que desktop
   // (renderTable()), con la primera columna "JUGADOR / EQUIPO" fija
   // (sticky) para poder scrollear horizontalmente el resto de columnas
@@ -15099,15 +15134,15 @@ async function loadLiveData() {
   function _nidoMobileStickyCell(p, i) {
     const rankColor = i === 0 ? '#eab308' : i === 1 ? '#cbd5e1' : i === 2 ? '#d6a87c' : '#6b7280';
     const rankLabel = i < 3 ? PODIO[i].medal : `${i + 1}º`;
-    const pColor = posColor(p.pos);
-    const teamBadges = p.teams.map(teamBadge).join('');
+    const posC = NIDO_MOBILE_POS_COLOR[String(p.pos || '').toUpperCase()] || NIDO_MOBILE_POS_COLOR_DEFAULT;
+    const teamBadges = p.teams.map(t => _nidoMobileBadgeHtml(NIDO_MOBILE_TEAM_COLOR[t] || NIDO_MOBILE_TEAM_COLOR.a, (NIDO_MOBILE_TEAM_COLOR[t] || NIDO_MOBILE_TEAM_COLOR.a).label)).join('');
     return `<td class="nido-mtable-sticky-td">
       <div class="nido-mtable-rank-name">
         <span class="nido-mtable-rank" style="color:${rankColor}">${rankLabel}</span>
         <span class="nido-mtable-name">${p.nombre}</span>
       </div>
       <div class="nido-mtable-badges">
-        <span class="nido-mtable-pos" style="background:${pColor}1a;border-color:${pColor}59;color:${pColor}">${p.pos || '—'}</span>
+        ${_nidoMobileBadgeHtml(posC, p.pos || '—')}
         ${teamBadges}
       </div>
     </td>`;
