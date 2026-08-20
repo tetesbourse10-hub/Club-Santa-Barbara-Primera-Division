@@ -2219,10 +2219,20 @@
       position:absolute; bottom:-8px; left:-10px;
       font-size:0.9rem; line-height:1;
     }
+    .ap-pdot-cap {
+      position:absolute; top:-8px; left:-8px; width:16px; height:16px; border-radius:50%;
+      background:var(--dorado); color:#1a1206; font-size:0.6rem; font-weight:900;
+      display:flex; align-items:center; justify-content:center; line-height:1;
+      box-shadow:0 1px 4px rgba(0,0,0,0.5);
+    }
     .ap-pname {
       background:rgba(0,0,0,0.82); color:#fff; font-size:0.62rem; font-weight:700;
       padding:2px 6px; border-radius:3px; white-space:nowrap;
       max-width:92px; overflow:hidden; text-overflow:ellipsis; text-align:center;
+    }
+    .ap-ppos {
+      background:rgba(0,0,0,0.55); color:rgba(255,255,255,0.7); font-size:0.54rem; font-weight:700;
+      padding:1px 5px; border-radius:3px; letter-spacing:.03em; margin-top:-2px;
     }
     /* On narrow phones the pitch shrinks to ~300-340px wide but still has to
        fit 4-5 players per band — at full size the circles/name tags overlap
@@ -2232,7 +2242,9 @@
       .ap-pitch { min-height:260px; }
       .ap-pdot { width:34px; height:34px; font-size:0.6rem; border-width:2px; }
       .ap-pdot-badge, .ap-pdot-roja, .ap-pdot-sub { font-size:0.62rem; }
+      .ap-pdot-cap { width:13px; height:13px; font-size:0.5rem; }
       .ap-pname { font-size:0.52rem; max-width:58px; padding:1px 4px; }
+      .ap-ppos { font-size:0.46rem; padding:1px 4px; }
     }
     .ap-squad-panel {
       background:var(--azul-card); border:1px solid rgba(255,255,255,0.06);
@@ -2281,9 +2293,9 @@
     .ap-change { display:flex; align-items:center; gap:6px; padding:6px 0; font-size:0.76rem; border-bottom:1px solid rgba(255,255,255,0.04); flex-wrap:wrap; }
     .ap-change:last-child { border-bottom:none; }
     .ap-change .cin { color:var(--verde); font-weight:700; display:flex; align-items:center; gap:3px; }
-    .ap-change .cin::before { content:'↗'; font-size:0.85rem; }
+    .ap-change .cin::before { content:'▲'; font-size:0.72rem; }
     .ap-change .cout { color:var(--rojo); opacity:0.85; display:flex; align-items:center; gap:3px; }
-    .ap-change .cout::before { content:'↘'; font-size:0.85rem; }
+    .ap-change .cout::before { content:'▼'; font-size:0.72rem; }
     .ap-change .cmet { font-size:0.65rem; color:var(--gris-texto); padding:0 2px; }
     .ap-ms-obs { font-size:0.78rem; color:var(--gris-texto); margin-top:8px; font-style:italic; grid-column:1/-1; }
     /* ── Fecha detail redesigned header ── */
@@ -2410,6 +2422,15 @@
     .ap-copa-legend { display:flex; flex-wrap:wrap; gap:10px 18px; margin-top:10px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.06); }
     .ap-legend-item { display:flex; align-items:center; gap:5px; font-size:0.68rem; color:var(--gris-texto); }
     .ap-legend-dot  { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+    /* Widget "Impacto en la Tabla" — sidebar de Fecha a Fecha, posición de
+       ambos equipos en la tabla al momento de este partido puntual (no la
+       posición actual/final de temporada). */
+    .ap-fd-impact-card { background:var(--azul-card); border:1px solid rgba(255,255,255,0.06); border-radius:14px; padding:14px 18px; }
+    .ap-fd-impact-title { font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--gris-texto); margin-bottom:8px; }
+    .ap-fd-impact-row { display:flex; align-items:center; justify-content:space-between; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.04); }
+    .ap-fd-impact-row:last-child { border-bottom:none; }
+    .ap-fd-impact-team { font-size:0.82rem; font-weight:600; color:var(--texto); }
+    .ap-fd-impact-pos { font-size:0.86rem; font-weight:800; color:#a5b4fc; background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.3); border-radius:999px; padding:2px 12px; }
     .ap-incidencias { background:var(--azul-card); border:1px solid rgba(255,255,255,0.06); border-radius:14px; padding:14px 18px; }
     .ap-inc-group { display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; padding:5px 0; border-bottom:1px solid rgba(255,255,255,0.04); font-size:0.78rem; }
     .ap-inc-group:last-child { border-bottom:none; }
@@ -6326,6 +6347,7 @@ function buildPitch(titulares) {
     group.forEach((jug, i) => {
       const x = n === 1 ? 50 : (100 * (2*i + 1)) / (2*n);
       const isPlaceholder = !!jug._ph;
+      const isCap = !isPlaceholder && /\(c\)/i.test(jug.nombre || '');
       const parts = (jug.nombre||'').replace(/\s*\(c\)/i,'').trim().split(/\s+/);
       const initials = isPlaceholder ? jug.nombre
         : (parts.length > 1 ? (parts[0][0] + parts[parts.length-1][0]).toUpperCase()
@@ -6349,16 +6371,23 @@ function buildPitch(titulares) {
           goalBadge = '⚽'.repeat(goles);
         }
       }
-      // Assist badge
-      const assistBadge = (!isPlaceholder && asist > 0) ? '👟'.repeat(Math.min(asist,2)) : '';
+      // Assist badge — 🎯, mismo ícono que Estadísticas Detalladas/Perfil de
+      // Jugador usan para asistencias en todo el resto del sitio (antes 👟,
+      // inconsistente con el resto).
+      const assistBadge = (!isPlaceholder && asist > 0) ? '🎯'.repeat(Math.min(asist,2)) : '';
       const topBadge = goalBadge || assistBadge ? `<div class="ap-pdot-badge">${goalBadge}${assistBadge}</div>` : '';
       const rojaBadge = (!isPlaceholder && rojas > 0) ? `<div class="ap-pdot-roja">🟥</div>` : '';
       const subBadge  = (!isPlaceholder && jug.salio) ? `<div class="ap-pdot-sub" title="Sustituido">🔄</div>` : '';
+      const capBadge  = isCap ? `<div class="ap-pdot-cap" title="Capitán">©</div>` : '';
+      // Posición táctica debajo del nombre (ej. "DC", "MCO") — antes solo se
+      // veía el nombre corto, sin indicar en qué posición jugó ese partido.
+      const posLabel = (!isPlaceholder && jug.pos) ? `<div class="ap-ppos">${jug.pos}</div>` : '';
       markers += `<div class="ap-player" style="left:${x.toFixed(1)}%;top:${y}%">
         <div class="ap-player-wrap">
-          <div class="ap-pdot${isPlaceholder?' placeholder':isHat?' hat-trick':' csb'}">${initials}${topBadge}${rojaBadge}${subBadge}</div>
+          <div class="ap-pdot${isPlaceholder?' placeholder':isHat?' hat-trick':' csb'}">${initials}${topBadge}${rojaBadge}${subBadge}${capBadge}</div>
         </div>
         <div class="ap-pname${isPlaceholder?' ph':''}"${nameHl}>${displayName}</div>
+        ${posLabel}
       </div>`;
     });
   }
@@ -6730,6 +6759,18 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
       <div class="ap-squad-tabpanel-m" style="display:none">${cambiosRowsMobile}</div>
     </div>`;
 
+  // Widget "Impacto en la Tabla" (sidebar desktop) — posición de ambos
+  // equipos al momento de este partido. Sin variación (▲/▼ puestos): eso
+  // requeriría comparar contra el partido anterior de la temporada, dato
+  // que esta función no recibe (solo el partido puntual) — se deja para
+  // una eventual etapa 3 si se agrega esa comparación en el llamador.
+  const impactoHtml = (posCSBClean !== '—' || posRivalClean !== '—') ? `
+    <div class="ap-fd-impact-card">
+      <div class="ap-fd-impact-title">📊 Impacto en la Tabla</div>
+      ${posCSBClean !== '—' ? `<div class="ap-fd-impact-row"><span class="ap-fd-impact-team">Santa Bárbara</span><span class="ap-fd-impact-pos">${posCSBClean}º</span></div>` : ''}
+      ${posRivalClean !== '—' ? `<div class="ap-fd-impact-row"><span class="ap-fd-impact-team">${rivalDisplay}</span><span class="ap-fd-impact-pos">${posRivalClean}º</span></div>` : ''}
+    </div>` : '';
+
   const pitchSection = `
     <div class="ap-detail-grid">
       <div class="ap-pitch-outer">
@@ -6737,6 +6778,7 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
         ${buildPitch(titulares.length > 0 ? titulares : null)}
       </div>
       <div class="ap-right-col">
+        ${impactoHtml}
         ${incidenciasHtml}
         <div class="ap-squad-panel">
           <div class="ap-aling-title">Alineación</div>
@@ -6747,9 +6789,9 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
           ${cambios.length ? `
           <div class="ap-squad-sec" style="margin-top:14px">Cambios</div>
           ${cambios.map(c => `<div class="ap-change">
-            <span class="cin">${pl(c.inp.nombre)}</span>
-            <span class="cmet">por</span>
-            <span class="cout">${c.out ? pl(c.out.nombre) : '?'}</span>
+            <span class="cin">Entró: ${pl(c.inp.nombre)}</span>
+            <span class="cmet">·</span>
+            <span class="cout">Salió: ${c.out ? pl(c.out.nombre) : '?'}</span>
           </div>`).join('')}` : ''}
         </div>
         ${squadTabsMobile}
