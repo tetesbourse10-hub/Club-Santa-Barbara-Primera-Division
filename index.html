@@ -7296,6 +7296,20 @@ function renderCopaHistorico(matches, name, jugadoresOverride) {
 // elsewhere, so no new sheet fetch is needed.
 // ──────────────────────────────────────────────
 
+// El sheet guarda gf/gc en orden Local-Visitante (convención estándar de
+// fútbol: "2-6" es siempre "Local 2 - Visitante 6"), NO en orden CSB-Rival
+// fijo — de visitante, el gol de CSB es el SEGUNDO número. Mismo criterio
+// que ya usa buildFechaDetailHTML (Fecha a Fecha) para csbGoles/rivalGoles;
+// acá faltaba aplicarlo y por eso Centro de Datos pintaba de visitante los
+// partidos ganados como derrota (y viceversa) — el string `resultado` que
+// se muestra queda intacto, solo cambia cuál de los dos números se usa
+// para decidir victoria/derrota/empate.
+function _cdCsbGoles(m) {
+  if (m.gf == null || m.gc == null) return { csb: null, riv: null };
+  const esVisitante = String(m.local || '').trim().toUpperCase() === 'VISITANTE';
+  return esVisitante ? { csb: m.gc, riv: m.gf } : { csb: m.gf, riv: m.gc };
+}
+
 // Sequential streak (racha) calculator — walks matches in chronological
 // (fecha ascending) order and tags each one with how many consecutive
 // results of the same kind (win/draw/loss) it extends, INCLUDING itself.
@@ -7303,8 +7317,9 @@ function renderCopaHistorico(matches, name, jugadoresOverride) {
 function _cdCalcRachas(matchesAsc) {
   let kind = null, streak = 0;
   return matchesAsc.map(m => {
-    if (m.gf == null || m.gc == null) return { ...m, _racha: '' };
-    const k = m.gf > m.gc ? 'W' : m.gf < m.gc ? 'L' : 'D';
+    const { csb, riv } = _cdCsbGoles(m);
+    if (csb == null || riv == null) return { ...m, _racha: '' };
+    const k = csb > riv ? 'W' : csb < riv ? 'L' : 'D';
     streak = (k === kind) ? streak + 1 : 1;
     kind = k;
     const chip = streak < 2 ? '' : k === 'W' ? `🔥 ${streak}G` : k === 'L' ? `❌ ${streak}P` : `➖ ${streak}E`;
@@ -7314,7 +7329,8 @@ function _cdCalcRachas(matchesAsc) {
 
 function _cdResultadoBadge(m) {
   if (m.gf == null || m.gc == null) return `<span class="cd-badge cd-badge-pend">Pendiente</span>`;
-  const cls = m.gf > m.gc ? 'cd-badge-win' : m.gf < m.gc ? 'cd-badge-loss' : 'cd-badge-draw';
+  const { csb, riv } = _cdCsbGoles(m);
+  const cls = csb > riv ? 'cd-badge-win' : csb < riv ? 'cd-badge-loss' : 'cd-badge-draw';
   return `<span class="cd-badge ${cls}">${m.resultado || (m.gf + '-' + m.gc)}</span>`;
 }
 
