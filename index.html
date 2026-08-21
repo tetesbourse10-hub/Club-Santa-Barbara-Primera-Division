@@ -4075,6 +4075,18 @@ function slugify(s) {
 // Wrap a player name in a clickable link reused across every render site (plantel
 // tables, fecha-a-fecha lineups, incidencias, debuts, top10s, torneos antiguos).
 // Also renders the captain armband badge whenever the raw name carries "(C)".
+// Gol de CSB / gol del rival según localía — el sheet guarda gf/gc en
+// orden Local-Visitante (ej. "2-6" es siempre "Local 2 - Visitante 6"), NO
+// en orden CSB-Rival fijo: de visitante, el gol de CSB es el SEGUNDO
+// número. Mismo criterio que ya usa buildFechaDetailHTML (Fecha a Fecha) y
+// _cdCsbGoles (Centro de Datos) — helper genérico para el resto de los
+// lugares que comparan gf/gc para decidir victoria/derrota/empate.
+function _csbGoles(m) {
+  if (!m || m.gf == null || m.gc == null) return { csb: null, riv: null };
+  const esVisitante = String(m.local || '').trim().toUpperCase() === 'VISITANTE';
+  return esVisitante ? { csb: m.gc, riv: m.gf } : { csb: m.gf, riv: m.gc };
+}
+
 function pl(nombre) {
   if (!nombre) return '';
   const isCap = /\(c\)/i.test(nombre);
@@ -4933,7 +4945,8 @@ function _ppHeroMiniRanksHtml(s) {
 // by the Goles and Partidos detail rows.
 function _ppResultadoPillHtml(p, spaced) {
   if (p.gf == null || p.gc == null) return '';
-  const color = p.gf > p.gc ? '#22c55e' : p.gf < p.gc ? '#ef4444' : '#f59e0b';
+  const { csb, riv } = _csbGoles(p);
+  const color = csb > riv ? '#22c55e' : csb < riv ? '#ef4444' : '#f59e0b';
   const score = spaced ? `${p.gf} - ${p.gc}` : `${p.gf}-${p.gc}`;
   return `<span class="pp-match-resultado" style="color:${color};border-color:${color}66;background:${color}14">${score}</span>`;
 }
@@ -5099,8 +5112,9 @@ function _ppRivalVED(list) {
   for (const p of list) {
     if (!p.rival || p.gf == null || p.gc == null) continue;
     if (!map[p.rival]) map[p.rival] = { v: 0, e: 0, d: 0 };
-    if (p.gf > p.gc) map[p.rival].v++;
-    else if (p.gf < p.gc) map[p.rival].d++;
+    const { csb, riv } = _csbGoles(p);
+    if (csb > riv) map[p.rival].v++;
+    else if (csb < riv) map[p.rival].d++;
     else map[p.rival].e++;
   }
   return map;
@@ -5115,8 +5129,9 @@ function _ppRecordVED(partidos) {
   let v = 0, e = 0, d = 0;
   for (const p of partidos) {
     if (p.gf == null || p.gc == null) continue;
-    if (p.gf > p.gc) v++;
-    else if (p.gf < p.gc) d++;
+    const { csb, riv } = _csbGoles(p);
+    if (csb > riv) v++;
+    else if (csb < riv) d++;
     else e++;
   }
   return { v, e, d };
@@ -7703,10 +7718,10 @@ function renderTorneoApertura() {
   const detLast  = last && (d.apertura || []).find(m => String(m.fecha) === String(last.fecha));
   const detNext  = next && (d.apertura || []).find(m => String(m.fecha) === String(next.fecha));
 
-  const rc    = m => m.gf > m.gc ? 'var(--verde)' : m.gf < m.gc ? 'var(--rojo)' : 'var(--dorado)';
-  const badge = m => m.gf > m.gc ? '<span class="ap-mc-badge won">Victoria</span>'
-                   : m.gf < m.gc ? '<span class="ap-mc-badge lost">Derrota</span>'
-                   : '<span class="ap-mc-badge draw">Empate</span>';
+  const rc    = m => { const { csb, riv } = _csbGoles(m); return csb > riv ? 'var(--verde)' : csb < riv ? 'var(--rojo)' : 'var(--dorado)'; };
+  const badge = m => { const { csb, riv } = _csbGoles(m); return csb > riv ? '<span class="ap-mc-badge won">Victoria</span>'
+                   : csb < riv ? '<span class="ap-mc-badge lost">Derrota</span>'
+                   : '<span class="ap-mc-badge draw">Empate</span>'; };
 
   // Liga-only stats: aggregated strictly from league matches (numeric fecha) so
   // Recopa/copa goals and assists never bleed into the Apertura plantel view.
@@ -8030,10 +8045,10 @@ function renderTorneoApertura2025A() {
   const played   = partidos.filter(m => m.resultado !== null);
   const last     = played.length ? played[played.length - 1] : null;
 
-  const rc    = m => m.gf > m.gc ? 'var(--verde)' : m.gf < m.gc ? 'var(--rojo)' : 'var(--dorado)';
-  const badge = m => m.gf > m.gc ? '<span class="ap-mc-badge won">Victoria</span>'
-                   : m.gf < m.gc ? '<span class="ap-mc-badge lost">Derrota</span>'
-                   : '<span class="ap-mc-badge draw">Empate</span>';
+  const rc    = m => { const { csb, riv } = _csbGoles(m); return csb > riv ? 'var(--verde)' : csb < riv ? 'var(--rojo)' : 'var(--dorado)'; };
+  const badge = m => { const { csb, riv } = _csbGoles(m); return csb > riv ? '<span class="ap-mc-badge won">Victoria</span>'
+                   : csb < riv ? '<span class="ap-mc-badge lost">Derrota</span>'
+                   : '<span class="ap-mc-badge draw">Empate</span>'; };
 
   // ── Tab 1: Plantel ──────────────────────────────────────────────────────
   // Liga-only stats: aggregated strictly from league matches (numeric fecha)
@@ -8324,10 +8339,10 @@ function renderTorneoHistoricoGeneric(d, name, fechaLabels) {
   const played   = partidos.filter(m => m.resultado !== null);
   const last     = played.length ? played[played.length - 1] : null;
 
-  const rc    = m => m.gf > m.gc ? 'var(--verde)' : m.gf < m.gc ? 'var(--rojo)' : 'var(--dorado)';
-  const badge = m => m.gf > m.gc ? '<span class="ap-mc-badge won">Victoria</span>'
-                   : m.gf < m.gc ? '<span class="ap-mc-badge lost">Derrota</span>'
-                   : '<span class="ap-mc-badge draw">Empate</span>';
+  const rc    = m => { const { csb, riv } = _csbGoles(m); return csb > riv ? 'var(--verde)' : csb < riv ? 'var(--rojo)' : 'var(--dorado)'; };
+  const badge = m => { const { csb, riv } = _csbGoles(m); return csb > riv ? '<span class="ap-mc-badge won">Victoria</span>'
+                   : csb < riv ? '<span class="ap-mc-badge lost">Derrota</span>'
+                   : '<span class="ap-mc-badge draw">Empate</span>'; };
 
   // ── Tab 1: Plantel ──────────────────────────────────────────────────────
   // Liga-only stats: aggregated strictly from league matches (numeric fecha)
@@ -9186,10 +9201,10 @@ function renderTorneoApt2024DB() {
     const played   = partidos.filter(m => m.resultado !== null);
     const last     = played.length ? played[played.length - 1] : null;
 
-    const rc    = m => m.gf > m.gc ? 'var(--verde)' : m.gf < m.gc ? 'var(--rojo)' : 'var(--dorado)';
-    const badge = m => m.gf > m.gc ? '<span class="ap-mc-badge won">Victoria</span>'
-                     : m.gf < m.gc ? '<span class="ap-mc-badge lost">Derrota</span>'
-                     : '<span class="ap-mc-badge draw">Empate</span>';
+    const rc    = m => { const { csb, riv } = _csbGoles(m); return csb > riv ? 'var(--verde)' : csb < riv ? 'var(--rojo)' : 'var(--dorado)'; };
+    const badge = m => { const { csb, riv } = _csbGoles(m); return csb > riv ? '<span class="ap-mc-badge won">Victoria</span>'
+                     : csb < riv ? '<span class="ap-mc-badge lost">Derrota</span>'
+                     : '<span class="ap-mc-badge draw">Empate</span>'; };
 
     // ── Tab 1: Plantel ──────────────────────────────────────────────────
     function buildPlantelTab() {
@@ -9642,7 +9657,7 @@ function renderResumen() {
   // de la temporada en curso sin resultado cargado, en el orden en que ya
   // vienen las filas del sheet).
   const ultimo = ultimos[0] || null;
-  const ultimoRes = ultimo ? (ultimo.gf > ultimo.gc ? 'win' : ultimo.gf < ultimo.gc ? 'loss' : 'draw') : null;
+  const ultimoRes = ultimo ? (({ csb, riv }) => csb > riv ? 'win' : csb < riv ? 'loss' : 'draw')(_csbGoles(ultimo)) : null;
   const proximo = (d.partidos || []).find(p => p.gf == null || p.gc == null) || null;
 
   // ── Datos para el rediseño desktop (Tailwind) del Bloque 1 ──
