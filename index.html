@@ -4531,8 +4531,18 @@ function _buildPlayerMatchIndex() {
   const copaRows = Object.entries(COPA_BLOCKS)
     .flatMap(([title, matches]) => (matches || []).map(m =>
       ({ m, torneo: title, equipo: null, navKey: PP_COPA_BLOCKS_NAVKEY[title] || null, cat: 'a', historic: false })));
+  // basicLocal: algunas temporadas (ej. Apertura AIFA A 2026) no traen
+  // columna Local/Visitante NI Lugar en el bloque detallado de Fecha a
+  // Fecha (d.apertura) — buildFechaDetailHTML ya resuelve esto cayendo a
+  // basic.local (la fila "básica" del partido, d.partidos, que sí la
+  // trae); acá faltaba ese mismo fallback, así que estos partidos
+  // quedaban con local='' y el cálculo de victoria/derrota trataba a
+  // Santa Bárbara como local sin serlo.
   const rows = _allPlayerTorneoSources()
-    .flatMap(({ d, equipo, navKey, torneo, cat, historic }) => (d.apertura || []).map(m => ({ m, torneo, equipo, navKey, cat, historic })));
+    .flatMap(({ d, equipo, navKey, torneo, cat, historic }) => (d.apertura || []).map(m => {
+      const basicLocal = m.local ? null : (d.partidos || []).find(p => String(p.fecha) === String(m.fecha))?.local;
+      return { m, torneo, equipo, navKey, cat, historic, basicLocal };
+    }));
   for (const entry of [...copaRows, ...rows]) {
     const seen = new Set(); // un jugador puede aparecer una sola vez por partido, igual que el .some() original
     for (const j of (entry.m.jugadores || [])) {
@@ -4670,7 +4680,7 @@ function _buildPlayerPartidosRaw(nombre, filterEntry) {
   // stays null for the rest, so those rows render without the deep-link).
   return _collectAllMatchesForPlayer(target)
     .filter(filterEntry)
-    .map(({ m, torneo, equipo, navKey, cat }) => {
+    .map(({ m, torneo, equipo, navKey, cat, basicLocal }) => {
       const j = m.jugadores.find(jj => normName(jj.nombre) === target);
       let condicion = 'No citado';
       if (j.titular) condicion = 'Titular';
@@ -4681,7 +4691,11 @@ function _buildPlayerPartidosRaw(nombre, filterEntry) {
       // gets no "Suplente" label here; the filter below drops it entirely.
       const condCorta = condicion === 'Titular' ? 'Titular' : condicion === 'Ingresó desde el banco' ? 'Suplente' : condicion;
       const anio = (torneo.match(/\d{4}/) || [])[0] || '';
-      const localNorm = String(m.local || _inferLocalFromLugar(m.lugar) || '').toUpperCase();
+      // Algunas temporadas (ej. Apertura AIFA A 2026) no traen Local/Visitante
+      // NI Lugar en el detalle de Fecha a Fecha — basicLocal (de la fila
+      // "básica" del partido, ver _buildPlayerMatchIndex) es el mismo
+      // fallback que ya usa buildFechaDetailHTML para esos casos.
+      const localNorm = String(m.local || basicLocal || _inferLocalFromLugar(m.lugar) || '').toUpperCase();
       return {
         torneo, anio, equipo, navKey, categoria: cat === 'b' ? 'Primera B' : 'Primera A',
         rival: m.rival, fecha: m.fecha, posCSB: m.posCSB || '',
