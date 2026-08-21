@@ -9011,12 +9011,21 @@ async function _loadHistoricoGeneric(key, dataObj, cfg) {
 
     // When the club gave us the short "resumen" table range too (parciales/
     // posición/observaciones — data the detailed Fecha a Fecha block never
-    // carries), use it instead of the blank-fields fallback derived above.
+    // carries), fusionarla en vez de REEMPLAZAR dataObj.partidos entero.
+    // BUG REAL encontrado (Apertura AIFA D 2021 perdió las Fechas 1/2/3/9 de
+    // "Fechas del Torneo" apenas se le agregó su rango `basico`): parseMatches
+    // descarta cualquier fila sin Local/Visita válido (regex estricta), y el
+    // reemplazo directo (`dataObj.partidos = b`) tiraba esos partidos enteros
+    // a la basura —aunque el bloque detallado SÍ los tenía completos (rival,
+    // resultado, plantel) — con tal de ganar el campo local de los que sí lo
+    // traían. _mergeBasicoIntoPartidos ya existía para este caso exacto:
+    // completa local/parciales/posición/obs sobre los partidos ya derivados
+    // del detalle sin borrar ninguno, y solo agrega los que de verdad faltan.
     if (cfg.basico && ok(basico)) try {
       const parsedBasico = parseMatches(ok(basico));
       _applyBasicoFechaFix(parsedBasico, cfg.basicoFechaFix);
       const b = _ligaOnlyMatches(parsedBasico).filter(capFecha).filter(notExcluded);
-      if (b.length > 0) dataObj.partidos = b;
+      if (b.length > 0) _mergeBasicoIntoPartidos(dataObj, b);
     } catch(e) { console.warn(`[${key}] parseMatches (basico):`, e); }
 
     if (ok(global)) { const p = parseGlobalStats(ok(global)); if (p.length > 0) dataObj.jugadores = p; }
