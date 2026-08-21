@@ -2938,7 +2938,7 @@
 
   <nav id="main-nav">
     <button class="active" onclick="showTab('resumen', this)">Inicio</button>
-    <button onclick="showTab('posiciones', this)">Torneos Actuales</button>
+    <button onclick="showTab('posiciones', this)">En Vivo</button>
     <button onclick="showTab('jugadores', this)">Estadísticas Jugadores</button>
     <button onclick="showTab('historial', this)">Historial vs Clubes</button>
     <button onclick="showTab('graficos', this)">Torneos Antiguos</button>
@@ -6008,11 +6008,6 @@ function _volverBtnHtml(extraStyle) {
 function _navPushJugadores() {
   _navPush('Estadísticas Jugadores', () => showTab('jugadores', document.querySelectorAll('#main-nav button')[2]));
 }
-// Pushed right before entering a torneo from the "Torneos Actuales" picker
-// (Apertura/Clausura en vivo, Recopa en vivo).
-function _navPushTorneosActuales() {
-  _navPush('Torneos Actuales', () => showTab('posiciones', document.querySelectorAll('#main-nav button')[1]));
-}
 // Pushed right before entering a torneo from "Torneos Antiguos" (same panel
 // as "Gráficos" — see main-nav button 4).
 function _navPushTorneosAntiguos() {
@@ -6039,7 +6034,12 @@ function showTab(name, btn) {
   document.getElementById('tab-' + name).classList.add('active');
 
   if (name === 'resumen')    renderResumen();
-  if (name === 'posiciones') renderTorneosMenu();
+  // "En Vivo" salta directo al torneo en curso (Clausura 2026) — antes
+  // mostraba primero el picker de "Torneos Actuales" (renderTorneosMenu),
+  // una tarjeta clickeable de un solo torneo porque Recopa 2026 ya
+  // terminó para ambos planteles y se mudó a Torneos Antiguos. Con un solo
+  // torneo jugándose, ese paso intermedio no aportaba nada.
+  if (name === 'posiciones') showTorneo('apertura');
   if (name === 'historial')  renderHistorial();
   if (name === 'partidos')   renderPartidos();
   if (name === 'jugadores')  renderJugadoresMenu();
@@ -6058,25 +6058,6 @@ function showJugSub(key) {
   if (key === 'anuales')    renderJugAnualesMenu();
   if (key === 'debuts')     renderDebuts();
   if (key === 'inferiores') renderInferiores();
-}
-
-function renderTorneosMenu() {
-  const isA = currentData === DATA_A;
-  // Apertura ended for both categories — its data lives in Torneos Antiguos now.
-  // Both A and B's tracked "current season" slot now represents their Clausura
-  // AIFA 2026 (same live sheet feed pattern, relabeled). Recopa 2026 already
-  // finished for BOTH categories (B in Cuartos, A eliminado en Semifinales por
-  // penales vs GEBA BLANCO) and moved to Torneos Antiguos, so it's dropped
-  // from Torneos Actuales for both.
-  const ligaCard = `<div class="torneo-card" onclick="_navPushTorneosActuales();showTorneo('apertura')">
-         <div class="torneo-card-icon">🥇</div>
-         <div class="torneo-card-name">Clausura AIFA ${isA ? 'A' : 'B'} 2026</div>
-         <div class="torneo-card-sub">Liga oficial AIFA · Temporada 2026</div>
-       </div>`;
-  const cards = ligaCard;
-  document.getElementById('torneos-picker-content').innerHTML = `
-    <div class="section-title" style="margin-bottom:20px">🏆 Torneos Actuales – ${currentData.nombre}</div>
-    <div class="torneos-picker-grid">${cards}</div>`;
 }
 
 // The header's top-right "posición en la tabla" badge is redundant once the
@@ -7642,7 +7623,7 @@ function buildCentroDatosHtml(matches, opts) {
   }
   const asc = [...list].sort((a, b) => (parseInt(a.fecha) || 0) - (parseInt(b.fecha) || 0));
   const withRachas = _cdCalcRachas(asc);
-  const rows = [...withRachas].reverse(); // most recent first
+  const rows = withRachas; // Fecha 1 arriba, última fecha abajo
   const trs = rows.map(m => {
     const isCopaRow = opts.isCopa || !/^\d+$/.test(String(m.fecha ?? '').trim());
     const rachaChip = m._racha ? `<span class="cd-racha-chip">${m._racha}</span> ` : '';
@@ -14699,7 +14680,7 @@ setInterval(() => {
 
 function refreshCurrentView() {
   if (!currentData) return;
-  const map = { 'tab-resumen':renderResumen, 'tab-posiciones':renderTorneosMenu,
+  const map = { 'tab-resumen':renderResumen, 'tab-torneo-apertura':renderTorneoApertura,
                 'tab-historial':renderHistorial, 'tab-jugadores':renderJugadoresMenu,
                 'tab-graficos':renderGraficos };
   for (const [id, fn] of Object.entries(map)) {
