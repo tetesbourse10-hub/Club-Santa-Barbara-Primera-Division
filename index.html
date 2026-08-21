@@ -9716,7 +9716,7 @@ function renderResumen() {
     { label: 'Derrotas',           val: h.pp,                                       color: 'text-red-400' },
     { label: 'Goles a Favor',      val: h.gf,                                       color: 'text-sky-400' },
     { label: 'Goles en Contra',    val: h.gc,                                       color: 'text-red-400' },
-    { label: 'Diferencia de Gol',  val: (h.gf - h.gc >= 0 ? '+' : '') + (h.gf - h.gc), color: (h.gf - h.gc) >= 0 ? 'text-emerald-400' : 'text-red-400' },
+    { label: 'Diferencia de Gol',  val: (h.gf - h.gc >= 0 ? '+' : '') + (h.gf - h.gc), color: 'text-emerald-400' },
     { label: 'Vallas Invictas',    val: h.vi,                                       color: 'text-purple-400' },
   ];
 
@@ -9995,7 +9995,7 @@ function renderResumen() {
           <div class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">📊 Totales Históricos</div>
           <div class="grid grid-cols-4 grid-rows-2 gap-3">
             ${totalesHistItems.map(it => `
-              <div class="bg-slate-950/40 rounded-xl px-4 py-3.5 text-center">
+              <div class="bg-slate-950/40 border border-slate-800/60 rounded-xl px-4 py-3.5 text-center">
                 <div class="text-2xl font-black ${it.color}">${it.val}</div>
                 <div class="text-[0.65rem] text-slate-500 font-semibold mt-1">${it.label}</div>
               </div>`).join('')}
