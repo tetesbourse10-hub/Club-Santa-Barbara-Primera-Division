@@ -5143,7 +5143,9 @@ function _ppRecordVED(partidos) {
 function _ppFavoritoCliente(partidos) {
   const wins = {};
   for (const p of partidos) {
-    if (!p.rival || p.gf == null || p.gc == null || p.gf <= p.gc) continue;
+    if (!p.rival || p.gf == null || p.gc == null) continue;
+    const { csb, riv } = _csbGoles(p);
+    if (csb <= riv) continue;
     wins[p.rival] = (wins[p.rival] || 0) + 1;
   }
   const entries = Object.entries(wins).sort((a, b) => b[1] - a[1]);
