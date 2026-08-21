@@ -8882,6 +8882,25 @@ function _applyBasicoFechaFix(parsed, fixes) {
   });
 }
 
+// La tabla "básico" siempre viene del club en orden cronológico de fecha
+// (fila 1 = Fecha 1, fila 2 = Fecha 2, ...), pero algunas temporadas dejan
+// la celda Fecha en blanco para un tramo de filas aunque el resto de la
+// fila (Local/Visita, Resultado) esté completo — club-confirmado en
+// Clausura AIFA D 2022 (Brit Ajim/Escobar/Liniers, filas 2-4). Sin esto,
+// _ligaOnlyMatches descarta esas filas por no tener fecha numérica, así
+// que nunca llegan a _mergeBasicoIntoPartidos y el partido se queda sin
+// Local/Visita (aunque el sheet SÍ lo tenía) — se veían resultados con el
+// color de victoria/derrota invertido en esos partidos puntuales. Se infiere
+// la fecha por posición en vez de descartar la fila.
+function _fillMissingBasicoFecha(parsed) {
+  let prev = null;
+  for (const m of parsed) {
+    const f = parseInt(m.fecha, 10);
+    if (!isNaN(f) && f > 0) { prev = f; continue; }
+    if (prev !== null) { prev += 1; m.fecha = String(prev); }
+  }
+}
+
 // Club-confirmed override for specific Tabla Completa rows whose PTS/PJ/PG/PE
 // keep coming back blank/zero no matter how the sheet's columns are read —
 // see HISTORICO_GENERIC's tablaFix. Only overrides the given fields; PP/GF/
@@ -9023,6 +9042,7 @@ async function _loadHistoricoGeneric(key, dataObj, cfg) {
     // del detalle sin borrar ninguno, y solo agrega los que de verdad faltan.
     if (cfg.basico && ok(basico)) try {
       const parsedBasico = parseMatches(ok(basico));
+      _fillMissingBasicoFecha(parsedBasico);
       _applyBasicoFechaFix(parsedBasico, cfg.basicoFechaFix);
       const b = _ligaOnlyMatches(parsedBasico).filter(capFecha).filter(notExcluded);
       if (b.length > 0) _mergeBasicoIntoPartidos(dataObj, b);
