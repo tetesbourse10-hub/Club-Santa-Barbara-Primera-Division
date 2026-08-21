@@ -9762,20 +9762,26 @@ function renderResumen() {
   ];
 
   // accent = { text, pillBg } clase de color propia de cada columna (goles/
-  // asist/presencias), usada en el pill del valor — el podio (1-2-3) manda
-  // sobre esa marca con su propia medalla dorada/plateada/bronce, tanto en
-  // el número de puesto como en un tinte de fondo apenas visible en toda la
-  // fila, para que el TOP 3 se distinga de un vistazo sin gritar.
+  // asist/presencias), usada en el FONDO del pill del valor — el podio
+  // (1-2-3) manda sobre esa marca con su propia medalla dorada/plateada/
+  // bronce, tanto en el número de puesto como en un tinte de fondo apenas
+  // visible en toda la fila, para que el TOP 3 se distinga de un vistazo
+  // sin gritar. El color del NÚMERO del conteo también sigue esa medalla
+  // (dorado/plateado/bronce en el podio), y a partir del 4° puesto pasa a
+  // blanco liso — antes usaba siempre el color de la columna, disparejo
+  // con el resto de las filas fuera del podio.
   function top10RowTw(jug, i, accent) {
     const medalBg = ['bg-amber-400 text-slate-950', 'bg-slate-300 text-slate-950', 'bg-orange-400 text-slate-950'];
+    const medalText = ['text-amber-400', 'text-slate-300', 'text-orange-400'];
     const rowTint = ['bg-amber-500/5', 'bg-slate-400/5', 'bg-orange-500/5'];
     const rankBadge = i < 3 ? medalBg[i] : 'bg-slate-800 text-slate-400';
     const tint = i < 3 ? rowTint[i] : '';
+    const valText = i < 3 ? medalText[i] : 'text-white';
     return `<div class="flex items-center gap-3 py-2.5 px-2 rounded-xl${i > 0 ? ' mt-1' : ''} ${tint}">
       <span class="w-6 h-6 rounded-full flex items-center justify-center text-[0.7rem] font-extrabold shrink-0 ${rankBadge}">${i + 1}</span>
       <span class="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[0.65rem] font-extrabold text-slate-300 shrink-0">${_rivalInitials(jug.nombre)}</span>
       <span class="flex-1 text-sm text-white font-semibold truncate">${pl(jug.nombre)}</span>
-      <span class="text-sm font-extrabold ${accent.text} ${accent.pillBg} px-2.5 py-1 rounded-full shrink-0 min-w-[2.75rem] text-center">${jug.valor}</span>
+      <span class="text-sm font-extrabold ${valText} ${accent.pillBg} px-2.5 py-1 rounded-full shrink-0 min-w-[2.75rem] text-center">${jug.valor}</span>
     </div>`;
   }
 
