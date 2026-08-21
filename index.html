@@ -9122,12 +9122,18 @@ const HISTORICO_GENERIC = {
     plantel: 'L3:X33', fecha: 'A19:J527', tabla: null, basico: 'A1:Z16' },
   'clausura-2023d-b': { d: DATA_B_CL2023, sheet: 'B_HIST', gid: 1471174410, name: 'Clausura AIFA D 2023',
     plantel: 'L3:X33', fecha: 'A19:J527', tabla: null, basico: 'A1:Z16' },
+  // basico: club-confirmado (ver diagnóstico de consola con jugadores reales
+  // sin Local/Visitante ni Lugar en el detalle) — sin esta tabla resumen, no
+  // había ninguna fuente para saber si Santa Bárbara jugó de local o
+  // visitante en estos dos torneos, y víctorias/derrotas de visitante
+  // terminaban mal calculadas en Perfil de Jugador (ver _buildPlayerMatchIndex
+  // basicLocal).
   'apertura-2021d-b': { d: DATA_B_AP2021, sheet: 'B_HIST', gid: 1452349318, name: 'Apertura AIFA D 2021',
-    plantel: 'L3:X34', fecha: 'A18:J268', tabla: null },
+    plantel: 'L3:X34', fecha: 'A18:J268', tabla: null, basico: 'A1:J13' },
   'apertura-2022d-b': { d: DATA_B_AP2022, sheet: 'B_HIST', gid: 1019846861, name: 'Apertura AIFA D 2022',
     plantel: 'L1:X28', fecha: 'A15:J422', tabla: 'L30:V48', basico: 'A1:J13' },
   'clausura-2022d-b': { d: DATA_B_CL2022, sheet: 'B_HIST', gid: 1338541016, name: 'Clausura AIFA D 2022',
-    plantel: 'L3:X28', fecha: 'A16:J422', tabla: null },
+    plantel: 'L3:X28', fecha: 'A16:J422', tabla: null, basico: 'A1:J13' },
 };
 // BUG REAL encontrado en el log de build (Netlify): "Torneos Antiguos:
 // encontré 0 hojas en HISTORICO_GENERIC" — CERO, siempre, en TODOS los
