@@ -9139,13 +9139,18 @@ const HISTORICO_GENERIC = {
   'apertura-2022a': { d: DATA_A_AP2022, gid: 292775325,  name: 'Apertura AIFA A 2022',
     plantel: 'L3:X31', fecha: 'A20:I469', tabla: 'L35:V51', basico: 'A1:J16' },
   // Fecha 7 leaked el cruce de Octavos de Final de la Supercopa 2021 vs GEBA
-  // (0-3) bajo ese mismo número de fecha, duplicando un partido que ya vive
-  // en su propio torneo (Supercopa 2021) — se contaba de más en el listado
-  // de partidos de algunos perfiles de jugador. Club-confirmado: la fecha 7
+  // bajo ese mismo número de fecha, duplicando un partido que ya vive en su
+  // propio torneo (Supercopa 2021) — se contaba de más en el listado de
+  // partidos de algunos perfiles de jugador. Club-confirmado: la fecha 7
   // real de liga es vs TROVADOR (2-3), ya presente sin tocar.
+  // BUG REAL encontrado (el exclude nunca se aplicaba, el partido seguía
+  // duplicado en el perfil): el resultado real de esta fila viene en orden
+  // Local-Visitante crudo "3-0" (GEBA local marcó 3, CSB de visitante 0),
+  // no "0-3" como decía este filtro — como nunca calzaba con el resultado
+  // real de la fila, el excludeMatches jamás la sacaba.
   'apertura-2021a': { d: DATA_A_AP2021, gid: 1836193694, name: 'Apertura AIFA A 2021',
     plantel: 'L3:X26', fecha: 'A19:I375', tabla: 'L30:V46', basico: 'A1:J15',
-    excludeMatches: [{ rival: 'GEBA', resultado: '0-3', fecha: '7' }] },
+    excludeMatches: [{ rival: 'GEBA', resultado: '3-0', fecha: '7' }] },
   // Primera B 2025 — same B_HIST spreadsheet as the live/archived B seasons,
   // each on its own gid.
   // sheet: 'B_HIST' is a key into GS, resolved at load time (not here) —
