@@ -4226,6 +4226,13 @@ function goToMatchFecha(navKey, fecha) {
   document.getElementById('app').style.display = 'flex';
   document.getElementById('main-nav').style.display = 'flex';
   document.getElementById('tab-nido').style.display = 'none';
+  // BUG REAL encontrado (entrar a un partido desde "Próximo Partido" en la
+  // home mobile no mostraba la bottom nav): esta función se llama directo
+  // desde la landing, sin pasar por openSection() — que es quien
+  // normalmente muestra la bottom nav y le agrega la clase has-bottom-nav
+  // al body. Sin esto, la barra de navegación de abajo quedaba oculta.
+  document.getElementById('mobile-bottom-nav').style.display = 'flex';
+  document.body.classList.add('has-bottom-nav');
   destroyCharts();
 
   if (navKey.startsWith('hg:')) {
@@ -4236,6 +4243,7 @@ function goToMatchFecha(navKey, fecha) {
     badge.textContent = key.endsWith('b') ? 'Primera B' : 'Primera A';
     badge.className = 'header-section-badge ' + (key.endsWith('b') ? 'badge-blue' : 'badge-gold');
     showHistoricoTorneo(key); // marks "Torneos Antiguos" active + renders the generic 4-tab component
+    _syncBottomNavFromMainNav();
     const trySelect = () => {
       if (_historicoGenericLoaded[key]) { window.ghSwitchTab('fechas'); window.ghSelectFecha(fecha); }
       else setTimeout(trySelect, 200);
@@ -4250,6 +4258,7 @@ function goToMatchFecha(navKey, fecha) {
     badge.textContent = key.endsWith('b') ? 'Primera B' : 'Primera A';
     badge.className = 'header-section-badge ' + (key.endsWith('b') ? 'badge-blue' : 'badge-gold');
     showHistoricoTorneo(key); // marks "Torneos Antiguos" active + renders the bespoke component
+    _syncBottomNavFromMainNav();
     window[prefix + 'SwitchTab']('fechas');
     window[prefix + 'SelectFecha'](fecha);
     return;
@@ -4263,6 +4272,7 @@ function goToMatchFecha(navKey, fecha) {
     badge.textContent = key.endsWith('b') ? 'Primera B' : 'Primera A';
     badge.className = 'header-section-badge ' + (key.endsWith('b') ? 'badge-blue' : 'badge-gold');
     showHistoricoTorneo(key); // marks "Torneos Antiguos" active + renders renderCopaHistorico
+    _syncBottomNavFromMainNav();
     // Same round-order sort renderCopaHistorico itself uses internally to
     // build its "sorted" array — chSelectFase(i) indexes into that same
     // order, so recomputing it here is the only way to find the right i
@@ -4290,6 +4300,7 @@ function goToMatchFecha(navKey, fecha) {
     badge.textContent = currentData.badge;
     badge.className = 'header-section-badge ' + currentData.badgeClass;
     showTorneo('recopa');
+    _syncBottomNavFromMainNav();
     window.rcSwitchTab('rc-fases');
     selectFaseCopa(fecha);
     return;
@@ -4308,6 +4319,7 @@ function goToMatchFecha(navKey, fecha) {
   } else {
     showTorneo('apertura');       // renders the tab + auto-selects the last played date
   }
+  _syncBottomNavFromMainNav();
   window.apSwitchTab('fechas'); // switch to the "Fecha a Fecha" sub-tab
   selectFecha(fecha);           // override the auto-selection with the requested date
 }
@@ -6058,6 +6070,15 @@ function _navPushTorneosAntiguos() {
 // importar desde dónde se haya disparado la navegación (click en la bottom
 // nav, en #main-nav, o programático vía _navPush/breadcrumbs).
 const BOTTOM_NAV_TAB_INDEX = { resumen:0, posiciones:1, jugadores:2, historial:3, graficos:4 };
+// showTorneo/showHistoricoTorneo (a diferencia de showTab) solo tocan
+// #main-nav, nunca #mobile-bottom-nav — goToMatchFecha las llama
+// directamente (entrar a un partido puntual desde la home o el perfil de
+// un jugador), así que sin este sync la bottom nav se quedaba sin ningún
+// botón resaltado en vez de mostrar la sección real a la que se entró.
+function _syncBottomNavFromMainNav() {
+  const idx = [...document.querySelectorAll('#main-nav button')].findIndex(b => b.classList.contains('active'));
+  document.querySelectorAll('#mobile-bottom-nav button').forEach((b, i) => b.classList.toggle('active', i === idx));
+}
 function showTab(name, btn) {
   document.querySelectorAll('#main-nav button').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
