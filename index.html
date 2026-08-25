@@ -14738,8 +14738,13 @@ function renderLandingCardStats() {
         if (ky == null) return 1;
         return kx - ky;
       });
-      // Últimos 5 partidos, más reciente primero.
-      const lastFive = played.slice(-5).reverse();
+      // Últimos 5 partidos, en orden cronológico (el más viejo primero,
+      // igual que se leen de izquierda a derecha) — ya vienen ordenados por
+      // fecha real más arriba, así que alcanza con tomar los últimos 5 sin
+      // invertir (invertir acá pondría la Recopa 2026 fuera de su lugar
+      // real cuando quedó jugada ENTRE dos partidos del Clausura, en vez de
+      // antes o después de todos ellos).
+      const lastFive = played.slice(-5);
       if (lastFive.length) {
         const pills = lastFive.map(m => {
           // BUG REAL encontrado (Primera B marcaba una derrota de visitante
