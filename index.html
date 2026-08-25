@@ -6757,9 +6757,17 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
   });
 
   // Once Titular panel — 11 numbered slots or real players
+  // Posición coloreada con el mismo criterio que Plantel/El Nido (ver
+  // _plantelPosColor/POS_COLOR) — antes era un badge gris plano acá, sin
+  // relación con el resto del sitio.
+  const _squadPosBadge = pos => {
+    if (!pos) return '';
+    const c = _plantelPosColor(pos);
+    return `<span class="ap-squad-pos" style="color:${c};background:${c}1a;border:1px solid ${c}66">${pos}</span>`;
+  };
   const titRows = titulares.length > 0
     ? titulares.map(j => `<div class="ap-squad-item">
-        <span class="ap-squad-pos">${j.pos}</span>
+        ${_squadPosBadge(j.pos)}
         <span style="flex:1">${pl(j.nombre)}${j.salio ? ` <span class="ap-squad-sub" title="Sustituido">🔻</span>` : ''}</span>
         ${j.goles > 0 ? `<span class="ap-squad-stat gol">⚽${j.goles > 1 ? j.goles : ''}</span>` : ''}
         ${j.asist > 0 ? `<span class="ap-squad-stat" style="color:var(--azul-claro)">🎯${j.asist > 1 ? j.asist : ''}</span>` : ''}
@@ -6774,7 +6782,7 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
   const banco = jugadores.filter(j => !j.titular && j.citado);
   const suplRows = banco.length > 0
     ? banco.map(j => `<div class="ap-squad-item">
-        <span class="ap-squad-pos">${j.pos||'–'}</span>
+        ${_squadPosBadge(j.pos || '–')}
         <span style="flex:1">${pl(j.nombre)}${j.entro ? ' <span style="font-size:0.62rem;color:var(--verde)">▲</span>' : ''}</span>
         ${j.goles > 0 ? `<span class="ap-squad-stat gol">⚽${j.goles > 1 ? j.goles : ''}</span>` : ''}
         ${j.asist > 0 ? `<span class="ap-squad-stat" style="color:var(--azul-claro)">🎯${j.asist > 1 ? j.asist : ''}</span>` : ''}
@@ -6795,16 +6803,13 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
     </div>` : '';
 
   // Mobile: 3 pestañas (Titular/Suplentes/Cambios) en vez del scroll con las
-  // 3 listas siempre desplegadas — badge de posición coloreado por línea
-  // (ARQ ámbar, DEF sky, MC emerald, DEL rose) e indicación de salió/entró
-  // como flecha (no círculo — ver ARROW_DOWN_SVG/ARROW_UP_SVG).
-  const squadPosColor = pos => {
-    const p = (pos || '').toUpperCase();
-    if (p === 'ARQ') return '#fbbf24'; // amber-400
-    if (/^(DEF|DFI|DFD|DFC|LI|LD)$/.test(p)) return '#38bdf8'; // sky-400
-    if (/^(EI|ED|DC|SD|DEL)$/.test(p)) return '#fb7185'; // rose-400 (delanteros)
-    return '#34d399'; // emerald-400 (MC/MCD/MCO/MI/MD y el resto de mediocampo)
-  };
+  // 3 listas siempre desplegadas — badge de posición con el mismo criterio
+  // de color que Plantel/El Nido (ver _plantelPosColor/POS_COLOR: ARQ
+  // violeta, DFI/DFD verde, DFC azul, MC/MCO/MD/MI amarillo, DC/EI/ED rojo),
+  // antes tenía su propia paleta de 4 colores sin relación con el resto del
+  // sitio. Indicación de salió/entró como flecha (no círculo — ver
+  // ARROW_DOWN_SVG/ARROW_UP_SVG).
+  const squadPosColor = pos => _plantelPosColor(pos);
   // Flecha diagonal (ArrowDownRight/ArrowUpRight) en vez de emoji — un
   // emoji de color no se puede repintar con CSS `color`, así que para
   // garantizar rose-500/emerald-400 exactos se usa un SVG con
@@ -11295,7 +11300,7 @@ function _plantelPosColor(pos) {
     ARQ:'#a855f7',
     LI:'#22c55e', LD:'#22c55e', DFI:'#22c55e', DFD:'#22c55e',
     DEF:'#3b82f6', DFC:'#3b82f6',
-    MC:'#f59e0b', MCO:'#f59e0b',
+    MC:'#f59e0b', MCO:'#f59e0b', MD:'#f59e0b', MI:'#f59e0b',
     DEL:'#ef4444', DC:'#ef4444', ED:'#ef4444', EI:'#ef4444',
   };
   return C[String(pos || '').toUpperCase()] || '#6b7280';
@@ -11306,7 +11311,7 @@ function _plantelPosBadgeHtml(pos) {
   return `<span class="pos-badge" style="background:${c}1a;color:${c};border-color:${c}66;margin-right:6px">${pos}</span>`;
 }
 
-const POS_COLOR = { ARQ:'#a855f7', LI:'#22c55e', LD:'#22c55e', DFI:'#22c55e', DFD:'#22c55e', DEF:'#3b82f6', DFC:'#3b82f6', MC:'#f59e0b', MCO:'#f59e0b', DEL:'#ef4444', DC:'#ef4444', ED:'#ef4444', EI:'#ef4444' };
+const POS_COLOR = { ARQ:'#a855f7', LI:'#22c55e', LD:'#22c55e', DFI:'#22c55e', DFD:'#22c55e', DEF:'#3b82f6', DFC:'#3b82f6', MC:'#f59e0b', MCO:'#f59e0b', MD:'#f59e0b', MI:'#f59e0b', DEL:'#ef4444', DC:'#ef4444', ED:'#ef4444', EI:'#ef4444' };
 const POS_BG    = { ARQ:'rgba(168,85,247,0.18)', LI:'rgba(34,197,94,0.15)', LD:'rgba(34,197,94,0.15)', DFI:'rgba(34,197,94,0.15)', DFD:'rgba(34,197,94,0.15)', DFC:'rgba(59,130,246,0.18)', MC:'rgba(245,158,11,0.18)', MCO:'rgba(245,158,11,0.18)', DEL:'rgba(239,68,68,0.18)', DC:'rgba(239,68,68,0.18)', ED:'rgba(239,68,68,0.18)', EI:'rgba(239,68,68,0.18)' };
 
 const JUG_TABS = [
