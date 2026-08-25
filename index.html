@@ -440,8 +440,9 @@
        inline style, so it can actually respond to screen width (an inline
        style always wins over a class's @media rule, which was locking this
        at a fixed 4 columns on every phone regardless of how narrow). */
-    .pp-metrics-grid { grid-template-columns: repeat(4,1fr); }
+    .pp-metrics-grid { grid-template-columns: repeat(4,1fr); grid-auto-rows: 1fr; }
     @media (max-width: 480px) { .pp-metrics-grid { grid-template-columns: repeat(2,1fr); } }
+    .pp-metrics-grid .hist-kpi { height: 100%; justify-content: space-between; }
 
     .hist-kpi {
       background: rgba(255,255,255,0.03);
@@ -2566,6 +2567,56 @@
     .pp-header { display:flex; align-items:center; gap:16px; margin-bottom: 18px; }
     .pp-avatar { width:64px; height:64px; border-radius:50%; background:rgba(245,158,11,0.12); border:2px solid rgba(245,158,11,0.4); display:flex; align-items:center; justify-content:center; font-size:1.2rem; font-weight:900; color:var(--dorado); flex-shrink:0; }
 
+    /* Header unificado (desktop): foto/nombre/posición a la izquierda,
+       rankings (Primera A/B + Histórico) como tarjetas flotantes a la
+       derecha, todo dentro de una única card héroe. En mobile esta card
+       toma su propio estilo dedicado (ver @media max-width:768px) y los
+       rankings se ocultan acá (.pp-hero-ranks) a favor del resumen en
+       pills (.pp-hero-mobile-ranks). */
+    .pp-hero-card {
+      display:flex; align-items:flex-start; justify-content:space-between; gap:24px; flex-wrap:wrap;
+      background:linear-gradient(180deg,#1c2538 0%,#151c2c 100%);
+      border:1px solid rgba(255,255,255,0.08); border-radius:18px;
+      padding:22px 24px; margin-bottom:18px;
+    }
+    .pp-hero-card .pp-header { margin-bottom:0; }
+    .pp-hero-ranks { display:flex; gap:14px; flex-wrap:wrap; flex:1 1 420px; }
+    .pp-hero-ranks .pp-rank-layout { gap:14px; margin-bottom:0; flex:1; }
+    .pp-hero-ranks .pp-rank-col-left,
+    .pp-hero-ranks .pp-rank-col-right {
+      background:rgba(255,255,255,0.03); border:1px solid #1e2a3a; border-radius:12px;
+      padding:14px 16px; flex:1 1 220px; min-width:220px; border-left:1px solid #1e2a3a;
+    }
+    .pp-hero-ranks .pp-rank-col-right { background:rgba(251,191,36,0.05); border-color:rgba(251,191,36,0.2); }
+    .pp-hero-ranks .pp-rank-row { margin-bottom:8px; }
+    .pp-hero-ranks .pp-rank-row:last-child { margin-bottom:0; }
+    .pp-hero-ranks .pp-rank-row-accent { background:none; padding:0; margin:0; }
+
+    /* Dashboard superior: Récord de Resultados (4 cols) + Métricas Totales
+       (8 cols) lado a lado — mobile mantiene el stack simple de siempre
+       (esta regla solo corre ≥769px, ver breakpoint espejo del resto del
+       perfil en @media max-width:768px). */
+    @media (min-width: 769px) {
+      .pp-dash-grid { display:grid; grid-template-columns: repeat(12, 1fr); gap:18px; margin-top:18px; align-items:stretch; }
+      .pp-dash-col-record { grid-column: span 4; }
+      .pp-dash-col-metrics { grid-column: span 8; }
+      .pp-dash-col-record .card, .pp-dash-col-metrics .card { height:100%; margin-top:0; }
+    }
+
+    /* Historial de Partidos — sección a ancho completo con filtros por
+       resultado (desktop only, ver .pp-history-card en @media max-width:768px). */
+    .pp-history-filters { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+    .pp-history-filter {
+      font-family:inherit; font-size:0.8rem; font-weight:800; cursor:pointer;
+      padding:8px 16px; border-radius:999px; border:1px solid #1e2a3a;
+      background:rgba(255,255,255,0.03); color:#cbd5e1; transition:all .15s;
+    }
+    .pp-history-filter:hover { border-color:rgba(255,255,255,0.2); }
+    .pp-history-filter-win.active  { background:rgba(34,197,94,0.16);  border-color:#22c55e; color:#4ade80; }
+    .pp-history-filter-draw.active { background:rgba(234,179,8,0.16);  border-color:#eab308; color:#fbbf24; }
+    .pp-history-filter-loss.active { background:rgba(239,68,68,0.16);  border-color:#ef4444; color:#f87171; }
+    .pp-history-list { display:flex; flex-direction:column; gap:8px; max-height:640px; overflow-y:auto; }
+
     /* ── Tarjeta "Compartir" del perfil de jugador — ver _ppShareCard()/
        _ppBuildShareCardHtml(). .pp-share-trigger-btn es el botón real
        (siempre visible en el perfil) que comparte/copia el link a
@@ -2639,6 +2690,8 @@
     .pp-record-favorito { font-size:0.8rem; color:#cbd5e1; padding-top:6px; border-top:1px solid #1e293b; }
     #pp-record-body { transition:opacity .15s; }
     #pp-record-body.pp-fading { opacity:0; }
+    #pp-history-body { transition:opacity .15s; }
+    #pp-history-body.pp-fading { opacity:0; }
     .pp-effectiveness { margin-top: 16px; }
     .pp-kpi-tab { cursor:pointer; transition:background .15s, border-color .15s; border:1px solid transparent; }
     .pp-kpi-tab:hover { background:rgba(255,255,255,0.04); }
@@ -2711,9 +2764,16 @@
     #pp-m-pct { transition:opacity .15s; }
     #pp-m-meter { transition:width .25s ease; }
 
-    /* Progress bar V-E-D — solo mobile (ver .pp-record-bar más abajo); en
-       desktop la fracción "6V - 2E - 1D" ya se lee perfecto como texto. */
-    .pp-record-bar { display: none; }
+    /* Progress bar V-E-D segmentada (verde/amarillo/rojo) — ahora también
+       visible en desktop, no solo mobile. */
+    .pp-record-bar { display: flex; height: 10px; border-radius: 999px; overflow: hidden; background: rgba(255,255,255,0.06); margin: 6px 0 4px; }
+    .pp-record-bar-v { background: #22c55e; }
+    .pp-record-bar-e { background: #eab308; }
+    .pp-record-bar-d { background: #ef4444; }
+    .pp-record-pcts { display: flex; gap: 14px; font-size: 0.78rem; font-weight: 800; margin-bottom: 4px; }
+    .pp-record-pct-v { color: #4ade80; }
+    .pp-record-pct-e { color: #fbbf24; }
+    .pp-record-pct-d { color: #f87171; }
     .pp-record-pct { display: none; }
     .pp-kpi-sec-mobile { display: none; }
     /* Duplicado mobile del match-row (ver .pp-match-mobile-layout más abajo) —
@@ -2761,6 +2821,12 @@
       /* La grilla completa por A/Primera B ya quedó resumida arriba — evita
          mostrar el mismo dato dos veces en una pantalla angosta. */
       .pp-rank-layout { display: none; }
+      .pp-hero-ranks { display: none; }
+      /* Historial de Partidos a ancho completo con filtros por resultado es
+         una sección nueva SOLO desktop — mobile sigue con el flujo existente
+         (tocar la tarjeta "Partidos" abre el detalle, ver #pp-detail-panel),
+         para no duplicar la misma lista dos veces en una pantalla angosta. */
+      .pp-history-card { display: none; }
 
       /* Avisos informativos (digitalización pendiente/sincronizando) — antes
          eran bloques con fondo/borde ámbar a todo el ancho; en mobile pesan
@@ -2785,6 +2851,7 @@
       .pp-record-bar-e { background: #eab308; }
       .pp-record-bar-d { background: #ef4444; }
       .pp-record-pct { display: inline; margin-left: 6px; font-size: 0.72rem; font-weight: 700; color: #4ade80; }
+      .pp-record-pcts { display: none; }
       .pp-record-note { display: none; }
       .pp-record-favorito { font-size: 0.74rem; padding-top: 5px; }
 
@@ -4432,6 +4499,15 @@ function ppFilterMetrics(cat, btn) {
       recordBodyEl.classList.remove('pp-fading');
     }, 150);
   }
+  // Historial de Partidos (desktop) — misma categoría recién seleccionada.
+  const historyBodyEl = document.getElementById('pp-history-body');
+  if (historyBodyEl) {
+    historyBodyEl.classList.add('pp-fading');
+    setTimeout(() => {
+      historyBodyEl.innerHTML = _ppHistorySectionInnerHtml(window._ppDetailLists.partidos || []);
+      historyBodyEl.classList.remove('pp-fading');
+    }, 150);
+  }
 }
 
 // ── Every tournament data source that carries a real Fecha a Fecha (.apertura
@@ -5243,11 +5319,59 @@ function _ppRecordCardInnerHtml(fullPartidos) {
       <div class="pp-record-bar-seg pp-record-bar-e" style="width:${pctE}%"></div>
       <div class="pp-record-bar-seg pp-record-bar-d" style="width:${pctD}%"></div>
     </div>
+    <div class="pp-record-pcts">
+      <span class="pp-record-pct-v">${pctV}% Vict</span>
+      <span class="pp-record-pct-e">${pctE}% Emp</span>
+      <span class="pp-record-pct-d">${pctD}% Derr</span>
+    </div>
     <div class="pp-record-note">* Métrica calculada sobre los partidos cargados en la web</div>
     ${incompleteNote}
     <div class="pp-record-favorito" id="pp-record-favorito">👑 Cliente Favorito: ${favCliente
       ? `<span class="pp-favorito-name">${favCliente.rivales.join(', ')}</span> (${favCliente.wins} Victoria${favCliente.wins !== 1 ? 's' : ''})`
       : `<span style="color:rgba(255,255,255,0.4)">—</span>`}</div>`;
+}
+
+// Historial de Partidos (desktop, sección propia a ancho completo — ver
+// .pp-history-card) con 3 filtros por resultado (Ganados/Empatados/
+// Perdidos). Reusa _ppStatRowHtml('partidos', p) para cada fila (mismo
+// markup/estilo que el detalle existente), solo que ahora siempre visible
+// en vez de depender de tocar la tarjeta "Partidos". Filtrado por
+// categoría igual que el resto del dashboard (ver _ppFilterByCat).
+function _ppHistorySectionInnerHtml(fullPartidos) {
+  if (window._ppRecordShowLoading) {
+    return `<div class="pp-record-loading">Cargando historial completo…</div>`;
+  }
+  const list = _ppFilterByCat(fullPartidos);
+  const record = _ppRecordVED(list);
+  const resOf = p => {
+    if (p.gf == null || p.gc == null) return null;
+    const { csb, riv } = _csbGoles(p);
+    return csb > riv ? 'win' : csb < riv ? 'loss' : 'draw';
+  };
+  const rows = list.length
+    ? list.map(p => `<div class="pp-history-row" data-res="${resOf(p) || ''}">${_ppStatRowHtml('partidos', p)}</div>`).join('')
+    : `<div class="hist-empty">Sin partidos cargados.</div>`;
+  return `
+    <div class="pp-history-filters" id="pp-history-filters">
+      <button class="pp-history-filter pp-history-filter-win" onclick="_ppHistoryFilter('win', this)">🟢 Ganados (${record.v})</button>
+      <button class="pp-history-filter pp-history-filter-draw" onclick="_ppHistoryFilter('draw', this)">🟡 Empatados (${record.e})</button>
+      <button class="pp-history-filter pp-history-filter-loss" onclick="_ppHistoryFilter('loss', this)">🔴 Perdidos (${record.d})</button>
+    </div>
+    <div class="pp-history-list" id="pp-history-list">${rows}</div>`;
+}
+// Clic en un filtro: si ya estaba activo, lo apaga y muestra todo de nuevo;
+// si no, lo activa (desactivando cualquier otro) y oculta las filas que no
+// matcheen ese resultado — todo client-side, sin volver a pedir datos.
+function _ppHistoryFilter(res, btn) {
+  const wasActive = btn.classList.contains('active');
+  document.querySelectorAll('#pp-history-filters .pp-history-filter').forEach(b => b.classList.remove('active'));
+  const rows = document.querySelectorAll('#pp-history-list .pp-history-row');
+  if (wasActive) {
+    rows.forEach(r => { r.style.display = ''; });
+    return;
+  }
+  btn.classList.add('active');
+  rows.forEach(r => { r.style.display = r.dataset.res === res ? '' : 'none'; });
 }
 
 // G+A per rival, keeping the goles/asist split (not just the combined
@@ -5805,9 +5929,19 @@ function renderPlayerProfile(nombre) {
   // que responde al cambio de pestaña igual que ellas (ver ppFilterMetrics,
   // que llama a _ppRecordCardInnerHtml de nuevo con la categoría nueva).
   const recordCard = `
-    <div class="card pp-record-card" style="margin-top:18px">
+    <div class="card pp-record-card">
       <div class="card-label">Récord de Resultados</div>
       <div id="pp-record-body">${_ppRecordCardInnerHtml(_ppPartidosSource)}</div>
+    </div>`;
+
+  // Historial de Partidos — sección propia a ancho completo (desktop, ver
+  // .pp-history-card), con filtros por resultado (Ganados/Empatados/
+  // Perdidos). Responde a la misma categoría activa que el resto del
+  // dashboard (ver ppFilterMetrics, que también refresca #pp-history-body).
+  const historySection = `
+    <div class="card pp-history-card" style="margin-top:18px">
+      <div class="card-label">📋 Historial de Partidos</div>
+      <div id="pp-history-body">${_ppHistorySectionInnerHtml(_ppPartidosSource)}</div>
     </div>`;
 
   overlay.innerHTML = `
@@ -5823,16 +5957,21 @@ function renderPlayerProfile(nombre) {
             <div class="pp-hero-mobile-ranks">${_ppHeroMiniRanksHtml(s)}</div>
           </div>
         </div>
+        <div class="pp-hero-ranks">${rankings}</div>
       </div>
-      ${rankings}
-      ${recordCard}
-      <div class="card" style="margin-top:18px">
-        <div class="pp-metrics-header">
-          <div class="card-label">Métricas Totales</div>
-          ${metricsTabs}
+      <div class="pp-dash-grid">
+        <div class="pp-dash-col-record">${recordCard}</div>
+        <div class="pp-dash-col-metrics">
+          <div class="card">
+            <div class="pp-metrics-header">
+              <div class="card-label">Métricas Totales</div>
+              ${metricsTabs}
+            </div>
+            ${metrics}
+          </div>
         </div>
-        ${metrics}
       </div>
+      ${historySection}
     </div>`;
 
   ppShowDetail(_ppKindToOpen);
