@@ -9926,9 +9926,9 @@ function renderResumen() {
   // usa goToMatchFecha para ir al Clausura — renderiza el torneo y recién
   // ahí deja a window.apSwitchTab apuntando a esta instancia.
   const verTablaCompletaAttr = `_navPush('Resumen', () => renderResumen()); showTorneo('apertura'); apSwitchTab('tabla');`;
-  // "Ver Estadísticas →" de Destacados Clausura — mismo patrón, hacia
-  // Estadísticas Jugadores (índice 2 en #main-nav).
-  const verEstadisticasAttr = `_navPush('Resumen', () => renderResumen()); showTab('jugadores', document.querySelectorAll('#main-nav button')[2]);`;
+  // "Ver Plantel →" de Destacados Clausura — al plantel del torneo en curso
+  // (En Vivo), mismo patrón que verTablaCompletaAttr.
+  const verEstadisticasAttr = `_navPush('Resumen', () => renderResumen()); showTorneo('apertura'); apSwitchTab('plantel');`;
 
   const container = document.getElementById('resumen-content');
   container.innerHTML = `
@@ -10138,7 +10138,7 @@ function renderResumen() {
               </div>
             </div>
           </div>
-          <button onclick="${verEstadisticasAttr}" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition mt-3 appearance-none border-0 cursor-pointer">Ver Estadísticas →</button>
+          <button onclick="${verEstadisticasAttr}" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition mt-3 appearance-none border-0 cursor-pointer">Ver Plantel →</button>
         </div>
       </div>
 
