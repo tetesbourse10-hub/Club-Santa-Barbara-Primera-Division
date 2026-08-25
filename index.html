@@ -9877,7 +9877,14 @@ function renderResumen() {
   const ligaClausura = (d.apertura || []).filter(m => /^\d+$/.test(String(m.fecha)) && m.resultado !== null);
   const _golCount = {}, _asistCount = {}, _vallaCount = {}, _pjCount = {};
   for (const m of ligaClausura) {
-    const mLocalNorm = String(m.local || '').trim().toUpperCase();
+    // BUG REAL encontrado (Destacados Clausura B acreditaba una valla
+    // invicta de más): el bloque detallado no siempre trae `local` (ej.
+    // Sportivo Avellaneda, Fecha 2 — el club carga el fixture en la tabla
+    // básica antes que el detalle), y sin fallback esto asumía "local" por
+    // defecto, usando el número de gol equivocado del resultado. Mismo
+    // fallback que ya usa _buildPlayerPartidosRaw (basicLocal).
+    const mBasic = (d.partidos || []).find(p => String(p.fecha) === String(m.fecha));
+    const mLocalNorm = String(m.local || mBasic?.local || '').trim().toUpperCase();
     const rivalGoles = mLocalNorm === 'VISITANTE' ? m.gf : m.gc;
     let arqTitular = null;
     for (const j of (m.jugadores || [])) {
