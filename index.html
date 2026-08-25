@@ -7717,6 +7717,19 @@ function buildCentroDatosHtml(matches, opts) {
 // RENDER: APERTURA
 // ──────────────────────────────────────────────
 function renderTorneoApertura() {
+  // BUG REAL encontrado (el auto-refresh de 60s "sacaba" al usuario de
+  // Fecha a Fecha y lo mandaba a Centro de Datos): este render reconstruye
+  // TODO el HTML de la pestaña, con "Centro de Datos" siempre hardcodeado
+  // como activa — refreshCurrentView() llama a esta función entera cada
+  // 60s mientras esta vista está abierta, así que cualquier sub-pestaña
+  // que el usuario tuviera abierta (Fecha a Fecha, Plantel, Tabla...) se
+  // perdía. Se guarda cuál estaba activa (y, si era Fecha a Fecha, cuál
+  // fecha puntual) antes de reconstruir, para restaurarla al final.
+  const _prevTabBtn = document.querySelector('#torneo-apertura-content .ap-tab-btn.active');
+  const _prevTab = _prevTabBtn ? _prevTabBtn.dataset.tab : 'datos';
+  const _prevFechaBtn = document.querySelector('#torneo-apertura-content .ap-fecha-btn.active');
+  const _prevFecha = _prevFechaBtn ? _prevFechaBtn.dataset.fecha : null;
+
   const isA = currentData === DATA_A;
   // Both A and B's tracked current-season slot is now their respective
   // Clausura 2026 (Torneos Actuales, its own new sheet tab, fetched into
@@ -8038,7 +8051,12 @@ function renderTorneoApertura() {
     if (tab === 'fechas' && autoFecha !== null) selectFecha(autoFecha);
     _syncPlantelBadge(tab, ['plantel']);
   };
-  _syncPlantelBadge('datos', ['plantel']);
+  // Restaura la sub-pestaña (y, si era Fecha a Fecha, la fecha puntual)
+  // que el usuario tenía abierta antes de este re-render — ver comentario
+  // al principio de la función.
+  if (_prevTab !== 'datos') apSwitchTab(_prevTab);
+  else _syncPlantelBadge('datos', ['plantel']);
+  if (_prevTab === 'fechas' && _prevFecha !== null) selectFecha(parseInt(_prevFecha));
 
   // Live AIFA standings scrape (background, only touches the on-screen table —
   // never persisted into DATA_A/DATA_B). aifaSlug/aifaUrl above still point at
