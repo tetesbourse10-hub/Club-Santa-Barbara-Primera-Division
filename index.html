@@ -10039,7 +10039,7 @@ function renderResumen() {
           </div>
         </div>
 
-        <div class="bg-slate-950/80 border border-slate-800/80 rounded-2xl p-3.5 px-4 hover:border-slate-700 transition min-w-[320px]">
+        <div class="bg-slate-950/80 border border-slate-800/80 rounded-2xl p-3.5 px-4 hover:border-slate-700 transition min-w-[320px]${proximo ? ' cursor-pointer' : ''}"${proximo ? ` onclick="goToMatchFecha('${clausuraNavKey}', '${String(proximo.fecha).replace(/'/g, "\\'")}')" title="Ver en Fecha a Fecha"` : ''}>
           ${proximo ? `
             <div class="flex items-center justify-between gap-3">
               <div class="flex items-center gap-2 flex-wrap">
