@@ -9881,15 +9881,20 @@ function renderResumen() {
   const _top1 = obj => Object.entries(obj).sort((a, b) => b[1] - a[1])[0] || null;
   const golLeader = _top1(_golCount), asistLeader = _top1(_asistCount), vallaLeader = _top1(_vallaCount), presenciasLeader = _top1(_pjCount);
 
+  // Porcentajes/promedios en relación a Partidos Jugados — se muestran
+  // entre paréntesis debajo de la etiqueta de cada casilla, lo más chico
+  // posible (mismo criterio que el subtítulo de Racha Invicta).
+  const _pctPJ = n => h.pj > 0 ? `${((n / h.pj) * 100).toFixed(1)}% de PJ` : null;
+  const _golesPorPartido = n => h.pj > 0 ? `${(n / h.pj).toFixed(2)} goles/partido` : null;
   const totalesHistItems = [
     { label: 'Partidos Jugados',   val: h.pj,                                       color: 'text-white' },
-    { label: 'Victorias',          val: h.pg,                                       color: 'text-emerald-400' },
+    { label: 'Victorias',          val: h.pg,                                       color: 'text-emerald-400', sub: _pctPJ(h.pg) },
     { label: 'Empates',            val: h.pe,                                       color: 'text-amber-400' },
     { label: 'Derrotas',           val: h.pp,                                       color: 'text-red-400' },
-    { label: 'Goles a Favor',      val: h.gf,                                       color: 'text-sky-400' },
-    { label: 'Goles en Contra',    val: h.gc,                                       color: 'text-red-400' },
+    { label: 'Goles a Favor',      val: h.gf,                                       color: 'text-sky-400', sub: _golesPorPartido(h.gf) },
+    { label: 'Goles en Contra',    val: h.gc,                                       color: 'text-red-400', sub: _golesPorPartido(h.gc) },
     { label: 'Diferencia de Gol',  val: (h.gf - h.gc >= 0 ? '+' : '') + (h.gf - h.gc), color: 'text-emerald-400' },
-    { label: 'Vallas Invictas',    val: h.vi,                                       color: 'text-purple-400' },
+    { label: 'Vallas Invictas',    val: h.vi,                                       color: 'text-purple-400', sub: _pctPJ(h.vi) },
   ];
 
   // accent = { text, pillBg } clase de color propia de cada columna (goles/
@@ -10199,6 +10204,7 @@ function renderResumen() {
               <div class="bg-slate-950/40 border border-slate-800/60 rounded-xl px-4 py-3.5 text-center">
                 <div class="text-2xl font-black ${it.color}">${it.val}</div>
                 <div class="text-[0.65rem] text-slate-500 font-semibold mt-1">${it.label}</div>
+                ${it.sub ? `<div class="text-[0.6rem] text-slate-600 font-semibold mt-0.5">(${it.sub})</div>` : ''}
               </div>`).join('')}
           </div>
         </div>
