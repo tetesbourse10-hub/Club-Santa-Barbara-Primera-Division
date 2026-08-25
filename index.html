@@ -9930,11 +9930,13 @@ function renderResumen() {
   // (En Vivo), mismo patrón que verTablaCompletaAttr.
   const verEstadisticasAttr = `_navPush('Resumen', () => renderResumen()); showTorneo('apertura'); apSwitchTab('plantel');`;
   // Máxima Goleada (Palmarés) — lleva al partido puntual en Torneos
-  // Antiguos, club-confirmado: 8-0 vs Sitas (Apertura AIFA A 2023) para
-  // Primera A, 13-0 vs República del Oeste (Apertura AIFA D 2023) para B.
+  // Antiguos, club-confirmado: 8-0 vs Sitas, Fecha 15 (Apertura AIFA A
+  // 2023) para Primera A; 13-0 vs República del Oeste, Fecha 11 (Apertura
+  // AIFA D 2023) para B. Mismo patrón que el resto de los match-cards
+  // (goToMatchFecha ya maneja el load-si-hace-falta y el badge de sección).
   const goleadaNav = isA
-    ? `_navPush('Resumen', () => renderResumen()); _navPushTorneosAntiguos(); showHistoricoTorneo('apertura-2023a'); setTimeout(() => ghSelectFecha('__A_FECHA__'), 0);`
-    : `_navPush('Resumen', () => renderResumen()); _navPushTorneosAntiguos(); showHistoricoTorneo('apertura-2023d-b'); setTimeout(() => ghSelectFecha('__B_FECHA__'), 0);`;
+    ? `goToMatchFecha('hg:apertura-2023a', '15')`
+    : `goToMatchFecha('hg:apertura-2023d-b', '11')`;
 
   const container = document.getElementById('resumen-content');
   container.innerHTML = `
