@@ -2316,8 +2316,10 @@
       .ap-squad-empty-m { color:rgba(255,255,255,0.3); font-size:0.8rem; text-align:center; padding:16px 0; }
       .ap-change-m { display:flex; align-items:center; gap:6px; padding:8px 0; font-size:0.78rem; border-bottom:1px solid rgba(255,255,255,0.04); flex-wrap:wrap; }
       .ap-change-m:last-child { border-bottom:none; }
-      .ap-change-m .cin-m { color:var(--verde); font-weight:700; }
-      .ap-change-m .cout-m { color:var(--rojo); opacity:0.9; }
+      .ap-change-m .cin-m { color:var(--verde); font-weight:700; display:flex; align-items:center; gap:3px; }
+      .ap-change-m .cin-m::before { content:'▲'; font-size:0.7rem; }
+      .ap-change-m .cout-m { color:var(--rojo); opacity:0.9; display:flex; align-items:center; gap:3px; }
+      .ap-change-m .cout-m::before { content:'▼'; font-size:0.7rem; }
       .ap-change-m .cmet-m { font-size:0.65rem; color:var(--gris-texto); padding:0 2px; }
     }
     .ap-squad-sec { font-size:0.62rem; text-transform:uppercase; letter-spacing:0.1em; color:var(--gris-texto); font-weight:700; margin:12px 0 6px; padding-bottom:5px; border-bottom:1px solid rgba(255,255,255,0.06); }
@@ -6846,9 +6848,9 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
     : `<div class="ap-squad-empty-m">Sin suplentes cargados.</div>`;
   const cambiosRowsMobile = cambios.length
     ? cambios.map(c => `<div class="ap-change-m">
-        <span class="cin-m">🟢 ${pl(c.inp.nombre)}</span>
-        <span class="cmet-m">por</span>
-        <span class="cout-m">${c.out ? pl(c.out.nombre) : '?'} 🔴</span>
+        <span class="cin-m">Entró: ${pl(c.inp.nombre)}</span>
+        <span class="cmet-m">·</span>
+        <span class="cout-m">Salió: ${c.out ? pl(c.out.nombre) : '?'}</span>
       </div>`).join('')
     : `<div class="ap-squad-empty-m">Sin cambios en este partido.</div>`;
   const squadTabsMobile = `
@@ -7735,6 +7737,12 @@ function renderTorneoApertura() {
   const _prevTab = _prevTabBtn ? _prevTabBtn.dataset.tab : 'datos';
   const _prevFechaBtn = document.querySelector('#torneo-apertura-content .ap-fecha-btn.active');
   const _prevFecha = _prevFechaBtn ? _prevFechaBtn.dataset.fecha : null;
+  // Mismo problema dentro del detalle de una fecha puntual: el panel de
+  // 11 Titular/Suplentes/Cambios (mobile) siempre vuelve a "11 Titular" al
+  // reconstruirse — si el usuario estaba viendo Cambios, el refresh se lo
+  // sacaba sin ningún cambio real de fecha ni de pestaña de arriba.
+  const _prevSquadBtns = [...document.querySelectorAll('#torneo-apertura-content .ap-squad-tabbtn-m')];
+  const _prevSquadIdx = _prevSquadBtns.findIndex(b => b.classList.contains('active'));
 
   const isA = currentData === DATA_A;
   // Both A and B's tracked current-season slot is now their respective
@@ -8063,6 +8071,12 @@ function renderTorneoApertura() {
   if (_prevTab !== 'datos') apSwitchTab(_prevTab);
   else _syncPlantelBadge('datos', ['plantel']);
   if (_prevTab === 'fechas' && _prevFecha !== null) selectFecha(parseInt(_prevFecha));
+  // Restaura también la sub-pestaña de Titular/Suplentes/Cambios (mobile)
+  // que estaba abierta dentro del detalle de esa fecha (ver _prevSquadIdx).
+  if (_prevTab === 'fechas' && _prevSquadIdx > 0) {
+    const newSquadBtns = [...document.querySelectorAll('#torneo-apertura-content .ap-squad-tabbtn-m')];
+    if (newSquadBtns[_prevSquadIdx]) window._apSquadTabM(newSquadBtns[_prevSquadIdx], _prevSquadIdx);
+  }
 
   // Live AIFA standings scrape (background, only touches the on-screen table —
   // never persisted into DATA_A/DATA_B). aifaSlug/aifaUrl above still point at
