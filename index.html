@@ -9729,9 +9729,16 @@ function renderResumen() {
   // los últimos 5 de esa secuencia da exactamente la cola móvil. Para
   // Primera A, la Recopa 2026 corre en paralelo a la liga y no vive en
   // d.partidos — el último resultado (eliminados en Semifinales, 13/08) se
-  // suma al final a mano, como el partido más reciente jugado por el plantel.
-  const combinadoUltimos = [...jugadosDe(aperturaSrc, aperturaNavKey, aperturaLabel), ...jugadosDe(d, clausuraNavKey, clausuraLabel)];
-  if (isA) combinadoUltimos.push(RECOPA_2026_A_ULTIMO_RESULTADO);
+  // suma al final a mano, como el partido más reciente jugado por el plantel,
+  // SOLO mientras el Clausura todavía no arrancó a jugar. BUG REAL
+  // encontrado (la ficha de "Último Partido" seguía mostrando la Recopa
+  // mucho después de que el Clausura ya tuviera resultados cargados,
+  // ignorando por completo la fecha real de cada uno): antes se sumaba
+  // siempre al final sin importar si el Clausura ya había jugado partidos
+  // más recientes que esa semifinal.
+  const clausuraJugados = jugadosDe(d, clausuraNavKey, clausuraLabel);
+  const combinadoUltimos = [...jugadosDe(aperturaSrc, aperturaNavKey, aperturaLabel), ...clausuraJugados];
+  if (isA && clausuraJugados.length === 0) combinadoUltimos.push(RECOPA_2026_A_ULTIMO_RESULTADO);
   const ultimos = combinadoUltimos.slice(-5).reverse();
   function ultimoBadgeCls(torneoLabel) {
     return /apertura/i.test(torneoLabel) ? 'badge-apertura'
@@ -14698,8 +14705,10 @@ function renderLandingCardStats() {
       const played = partidos.filter(m => m.resultado !== null);
       // Recopa 2026 corre en paralelo a la liga de Primera A y no vive en
       // d.partidos — se suma el último resultado (eliminados en
-      // Semifinales) al final, como el partido más reciente jugado.
-      if (key === 'a') played.push(RECOPA_2026_A_ULTIMO_RESULTADO);
+      // Semifinales) al final, como el partido más reciente jugado, SOLO
+      // mientras el Clausura todavía no tiene resultados propios (mismo fix
+      // que el "Último Partido" de Resumen — ver combinadoUltimos).
+      if (key === 'a' && played.length === 0) played.push(RECOPA_2026_A_ULTIMO_RESULTADO);
       // Últimos 5 partidos, más reciente primero.
       const lastFive = played.slice(-5).reverse();
       if (lastFive.length) {
