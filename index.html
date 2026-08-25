@@ -9889,8 +9889,8 @@ function renderResumen() {
   const totalesHistItems = [
     { label: 'Partidos Jugados',   val: h.pj,                                       color: 'text-white' },
     { label: 'Victorias',          val: h.pg,                                       color: 'text-emerald-400', sub: _pctPJ(h.pg) },
-    { label: 'Empates',            val: h.pe,                                       color: 'text-amber-400' },
-    { label: 'Derrotas',           val: h.pp,                                       color: 'text-red-400' },
+    { label: 'Empates',            val: h.pe,                                       color: 'text-amber-400', sub: _pctPJ(h.pe) },
+    { label: 'Derrotas',           val: h.pp,                                       color: 'text-red-400',   sub: _pctPJ(h.pp) },
     { label: 'Goles a Favor',      val: h.gf,                                       color: 'text-sky-400', sub: _golesPorPartido(h.gf) },
     { label: 'Goles en Contra',    val: h.gc,                                       color: 'text-red-400', sub: _golesPorPartido(h.gc) },
     { label: 'Diferencia de Gol',  val: (h.gf - h.gc >= 0 ? '+' : '') + (h.gf - h.gc), color: 'text-emerald-400' },
