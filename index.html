@@ -14503,6 +14503,7 @@ const RECOPA_2026_A_ELIMINADA = true;
 const RECOPA_2026_A_ULTIMO_RESULTADO = {
   rival: 'GEBA BLANCO', fecha: 'Semifinal', local: '', resultado: '1-1 (3-4 pen.)',
   gf: 1, gc: 1, posCSB: 'Eliminados en Semifinales', _navKey: 'rc:a', _torneoLabel: 'Recopa 2026',
+  dia: '13/8',
 };
 function _recopaANextMatch() {
   if (RECOPA_2026_A_ELIMINADA) return null;
@@ -14712,18 +14713,41 @@ function renderLandingCardStats() {
       ? `<span class="lc-badge-pill ${_posBadgeClass(parseInt(own.pos) || 0, tabla.length)}">${String(own.pos).replace(/[°º]/g, '')}º puesto</span>` : '');
     if (footEl) {
       const partidos = (d.partidos || []).filter(m => /^\d+$/.test(m.fecha));
-      const played = partidos.filter(m => m.resultado !== null);
+      // d.partidos ("básico") no trae día/fecha real, solo el número de
+      // fecha — se busca en d.apertura (detalle) el día real de cada
+      // partido para poder ordenar cronológicamente junto con la Recopa
+      // (ver más abajo).
+      const played = partidos.filter(m => m.resultado !== null).map(m => {
+        const det = (d.apertura || []).find(a => String(a.fecha) === String(m.fecha));
+        return { ...m, _dia: det?.dia || null };
+      });
       // Recopa 2026 corre en paralelo a la liga de Primera A y no vive en
-      // d.partidos — se suma el último resultado (eliminados en
-      // Semifinales) al final, como el partido más reciente jugado, SOLO
-      // mientras el Clausura todavía no tiene resultados propios (mismo fix
-      // que el "Último Partido" de Resumen — ver combinadoUltimos).
-      if (key === 'a' && played.length === 0) played.push(RECOPA_2026_A_ULTIMO_RESULTADO);
+      // d.partidos — se suma su único resultado (eliminados en Semifinales,
+      // 13/08) a la lista. BUG REAL encontrado (el resultado de copa
+      // desaparecía apenas el Clausura sumaba su primer partido propio):
+      // antes se agregaba solo cuando el Clausura no tenía NINGÚN resultado
+      // todavía, así que se perdía por completo en cuanto arrancaba a jugar,
+      // en vez de simplemente ubicarse en su lugar cronológico real dentro
+      // de los últimos 5.
+      if (key === 'a') played.push(RECOPA_2026_A_ULTIMO_RESULTADO);
+      const _diaKey = s => { const m2 = String(s || '').match(/(\d{1,2})[\/\-](\d{1,2})/); return m2 ? parseInt(m2[2], 10) * 100 + parseInt(m2[1], 10) : null; };
+      played.sort((x, y) => {
+        const kx = _diaKey(x._dia), ky = _diaKey(y._dia);
+        if (kx == null && ky == null) return 0;
+        if (kx == null) return -1;
+        if (ky == null) return 1;
+        return kx - ky;
+      });
       // Últimos 5 partidos, más reciente primero.
       const lastFive = played.slice(-5).reverse();
       if (lastFive.length) {
         const pills = lastFive.map(m => {
-          const r = m.gf > m.gc ? 'G' : m.gf === m.gc ? 'E' : 'P';
+          // BUG REAL encontrado (Primera B marcaba una derrota de visitante
+          // como victoria): comparaba gf > gc crudo, sin tener en cuenta la
+          // condición Local/Visitante — el gf/gc de la sheet viene en orden
+          // Local-Visitante, no CSB-Rival fijo (ver _csbGoles).
+          const { csb, riv } = _csbGoles(m);
+          const r = csb > riv ? 'G' : csb === riv ? 'E' : 'P';
           const cls = r === 'G' ? 'lc-res-g' : r === 'E' ? 'lc-res-e' : 'lc-res-p';
           return `<span class="lc-res-pill ${cls}" title="vs ${m.rival} (${m.resultado})">${r}</span>`;
         }).join('');
