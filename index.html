@@ -9806,6 +9806,27 @@ function renderResumen() {
   const ultimoLocalVal = (ultimoCopaMatch && ultimoCopaMatch.local) || (ultimo && ultimo.local) || '';
   const ultimoLugar = ultimoCopaMatch?.lugar || null;
   const ultimoCategoriaRival = ultimoCopaMatch?.categoriaRival || null;
+  // De visitante, CSB se muestra del lado derecho del marcador (y el rival a
+  // la izquierda) — mismo criterio que ya usa buildFechaDetailHTML
+  // (csbIsLeft) para el Fecha a Fecha, acá replicado para esta ficha propia
+  // del home de cada plantel.
+  const _ultimoCsbEsVisitante = /visit/i.test(_rsmLocalTxt(ultimoLocalVal));
+  const _ultimoCsbTeamHtml = `
+    <div class="flex flex-col items-center gap-1 w-16">
+      <img src="logo-csb.webp" alt="Santa Bárbara" class="w-10 h-10 rounded-full object-contain bg-slate-950/60 border border-slate-700 p-1" />
+      <span class="text-[0.6rem] text-slate-400 font-semibold truncate max-w-full">CSB</span>
+    </div>`;
+  const _ultimoRivalTeamHtml = ultimo ? `
+    <div class="flex flex-col items-center gap-1 w-16">
+      <span class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-extrabold text-slate-300">${_rivalInitials(ultimo.rival)}</span>
+      <span class="text-[0.6rem] text-slate-400 font-semibold truncate max-w-full">${ultimo.rival}</span>
+    </div>` : '';
+  const _ultimoScoreHtml = `
+    <div class="flex flex-col items-center gap-0.5">
+      <div class="text-3xl font-black leading-tight ${ultimoRes === 'win' ? 'text-emerald-400' : ultimoRes === 'loss' ? 'text-red-400' : 'text-amber-400'}">${ultimoResultadoClean}</div>
+      ${ultimoPenales ? `<div class="text-[0.68rem] font-bold text-slate-400">(${ultimoPenales} pen.)</div>` : ''}
+      <span class="text-[0.6rem] font-bold px-2 py-0.5 rounded-full mt-0.5 ${_ultimoCsbEsVisitante ? 'bg-sky-500/10 text-sky-400 border border-sky-500/30' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'}">${_rsmLocalTxt(ultimoLocalVal) || '—'}</span>
+    </div>`;
   // Locator para goToMatchFecha: los partidos de liga se buscan por número
   // de fecha; los de copa (navKey 'rc:'), por la clave compuesta
   // "rival|instancia" que arma selectFaseCopa.
@@ -10052,19 +10073,8 @@ function renderResumen() {
                 <span class="px-2 py-0.5 rounded-full bg-slate-800/80 text-slate-300 font-bold">${ultimoFechaLabel}${ultimoEsCopa ? ' · ' + (ultimo._torneoLabel || '') : ' · ' + clausuraLabel.replace(/ \d{4}$/, '')}</span>
               </div>
               <div class="flex items-center justify-between gap-2 my-3">
-                <div class="flex flex-col items-center gap-1 w-16">
-                  <img src="logo-csb.webp" alt="Santa Bárbara" class="w-10 h-10 rounded-full object-contain bg-slate-950/60 border border-slate-700 p-1" />
-                  <span class="text-[0.6rem] text-slate-400 font-semibold truncate max-w-full">CSB</span>
-                </div>
-                <div class="flex flex-col items-center gap-0.5">
-                  <div class="text-3xl font-black leading-tight ${ultimoRes === 'win' ? 'text-emerald-400' : ultimoRes === 'loss' ? 'text-red-400' : 'text-amber-400'}">${ultimoResultadoClean}</div>
-                  ${ultimoPenales ? `<div class="text-[0.68rem] font-bold text-slate-400">(${ultimoPenales} pen.)</div>` : ''}
-                  <span class="text-[0.6rem] font-bold px-2 py-0.5 rounded-full mt-0.5 ${/visit/i.test(_rsmLocalTxt(ultimoLocalVal)) ? 'bg-sky-500/10 text-sky-400 border border-sky-500/30' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'}">${_rsmLocalTxt(ultimoLocalVal) || '—'}</span>
-                </div>
-                <div class="flex flex-col items-center gap-1 w-16">
-                  <span class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-extrabold text-slate-300">${_rivalInitials(ultimo.rival)}</span>
-                  <span class="text-[0.6rem] text-slate-400 font-semibold truncate max-w-full">${ultimo.rival}</span>
-                </div>
+                ${_ultimoCsbEsVisitante ? _ultimoRivalTeamHtml + _ultimoScoreHtml + _ultimoCsbTeamHtml
+                                        : _ultimoCsbTeamHtml + _ultimoScoreHtml + _ultimoRivalTeamHtml}
               </div>
               ${(ultimoLugar || ultimoCategoriaRival) ? `
               <div class="flex items-center gap-2 flex-wrap text-[0.65rem] text-slate-400 font-semibold mb-3">
