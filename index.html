@@ -298,6 +298,18 @@
       line-height: 1;
     }
     .header-back:hover { color: var(--blanco); }
+    .header-home {
+      background: none;
+      border: none;
+      color: var(--gris-texto);
+      font-size: 1.1rem;
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 6px;
+      transition: color 0.2s;
+      line-height: 1;
+    }
+    .header-home:hover { color: var(--blanco); }
     header img { height: 36px; width: 36px; object-fit: contain; }
     header h1 { font-size: 1rem; font-weight: 700; color: var(--blanco); }
     header h1 span { color: var(--dorado); }
@@ -2925,8 +2937,9 @@
 ══════════════════════════════════════════ -->
 <div id="app">
   <header>
-    <button class="header-back" onclick="goBack()">← </button>
+    <button class="header-back" onclick="volverAtras()" title="Volver">← </button>
     <img src="logo-csb.webp" alt="CSB" />
+    <button class="header-home" onclick="goBack()" title="Ir al inicio">🏠</button>
     <h1>Club <span>Santa Bárbara</span></h1>
     <span id="section-badge" class="header-section-badge badge-gold"></span>
   </header>
@@ -6018,10 +6031,14 @@ function volverAtras() {
   if (idx === 4) { showTab('graficos', activeMainBtn); return; }
   goBack();
 }
-// Único componente visual de retroceso — reemplaza los ~20 botones de
-// "volver" que antes tenía cada vista con su propio destino hardcodeado.
+// La casilla "← Volver" en línea se eliminó de cada vista — esa función
+// la cumple ahora la flecha del header (.header-back, ver arriba), que
+// llama a volverAtras() en vez de goBack() (ir a Home ahora vive en su
+// propio botón, .header-home, al lado del escudo). Se deja esta función
+// con la firma intacta (devuelve string vacío) para no tener que tocar los
+// ~17 call sites que la insertaban en sus templates.
 function _volverBtnHtml(extraStyle) {
-  return `<button class="volver-btn" onclick="volverAtras()"${extraStyle ? ` style="${extraStyle}"` : ''}>← Volver</button>`;
+  return '';
 }
 // Pushed right before entering any "Estadísticas Jugadores" sub-panel
 // (Totales/Anuales/Debuts/Inferiores) from its picker menu.
