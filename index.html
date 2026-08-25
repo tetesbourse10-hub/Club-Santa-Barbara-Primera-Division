@@ -14286,7 +14286,14 @@ function parseDetailedMatches(rows, startInSection = false) {
       current.jugadores.push({ nombre:c0, citado, titular, entro, salio, goles, asist, rojas, pos, porQuien });
     }
   }
-  return matches.filter(m => m.jugadores.length > 0 || m.resultado);
+  // BUG REAL encontrado (Próximo Partido de Primera B en el home mostraba
+  // día/hora/lugar en blanco pese a estar cargados en el sheet): un
+  // partido a futuro con fecha/lugar/día ya confirmados pero SIN plantel
+  // citado todavía (normal — el club carga el fixture antes que la
+  // convocatoria) no tenía jugadores NI resultado, así que este filtro lo
+  // descartaba entero. Alcanza con tener rival + (día o lugar) para
+  // saber que es un partido real y no una fila mal detectada.
+  return matches.filter(m => m.jugadores.length > 0 || m.resultado || ((m.dia || m.lugar) && m.rival));
 }
 
 // Parses the centralized "SB en Copas" sheet (all Recopas/Supercopas, every
