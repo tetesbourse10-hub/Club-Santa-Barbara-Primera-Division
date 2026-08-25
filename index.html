@@ -14729,7 +14729,12 @@ function renderLandingCardStats() {
       // todavía, así que se perdía por completo en cuanto arrancaba a jugar,
       // en vez de simplemente ubicarse en su lugar cronológico real dentro
       // de los últimos 5.
-      if (key === 'a') played.push(RECOPA_2026_A_ULTIMO_RESULTADO);
+      // BUG REAL encontrado (la Recopa siempre terminaba primera en el
+      // orden, sin importar la fecha): el objeto trae el día en `dia`, pero
+      // el resto de este bloque arma/lee `_dia` — como nunca se copiaba,
+      // _diaKey(undefined) daba null y el comparador de abajo manda
+      // cualquier fecha desconocida al principio.
+      if (key === 'a') played.push({ ...RECOPA_2026_A_ULTIMO_RESULTADO, _dia: RECOPA_2026_A_ULTIMO_RESULTADO.dia });
       const _diaKey = s => { const m2 = String(s || '').match(/(\d{1,2})[\/\-](\d{1,2})/); return m2 ? parseInt(m2[2], 10) * 100 + parseInt(m2[1], 10) : null; };
       played.sort((x, y) => {
         const kx = _diaKey(x._dia), ky = _diaKey(y._dia);
@@ -14738,13 +14743,12 @@ function renderLandingCardStats() {
         if (ky == null) return 1;
         return kx - ky;
       });
-      // Últimos 5 partidos, en orden cronológico (el más viejo primero,
-      // igual que se leen de izquierda a derecha) — ya vienen ordenados por
-      // fecha real más arriba, así que alcanza con tomar los últimos 5 sin
-      // invertir (invertir acá pondría la Recopa 2026 fuera de su lugar
-      // real cuando quedó jugada ENTRE dos partidos del Clausura, en vez de
-      // antes o después de todos ellos).
-      const lastFive = played.slice(-5);
+      // Últimos 5 partidos, más reciente primero (de izquierda a derecha) —
+      // se ordena por fecha real ascendente arriba y se invierte acá recién
+      // al final, así la Recopa 2026 queda en su lugar cronológico real
+      // (jugada ENTRE dos partidos del Clausura) en vez de siempre al
+      // principio o al final sin importar cuándo se jugó en verdad.
+      const lastFive = played.slice(-5).reverse();
       if (lastFive.length) {
         const pills = lastFive.map(m => {
           // BUG REAL encontrado (Primera B marcaba una derrota de visitante
