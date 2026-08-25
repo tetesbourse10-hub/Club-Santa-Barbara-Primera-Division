@@ -5,6 +5,21 @@
   <link rel="icon" type="image/webp" href="logo-csb.webp" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Club Santa Bárbara</title>
+  <!-- "Agregar a pantalla de inicio" (mobile) — el sitio queda con el
+       escudo del club como ícono (fondo sólido #0B0E14 igual que el resto
+       del sitio, en vez del logo con fondo transparente, que en iOS/Android
+       se recorta feo contra lo que haya detrás) y un nombre corto para que
+       la etiqueta debajo del ícono no se corte. Esto es solo un acceso
+       directo — no hay Service Worker/caché offline — así que abre la
+       página en vivo cada vez, igual que un bookmark común: cualquier
+       cambio que se despliegue se ve ahí también, sin tener que reinstalar
+       nada. -->
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-title" content="Santa Bárbara" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0B0E14" />
   <!-- Meta OG por defecto (home / fallback). Las páginas /jugador/:slug las
        sobreescriben server-side — ver netlify/functions/jugador.js. -->
   <meta property="og:type" content="website" />
