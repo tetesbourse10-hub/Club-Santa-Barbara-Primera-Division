@@ -9929,6 +9929,12 @@ function renderResumen() {
   // "Ver Plantel →" de Destacados Clausura — al plantel del torneo en curso
   // (En Vivo), mismo patrón que verTablaCompletaAttr.
   const verEstadisticasAttr = `_navPush('Resumen', () => renderResumen()); showTorneo('apertura'); apSwitchTab('plantel');`;
+  // Máxima Goleada (Palmarés) — lleva al partido puntual en Torneos
+  // Antiguos, club-confirmado: 8-0 vs Sitas (Apertura AIFA A 2023) para
+  // Primera A, 13-0 vs República del Oeste (Apertura AIFA D 2023) para B.
+  const goleadaNav = isA
+    ? `_navPush('Resumen', () => renderResumen()); _navPushTorneosAntiguos(); showHistoricoTorneo('apertura-2023a'); setTimeout(() => ghSelectFecha('__A_FECHA__'), 0);`
+    : `_navPush('Resumen', () => renderResumen()); _navPushTorneosAntiguos(); showHistoricoTorneo('apertura-2023d-b'); setTimeout(() => ghSelectFecha('__B_FECHA__'), 0);`;
 
   const container = document.getElementById('resumen-content');
   container.innerHTML = `
@@ -10154,20 +10160,29 @@ function renderResumen() {
         <div class="col-span-4 bg-slate-900/40 border border-slate-800/80 rounded-2xl p-5">
           <div class="text-xs font-bold uppercase tracking-wider text-amber-400 mb-3">🏅 Palmarés Oficial</div>
           <div class="flex flex-col gap-2.5 mb-2.5">
-            ${d.titulos.map(t => `
-              <div class="flex items-center gap-3 bg-slate-950/40 rounded-xl px-3.5 py-2.5">
+            ${d.titulos.map(t => {
+              // Mismo mapa año|competencia que ya usa Torneos Antiguos
+              // (Gráficos/Estadísticas Anuales) para linkear cada torneo real
+              // — team-qualificado primero (2024 Recopa existe para A y B a
+              // la vez), con fallback a la clave sin equipo.
+              const tCompetencia = t.nombre.replace(/^Campeón\s+/i, '');
+              const tNav = TORNEO_NAV_MAP[`${t.anio}|${tCompetencia}|${isA ? 'A' : 'B'}`] || TORNEO_NAV_MAP[`${t.anio}|${tCompetencia}`];
+              return `
+              <div class="flex items-center gap-3 bg-slate-950/40 rounded-xl px-3.5 py-2.5${tNav ? ' cursor-pointer hover:bg-slate-900/60 transition' : ''}"${tNav ? ` onclick="_navPush('Resumen', () => renderResumen()); _navPushTorneosAntiguos(); ${tNav.fn.replace(/"/g, '&quot;')}" title="Ver campeonato"` : ''}>
                 <span class="w-8 h-8 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-base shrink-0 shadow-[0_0_10px_rgba(245,158,11,0.35)]">🏆</span>
                 <span class="flex-1 text-white text-sm font-semibold truncate">${t.nombre}</span>
                 <span class="text-slate-950 text-xs font-extrabold bg-[linear-gradient(135deg,#fbbf24,#f59e0b)] px-2.5 py-1 rounded-full shrink-0 shadow-[0_0_10px_rgba(245,158,11,0.45)]">${t.anio}</span>
-              </div>`).join('')}
+              </div>`;
+            }).join('')}
           </div>
           <div class="grid grid-cols-2 gap-2.5">
             <div class="bg-slate-950/40 border border-slate-800/60 rounded-xl px-3 py-3 flex flex-col items-center text-center gap-1">
               <span class="text-lg">🔥</span>
               <span class="text-[0.6rem] text-slate-500 font-bold uppercase tracking-wide">Racha Invicta</span>
-              <span class="text-white text-sm font-extrabold">${isA ? '15 partidos' : '14 partidos'}</span>
+              <span class="text-white text-sm font-extrabold">${isA ? '15 partidos' : '15 partidos'}</span>
+              <span class="text-[0.58rem] text-slate-500 font-semibold">${isA ? '(Apertura AIFA A 2026 y Recopa 2026)' : '(Clausura AIFA D 2023 y Apertura AIFA D 2024)'}</span>
             </div>
-            <div class="bg-slate-950/40 border border-slate-800/60 rounded-xl px-3 py-3 flex flex-col items-center text-center gap-1">
+            <div class="bg-slate-950/40 border border-slate-800/60 rounded-xl px-3 py-3 flex flex-col items-center text-center gap-1${goleadaNav ? ' cursor-pointer hover:bg-slate-900/40 transition' : ''}"${goleadaNav ? ` onclick="${goleadaNav}" title="Ver partido"` : ''}>
               <span class="text-lg">⚡</span>
               <span class="text-[0.6rem] text-slate-500 font-bold uppercase tracking-wide">Máxima Goleada</span>
               <span class="text-white text-sm font-extrabold">${isA ? '8–0 vs Sitas' : '13–0 vs Rep. del Oeste'}</span>
