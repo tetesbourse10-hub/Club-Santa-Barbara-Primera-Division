@@ -2593,29 +2593,32 @@
     .pp-hero-ranks .pp-rank-row-accent { background:none; padding:0; margin:0; }
 
     /* Dashboard superior: Récord de Resultados (4 cols) + Métricas Totales
-       (8 cols) lado a lado — mobile mantiene el stack simple de siempre
-       (esta regla solo corre ≥769px, ver breakpoint espejo del resto del
-       perfil en @media max-width:768px). */
+       (8 cols) lado a lado — cada card con SU propio alto natural (nada de
+       align-items:stretch: eso fue lo que causaba el hueco vacío enorme
+       bajo Récord de Resultados, estirada para igualar a Métricas Totales
+       cuando esta última contenía el detalle de Partidos adentro — ese
+       detalle ahora vive en su propia card a ancho completo debajo, ver
+       .pp-history-card). Mobile mantiene el stack simple de siempre (esta
+       regla solo corre ≥769px, ver breakpoint espejo en @media
+       max-width:768px). */
     @media (min-width: 769px) {
-      .pp-dash-grid { display:grid; grid-template-columns: repeat(12, 1fr); gap:18px; margin-top:18px; align-items:stretch; }
+      .pp-dash-grid { display:grid; grid-template-columns: repeat(12, 1fr); gap:18px; margin-top:18px; align-items:start; }
       .pp-dash-col-record { grid-column: span 4; }
       .pp-dash-col-metrics { grid-column: span 8; }
-      .pp-dash-col-record .card, .pp-dash-col-metrics .card { height:100%; margin-top:0; }
+      .pp-dash-col-record .card, .pp-dash-col-metrics .card { margin-top:0; }
     }
 
-    /* Historial de Partidos — sección a ancho completo con filtros por
-       resultado (desktop only, ver .pp-history-card en @media max-width:768px). */
-    .pp-history-filters { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
-    .pp-history-filter {
-      font-family:inherit; font-size:0.8rem; font-weight:800; cursor:pointer;
-      padding:8px 16px; border-radius:999px; border:1px solid #1e2a3a;
-      background:rgba(255,255,255,0.03); color:#cbd5e1; transition:all .15s;
-    }
-    .pp-history-filter:hover { border-color:rgba(255,255,255,0.2); }
-    .pp-history-filter-win.active  { background:rgba(34,197,94,0.16);  border-color:#22c55e; color:#4ade80; }
-    .pp-history-filter-draw.active { background:rgba(234,179,8,0.16);  border-color:#eab308; color:#fbbf24; }
-    .pp-history-filter-loss.active { background:rgba(239,68,68,0.16);  border-color:#ef4444; color:#f87171; }
-    .pp-history-list { display:flex; flex-direction:column; gap:8px; max-height:640px; overflow-y:auto; }
+    /* Historial de Partidos (el panel de detalle Partidos/Goles/Asist./
+       Rojas/G+A/Títulos, ver #pp-detail-panel) — ahora su propia card a
+       ancho completo debajo del dashboard, en vez de vivir adentro de
+       Métricas Totales (ver comentario arriba). */
+    .pp-history-card { margin-top:18px; }
+    /* Filtro por resultado (Ganados/Empatados/Perdidos) de la pestaña
+       Partidos — mismo componente visual que los chips de año/tipo
+       (.pp-year-chip), coloreado según el resultado que filtra. */
+    .pp-res-chip.pp-res-chip-win.active  { background:rgba(34,197,94,0.18);  border-color:#22c55e; color:#4ade80; }
+    .pp-res-chip.pp-res-chip-draw.active { background:rgba(234,179,8,0.18);  border-color:#eab308; color:#fbbf24; }
+    .pp-res-chip.pp-res-chip-loss.active { background:rgba(239,68,68,0.18);  border-color:#ef4444; color:#f87171; }
 
     /* ── Tarjeta "Compartir" del perfil de jugador — ver _ppShareCard()/
        _ppBuildShareCardHtml(). .pp-share-trigger-btn es el botón real
@@ -2822,11 +2825,6 @@
          mostrar el mismo dato dos veces en una pantalla angosta. */
       .pp-rank-layout { display: none; }
       .pp-hero-ranks { display: none; }
-      /* Historial de Partidos a ancho completo con filtros por resultado es
-         una sección nueva SOLO desktop — mobile sigue con el flujo existente
-         (tocar la tarjeta "Partidos" abre el detalle, ver #pp-detail-panel),
-         para no duplicar la misma lista dos veces en una pantalla angosta. */
-      .pp-history-card { display: none; }
 
       /* Avisos informativos (digitalización pendiente/sincronizando) — antes
          eran bloques con fondo/borde ámbar a todo el ancho; en mobile pesan
@@ -4499,15 +4497,6 @@ function ppFilterMetrics(cat, btn) {
       recordBodyEl.classList.remove('pp-fading');
     }, 150);
   }
-  // Historial de Partidos (desktop) — misma categoría recién seleccionada.
-  const historyBodyEl = document.getElementById('pp-history-body');
-  if (historyBodyEl) {
-    historyBodyEl.classList.add('pp-fading');
-    setTimeout(() => {
-      historyBodyEl.innerHTML = _ppHistorySectionInnerHtml(window._ppDetailLists.partidos || []);
-      historyBodyEl.classList.remove('pp-fading');
-    }, 150);
-  }
 }
 
 // ── Every tournament data source that carries a real Fecha a Fecha (.apertura
@@ -4998,11 +4987,13 @@ function _ppRankBadge(rank, label, accent) {
   if (!rank || !rank.pos) return '';
   const top = rank.pos <= 3;
   const medal = rank.pos === 1 ? '🥇' : rank.pos === 2 ? '🥈' : rank.pos === 3 ? '🥉' : '';
-  const color = top ? (rank.pos === 1 ? '#FFD700' : rank.pos === 2 ? '#C0C0C0' : '#CD7F32') : (accent ? '#fbbf24' : '#94a3b8');
-  const style = top
-    ? `border-color:${color}66;background:${color}14`
-    : accent ? `border-color:rgba(251,191,36,.35);background:rgba(251,191,36,.08)` : '';
-  return `<div class="pp-rank-pill${top || accent ? ' pp-rank-top' : ''}" style="${style}">
+  // Mismo look (fondo/borde dorado sutil) para las 3 pills de cada grupo —
+  // antes solo el top-3 (medalla) o el grupo "accent" (Histórico) tenían
+  // este estilo, y una pill fuera del podio en Primera A/B (ej. "#8 en
+  // Presencias") quedaba con el chip gris plano de base, distinto a sus
+  // dos hermanas del mismo grupo.
+  const color = top ? (rank.pos === 1 ? '#FFD700' : rank.pos === 2 ? '#C0C0C0' : '#CD7F32') : '#fbbf24';
+  return `<div class="pp-rank-pill" style="border-color:rgba(251,191,36,.35);background:rgba(251,191,36,.08)">
     <span style="color:${color}">${medal || '#' + rank.pos}</span>
     <span class="pp-rank-label">${label}</span>
   </div>`;
@@ -5331,47 +5322,13 @@ function _ppRecordCardInnerHtml(fullPartidos) {
       : `<span style="color:rgba(255,255,255,0.4)">—</span>`}</div>`;
 }
 
-// Historial de Partidos (desktop, sección propia a ancho completo — ver
-// .pp-history-card) con 3 filtros por resultado (Ganados/Empatados/
-// Perdidos). Reusa _ppStatRowHtml('partidos', p) para cada fila (mismo
-// markup/estilo que el detalle existente), solo que ahora siempre visible
-// en vez de depender de tocar la tarjeta "Partidos". Filtrado por
-// categoría igual que el resto del dashboard (ver _ppFilterByCat).
-function _ppHistorySectionInnerHtml(fullPartidos) {
-  if (window._ppRecordShowLoading) {
-    return `<div class="pp-record-loading">Cargando historial completo…</div>`;
-  }
-  const list = _ppFilterByCat(fullPartidos);
-  const record = _ppRecordVED(list);
-  const resOf = p => {
-    if (p.gf == null || p.gc == null) return null;
-    const { csb, riv } = _csbGoles(p);
-    return csb > riv ? 'win' : csb < riv ? 'loss' : 'draw';
-  };
-  const rows = list.length
-    ? list.map(p => `<div class="pp-history-row" data-res="${resOf(p) || ''}">${_ppStatRowHtml('partidos', p)}</div>`).join('')
-    : `<div class="hist-empty">Sin partidos cargados.</div>`;
-  return `
-    <div class="pp-history-filters" id="pp-history-filters">
-      <button class="pp-history-filter pp-history-filter-win" onclick="_ppHistoryFilter('win', this)">🟢 Ganados (${record.v})</button>
-      <button class="pp-history-filter pp-history-filter-draw" onclick="_ppHistoryFilter('draw', this)">🟡 Empatados (${record.e})</button>
-      <button class="pp-history-filter pp-history-filter-loss" onclick="_ppHistoryFilter('loss', this)">🔴 Perdidos (${record.d})</button>
-    </div>
-    <div class="pp-history-list" id="pp-history-list">${rows}</div>`;
-}
-// Clic en un filtro: si ya estaba activo, lo apaga y muestra todo de nuevo;
-// si no, lo activa (desactivando cualquier otro) y oculta las filas que no
-// matcheen ese resultado — todo client-side, sin volver a pedir datos.
-function _ppHistoryFilter(res, btn) {
-  const wasActive = btn.classList.contains('active');
-  document.querySelectorAll('#pp-history-filters .pp-history-filter').forEach(b => b.classList.remove('active'));
-  const rows = document.querySelectorAll('#pp-history-list .pp-history-row');
-  if (wasActive) {
-    rows.forEach(r => { r.style.display = ''; });
-    return;
-  }
-  btn.classList.add('active');
-  rows.forEach(r => { r.style.display = r.dataset.res === res ? '' : 'none'; });
+// Clasificación V/E/D de un partido (mismo criterio que _ppRecordVED,
+// partido a partido) — usada por el filtro de resultado de la pestaña
+// Partidos (ver _ppDetailPanelBodyHtml/PP_RES_OPTIONS).
+function _ppMatchResultado(p) {
+  if (p.gf == null || p.gc == null) return null;
+  const { csb, riv } = _csbGoles(p);
+  return csb > riv ? 'win' : csb < riv ? 'loss' : 'draw';
 }
 
 // G+A per rival, keeping the goles/asist split (not just the combined
@@ -5519,12 +5476,32 @@ function _ppDetailPanelBodyHtml(kind, fullList) {
   const tipoCount = val => val === 'todos' ? _ppKindTotal(kind, yearFiltered) : _ppKindTotal(kind, yearFiltered.filter(p => _ppTipoOf(p) === val));
   const tipoChip = (val, label) => `<button class="pp-year-chip pp-tipo-chip${activeTipo === val ? ' active' : ''}" onclick="ppFilterTipo('${kind}', '${val}')">${label} <span class="pp-year-chip-count">(${tipoCount(val)})</span></button>`;
   const tipoChips = PP_TIPO_OPTIONS.map(([val, label]) => tipoChip(val, label)).join('');
-  const finalList = activeTipo === 'todos' ? yearFiltered : yearFiltered.filter(p => _ppTipoOf(p) === activeTipo);
+  const tipoFiltered = activeTipo === 'todos' ? yearFiltered : yearFiltered.filter(p => _ppTipoOf(p) === activeTipo);
+
+  // Filtro por resultado (Ganados/Empatados/Perdidos) — solo tiene sentido
+  // para la pestaña Partidos (las demás cuentan goles/asist/rojas, no
+  // resultados de partido). Mismo patrón que año/tipo: estado propio en
+  // window._ppResFilter, un chip por resultado con su conteo.
+  let resChips = '';
+  let finalList = tipoFiltered;
+  if (kind === 'partidos') {
+    const resState = window._ppResFilter || (window._ppResFilter = {});
+    const activeRes = resState[kind] || 'todos';
+    const countRes = res => tipoFiltered.filter(p => _ppMatchResultado(p) === res).length;
+    const resChip = (val, cls, label, icon) => `<button class="pp-year-chip pp-tipo-chip pp-res-chip ${cls}${activeRes === val ? ' active' : ''}" onclick="ppFilterRes('${kind}', '${val}')">${icon} ${label} <span class="pp-year-chip-count">(${countRes(val)})</span></button>`;
+    resChips = `<div class="pp-tipo-chips">
+      ${resChip('win', 'pp-res-chip-win', 'Ganados', '🟢')}
+      ${resChip('draw', 'pp-res-chip-draw', 'Empatados', '🟡')}
+      ${resChip('loss', 'pp-res-chip-loss', 'Perdidos', '🔴')}
+    </div>`;
+    if (activeRes !== 'todos') finalList = tipoFiltered.filter(p => _ppMatchResultado(p) === activeRes);
+  }
 
   return {
     html: `
       <div class="pp-year-chips">${yearChips}</div>
       <div class="pp-tipo-chips">${tipoChips}</div>
+      ${resChips}
       ${finalList.length ? finalList.map(p => _ppStatRowHtml(kind, p)).join('') : `<div class="hist-empty">Sin registros cargados.</div>`}`,
     shownCount: _ppKindTotal(kind, finalList),
   };
@@ -5600,6 +5577,7 @@ window.ppShowDetail = function(kind) {
   if (PP_YEAR_CHIP_KINDS.has(kind)) {
     (window._ppYearFilter || (window._ppYearFilter = {}))[kind] = 'todos';
     (window._ppTipoFilter || (window._ppTipoFilter = {}))[kind] = 'todos';
+    (window._ppResFilter || (window._ppResFilter = {}))[kind] = 'todos';
   }
   _ppRenderDetailPanel(kind);
   _ppUpdateDatoCurioso(kind);
@@ -5616,6 +5594,15 @@ window.ppFilterYear = function(kind, year) {
 // (Todos/Clausura/Apertura/Copas), keeping the current year selection.
 window.ppFilterTipo = function(kind, tipo) {
   (window._ppTipoFilter || (window._ppTipoFilter = {}))[kind] = tipo;
+  _ppRenderDetailPanel(kind);
+};
+
+// Filtro por resultado (Ganados/Empatados/Perdidos) de la pestaña Partidos
+// — clic en el chip ya activo lo apaga (vuelve a mostrar todos), clic en
+// otro lo activa a él solo (no son acumulables entre sí).
+window.ppFilterRes = function(kind, res) {
+  const state = window._ppResFilter || (window._ppResFilter = {});
+  state[kind] = state[kind] === res ? 'todos' : res;
   _ppRenderDetailPanel(kind);
 };
 
@@ -5837,6 +5824,7 @@ function renderPlayerProfile(nombre) {
   window._ppDetailKind = null;
   window._ppYearFilter = {};
   window._ppTipoFilter = {};
+  window._ppResFilter = {};
   window._ppCareerPJ = s.pj;
   // Resuelve window._ppRecordShowLoading/_ppRecordIncomplete (y programa un
   // reintento si hace falta) ANTES de armar el HTML de abajo, para que
@@ -5907,8 +5895,7 @@ function renderPlayerProfile(nombre) {
       <div class="hd-meter-row"><span>0%</span><span class="hd-meter-pct" id="pp-m-pct">${s.efectividadGA.toFixed(0)}%</span><span>100%</span></div>
     </div>
     <div class="pp-metrics-fav-mobile" id="pp-fav-mobile">${_ppDatoCuriosoHtml(_ppKindToOpen, _favInit[_ppKindToOpen])}</div>
-    ${!s.nidoReady ? `<div class="pp-nido-loading">⏳ Sincronizando con El Nido…</div>` : ''}
-    <div id="pp-detail-panel"></div>`;
+    ${!s.nidoReady ? `<div class="pp-nido-loading">⏳ Sincronizando con El Nido…</div>` : ''}`;
 
   // Left column: rendimiento por categoría (equipo). Stacked A above B if the
   // player has "doble camiseta"; a single labeled block otherwise.
@@ -5934,15 +5921,14 @@ function renderPlayerProfile(nombre) {
       <div id="pp-record-body">${_ppRecordCardInnerHtml(_ppPartidosSource)}</div>
     </div>`;
 
-  // Historial de Partidos — sección propia a ancho completo (desktop, ver
-  // .pp-history-card), con filtros por resultado (Ganados/Empatados/
-  // Perdidos). Responde a la misma categoría activa que el resto del
-  // dashboard (ver ppFilterMetrics, que también refresca #pp-history-body).
-  const historySection = `
-    <div class="card pp-history-card" style="margin-top:18px">
-      <div class="card-label">📋 Historial de Partidos</div>
-      <div id="pp-history-body">${_ppHistorySectionInnerHtml(_ppPartidosSource)}</div>
-    </div>`;
+  // El panel de detalle (Partidos/Goles/Asistencias/Rojas/G+A/Títulos, según
+  // qué tarjeta de Métricas Totales esté activa — ver ppShowDetail) vive
+  // ahora en su propia card a ancho completo, debajo del dashboard, en vez
+  // de adentro de la card de Métricas Totales — así una lista larga de
+  // partidos no infla la altura de esa columna (que antes, con
+  // align-items:stretch, terminaba estirando también la card de Récord de
+  // Resultados de al lado, dejando un hueco vacío enorme debajo).
+  const historySection = `<div class="card pp-history-card"><div id="pp-detail-panel"></div></div>`;
 
   overlay.innerHTML = `
     <div class="pp-wrap">
