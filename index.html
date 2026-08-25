@@ -10125,7 +10125,7 @@ function renderResumen() {
 
         <div class="bg-slate-950/80 border border-slate-800/80 rounded-2xl p-3.5 px-4 hover:border-slate-700 transition min-w-[320px]${proximo ? ' cursor-pointer' : ''}"${proximo ? ` onclick="goToMatchFecha('${clausuraNavKey}', '${String(proximo.fecha).replace(/'/g, "\\'")}')" title="Ver en Fecha a Fecha"` : ''}>
           ${proximo ? `
-            <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center justify-between w-full gap-3">
               <div class="flex items-center gap-2 flex-wrap">
                 <span class="text-[0.65rem] uppercase tracking-wider text-slate-500 font-bold">📅 Próximo Partido</span>
                 ${proximo.fecha ? `<span class="text-[0.65rem] font-bold text-slate-300 bg-slate-800/80 px-2 py-0.5 rounded-full">Fecha ${proximo.fecha}</span>` : ''}
@@ -10171,7 +10171,7 @@ function renderResumen() {
                 ${!ultimoGoleadores.length && !ultimoAsistidores.length ? `<div class="text-slate-600">Sin datos de goleadores para este partido.</div>` : ''}
               </div>
             </div>
-            <button onclick="goToMatchFecha('${ultimo._navKey}', '${ultimoNavFecha.replace(/'/g, "\\'")}')" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition mt-3 appearance-none border-0 cursor-pointer">Ver Ficha Completa →</button>
+            <button onclick="goToMatchFecha('${ultimo._navKey}', '${ultimoNavFecha.replace(/'/g, "\\'")}')" class="w-full py-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-xs font-semibold text-slate-300 hover:text-white transition flex items-center justify-center gap-1 mt-3 appearance-none cursor-pointer">Ver Ficha Completa →</button>
           ` : `<div class="text-slate-500 text-sm text-center py-10 flex-1">Sin partidos jugados aún</div>`}
         </div>
 
@@ -10192,7 +10192,7 @@ function renderResumen() {
                 </div>`).join('')}
             </div>
           ` : `<div class="text-slate-500 text-sm text-center py-10 flex-1">Tabla no disponible</div>`}
-          <button onclick="${verTablaCompletaAttr}" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition mt-3 appearance-none border-0 cursor-pointer">Ver Tabla Completa →</button>
+          <button onclick="${verTablaCompletaAttr}" class="w-full py-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-xs font-semibold text-slate-300 hover:text-white transition flex items-center justify-center gap-1 mt-3 appearance-none cursor-pointer">Ver Tabla Completa →</button>
         </div>
 
         <!-- Columna 3: Destacados Clausura -->
@@ -10222,7 +10222,7 @@ function renderResumen() {
               </div>
             </div>
           </div>
-          <button onclick="${verEstadisticasAttr}" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition mt-3 appearance-none border-0 cursor-pointer">Ver Plantel →</button>
+          <button onclick="${verEstadisticasAttr}" class="w-full py-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-xs font-semibold text-slate-300 hover:text-white transition flex items-center justify-center gap-1 mt-3 appearance-none cursor-pointer">Ver Plantel →</button>
         </div>
       </div>
 
@@ -10254,11 +10254,11 @@ function renderResumen() {
             }).join('')}
           </div>
           <div class="grid grid-cols-2 gap-2.5">
-            <div class="bg-slate-950/40 border border-slate-800/60 rounded-xl px-3 py-3 flex flex-col items-center text-center gap-1">
+            <div class="bg-slate-950/40 border border-slate-800/60 rounded-xl px-3 p-3.5 flex flex-col items-center text-center gap-1">
               <span class="text-lg">🔥</span>
               <span class="text-[0.6rem] text-slate-500 font-bold uppercase tracking-wide">Racha Invicta</span>
               <span class="text-white text-sm font-extrabold">${isA ? '15 partidos' : '15 partidos'}</span>
-              <span class="text-[0.6rem] text-slate-500 font-semibold">${isA ? '(Apertura AIFA A 2026 y Recopa 2026)' : '(Clausura AIFA D 2023 y Apertura AIFA D 2024)'}</span>
+              <span class="text-[11px] text-slate-400 font-medium mt-1">${isA ? '(Apertura AIFA A 2026 y Recopa 2026)' : '(Clausura AIFA D 2023 y Apertura AIFA D 2024)'}</span>
             </div>
             <div class="bg-slate-950/40 border border-slate-800/60 rounded-xl px-3 py-3 flex flex-col items-center text-center gap-1${goleadaNav ? ' cursor-pointer hover:bg-slate-900/40 transition' : ''}"${goleadaNav ? ` onclick="${goleadaNav}" title="Ver partido"` : ''}>
               <span class="text-lg">⚡</span>
