@@ -2806,11 +2806,6 @@
          Clausura/Copas como grid en vez de fila de pills sueltas. */
       .pp-detail-header-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 14px 0 8px; flex-wrap: wrap; }
       .pp-detail-header { margin: 0; }
-      .pp-detail-count-badge {
-        font-size: 0.66rem; font-weight: 800; color: #a5b4fc; white-space: nowrap;
-        background: rgba(99,102,241,0.12); border: 1px solid rgba(99,102,241,0.3);
-        padding: 3px 10px; border-radius: 999px;
-      }
       .pp-year-chips { gap: 6px; }
       .pp-year-chips::-webkit-scrollbar { display: none; }
       .pp-tipo-chips {
@@ -5059,9 +5054,6 @@ function _ppStatRowHtml(kind, p) {
 }
 
 const PP_DETAIL_LABELS = { goles: '⚽ Goles', asist: '🎯 Asistencias', rojas: '🟥 Rojas', titulos: '🏆 Títulos', partidos: '📋 Partidos', ga: '🔥 G+A' };
-// Unidad para la badge "Mostrando X ___" (mobile, ver .pp-detail-count-badge)
-// — mismas etiquetas que PP_DETAIL_LABELS pero sin el emoji.
-const PP_COUNT_LABEL = { goles: 'Goles', asist: 'Asistencias', rojas: 'Rojas', titulos: 'Títulos', partidos: 'Partidos', ga: 'G+A' };
 const PP_CAT_LABEL = { a: 'Primera A', b: 'Primera B' };
 // Kinds that get the horizontal year-chip filter (Partidos/Goles/Asistencias/
 // Rojas) — each also gets a "Resumen" chip appended after the years (see
@@ -5412,13 +5404,10 @@ function _ppRenderDetailPanel(kind) {
   const gapNote = isTotalPartidos && window._ppCareerPJ > list.length
     ? `<div class="pp-data-gap-note">ℹ️ Mostrando ${list.length} de ${window._ppCareerPJ} partidos de la carrera — el sitio muestra los partidos SUBIDOS en el Fecha a Fecha de cada torneo, que puede ser menos que el total jugado si alguna temporada vieja no está digitalizada.</div>`
     : '';
-  const { html, shownCount } = _ppDetailPanelBodyHtml(kind, list);
-  const countBadge = shownCount != null
-    ? `<div class="pp-detail-count-badge">Mostrando ${shownCount} ${PP_COUNT_LABEL[kind] || 'Partidos'}</div>` : '';
+  const { html } = _ppDetailPanelBodyHtml(kind, list);
   panel.innerHTML = `
     <div class="pp-detail-header-row">
       <div class="pp-detail-header">${PP_DETAIL_LABELS[kind]} (${_ppKindTotal(kind, _ppFilterByCat(list))})</div>
-      ${countBadge}
     </div>
     ${gapNote}
     ${html}`;
