@@ -2059,6 +2059,7 @@
     @media (max-width:768px) {
       .tbm-wrap { display:block; background:var(--azul-card); border:1px solid rgba(255,255,255,0.06); border-radius:14px; overflow:hidden; }
     }
+    .tbm-aifa-link { display:flex; align-items:center; justify-content:center; gap:4px; font-size:0.68rem; font-weight:700; color:#60a5fa; text-decoration:none; padding:8px 10px; border-bottom:1px solid rgba(255,255,255,0.06); background:rgba(96,165,250,.06); }
     .tbm-head, .tbm-row { display:grid; grid-template-columns:22px 1fr 36px 30px 36px 36px; gap:6px; align-items:center; padding:8px 10px; }
     .tbm-head { font-size:0.58rem; text-transform:uppercase; letter-spacing:.04em; color:var(--gris-texto); font-weight:700; border-bottom:1px solid rgba(255,255,255,0.06); }
     .tbm-head span { text-align:right; }
@@ -7615,7 +7616,7 @@ function _tablaMobileDotColor(copa) {
   if (/descenso/i.test(copa))             return '#ef4444';
   return null;
 }
-function _tablaMobileCardsHtml(tabla, legendItems) {
+function _tablaMobileCardsHtml(tabla, legendItems, aifaUrl) {
   if (!tabla || !tabla.length) return '<div class="mrow-empty">📭 Tabla no disponible.</div>';
   const rows = tabla.map(t => {
     const dot = _tablaMobileDotColor(t.copas);
@@ -7632,7 +7633,12 @@ function _tablaMobileCardsHtml(tabla, legendItems) {
   }).join('');
   const legend = (legendItems || []).map(l =>
     `<span class="tbm-legend-item"><span class="tbm-dot" style="background:${l.color}"></span>${l.label}</span>`).join('');
+  // Mismo link "Ver en AIFA ↗" que ya tiene la vista desktop (ap-standings-card)
+  // — antes solo existía ahí, mobile no tenía forma de llegar a la tabla
+  // oficial del torneo en el sitio de AIFA.
+  const aifaLink = aifaUrl ? `<a href="${aifaUrl}" target="_blank" rel="noopener" class="tbm-aifa-link">Ver en AIFA ↗</a>` : '';
   return `<div class="tbm-wrap">
+    ${aifaLink}
     <div class="tbm-head"><span style="text-align:left">#</span><span>Equipo</span><span>Pts</span><span>PJ</span><span>Dif</span><span>Clasif.</span></div>
     ${rows}
   </div>
@@ -8063,7 +8069,7 @@ function renderTorneoApertura() {
     </div>
 
     <div class="ap-tab-panel" id="ap-tab-tabla">
-      <div class="ap-overview"><div class="mrow-desktop-only">${tablaHtml}</div>${_tablaMobileCardsHtml(tabla, copaLegendItems)}<div class="ap-match-cards">${lastCard}${nextCard}</div></div>
+      <div class="ap-overview"><div class="mrow-desktop-only">${tablaHtml}</div>${_tablaMobileCardsHtml(tabla, copaLegendItems, aifaUrl)}<div class="ap-match-cards">${lastCard}${nextCard}</div></div>
     </div>
 
     <div class="ap-tab-panel" id="ap-tab-fechas">
