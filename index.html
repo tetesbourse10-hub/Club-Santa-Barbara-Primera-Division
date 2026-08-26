@@ -794,44 +794,51 @@
       .nido-mtable-scroll::-webkit-scrollbar { display: none; }
       .nido-mtable { width: 100%; border-collapse: separate; border-spacing: 0; }
       .nido-mtable-th, .nido-mtable-sticky-th {
-        padding: 9px 10px; font-size: 10px; font-weight: 700; color: #6b7280;
+        padding: 9px 6px; font-size: 10px; font-weight: 700; color: #6b7280;
         text-transform: uppercase; letter-spacing: .05em; white-space: nowrap;
         text-align: center; background: #1a2337; border-bottom: 1px solid rgba(255,255,255,0.08);
       }
       .nido-mtable-th-active { color: #a5b4fc; }
+      /* Achicado (era 175px) para que entren 4 columnas de stats en pantalla
+         sin tener que scrollear horizontal en mobile — el nombre se trunca
+         con ellipsis si no entra (ver .nido-mtable-name), a propósito: acá
+         importa más ver PJ/PG/PE/PP de un vistazo que el nombre completo. */
       .nido-mtable-sticky-th {
-        position: sticky; left: 0; z-index: 11; text-align: left; padding: 9px 12px;
+        position: sticky; left: 0; z-index: 11; text-align: left; padding: 9px 8px;
         background: #151c2c; border-right: 1px solid #1e293b; box-shadow: 2px 0 6px rgba(0,0,0,0.35);
-        min-width: 175px;
+        min-width: 108px; max-width: 108px;
       }
       .nido-mtable-td {
-        padding: 9px 10px; font-size: 12.5px; font-weight: 600; color: #cbd5e1;
+        padding: 9px 7px; font-size: 12.5px; font-weight: 600; color: #cbd5e1;
         text-align: center; white-space: nowrap; border-bottom: 1px solid rgba(255,255,255,0.05);
       }
       .nido-mtable-active {
         background: rgba(99,102,241,0.1); color: #a5b4fc; font-weight: 700; border-radius: 0;
       }
       .nido-mtable-sticky-td {
-        position: sticky; left: 0; z-index: 10; padding: 8px 12px;
+        position: sticky; left: 0; z-index: 10; padding: 8px 8px;
         background: #151c2c; border-right: 1px solid #1e293b; box-shadow: 2px 0 6px rgba(0,0,0,0.35);
-        border-bottom: 1px solid rgba(255,255,255,0.05); min-width: 175px;
+        border-bottom: 1px solid rgba(255,255,255,0.05); min-width: 108px; max-width: 108px;
       }
       .nido-mtable tbody tr:nth-child(even) .nido-mtable-td:not(.nido-mtable-active) { background: rgba(255,255,255,0.02); }
-      .nido-mtable-rank-name { display: flex; align-items: baseline; gap: 5px; }
-      .nido-mtable-rank { font-size: 0.8rem; font-weight: 900; flex-shrink: 0; }
+      .nido-mtable-rank-name { display: flex; align-items: baseline; gap: 4px; min-width: 0; }
+      .nido-mtable-rank { font-size: 0.76rem; font-weight: 900; flex-shrink: 0; }
       /* Nombre con más peso visual (font-black) que las badges de abajo —
-         el foco tiene que ir al nombre, no a la posición/plantel. */
+         el foco tiene que ir al nombre, no a la posición/plantel. min-width:0
+         es necesario para que text-overflow:ellipsis funcione dentro del
+         flex de .nido-mtable-rank-name (si no, el texto empuja la columna
+         entera en vez de truncarse). */
       .nido-mtable-name {
-        font-size: 0.8rem; font-weight: 900; color: #ffffff; white-space: nowrap;
-        overflow: hidden; text-overflow: ellipsis;
+        font-size: 0.74rem; font-weight: 900; color: #ffffff; white-space: nowrap;
+        overflow: hidden; text-overflow: ellipsis; min-width: 0;
       }
-      .nido-mtable-badges { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; align-items: center; }
+      .nido-mtable-badges { display: flex; gap: 3px; margin-top: 4px; flex-wrap: wrap; align-items: center; }
       /* Tamaño/forma achicados para que el foco siga yendo al nombre — el
          color de cada badge (posición por línea / plantel) ya viene resuelto
          inline por NIDO_MOBILE_POS_COLOR/NIDO_MOBILE_TEAM_COLOR en JS, acá
          solo se define la forma común. */
       .nido-mtable-badges span {
-        display: inline-block; font-size: 8px; font-weight: 700; padding: 1px 5px;
+        display: inline-block; font-size: 7.5px; font-weight: 700; padding: 1px 4px;
         border-radius: 4px; letter-spacing: .02em; white-space: nowrap;
       }
       .nido-mtable-pos { display: inline-block; }
