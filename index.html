@@ -4186,8 +4186,17 @@ function slugify(s) {
 // lugares que comparan gf/gc para decidir victoria/derrota/empate.
 function _csbGoles(m) {
   if (!m || m.gf == null || m.gc == null) return { csb: null, riv: null };
-  const esVisitante = String(m.local || '').trim().toUpperCase() === 'VISITANTE';
-  return esVisitante ? { csb: m.gc, riv: m.gf } : { csb: m.gf, riv: m.gc };
+  const l = String(m.local || '').trim().toUpperCase();
+  // "NEUTRAL" (Final de copa en cancha neutral) cuenta como NO-local acá
+  // también, igual que buildFechaDetailHTML/_cdCsbGoles — antes solo
+  // miraba 'VISITANTE' y NEUTRAL caía en la rama "gf=CSB" (como si Santa
+  // Bárbara fuera local), invirtiendo el resultado de Finales realmente
+  // perdidas (ej. Recopa 2024 vs Harrods, Recopa 2025 vs GEBA) en el
+  // Récord de Resultados y demás estadísticas del perfil de jugador que
+  // usan este helper. Un local vacío/desconocido sigue usando el
+  // comportamiento de siempre (gf=CSB).
+  const esVisitanteONeutral = l === 'VISITANTE' || l === 'NEUTRAL';
+  return esVisitanteONeutral ? { csb: m.gc, riv: m.gf } : { csb: m.gf, riv: m.gc };
 }
 
 function pl(nombre) {
