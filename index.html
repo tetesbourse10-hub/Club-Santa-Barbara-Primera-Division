@@ -14661,9 +14661,11 @@ function parseCopaBasicSheet(rows) {
 
 // Small "resumen" row used by dedicated single-copa B sheets (Recopa 2021's
 // A1:E2: Rival | Instancia | Local/Visita | Resultado | Resultados
-// Parciales) — one row per match, matched onto the detailed A5:J27 block by
-// rival name in _loadDedicatedCopaSheet (that block's own "Fecha" column
-// doubles as the round name and has no Local/Visita or Parciales column).
+// Parciales; Recopa 2026's A1:F3 adds a 6th "Division del Rival" column) —
+// one row per match, matched onto the detailed Fecha a Fecha block by rival
+// name in _loadDedicatedCopaSheet (that block's own "Fecha"/"Instancia"
+// column doubles as the round name and has no Local/Visita, Parciales, or
+// Categoría del rival column of its own).
 function parseCopaResumenRows(rows) {
   const out = [];
   for (const row of rows) {
@@ -14675,6 +14677,7 @@ function parseCopaResumenRows(rows) {
       posCSB: String(row[1] ?? '').trim(),
       local: /neutral/i.test(localRaw) ? 'NEUTRAL' : /local/i.test(localRaw) ? 'LOCAL' : /visit/i.test(localRaw) ? 'VISITANTE' : null,
       parciales: String(row[4] ?? '').trim(),
+      categoriaRival: String(row[5] ?? '').trim(),
     });
   }
   return out;
@@ -15250,7 +15253,7 @@ async function loadLiveData() {
   // Fetch each section as a targeted range so parsers receive exactly the right rows
   const [aSim, aBasic, aDet, bApBasic, bApDet, aHist, bHist, aGlobal, aTabla,
          a25Det, a25Global, a25Tabla, a25Basico, bApGlobal, bApTabla,
-         bClDet, bClGlobal, bClTabla, bClBasic, aClDet, aClGlobal, aClTabla, aClBasic, copasSheet, copasBasicSheet, bRecopaSheet,
+         bClDet, bClGlobal, bClTabla, bClBasic, aClDet, aClGlobal, aClTabla, aClBasic, copasSheet, copasBasicSheet, bRecopa26Det, bRecopa26Basico,
          bSupercopa25Det, bSupercopa25Plantel, bRecopa24Det, bRecopa24Plantel,
          bRecopa21Det, bRecopa21Plantel, bRecopa21Basico] = await Promise.allSettled([
     // Antes: fetchCSV(GS.A_SIM) — sin tab/range, csvUrl() arma la URL sin
@@ -15353,10 +15356,18 @@ async function loadLiveData() {
     //    Observaciones/Parciales/Categoría del rival for every copa edition,
     //    which the detailed block above doesn't have. See parseCopaBasicSheet.
     fetchGvizByGid(GS.A_MAIN, 1255047736, 'A1:I16'),
-    // ── Recopa AIFA B 2026 — its own dedicated sheet tab (same B_HIST
-    //    spreadsheet, new gid), same league-style Fecha a Fecha layout, so
-    //    it's parsed the same way as the centralized "SB en Copas" blocks. ──
-    fetchGvizByGid(GS.B_HIST, 1905553016, 'A1:S1000'),
+    // ── Recopa AIFA B 2026 — own dedicated sheet, club-confirmed ranges:
+    //    club-confirmed A1:F3 short resumen (Rival/Instancia/Local-Visita/
+    //    Resultado/Resultados Parciales/Division del Rival) + A6:J71 detailed
+    //    Fecha a Fecha block. Previously fetched as a single blanket
+    //    'A1:S1000' fed straight into parseDetailedMatches, which — since
+    //    that resumen block's own header row also isn't literally "Fecha"
+    //    (it's "Instancia" here too, same as the detailed block below) — had
+    //    its 2-3 resumen rows misdetected as extra bogus matches (their
+    //    Resultado/Parciales/Division del Rival cells landing in dia/hora/
+    //    formacionCSB) instead of being skipped, corrupting the real match.
+    fetchGvizByGid(GS.B_HIST, 1905553016, 'A6:J71'),
+    fetchGvizByGid(GS.B_HIST, 1905553016, 'A1:F3'),
     // ── Supercopa AIFA B 2025 — own dedicated sheet, club-confirmed ranges. ──
     fetchGvizByGid(GS.B_HIST, 2137113169, 'A5:I35'),
     fetchGvizByGid(GS.B_HIST, 2137113169, 'L3:X31'),
@@ -15662,8 +15673,9 @@ async function loadLiveData() {
           m.local = m.posCSB === 'Final' ? 'NEUTRAL' : CSB_HOME_VENUES.test(m.lugar || '') ? 'LOCAL' : 'VISITANTE';
         });
         // Resumen (Rival/Instancia/Local-Visita/Resultado/Resultados
-        // Parciales) — pisa el "local" adivinado por sede con el real, y
-        // suma "parciales" (ninguno de los dos existe en el bloque detallado).
+        // Parciales[/Division del Rival]) — pisa el "local" adivinado por
+        // sede con el real, y suma "parciales"/"categoriaRival" (ninguno de
+        // los tres existe en el bloque detallado).
         if (resumenResult && ok(resumenResult)) {
           const resumen = parseCopaResumenRows(ok(resumenResult));
           det.forEach(m => {
@@ -15671,6 +15683,7 @@ async function loadLiveData() {
             if (r) {
               if (r.local) m.local = r.local;
               if (r.parciales) m.parciales = r.parciales;
+              if (r.categoriaRival) m.categoriaRival = r.categoriaRival;
             }
           });
         }
@@ -15686,7 +15699,7 @@ async function loadLiveData() {
 
   // ── Recopa AIFA B 2026 — dedicated sheet, isolated entirely from Primera
   //    B's league data (no more filtering DATA_B_APERTURA2026 by fecha shape). ──
-  _loadDedicatedCopaSheet(bRecopaSheet, null, DATA_B_RECOPA2026, 'Recopa B 2026');
+  _loadDedicatedCopaSheet(bRecopa26Det, null, DATA_B_RECOPA2026, 'Recopa B 2026', bRecopa26Basico);
 
   // ── Supercopa AIFA B 2025 — own dedicated sheet, isolated from Primera B's
   //    league data. Plantel comes straight from the sheet's own "acumulado"
