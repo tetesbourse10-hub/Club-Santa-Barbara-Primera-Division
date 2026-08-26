@@ -12012,6 +12012,17 @@ function _ensureJugTotalesB() {
       console.error('[B Totales] fetch failed:', e);
       const w = document.getElementById('jug-totales-wrap-b');
       if (w) w.innerHTML = `<div style="color:var(--gris-texto);padding:24px;text-align:center">Error al cargar los datos.<br><small style="opacity:.5">${e?.message || ''}</small></div>`;
+      // BUG REAL encontrado: PROXY_URL (Apps Script) a veces falla/tarda de
+      // más en un intento puntual (cold-start, glitch de red) aunque el
+      // servicio en sí ande bien — sin esto, ese único fallo quedaba
+      // memoizado para siempre en _jugTotalesBLoadPromise, así que Primera B
+      // (a diferencia de A, que tiene un SEED de respaldo) se quedaba
+      // mostrando "0 de 0 jugadores" en El Nido/Estadísticas Totales por el
+      // resto de la sesión, sin volver a intentarlo nunca. Liberando el
+      // promise memoizado acá, el próximo que lo pida (reabrir El Nido o
+      // Estadísticas Totales B) dispara un fetch nuevo en vez de heredar
+      // este mismo fallo para siempre.
+      _jugTotalesBLoadPromise = null;
     });
   return _jugTotalesBLoadPromise;
 }
@@ -16541,7 +16552,15 @@ async function loadLiveData() {
   // filtering by plantel here is as fast as it is in Totales instead of waiting
   // on a fresh cold fetch.
   function _nidoLoad() {
-    if (_nidoMerged !== null) return Promise.resolve();
+    // Solo se considera "ya cargado" si Primera B realmente trajo datos —
+    // _ensureJugTotalesB ahora reintenta sola cuando falla (ver el comentario
+    // ahí), pero si _nidoMerged quedaba fijado la primera vez que
+    // Promise.allSettled resolvía (aunque _jugBData siguiera en null por un
+    // fallo puntual del proxy), El Nido nunca volvía a pedir nada — quedaba
+    // con "0 de 0 jugadores" en Primera B para el resto de la sesión aunque
+    // el proxy ya estuviera respondiendo bien. Ahora, mientras B siga vacío,
+    // cada vez que se entra a El Nido se reintenta.
+    if (_nidoMerged !== null && _jugBData !== null) return Promise.resolve();
     if (_nidoLoadPromise) return _nidoLoadPromise;
     _nidoLoading = true;
     _nidoLoadPromise = Promise.allSettled([
@@ -16554,6 +16573,7 @@ async function loadLiveData() {
       _nidoDataB  = rowsB.map(normB).filter(Boolean);
       _nidoMerged = mergeAB(_nidoDataA, _nidoDataB);
       _nidoLoading = false;
+      _nidoLoadPromise = null;
     });
     return _nidoLoadPromise;
   }
@@ -16583,7 +16603,10 @@ async function loadLiveData() {
         if (records) _renderNidoContent();
       });
     }
-    if (_nidoMerged !== null) { _renderNidoContent(); return; }
+    // Mismo criterio que _nidoLoad: solo se saltea el fetch si Primera B
+    // realmente trajo datos — de lo contrario cada entrada a El Nido
+    // reintenta en vez de quedarse con "0 de 0 jugadores" para siempre.
+    if (_nidoMerged !== null && _jugBData !== null) { _renderNidoContent(); return; }
     _renderNidoContent();
     _nidoLoad().then(_renderNidoContent);
   };
