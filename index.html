@@ -5574,7 +5574,10 @@ function _ppDetailPanelBodyHtml(kind, fullList) {
     ${yearOptionHtml('todos', 'Todos', _ppKindTotal(kind, catList))}
     ${years.map(y => yearOptionHtml(y, y, byYear.get(y))).join('')}
   </select>`;
-  const resumenBtnHtml = `<button class="pp-fbar-icon-btn${activeYear === 'resumen' ? ' active' : ''}" onclick="ppFilterYear('${kind}', 'resumen')" title="Resumen por rival">📊</button>`;
+  // Toggle: si ya está en "Resumen", un segundo click vuelve a "Todos" en
+  // vez de quedarse pegado ahí para siempre (antes solo prendía, nunca
+  // apagaba — mismo criterio que ya usa el toggle de Resultado).
+  const resumenBtnHtml = `<button class="pp-fbar-icon-btn${activeYear === 'resumen' ? ' active' : ''}" onclick="ppFilterYear('${kind}', '${activeYear === 'resumen' ? 'todos' : 'resumen'}')" title="Resumen por rival">📊</button>`;
 
   // "Resumen" — per-rival breakdown across the whole career (ignores year/
   // tipo filters, it's meant as an all-time summary), sorted by whichever
