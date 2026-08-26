@@ -2791,12 +2791,58 @@
        distinto de Titular (verde) / Suplente (azul) para no confundirse. */
     .pp-cat-a { color:#818cf8; background:rgba(99,102,241,0.12); border-color:rgba(99,102,241,0.3); }
     .pp-cat-b { color:#f472b6; background:rgba(236,72,153,0.12); border-color:rgba(236,72,153,0.3); }
-    /* Barra única compacta que agrupa año + torneo + resultado (antes 3
-       filas apiladas por separado) — chips idénticos de siempre, solo
-       agrupados visualmente en un mismo contenedor con fondo propio. */
-    .pp-filter-bar { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; background:#111827; border:1px solid #1e293b; padding:12px; border-radius:12px; margin-bottom:12px; }
-    .pp-filter-divider { width:1px; height:24px; background:#1e293b; flex:0 0 auto; }
-    @media (max-width:768px) { .pp-filter-divider { display:none; } }
+    /* "Jerarquía de Control" (estilo FotMob/Sofascore) de los filtros de
+       Partidos/Goles/Asistencias/Rojas/G+A — tabs principales de torneo
+       (segmented control) a la izquierda, año + resultado + resumen
+       compactos a la derecha, todo en una sola fila que nunca rompe layout
+       (ver mobile ≤768px para el stack en columna). Reemplaza la fila de
+       chips sueltos de antes (.pp-year-chip/.pp-tipo-chip, ya sin uso). */
+    .pp-fbar { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:8px; }
+    .pp-fbar-tabs { display:flex; gap:2px; background:#020617; padding:4px; border-radius:12px; border:1px solid #1e293b; }
+    .pp-fbar-tab {
+      border:none; background:transparent; color:#94a3b8; font-size:0.76rem; font-weight:700;
+      padding:6px 12px; border-radius:8px; cursor:pointer; font-family:inherit; white-space:nowrap;
+      transition:background .15s, color .15s;
+    }
+    .pp-fbar-tab:hover { color:#e2e8f0; }
+    .pp-fbar-tab.active { background:#f59e0b; color:#0f172a; }
+    .pp-fbar-tab-count { opacity:.75; font-weight:600; }
+    .pp-fbar-tab.active .pp-fbar-tab-count { opacity:.65; }
+    .pp-fbar-right { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .pp-fbar-select {
+      background:#020617; border:1px solid #1e293b; border-radius:10px; padding:7px 10px;
+      font-size:0.74rem; font-weight:700; color:#e2e8f0; font-family:inherit; cursor:pointer; outline:none;
+    }
+    .pp-fbar-icon-btn {
+      display:flex; align-items:center; justify-content:center; width:32px; height:32px;
+      background:#020617; border:1px solid #1e293b; border-radius:10px; font-size:0.85rem;
+      cursor:pointer; transition:border-color .15s, background .15s;
+    }
+    .pp-fbar-icon-btn:hover { border-color:rgba(245,158,11,.4); }
+    .pp-fbar-icon-btn.active { background:rgba(245,158,11,.12); border-color:rgba(245,158,11,.4); }
+    .pp-fbar-res-toggle { display:flex; gap:4px; background:#020617; padding:4px; border-radius:10px; border:1px solid #1e293b; }
+    .pp-fbar-res-dot {
+      display:flex; align-items:center; gap:5px; border:1px solid transparent; border-radius:8px;
+      padding:5px 9px; font-size:0.74rem; font-weight:800; cursor:pointer; font-family:inherit;
+      background:transparent; color:#64748b; transition:background .15s, border-color .15s, color .15s;
+    }
+    .pp-fbar-res-dot-ico { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+    .pp-fbar-res-win  .pp-fbar-res-dot-ico { background:#22c55e; }
+    .pp-fbar-res-draw .pp-fbar-res-dot-ico { background:#eab308; }
+    .pp-fbar-res-loss .pp-fbar-res-dot-ico { background:#ef4444; }
+    .pp-fbar-res-win.active  { background:rgba(34,197,94,0.15);  border-color:rgba(34,197,94,.3);  color:#4ade80; }
+    .pp-fbar-res-draw.active { background:rgba(234,179,8,0.15);  border-color:rgba(234,179,8,.3);  color:#fbbf24; }
+    .pp-fbar-res-loss.active { background:rgba(239,68,68,0.15);  border-color:rgba(239,68,68,.3);  color:#f87171; }
+    .pp-fbar-subbar {
+      display:flex; align-items:center; justify-content:space-between; gap:8px;
+      border-top:1px solid rgba(30,41,59,.5); padding-top:8px; margin-bottom:12px;
+      font-size:0.68rem; color:#64748b;
+    }
+    .pp-fbar-clear {
+      border:none; background:none; color:#94a3b8; font-size:0.68rem; font-weight:700;
+      cursor:pointer; font-family:inherit; text-decoration:underline; padding:0;
+    }
+    .pp-fbar-clear:hover { color:#f59e0b; }
     .pp-year-chips { display:flex; gap:8px; flex-wrap:wrap; }
     .pp-year-chip { flex:0 0 auto; border:1px solid rgba(51,65,85,.5); background:rgba(255,255,255,0.03); color:var(--gris-texto); font-size:0.76rem; font-weight:700; padding:7px 14px; border-radius:999px; cursor:pointer; white-space:nowrap; transition:background .15s, border-color .15s, color .15s; font-family:inherit; }
     .pp-year-chip:hover { color:#e2e8f0; border-color:rgba(245,158,11,.35); }
@@ -2954,20 +3000,16 @@
          Clausura/Copas como grid en vez de fila de pills sueltas. */
       .pp-detail-header-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 14px 0 8px; flex-wrap: wrap; }
       .pp-detail-header { margin: 0; }
-      /* En mobile cada grupo (año/tipo) ya trae su propio fondo (scroll
-         horizontal en año, grid oscuro en tipo) — el fondo/padding de
-         .pp-filter-bar es cosa de desktop, acá solo estorbaría anidando cajas. */
-      .pp-filter-bar { background:none; padding:0; flex-direction:column; align-items:stretch; gap:0; }
-      .pp-year-chips { gap: 6px; overflow-x:auto; padding-bottom:8px; margin-bottom:10px; -webkit-overflow-scrolling:touch; flex-wrap:nowrap; }
-      .pp-year-chips::-webkit-scrollbar { display: none; }
-      .pp-tipo-chips {
-        display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;
-        background: #0b0f19; padding: 4px; border-radius: 12px; margin-bottom: 10px;
-      }
-      .pp-tipo-chip {
-        text-align: center; border: none; background: transparent; color: var(--gris-texto);
-      }
-      .pp-tipo-chip.active { background: var(--dorado); color: #1a1206; }
+      /* Jerarquía de Control (filtros de Partidos/Goles/Asist./Rojas/G+A) en
+         mobile: se apila en columna (tabs de torneo arriba, año+resultado+
+         resumen abajo en su propia fila que envuelve si hace falta) en vez
+         de la fila única de desktop. */
+      .pp-fbar { flex-direction: column; align-items: stretch; gap: 8px; }
+      .pp-fbar-tabs { width: 100%; }
+      .pp-fbar-tab { flex: 1; }
+      .pp-fbar-right { width: 100%; justify-content: space-between; }
+      .pp-fbar-select { flex: 1; min-width: 0; }
+      .pp-fbar-subbar { font-size: 10px; }
 
       /* 4. Historial de partidos compacto — item horizontal, caja #0b0f19
          con borde slate-800/80 y esquinas redondeadas (rounded-xl). El
@@ -5511,14 +5553,16 @@ function _ppDetailPanelBodyHtml(kind, fullList) {
   const years = [...byYear.keys()].sort((a, b) => (parseInt(b) || 0) - (parseInt(a) || 0));
   const yearState = window._ppYearFilter || (window._ppYearFilter = {});
   const activeYear = yearState[kind] || 'todos';
-  // "Resumen" never shows a count (it's not a tally of one thing, it's a
-  // whole per-rival breakdown) — "Todos" and each year keep their real count.
-  const yearChip = (val, label, count) => `<button class="pp-year-chip${activeYear === val ? ' active' : ''}" onclick="ppFilterYear('${kind}', '${val}')">${label}${count != null ? ` <span class="pp-year-chip-count">(${count})</span>` : ''}</button>`;
-  const yearChips = [
-    yearChip('todos', 'Todos', _ppKindTotal(kind, catList)),
-    ...years.map(y => yearChip(y, y, byYear.get(y))),
-    yearChip('resumen', '📊 Resumen'),
-  ].join('');
+  // Dropdown de años (reemplaza los botones sueltos de antes) — un único
+  // <select>; "Resumen" pasa a ser un botón aparte (ver resumenBtnHtml) en
+  // vez de una opción más del desplegable.
+  const yearOptionHtml = (val, label, count) =>
+    `<option value="${val}"${activeYear === val ? ' selected' : ''}>${label}${count != null ? ` (${count})` : ''}</option>`;
+  const yearSelectHtml = `<select class="pp-fbar-select" onchange="ppFilterYear('${kind}', this.value)">
+    ${yearOptionHtml('todos', 'Todos', _ppKindTotal(kind, catList))}
+    ${years.map(y => yearOptionHtml(y, y, byYear.get(y))).join('')}
+  </select>`;
+  const resumenBtnHtml = `<button class="pp-fbar-icon-btn${activeYear === 'resumen' ? ' active' : ''}" onclick="ppFilterYear('${kind}', 'resumen')" title="Resumen por rival">📊</button>`;
 
   // "Resumen" — per-rival breakdown across the whole career (ignores year/
   // tipo filters, it's meant as an all-time summary), sorted by whichever
@@ -5547,7 +5591,10 @@ function _ppDetailPanelBodyHtml(kind, fullList) {
         </div>`;
       }).join('')
       : `<div class="hist-empty">Sin registros cargados.</div>`;
-    return { html: `<div class="pp-filter-bar">${yearChips}</div>${rows}`, shownCount: null };
+    return {
+      html: `<div class="pp-fbar"><div class="pp-fbar-right">${yearSelectHtml}${resumenBtnHtml}</div></div>${rows}`,
+      shownCount: null,
+    };
   }
 
   const yearFiltered = activeYear === 'todos' ? catList : catList.filter(p => p.anio === activeYear);
@@ -5555,39 +5602,50 @@ function _ppDetailPanelBodyHtml(kind, fullList) {
   const tipoState = window._ppTipoFilter || (window._ppTipoFilter = {});
   const activeTipo = tipoState[kind] || 'todos';
   const tipoCount = val => val === 'todos' ? _ppKindTotal(kind, yearFiltered) : _ppKindTotal(kind, yearFiltered.filter(p => _ppTipoOf(p) === val));
-  const tipoChip = (val, label) => `<button class="pp-year-chip pp-tipo-chip${activeTipo === val ? ' active' : ''}" onclick="ppFilterTipo('${kind}', '${val}')">${label} <span class="pp-year-chip-count">(${tipoCount(val)})</span></button>`;
-  const tipoChips = PP_TIPO_OPTIONS.map(([val, label]) => tipoChip(val, label)).join('');
+  // Tabs principales (segmented control) — Todos/Apertura/Clausura/Copas,
+  // a la izquierda de la barra.
+  const tipoTab = (val, label) => `<button class="pp-fbar-tab${activeTipo === val ? ' active' : ''}" onclick="ppFilterTipo('${kind}', '${val}')">${label} <span class="pp-fbar-tab-count">(${tipoCount(val)})</span></button>`;
+  const tipoTabsHtml = `<div class="pp-fbar-tabs">${PP_TIPO_OPTIONS.map(([val, label]) => tipoTab(val, label === 'Cualquiera' ? 'Todos' : label)).join('')}</div>`;
   const tipoFiltered = activeTipo === 'todos' ? yearFiltered : yearFiltered.filter(p => _ppTipoOf(p) === activeTipo);
 
   // Filtro por resultado (Ganados/Empatados/Perdidos) — solo tiene sentido
   // para la pestaña Partidos (las demás cuentan goles/asist/rojas, no
   // resultados de partido). Mismo patrón que año/tipo: estado propio en
-  // window._ppResFilter, un chip por resultado con su conteo.
-  let resChips = '';
+  // window._ppResFilter, un chip por resultado con su conteo. Ahora son
+  // píldoras micro (punto de color + número) en vez de texto completo.
+  let resToggleHtml = '';
   let finalList = tipoFiltered;
   if (kind === 'partidos') {
     const resState = window._ppResFilter || (window._ppResFilter = {});
     const activeRes = resState[kind] || 'todos';
     const countRes = res => tipoFiltered.filter(p => _ppMatchResultado(p) === res).length;
-    const resChip = (val, cls, label, icon) => `<button class="pp-year-chip pp-tipo-chip pp-res-chip ${cls}${activeRes === val ? ' active' : ''}" onclick="ppFilterRes('${kind}', '${val}')">${icon} ${label} <span class="pp-year-chip-count">(${countRes(val)})</span></button>`;
-    resChips = `
-      ${resChip('win', 'pp-res-chip-win', 'Ganados', '🟢')}
-      ${resChip('draw', 'pp-res-chip-draw', 'Empatados', '🟡')}
-      ${resChip('loss', 'pp-res-chip-loss', 'Perdidos', '🔴')}`;
+    const resDot = (val, cls, label) => `<button class="pp-fbar-res-dot ${cls}${activeRes === val ? ' active' : ''}" onclick="ppFilterRes('${kind}', '${val}')" title="${label}"><span class="pp-fbar-res-dot-ico"></span>${countRes(val)}</button>`;
+    resToggleHtml = `<div class="pp-fbar-res-toggle">
+      ${resDot('win', 'pp-fbar-res-win', 'Ganados')}
+      ${resDot('draw', 'pp-fbar-res-draw', 'Empatados')}
+      ${resDot('loss', 'pp-fbar-res-loss', 'Perdidos')}
+    </div>`;
     if (activeRes !== 'todos') finalList = tipoFiltered.filter(p => _ppMatchResultado(p) === activeRes);
   }
 
-  // Divisor vertical entre grupos (Años | Torneos | Resultado) — solo entre
-  // grupos que realmente están presentes (resChips vacío fuera de la
-  // pestaña Partidos, por ejemplo).
-  const divider = `<div class="pp-filter-divider"></div>`;
-  const filterGroups = [yearChips, tipoChips, resChips].filter(Boolean).join(divider);
+  // "Jerarquía de Control": tabs principales (torneo) a la izquierda, año +
+  // resultado + resumen compactos a la derecha, en una sola fila que nunca
+  // rompe layout (se apila en mobile, ver CSS ≤768px) — reemplaza la fila
+  // de chips sueltos de antes. Sub-barra debajo con el total mostrado y
+  // "Limpiar filtros" (solo si hay algo activo para limpiar).
+  const hasActiveFilter = activeYear !== 'todos' || activeTipo !== 'todos' || (window._ppResFilter?.[kind] || 'todos') !== 'todos';
+  const kindWord = PP_RESUMEN_UNIT[kind] === 'PJ' ? 'partidos' : (PP_DETAIL_LABELS[kind] || '').replace(/^[^\wÀ-ÿ]+/, '').toLowerCase();
+  const subbarHtml = `<div class="pp-fbar-subbar">
+    <span>Mostrando <strong>${_ppKindTotal(kind, finalList)}</strong> ${kindWord}</span>
+    ${hasActiveFilter ? `<button class="pp-fbar-clear" onclick="ppClearFilters('${kind}')">Limpiar filtros</button>` : ''}
+  </div>`;
   return {
-    // Año + Torneo + Resultado consolidados en una sola barra compacta
-    // (.pp-filter-bar) en vez de tres filas apiladas — mismos chips/clases
-    // de siempre, solo agrupados visualmente.
     html: `
-      <div class="pp-filter-bar">${filterGroups}</div>
+      <div class="pp-fbar">
+        ${tipoTabsHtml}
+        <div class="pp-fbar-right">${resToggleHtml}${yearSelectHtml}${resumenBtnHtml}</div>
+      </div>
+      ${subbarHtml}
       ${finalList.length ? finalList.map(p => _ppStatRowHtml(kind, p)).join('') : `<div class="hist-empty">Sin registros cargados.</div>`}`,
     shownCount: _ppKindTotal(kind, finalList),
   };
@@ -5689,6 +5747,15 @@ window.ppFilterTipo = function(kind, tipo) {
 window.ppFilterRes = function(kind, res) {
   const state = window._ppResFilter || (window._ppResFilter = {});
   state[kind] = state[kind] === res ? 'todos' : res;
+  _ppRenderDetailPanel(kind);
+};
+
+// "Limpiar filtros" de la sub-barra — resetea año/torneo/resultado a
+// 'todos' de una sola vez (en vez de tener que ir chip por chip).
+window.ppClearFilters = function(kind) {
+  (window._ppYearFilter || (window._ppYearFilter = {}))[kind] = 'todos';
+  (window._ppTipoFilter || (window._ppTipoFilter = {}))[kind] = 'todos';
+  (window._ppResFilter || (window._ppResFilter = {}))[kind] = 'todos';
   _ppRenderDetailPanel(kind);
 };
 
