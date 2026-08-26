@@ -455,9 +455,35 @@
        inline style, so it can actually respond to screen width (an inline
        style always wins over a class's @media rule, which was locking this
        at a fixed 4 columns on every phone regardless of how narrow). */
-    .pp-metrics-grid { grid-template-columns: repeat(4,1fr); grid-auto-rows: 1fr; }
+    .pp-metrics-grid { grid-template-columns: repeat(4,1fr); grid-auto-rows: 1fr; gap: 10px; }
     @media (max-width: 480px) { .pp-metrics-grid { grid-template-columns: repeat(2,1fr); } }
-    .pp-metrics-grid .hist-kpi { height: 100%; justify-content: space-between; }
+    /* Tarjeta stat individual del perfil (Métricas Totales) — bg-[#1F2937]/50
+       border-slate-700/50 rounded-xl p-4, escalado desde el .hist-kpi
+       compacto que comparte con "Historial vs Clubes" (esa vista sigue
+       usando su propio tamaño chico, esto solo pisa dentro de
+       .pp-metrics-grid). */
+    .pp-metrics-grid .hist-kpi {
+      height: 100%; justify-content: space-between;
+      background: rgba(31,41,55,0.5); border: 1px solid rgba(51,65,85,.5);
+      border-radius: 12px; padding: 16px; gap: 8px;
+    }
+    /* Ícono en su propio contenedor cuadrado en vez de un emoji suelto de
+       12px — mismo criterio para todas las tiles (el color ámbar es el
+       default; las 3 variantes win/draw/loss de abajo pisan su propio
+       color de fondo/texto). */
+    .pp-metrics-grid .hist-kpi-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: rgba(245,158,11,0.1); color: #fbbf24;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.125rem; opacity: 1; line-height: 1;
+    }
+    .pp-metrics-grid .hist-kpi-win  .hist-kpi-icon { background: rgba(34,197,94,0.12); color: #4ade80; }
+    .pp-metrics-grid .hist-kpi-draw .hist-kpi-icon { background: rgba(234,179,8,0.12);  color: #fbbf24; }
+    .pp-metrics-grid .hist-kpi-loss .hist-kpi-icon { background: rgba(239,68,68,0.12);  color: #f87171; }
+    .pp-metrics-grid .hist-kpi-val { font-size: 1.5rem; font-weight: 900; color: #fff; }
+    @media (min-width: 769px) { .pp-metrics-grid .hist-kpi-val { font-size: 1.75rem; } }
+    .pp-metrics-grid .hist-kpi-label { font-size: 0.72rem; font-weight: 700; color: #cbd5e1; letter-spacing: .05em; }
+    .pp-metrics-grid .pp-favorito-name { font-size: 0.72rem; color: #fbbf24; font-weight: 600; }
 
     .hist-kpi {
       background: rgba(255,255,255,0.03);
@@ -2578,7 +2604,7 @@
       font-size:0.55rem; font-weight:900; line-height:1; vertical-align:middle; margin-left:2px;
     }
     .pp-overlay { display:none; position:fixed; inset:0; z-index:600; background:var(--azul); overflow-y:auto; }
-    .pp-wrap { max-width: 1400px; margin: 0 auto; padding: 24px 24px 60px; }
+    .pp-wrap { max-width: 1400px; margin: 0 auto; padding: 24px 24px 60px; background:#0B0F17; color:#fff; }
     .pp-header { display:flex; align-items:center; gap:16px; margin-bottom: 18px; }
     .pp-avatar { width:64px; height:64px; border-radius:50%; background:rgba(245,158,11,0.12); border:2px solid rgba(245,158,11,0.4); display:flex; align-items:center; justify-content:center; font-size:1.2rem; font-weight:900; color:var(--dorado); flex-shrink:0; }
 
@@ -2625,6 +2651,13 @@
       .pp-dash-col-record { grid-column: span 4; }
       .pp-dash-col-metrics { grid-column: span 8; }
       .pp-dash-col-record .card, .pp-dash-col-metrics .card { margin-top:0; height:100%; }
+    }
+    /* Estilo unificado (bg-[#111827] border-slate-800 rounded-2xl p-6) para
+       las 3 cards del dashboard/historial (Récord de Resultados, Métricas
+       Totales, listado de Partidos) — mismo look, sea la card genérica
+       (.card) del sitio o su propia clase dedicada. */
+    .pp-dash-col-record .card, .pp-dash-col-metrics .card, .pp-history-card {
+      background:#111827; border:1px solid #1e293b; border-radius:16px; padding:24px;
     }
 
     /* Historial de Partidos (el panel de detalle Partidos/Goles/Asist./
@@ -2698,7 +2731,7 @@
     .pp-rank-group-label-accent { color: var(--dorado); display:flex; align-items:center; gap:6px; }
     .pp-rank-hist-tag { font-size:0.6rem; font-weight:800; text-transform:none; letter-spacing:0; background: rgba(251,191,36,0.15); border: 1px solid rgba(251,191,36,0.35); color: var(--dorado); padding: 1px 7px; border-radius: 999px; }
     .pp-ranks { display:flex; gap:10px; flex-wrap:wrap; margin-bottom: 4px; }
-    .pp-rank-pill { display:flex; align-items:center; gap:6px; padding:7px 12px; border-radius:999px; border:1px solid rgba(51,65,85,.5); background:rgba(255,255,255,0.03); font-size:0.78rem; font-weight:800; color:#94a3b8; }
+    .pp-rank-pill { display:flex; align-items:center; gap:6px; padding:4px 12px; border-radius:8px; border:1px solid #334155; background:rgba(30,41,59,.8); font-size:0.75rem; font-weight:600; color:#e2e8f0; }
     .pp-rank-top { box-shadow: 0 0 0 1px rgba(255,255,255,0.02); }
     .pp-rank-label { color:var(--gris-texto); font-weight:600; font-size:0.74rem; }
     .pp-record-card { display:flex; flex-direction:column; gap:8px; }
@@ -2725,8 +2758,9 @@
     .pp-year-count { color:var(--gris-texto); font-weight:600; font-size:0.78rem; }
     .pp-torneo-group { padding:8px 12px 12px; }
     .pp-torneo-label { font-size:0.72rem; font-weight:700; color:var(--dorado); text-transform:uppercase; letter-spacing:.04em; margin:8px 0 6px; }
-    .pp-match-list { display:flex; flex-direction:column; gap:8px; max-height: 560px; overflow-y:auto; }
-    .pp-match-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:7px 12px; border-radius:10px; background:rgba(255,255,255,0.02); border:1px solid rgba(30,41,59,0.6); flex-wrap:wrap; }
+    .pp-match-list { display:flex; flex-direction:column; gap:12px; max-height: 560px; overflow-y:auto; }
+    .pp-match-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px; border-radius:12px; background:rgba(31,41,55,0.4); border:1px solid rgba(30,41,59,0.8); flex-wrap:wrap; transition:background .15s, border-color .15s; }
+    .pp-match-row:hover { background:rgba(31,41,55,0.75); }
     /* .pp-match-row's two children are .pp-match-desktop-layout (esto de
        acá — el layout de siempre) y .pp-match-mobile-layout (nuevo, oculto
        fuera de ≤768px) — este selector asume el rol que .pp-match-row tenía
@@ -2736,17 +2770,17 @@
     .pp-match-row-link:hover { border-color:rgba(245,158,11,.35); background:rgba(255,255,255,0.04); }
     .pp-match-arrow { color:#334155; font-size:1rem; transition:color .15s, transform .15s; }
     .pp-match-row-link:hover .pp-match-arrow { color:var(--dorado); transform:translateX(2px); }
-    .pp-match-main { display:flex; flex-direction:column; gap:1px; }
-    .pp-match-torneo { font-size:0.6875rem; color:var(--gris-texto); text-transform:uppercase; letter-spacing:.04em; font-weight:700; }
-    .pp-match-rival { font-size:0.86rem; color:#f1f5f9; font-weight:700; }
+    .pp-match-main { display:flex; flex-direction:column; gap:2px; }
+    .pp-match-torneo { font-size:0.75rem; color:#f59e0b; text-transform:uppercase; letter-spacing:.04em; font-weight:700; }
+    .pp-match-rival { font-size:1rem; color:#fff; font-weight:700; display:flex; align-items:center; gap:6px; }
     .pp-match-side { display:flex; align-items:center; gap:8px; }
-    .pp-match-cond { font-size:0.68rem; font-weight:800; padding:4px 9px; border-radius:999px; }
+    .pp-match-cond { font-size:0.72rem; font-weight:700; padding:4px 10px; border-radius:6px; }
     .pp-cond-tit   { color:#22c55e; background:rgba(34,197,94,0.12); }
     .pp-cond-sup   { color:#3b82f6; background:rgba(59,130,246,0.12); }
     .pp-cond-banco { color:#94a3b8; background:rgba(148,163,184,0.1); }
     .pp-match-stat { font-size:0.78rem; font-weight:800; }
-    .pp-match-resultado { font-size:0.76rem; font-weight:800; padding:3px 9px; border-radius:999px; border:1px solid transparent; }
-    .pp-match-cat { font-size:0.6875rem; font-weight:700; padding:3px 8px; border-radius:999px; color:var(--gris-texto); background:rgba(255,255,255,0.05); border:1px solid rgba(30,41,59,0.6); }
+    .pp-match-resultado { font-size:0.9rem; font-weight:900; padding:4px 12px; border-radius:8px; border:1px solid transparent; }
+    .pp-match-cat { font-size:0.72rem; font-weight:700; padding:4px 10px; border-radius:6px; color:#cbd5e1; background:#1e293b; border:1px solid transparent; }
     /* Distintivo de división (Primera A / Primera B) — intencionalmente
        distinto de Titular (verde) / Suplente (azul) para no confundirse. */
     .pp-cat-a { color:#818cf8; background:rgba(99,102,241,0.12); border-color:rgba(99,102,241,0.3); }
@@ -2754,7 +2788,9 @@
     /* Barra única compacta que agrupa año + torneo + resultado (antes 3
        filas apiladas por separado) — chips idénticos de siempre, solo
        agrupados visualmente en un mismo contenedor con fondo propio. */
-    .pp-filter-bar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; background:rgba(2,6,16,0.6); padding:8px; border-radius:12px; margin-bottom:12px; }
+    .pp-filter-bar { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; background:#111827; border:1px solid #1e293b; padding:12px; border-radius:12px; margin-bottom:12px; }
+    .pp-filter-divider { width:1px; height:24px; background:#1e293b; flex:0 0 auto; }
+    @media (max-width:768px) { .pp-filter-divider { display:none; } }
     .pp-year-chips { display:flex; gap:8px; flex-wrap:wrap; }
     .pp-year-chip { flex:0 0 auto; border:1px solid rgba(51,65,85,.5); background:rgba(255,255,255,0.03); color:var(--gris-texto); font-size:0.76rem; font-weight:700; padding:7px 14px; border-radius:999px; cursor:pointer; white-space:nowrap; transition:background .15s, border-color .15s, color .15s; font-family:inherit; }
     .pp-year-chip:hover { color:#e2e8f0; border-color:rgba(245,158,11,.35); }
@@ -2885,6 +2921,9 @@
       .pp-metrics-grid .hist-kpi {
         padding: 8px 4px; background: #0b0f19; border-color: rgba(30,41,59,0.8);
       }
+      .pp-metrics-grid .hist-kpi-icon { width: 22px; height: 22px; border-radius: 6px; font-size: 0.85rem; }
+      .pp-metrics-grid .hist-kpi-val { font-size: 1.1rem; }
+      .pp-metrics-grid .hist-kpi-label { font-size: 0.6rem; }
       .pp-metrics-grid .hist-kpi:nth-child(n+7) { display: none; }
       .pp-kpi-sec-mobile {
         display: block; margin-top: 3px; font-size: 8px; color: #64748b;
@@ -5532,16 +5571,17 @@ function _ppDetailPanelBodyHtml(kind, fullList) {
     if (activeRes !== 'todos') finalList = tipoFiltered.filter(p => _ppMatchResultado(p) === activeRes);
   }
 
+  // Divisor vertical entre grupos (Años | Torneos | Resultado) — solo entre
+  // grupos que realmente están presentes (resChips vacío fuera de la
+  // pestaña Partidos, por ejemplo).
+  const divider = `<div class="pp-filter-divider"></div>`;
+  const filterGroups = [yearChips, tipoChips, resChips].filter(Boolean).join(divider);
   return {
     // Año + Torneo + Resultado consolidados en una sola barra compacta
     // (.pp-filter-bar) en vez de tres filas apiladas — mismos chips/clases
     // de siempre, solo agrupados visualmente.
     html: `
-      <div class="pp-filter-bar">
-        ${yearChips}
-        ${tipoChips}
-        ${resChips}
-      </div>
+      <div class="pp-filter-bar">${filterGroups}</div>
       ${finalList.length ? finalList.map(p => _ppStatRowHtml(kind, p)).join('') : `<div class="hist-empty">Sin registros cargados.</div>`}`,
     shownCount: _ppKindTotal(kind, finalList),
   };
