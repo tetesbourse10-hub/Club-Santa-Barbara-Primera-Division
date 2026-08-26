@@ -6794,7 +6794,9 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
   const resColor = csbGoles === null ? '' : csbGoles > rivalGoles ? 'var(--verde)' : csbGoles < rivalGoles ? 'var(--rojo)' : 'var(--dorado)';
 
   const pills = [
-    { ico: '📅', lbl: 'Fecha', val: fecha !== '—' ? `${fecha}` : null, basic: true },
+    isRoundName(fecha)
+      ? { ico: '🏆', lbl: null, val: fecha !== '—' ? `${fecha}` : null, basic: true }
+      : { ico: '📅', lbl: 'Fecha', val: fecha !== '—' ? `${fecha}` : null, basic: true },
     { ico: '📆', lbl: 'Día',   val: dia !== '—' ? dia : null, basic: true },
     { ico: '🕐', lbl: 'Hora',  val: horaVal !== '—' ? horaVal : null, basic: true },
     { ico: '📍', lbl: 'Lugar', val: lugarVal !== '—' ? lugarVal : null, basic: true },
@@ -6807,8 +6809,8 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
   // ocultas solo en mobile vía .ap-fd-pill-postab (ver CSS ≤768px).
   const extraMeta = [
     parcialesVal !== '—'     ? `<span class="ap-fd-pill ap-fd-pill-parcial"><span class="ap-fd-pill-ico">⏱</span><span class="ap-fd-pill-lbl">Parcial</span><span class="ap-fd-pill-val">${parcialesVal}</span></span>` : '',
-    posCSBClean !== '—'   ? `<span class="ap-fd-pill ap-fd-pill-postab"><span class="ap-fd-pill-ico">📊</span><span class="ap-fd-pill-lbl">Pos CSB</span><span class="ap-fd-pill-val">${posCSBClean}°</span></span>` : '',
-    posRivalClean !== '—' ? `<span class="ap-fd-pill ap-fd-pill-postab"><span class="ap-fd-pill-ico">📊</span><span class="ap-fd-pill-lbl">Pos Rival</span><span class="ap-fd-pill-val">${posRivalClean}°</span></span>` : '',
+    posCSBClean !== '—' && !isRoundName(posCSBClean)     ? `<span class="ap-fd-pill ap-fd-pill-postab"><span class="ap-fd-pill-ico">📊</span><span class="ap-fd-pill-lbl">Pos CSB</span><span class="ap-fd-pill-val">${posCSBClean}°</span></span>` : '',
+    posRivalClean !== '—' && !isRoundName(posRivalClean) ? `<span class="ap-fd-pill ap-fd-pill-postab"><span class="ap-fd-pill-ico">📊</span><span class="ap-fd-pill-lbl">Pos Rival</span><span class="ap-fd-pill-val">${posRivalClean}°</span></span>` : '',
     categoriaRival ? `<span class="ap-fd-pill ap-fd-pill-postab"><span class="ap-fd-pill-ico">🏷️</span><span class="ap-fd-pill-lbl">Categoría Rival</span><span class="ap-fd-pill-val">${categoriaRival}</span></span>` : '',
   ].filter(Boolean).join('');
 
@@ -6834,14 +6836,18 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
   // vivían como pills sueltas dentro de la caja de crónica — ver
   // .ap-fd-pill-postab arriba, ahora ocultas en mobile porque el dato ya
   // se muestra acá).
-  const csbPosBadge   = posCSBClean   !== '—' ? `<span class="ap-fd-mobile-pos">Pos: ${posCSBClean}º</span>` : '';
-  const rivalPosBadge = posRivalClean !== '—' ? `<span class="ap-fd-mobile-pos">Pos: ${posRivalClean}º</span>` : '';
+  // posCSB en copas de eliminación es el NOMBRE de la ronda ("Octavos de
+  // Final"), no una posición de tabla — mostrarlo acá como "Pos: X°" no
+  // tiene sentido (y ya se ve como Instancia en el marcador/nav de fases),
+  // así que este badge solo aplica a partidos de liga.
+  const csbPosBadge   = posCSBClean   !== '—' && !isRoundName(posCSBClean)   ? `<span class="ap-fd-mobile-pos">Pos: ${posCSBClean}º</span>` : '';
+  const rivalPosBadge = posRivalClean !== '—' && !isRoundName(posRivalClean) ? `<span class="ap-fd-mobile-pos">Pos: ${posRivalClean}º</span>` : '';
   const leftPos  = csbIsLeft ? csbPosBadge : rivalPosBadge;
   const rightPos = csbIsLeft ? rivalPosBadge : csbPosBadge;
   // Barra de metadatos como píldoras con fondo/borde propios en vez de
   // texto plano suelto — cada una con su ícono a color.
   const topbarHtml = [
-    fecha !== '—' ? `<span class="ap-fd-mobile-pill ap-fd-mp-fecha">📅 Fecha ${fecha}</span>` : '',
+    fecha !== '—' ? (isRoundName(fecha) ? `<span class="ap-fd-mobile-pill ap-fd-mp-fecha">🏆 ${fecha}</span>` : `<span class="ap-fd-mobile-pill ap-fd-mp-fecha">📅 Fecha ${fecha}</span>`) : '',
     dia !== '—' ? `<span class="ap-fd-mobile-pill ap-fd-mp-dia">🗓️ ${dia}</span>` : '',
     horaVal !== '—' ? `<span class="ap-fd-mobile-pill ap-fd-mp-hora">⏰ ${horaVal}</span>` : '',
     lugarVal !== '—' ? `<span class="ap-fd-mobile-pill ap-fd-mp-lugar">📍 ${lugarVal}</span>` : '',
@@ -6874,7 +6880,10 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
   const leftPosVal  = csbIsLeft ? posCSBClean : posRivalClean;
   const rightPosVal = csbIsLeft ? posRivalClean : posCSBClean;
   const heroCtxPills = [
-    fecha !== '—' ? `<span class="ap-fd-hero-d-ctxpill">📅 Fecha ${fecha}</span>` : '',
+    // Copas: `fecha` es el nombre de la ronda ("Octavos de Final"), no un
+    // número de fecha de liga — mostrarlo con ícono de trofeo y sin el
+    // prefijo "Fecha" en vez de "📅 Fecha Octavos de Final".
+    fecha !== '—' ? (isRoundName(fecha) ? `<span class="ap-fd-hero-d-ctxpill">🏆 ${fecha}</span>` : `<span class="ap-fd-hero-d-ctxpill">📅 Fecha ${fecha}</span>`) : '',
     dia !== '—' ? `<span class="ap-fd-hero-d-ctxpill">🗓️ ${dia}</span>` : '',
     horaVal !== '—' ? `<span class="ap-fd-hero-d-ctxpill">⏰ ${horaVal}</span>` : '',
     lugarVal !== '—' ? `<span class="ap-fd-hero-d-ctxpill">📍 ${lugarVal}</span>` : '',
@@ -6888,7 +6897,7 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
           ${leftCrest}
           <div class="ap-fd-hero-d-name">${leftName}</div>
           ${leftForm !== '—' ? `<div class="ap-fd-hero-d-form">${leftForm}</div>` : ''}
-          ${leftPosVal !== '—' ? `<div class="ap-fd-mobile-pos">POS: ${leftPosVal}°</div>` : ''}
+          ${leftPosVal !== '—' && !isRoundName(leftPosVal) ? `<div class="ap-fd-mobile-pos">POS: ${leftPosVal}°</div>` : ''}
         </div>
         <div class="ap-fd-hero-d-center">
           <div class="ap-fd-hero-d-score" style="${played ? `color:${resColor}` : ''}">${played
@@ -6900,7 +6909,7 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
           ${rightCrest}
           <div class="ap-fd-hero-d-name">${rightName}</div>
           ${rightForm !== '—' ? `<div class="ap-fd-hero-d-form">${rightForm}</div>` : ''}
-          ${rightPosVal !== '—' ? `<div class="ap-fd-mobile-pos">POS: ${rightPosVal}°</div>` : ''}
+          ${rightPosVal !== '—' && !isRoundName(rightPosVal) ? `<div class="ap-fd-mobile-pos">POS: ${rightPosVal}°</div>` : ''}
         </div>
       </div>
     </div>`;
@@ -14650,6 +14659,27 @@ function parseCopaBasicSheet(rows) {
   return out;
 }
 
+// Small "resumen" row used by dedicated single-copa B sheets (Recopa 2021's
+// A1:E2: Rival | Instancia | Local/Visita | Resultado | Resultados
+// Parciales) — one row per match, matched onto the detailed A5:J27 block by
+// rival name in _loadDedicatedCopaSheet (that block's own "Fecha" column
+// doubles as the round name and has no Local/Visita or Parciales column).
+function parseCopaResumenRows(rows) {
+  const out = [];
+  for (const row of rows) {
+    const rival = String(row[0] ?? '').trim();
+    if (!rival || /^rival$/i.test(rival)) continue;
+    const localRaw = String(row[2] ?? '').trim();
+    out.push({
+      rival,
+      posCSB: String(row[1] ?? '').trim(),
+      local: /neutral/i.test(localRaw) ? 'NEUTRAL' : /local/i.test(localRaw) ? 'LOCAL' : /visit/i.test(localRaw) ? 'VISITANTE' : null,
+      parciales: String(row[4] ?? '').trim(),
+    });
+  }
+  return out;
+}
+
 // Populated once by loadLiveData() from the centralized "SB en Copas" sheet.
 let COPA_BLOCKS = {};
 
@@ -15222,7 +15252,7 @@ async function loadLiveData() {
          a25Det, a25Global, a25Tabla, a25Basico, bApGlobal, bApTabla,
          bClDet, bClGlobal, bClTabla, bClBasic, aClDet, aClGlobal, aClTabla, aClBasic, copasSheet, copasBasicSheet, bRecopaSheet,
          bSupercopa25Det, bSupercopa25Plantel, bRecopa24Det, bRecopa24Plantel,
-         bRecopa21Det, bRecopa21Plantel] = await Promise.allSettled([
+         bRecopa21Det, bRecopa21Plantel, bRecopa21Basico] = await Promise.allSettled([
     // Antes: fetchCSV(GS.A_SIM) — sin tab/range, csvUrl() arma la URL sin
     // &sheet= ni &gid=, pidiéndole a gviz "la hoja que corresponda" de forma
     // ambigua. Confirmado en Network que esa misma forma de URL sin
@@ -15336,6 +15366,12 @@ async function loadLiveData() {
     // ── Recopa AIFA B 2021 — own dedicated sheet, club-confirmed ranges. ──
     fetchGvizByGid(GS.B_HIST, 222048409, 'A5:J27'),
     fetchGvizByGid(GS.B_HIST, 222048409, 'L3:X23'),
+    // Short "resumen" row (Rival/Instancia/Local-Visita/Resultado/Resultados
+    // Parciales) — carries Local/Visitante (real, not guessed from venue) and
+    // Resultados Parciales, neither of which the detailed A5:J27 block above
+    // has (its "Fecha" column doubles as the round name, no separate Local/
+    // Visita or Parciales column there). See parseCopaResumenRow / merge below.
+    fetchGvizByGid(GS.B_HIST, 222048409, 'A1:E2'),
   ]);
 
   const ok = r => r.status === 'fulfilled' ? r.value : null;
@@ -15612,7 +15648,7 @@ async function loadLiveData() {
   // posCSB by position (knockout rounds always progress Octavos → Cuartos →
   // Semifinal → Final in order) and localía by sede, then optionally loads
   // Plantel straight from the sheet's own "acumulado" range.
-  function _loadDedicatedCopaSheet(detResult, plantelResult, dataObj, label) {
+  function _loadDedicatedCopaSheet(detResult, plantelResult, dataObj, label, resumenResult) {
     if (ok(detResult)) try {
       const det = parseDetailedMatches(ok(detResult), true);
       if (det.length) {
@@ -15621,9 +15657,23 @@ async function loadLiveData() {
           m.posCSB = ROUND_SEQUENCE[i] || `Ronda ${i + 1}`;
           // Localía por sede: cualquier cancha propia (Nido, Santa Bárbara,
           // Marcos, Talar) = Local, la Final se juega en cancha neutral,
-          // cualquier otra sede = Visitante.
+          // cualquier otra sede = Visitante. Se pisa abajo con el dato real
+          // del resumen (Local/Visita) cuando ese rango está disponible.
           m.local = m.posCSB === 'Final' ? 'NEUTRAL' : CSB_HOME_VENUES.test(m.lugar || '') ? 'LOCAL' : 'VISITANTE';
         });
+        // Resumen (Rival/Instancia/Local-Visita/Resultado/Resultados
+        // Parciales) — pisa el "local" adivinado por sede con el real, y
+        // suma "parciales" (ninguno de los dos existe en el bloque detallado).
+        if (resumenResult && ok(resumenResult)) {
+          const resumen = parseCopaResumenRows(ok(resumenResult));
+          det.forEach(m => {
+            const r = resumen.find(x => x.rival.toUpperCase() === String(m.rival || '').toUpperCase());
+            if (r) {
+              if (r.local) m.local = r.local;
+              if (r.parciales) m.parciales = r.parciales;
+            }
+          });
+        }
         dataObj.apertura = det;
         dataObj.partidos = _deriveBasicFromDetailed(det);
       }
@@ -15646,8 +15696,10 @@ async function loadLiveData() {
   // ── Recopa AIFA B 2024 — same shape as the Supercopa above. ──
   _loadDedicatedCopaSheet(bRecopa24Det, bRecopa24Plantel, DATA_B_RECOPA2024, 'Recopa B 2024');
 
-  // ── Recopa AIFA B 2021 — same shape as the other dedicated B copas. ──
-  _loadDedicatedCopaSheet(bRecopa21Det, bRecopa21Plantel, DATA_B_RECOPA2021, 'Recopa B 2021');
+  // ── Recopa AIFA B 2021 — same shape as the other dedicated B copas, plus
+  //    its own short resumen row (Local/Visita real + Resultados Parciales,
+  //    ninguno de los dos en el bloque detallado). ──
+  _loadDedicatedCopaSheet(bRecopa21Det, bRecopa21Plantel, DATA_B_RECOPA2021, 'Recopa B 2021', bRecopa21Basico);
 
   const s = r => r.status === 'fulfilled' ? '✅' : '❌';
 
