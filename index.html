@@ -484,6 +484,15 @@
     @media (min-width: 769px) { .pp-metrics-grid .hist-kpi-val { font-size: 1.75rem; } }
     .pp-metrics-grid .hist-kpi-label { font-size: 0.72rem; font-weight: 700; color: #cbd5e1; letter-spacing: .05em; }
     .pp-metrics-grid .pp-favorito-name { font-size: 0.72rem; color: #fbbf24; font-weight: 600; }
+    /* Sub-etiqueta de la fila inferior (Títulos/Rojas/Promedios) — mismo
+       espacio que ocupa el badge de Rival/Víctima Favorita en la fila de
+       arriba, para que ninguna de las 8 tarjetas quede con un vacío debajo
+       del número. */
+    .pp-kpi-sublabel { font-size: 0.68rem; color: #64748b; margin-top: 6px; }
+    /* Contenedor con profundidad para la barra de Efectividad (antes la
+       barra iba pegada directo al fondo de la card, sin marco propio). */
+    .pp-meter-track-wrap { background:#020617; border:1px solid #1e293b; padding:2px; border-radius:999px; margin-bottom:5px; }
+    .pp-meter-track-wrap .hd-meter-track { height:10px; margin-bottom:0; border-radius:999px; }
 
     .hist-kpi {
       background: rgba(255,255,255,0.03);
@@ -2748,7 +2757,31 @@
     .pp-ved-e { color:#eab308; }
     .pp-ved-d { color:#ef4444; }
     .pp-record-note { font-size:0.62rem; color:#94a3b8; }
-    .pp-record-favorito { font-size:0.8rem; color:#cbd5e1; padding-top:6px; border-top:1px solid #1e293b; }
+    /* Título de la card + ícono de tooltip (i) — reemplaza la caja de texto
+       "* Métrica calculada sobre..." que antes vivía suelta en el cuerpo,
+       invasiva y ocupando espacio; ahora el detalle solo aparece al pasar
+       el mouse. */
+    .pp-record-title-row { display:flex; align-items:center; gap:6px; margin-bottom:8px; }
+    .pp-record-title-row .card-label { margin:0; }
+    .pp-info-tip {
+      display:inline-flex; align-items:center; justify-content:center;
+      width:15px; height:15px; border-radius:50%; border:1px solid #334155;
+      color:#64748b; font-size:0.62rem; font-weight:800; font-style:italic;
+      cursor:help; flex-shrink:0;
+    }
+    .pp-info-tip:hover { border-color:#f59e0b; color:#f59e0b; }
+    /* Footer separado por línea (antes texto plano suelto) — el nombre del
+       rival ahora en una píldora ámbar en vez de solo texto naranja. */
+    .pp-record-favorito {
+      display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;
+      font-size:0.78rem; color:#94a3b8; margin-top:12px; padding-top:12px; border-top:1px solid #1e293b;
+    }
+    .pp-record-favorito-label { font-weight:700; white-space:nowrap; }
+    .pp-favorito-pill {
+      background:rgba(245,158,11,0.1); color:#fbbf24; border:1px solid rgba(245,158,11,0.2);
+      border-radius:999px; padding:4px 12px; font-size:0.74rem; font-weight:700;
+    }
+    .pp-favorito-pill-empty { background:rgba(255,255,255,0.03); color:rgba(255,255,255,0.4); border-color:#1e293b; font-weight:600; }
     #pp-record-body { transition:opacity .15s; }
     #pp-record-body.pp-fading { opacity:0; }
     #pp-history-body { transition:opacity .15s; }
@@ -5450,11 +5483,13 @@ function _ppRecordCardInnerHtml(fullPartidos) {
       <span class="pp-record-pct-e">${pctE}% Emp</span>
       <span class="pp-record-pct-d">${pctD}% Derr</span>
     </div>
-    <div class="pp-record-note">* Métrica calculada sobre los partidos cargados en la web</div>
     ${incompleteNote}
-    <div class="pp-record-favorito" id="pp-record-favorito">👑 Cliente Favorito: ${favCliente
-      ? `<span class="pp-favorito-name">${favCliente.rivales.join(', ')}</span> (${favCliente.wins} Victoria${favCliente.wins !== 1 ? 's' : ''})`
-      : `<span style="color:rgba(255,255,255,0.4)">—</span>`}</div>`;
+    <div class="pp-record-favorito" id="pp-record-favorito">
+      <span class="pp-record-favorito-label">👑 Cliente Favorito</span>
+      ${favCliente
+        ? `<span class="pp-favorito-pill">${favCliente.rivales.join(', ')} · ${favCliente.wins} Victoria${favCliente.wins !== 1 ? 's' : ''}</span>`
+        : `<span class="pp-favorito-pill pp-favorito-pill-empty">—</span>`}
+    </div>`;
 }
 
 // Clasificación V/E/D de un partido (mismo criterio que _ppRecordVED,
@@ -5936,10 +5971,18 @@ function renderPlayerProfile(nombre) {
   // secMobile: texto secundario (Promedios/Efectividad) que solo se ve en
   // mobile (ver .pp-kpi-sec-mobile) — desktop sigue mostrando esos datos en
   // sus propias tarjetas dedicadas (Prom. Gol/Prom. Asist), sin duplicarlo.
+  // El ícono va tintado del mismo color semántico que el número (verde
+  // Goles, celeste Asistencias, púrpura G+A, rojo Rojas, ámbar Títulos) en
+  // vez de quedar siempre en el ámbar default de .hist-kpi-icon.
   const kpi = (id, icon, val, label, color, kind, footer, secMobile) => `
-    <div class="hist-kpi${kind ? ' pp-kpi-tab' : ''}" ${kind ? `onclick="ppShowDetail('${kind}')" id="pp-kpi-${kind}"` : ''}><div class="hist-kpi-icon">${icon}</div><div class="hist-kpi-val pp-metric-val" id="${id}" style="${color ? `color:${color}` : ''}">${val}</div><div class="hist-kpi-label" id="${id}-label">${label}</div>${secMobile != null ? `<div class="pp-kpi-sec-mobile" id="${id}-sec">${secMobile}</div>` : ''}${footer || ''}</div>`;
+    <div class="hist-kpi${kind ? ' pp-kpi-tab' : ''}" ${kind ? `onclick="ppShowDetail('${kind}')" id="pp-kpi-${kind}"` : ''}><div class="hist-kpi-icon"${color ? ` style="background:${color}1a;color:${color}"` : ''}>${icon}</div><div class="hist-kpi-val pp-metric-val" id="${id}" style="${color ? `color:${color}` : ''}">${val}</div><div class="hist-kpi-label" id="${id}-label">${label}</div>${secMobile != null ? `<div class="pp-kpi-sec-mobile" id="${id}-sec">${secMobile}</div>` : ''}${footer || ''}</div>`;
   const favBanner = (id, icon, label, fav, unit) =>
     `<div class="pp-favorito-banner" id="${id}">${_ppFavoritoBannerInner(icon, label, fav, unit)}</div>`;
+  // Sub-etiqueta corta para la fila inferior (Títulos/Rojas/Promedios) —
+  // antes esas 3 tarjetas no tenían nada abajo del número, dejando un
+  // vacío visual comparado con la fila de arriba (que sí tiene el badge de
+  // Rival/Víctima Favorita).
+  const subLabel = text => `<div class="pp-kpi-sublabel">${text}</div>`;
 
   // Stash per-category numbers so the Totales/Primera A/Primera B tabs can swap
   // the on-screen values instantly without re-rendering the whole profile.
@@ -6042,24 +6085,24 @@ function renderPlayerProfile(nombre) {
       ${kpi('pp-m-goles',   '⚽', s.goles, 'Goles', '#22c55e', 'goles',
         favBanner('pp-fav-goles', '🎯', 'Víctima Favorita', _favInit.goles, 'Goles'),
         `Prom. ${s.promGol.toFixed(2).replace('.', ',')}/PJ`)}
-      ${kpi('pp-m-asist',   '🎯', s.asist, 'Asistencias', '#3b82f6', 'asist',
+      ${kpi('pp-m-asist',   '🎯', s.asist, 'Asistencias', '#38bdf8', 'asist',
         favBanner('pp-fav-asist', '🅰️', 'Asistencia Favorita', _favInit.asist, 'Asist.'),
         `Prom. ${s.promAsist.toFixed(2).replace('.', ',')}/PJ`)}
       ${kpi('pp-m-ga',      '🔥', s.goles + s.asist, 'G+A', '#a855f7', 'ga',
         `<div class="pp-favorito-banner" id="pp-fav-ga">${_ppFavoritoGaBannerInner('🔥', 'Mayor Impacto', _favInit.ga)}</div>`,
         isArquero ? `🧤 ${s.vallas} Vallas Invictas` : `Efectividad ${s.efectividadGA.toFixed(0)}%`)}
-      ${kpi('pp-m-titulos', '🏆', s.titulos, 'Títulos', '#fbbf24', 'titulos')}
-      ${kpi('pp-m-rojas',   '🟥', s.rojas, 'Rojas', '#ef4444', 'rojas')}
+      ${kpi('pp-m-titulos', '🏆', s.titulos, 'Títulos', '#fbbf24', 'titulos', subLabel('Copas y torneos ganados'))}
+      ${kpi('pp-m-rojas',   '🟥', s.rojas, 'Rojas', '#ef4444', 'rojas', subLabel('Expulsiones directas'))}
       ${isArquero
-        ? kpi('pp-m-promgol', '🧤', s.vallas, 'Vallas Invictas', '#60a5fa')
-        : kpi('pp-m-promgol', '📈', s.promGol.toFixed(2).replace('.', ','), 'Prom. Gol/Partido', '#22c55e')}
+        ? kpi('pp-m-promgol', '🧤', s.vallas, 'Vallas Invictas', '#60a5fa', null, subLabel('Partidos sin recibir goles'))
+        : kpi('pp-m-promgol', '📈', s.promGol.toFixed(2).replace('.', ','), 'Prom. Gol/Partido', '#22c55e', null, subLabel('Goles por partido'))}
       ${isArquero
-        ? kpi('pp-m-promasist', '📈', s.vallasProm.toFixed(2).replace('.', ','), 'Prom. Vallas/Partido', '#60a5fa')
-        : kpi('pp-m-promasist', '🎯', s.promAsist.toFixed(2).replace('.', ','), 'Prom. Asist/Partido', '#3b82f6')}
+        ? kpi('pp-m-promasist', '📈', s.vallasProm.toFixed(2).replace('.', ','), 'Prom. Vallas/Partido', '#60a5fa', null, subLabel('Promedio de vallas invictas'))
+        : kpi('pp-m-promasist', '🎯', s.promAsist.toFixed(2).replace('.', ','), 'Prom. Asist/Partido', '#38bdf8', null, subLabel('Asistencias por partido'))}
     </div>
     <div class="pp-effectiveness">
       <div class="hd-section-label">Efectividad de participación en goles (G+A)</div>
-      <div class="hd-meter-track"><div class="hd-meter-fill" id="pp-m-meter" style="width:${Math.min(100, s.efectividadGA).toFixed(0)}%"></div></div>
+      <div class="pp-meter-track-wrap"><div class="hd-meter-track"><div class="hd-meter-fill" id="pp-m-meter" style="width:${Math.min(100, s.efectividadGA).toFixed(0)}%"></div></div></div>
       <div class="hd-meter-row"><span>0%</span><span class="hd-meter-pct" id="pp-m-pct">${s.efectividadGA.toFixed(0)}%</span><span>100%</span></div>
     </div>
     <div class="pp-metrics-fav-mobile" id="pp-fav-mobile">${_ppDatoCuriosoHtml(_ppKindToOpen, _favInit[_ppKindToOpen])}</div>
@@ -6085,7 +6128,10 @@ function renderPlayerProfile(nombre) {
   // que llama a _ppRecordCardInnerHtml de nuevo con la categoría nueva).
   const recordCard = `
     <div class="card pp-record-card">
-      <div class="card-label">Récord de Resultados</div>
+      <div class="pp-record-title-row">
+        <div class="card-label">Récord de Resultados</div>
+        <span class="pp-info-tip" title="Balance del club (V-E-D) en los partidos donde este jugador estuvo en cancha, calculado sobre los partidos cargados en la web.">i</span>
+      </div>
       <div id="pp-record-body">${_ppRecordCardInnerHtml(_ppPartidosSource)}</div>
     </div>`;
 
