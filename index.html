@@ -484,15 +484,12 @@
     @media (min-width: 769px) { .pp-metrics-grid .hist-kpi-val { font-size: 1.75rem; } }
     .pp-metrics-grid .hist-kpi-label { font-size: 0.72rem; font-weight: 700; color: #cbd5e1; letter-spacing: .05em; }
     .pp-metrics-grid .pp-favorito-name { font-size: 0.72rem; color: #fbbf24; font-weight: 600; }
-    /* Sub-etiqueta de la fila inferior (Títulos/Rojas/Promedios) — mismo
-       espacio que ocupa el badge de Rival/Víctima Favorita en la fila de
-       arriba, para que ninguna de las 8 tarjetas quede con un vacío debajo
-       del número. */
-    .pp-kpi-sublabel { font-size: 0.68rem; color: #64748b; margin-top: 6px; }
-    /* Contenedor con profundidad para la barra de Efectividad (antes la
-       barra iba pegada directo al fondo de la card, sin marco propio). */
-    .pp-meter-track-wrap { background:#020617; border:1px solid #1e293b; padding:2px; border-radius:999px; margin-bottom:5px; }
-    .pp-meter-track-wrap .hd-meter-track { height:10px; margin-bottom:0; border-radius:999px; }
+    /* El promedio (Prom. X/PJ) de Goles/Asistencias, antes solo visible en
+       mobile (ver @media max-width:768px más abajo), ahora se muestra
+       siempre en el Bloque Inferior — ya no hay una tarjeta de "Promedio"
+       aparte con la que duplicarlo. */
+    .pp-metrics-grid-main { margin-top: 14px; }
+    .pp-metrics-grid-main .pp-kpi-sec-mobile { display: block; }
 
     .hist-kpi {
       background: rgba(255,255,255,0.03);
@@ -2661,17 +2658,50 @@
        (ver .pp-history-card) y no infla la altura de Métricas Totales.
        Mobile mantiene el stack simple de siempre (esta regla solo corre
        ≥769px, ver breakpoint espejo en @media max-width:768px). */
+    /* Bento Grid del dashboard superior — reemplaza el layout de 2 columnas
+       (Récord 4/12 + Métricas 8/12) por 4 columnas iguales: Récord de
+       Resultados ocupa 2, Participación en Goles y Títulos+Rojas 1 cada
+       una. El Bloque Inferior (Partidos/Goles/Asist/G+A, ver
+       .pp-metrics-grid-main) es su propia fila de 4 columnas, aparte. */
+    .pp-bento-grid { margin-top:18px; display:flex; flex-direction:column; gap:14px; }
     @media (min-width: 769px) {
-      .pp-dash-grid { display:grid; grid-template-columns: repeat(12, 1fr); gap:18px; margin-top:18px; align-items:stretch; }
-      .pp-dash-col-record { grid-column: span 4; }
-      .pp-dash-col-metrics { grid-column: span 8; }
-      .pp-dash-col-record .card, .pp-dash-col-metrics .card { margin-top:0; height:100%; }
+      .pp-bento-grid { display:grid; grid-template-columns: repeat(4, 1fr); gap:14px; align-items:stretch; }
+      .pp-bento-span-2 { grid-column: span 2; }
     }
-    /* Estilo unificado (bg-[#111827] border-slate-800 rounded-2xl p-6) para
-       las 3 cards del dashboard/historial (Récord de Resultados, Métricas
-       Totales, listado de Partidos) — mismo look, sea la card genérica
-       (.card) del sitio o su propia clase dedicada. */
-    .pp-dash-col-record .card, .pp-dash-col-metrics .card, .pp-history-card {
+    .pp-bento-card { background:#111827; border:1px solid #1e293b; border-radius:16px; padding:14px; margin-top:0; height:100%; box-sizing:border-box; }
+    .pp-metric-tabs { margin-top:18px; }
+
+    /* "Participación en Goles" — barra bicolor (verde = aporte por goles,
+       celeste = aporte por asistencias) en vez de la barra monocromática de
+       Efectividad G+A de antes. */
+    .pp-particip-card { display:flex; flex-direction:column; gap:10px; }
+    .pp-particip-header { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .pp-particip-header .card-label { margin:0; }
+    .pp-particip-total { font-size:1.3rem; font-weight:900; color:#fff; transition:opacity .15s; }
+    .pp-particip-total.pp-fading, .pp-particip-legend-item span.pp-fading { opacity:0; }
+    .pp-particip-bar-wrap { background:#020617; border:1px solid #1e293b; padding:2px; border-radius:999px; }
+    .pp-particip-bar { display:flex; height:10px; border-radius:999px; overflow:hidden; }
+    .pp-particip-bar-gol   { background:#10b981; }
+    .pp-particip-bar-asist { background:#38bdf8; }
+    .pp-particip-legend { display:flex; gap:14px; flex-wrap:wrap; font-size:0.72rem; color:#cbd5e1; font-weight:700; }
+    .pp-particip-legend-item { display:flex; align-items:center; gap:5px; }
+    .pp-particip-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+    .pp-particip-dot-gol   { background:#10b981; }
+    .pp-particip-dot-asist { background:#38bdf8; }
+
+    /* Títulos + Rojas — una sola card dividida por una línea horizontal en
+       vez de 2 tarjetas del grid de 8 (ambas comparten poco espacio en
+       común como para justificar 2 cards completas). */
+    .pp-titrojas-card { display:flex; flex-direction:column; justify-content:space-between; gap:8px; }
+    .pp-mini-stat { display:flex; align-items:center; gap:10px; }
+    .pp-mini-stat-icon {
+      width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center;
+      font-size:1.05rem; flex-shrink:0;
+    }
+    .pp-mini-stat-val { font-size:1.4rem; font-weight:900; line-height:1; }
+    .pp-mini-stat-label { font-size:0.68rem; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:.04em; margin-top:2px; }
+    .pp-titrojas-divider { height:1px; background:#1e293b; }
+    .pp-history-card {
       background:#111827; border:1px solid #1e293b; border-radius:16px; padding:24px;
     }
 
@@ -3003,6 +3033,10 @@
          (7ma y 8va tarjeta) siguen ocultas: ese dato vive como texto
          chico (.pp-kpi-sec-mobile) dentro de Goles/Asistencias/G+A. */
       .hist-kpis.pp-metrics-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 6px; }
+      /* Bloque Inferior (Partidos/Goles/Asist/G+A) — solo 4 tarjetas ahora
+         (antes 8, de ahí el repeat(3,1fr) de arriba) — 2x2 se ve más
+         prolijo que 3+1. */
+      .hist-kpis.pp-metrics-grid-main { grid-template-columns: repeat(2, 1fr) !important; }
       .pp-metrics-grid .hist-kpi {
         padding: 8px 4px; background: #0b0f19; border-color: rgba(30,41,59,0.8);
       }
@@ -4655,6 +4689,27 @@ function ppFilterMetrics(cat, btn) {
     setTimeout(() => { pctEl.textContent = c.efectividadGA.toFixed(0) + '%'; pctEl.classList.remove('pp-fading'); }, 150);
   }
 
+  // "Participación en Goles" (barra bicolor Gol/Asist) — mismos totales que
+  // ppFilterMetrics ya venía usando para promGol/promAsist/efectividadGA,
+  // solo repartidos en 2 segmentos en vez de 1.
+  const pctGolNew = c.promGol * 100, pctAsistNew = c.promAsist * 100;
+  const barGolEl = document.getElementById('pp-particip-bar-gol');
+  const barAsistEl = document.getElementById('pp-particip-bar-asist');
+  if (barGolEl) barGolEl.style.width = Math.min(100, pctGolNew).toFixed(1) + '%';
+  if (barAsistEl) barAsistEl.style.width = Math.min(100, pctAsistNew).toFixed(1) + '%';
+  const particTotalEl = document.getElementById('pp-particip-total');
+  const particGolEl = document.getElementById('pp-particip-pct-gol');
+  const particAsistEl = document.getElementById('pp-particip-pct-asist');
+  [
+    [particTotalEl, c.efectividadGA.toFixed(0) + '%'],
+    [particGolEl, pctGolNew.toFixed(0) + '%'],
+    [particAsistEl, pctAsistNew.toFixed(0) + '%'],
+  ].forEach(([el, text]) => {
+    if (!el) return;
+    el.classList.add('pp-fading');
+    setTimeout(() => { el.textContent = text; el.classList.remove('pp-fading'); }, 150);
+  });
+
   // Récord V-E-D + Cliente Favorito — se recalculan sobre la misma categoría
   // recién seleccionada (window._ppActiveCat ya quedó actualizado arriba).
   const recordBodyEl = document.getElementById('pp-record-body');
@@ -5978,11 +6033,6 @@ function renderPlayerProfile(nombre) {
     <div class="hist-kpi${kind ? ' pp-kpi-tab' : ''}" ${kind ? `onclick="ppShowDetail('${kind}')" id="pp-kpi-${kind}"` : ''}><div class="hist-kpi-icon"${color ? ` style="background:${color}1a;color:${color}"` : ''}>${icon}</div><div class="hist-kpi-val pp-metric-val" id="${id}" style="${color ? `color:${color}` : ''}">${val}</div><div class="hist-kpi-label" id="${id}-label">${label}</div>${secMobile != null ? `<div class="pp-kpi-sec-mobile" id="${id}-sec">${secMobile}</div>` : ''}${footer || ''}</div>`;
   const favBanner = (id, icon, label, fav, unit) =>
     `<div class="pp-favorito-banner" id="${id}">${_ppFavoritoBannerInner(icon, label, fav, unit)}</div>`;
-  // Sub-etiqueta corta para la fila inferior (Títulos/Rojas/Promedios) —
-  // antes esas 3 tarjetas no tenían nada abajo del número, dejando un
-  // vacío visual comparado con la fila de arriba (que sí tiene el badge de
-  // Rival/Víctima Favorita).
-  const subLabel = text => `<div class="pp-kpi-sublabel">${text}</div>`;
 
   // Stash per-category numbers so the Totales/Primera A/Primera B tabs can swap
   // the on-screen values instantly without re-rendering the whole profile.
@@ -6078,8 +6128,12 @@ function renderPlayerProfile(nombre) {
       <button class="pp-metric-tab" data-cat="b" onclick="ppFilterMetrics('b', this)">Primera B</button>
     </div>`;
 
-  const metrics = `
-    <div class="hist-kpis pp-metrics-grid">
+  // Bloque Inferior (Ataque & Presencias) — Partidos/Goles/Asistencias/G+A
+  // en una fila de 4 columnas iguales. El promedio (antes solo visible en
+  // mobile, ver .pp-kpi-sec-mobile) ahora se muestra siempre acá — ya no
+  // hay una tarjeta de "Promedio" aparte con la que no duplicarlo.
+  const bottomRow = `
+    <div class="hist-kpis pp-metrics-grid pp-metrics-grid-main">
       ${kpi('pp-m-pj',      '📋', s.pj,   'Partidos (' + s.titular + ' tit · ' + s.sup + ' sup)', null, 'partidos',
         favBanner('pp-fav-pj', '⚔️', 'Rival Favorito', _favInit.pj, 'PJ'))}
       ${kpi('pp-m-goles',   '⚽', s.goles, 'Goles', '#22c55e', 'goles',
@@ -6091,22 +6145,51 @@ function renderPlayerProfile(nombre) {
       ${kpi('pp-m-ga',      '🔥', s.goles + s.asist, 'G+A', '#a855f7', 'ga',
         `<div class="pp-favorito-banner" id="pp-fav-ga">${_ppFavoritoGaBannerInner('🔥', 'Mayor Impacto', _favInit.ga)}</div>`,
         isArquero ? `🧤 ${s.vallas} Vallas Invictas` : `Efectividad ${s.efectividadGA.toFixed(0)}%`)}
-      ${kpi('pp-m-titulos', '🏆', s.titulos, 'Títulos', '#fbbf24', 'titulos', subLabel('Copas y torneos ganados'))}
-      ${kpi('pp-m-rojas',   '🟥', s.rojas, 'Rojas', '#ef4444', 'rojas', subLabel('Expulsiones directas'))}
-      ${isArquero
-        ? kpi('pp-m-promgol', '🧤', s.vallas, 'Vallas Invictas', '#60a5fa', null, subLabel('Partidos sin recibir goles'))
-        : kpi('pp-m-promgol', '📈', s.promGol.toFixed(2).replace('.', ','), 'Prom. Gol/Partido', '#22c55e', null, subLabel('Goles por partido'))}
-      ${isArquero
-        ? kpi('pp-m-promasist', '📈', s.vallasProm.toFixed(2).replace('.', ','), 'Prom. Vallas/Partido', '#60a5fa', null, subLabel('Promedio de vallas invictas'))
-        : kpi('pp-m-promasist', '🎯', s.promAsist.toFixed(2).replace('.', ','), 'Prom. Asist/Partido', '#38bdf8', null, subLabel('Asistencias por partido'))}
-    </div>
-    <div class="pp-effectiveness">
-      <div class="hd-section-label">Efectividad de participación en goles (G+A)</div>
-      <div class="pp-meter-track-wrap"><div class="hd-meter-track"><div class="hd-meter-fill" id="pp-m-meter" style="width:${Math.min(100, s.efectividadGA).toFixed(0)}%"></div></div></div>
-      <div class="hd-meter-row"><span>0%</span><span class="hd-meter-pct" id="pp-m-pct">${s.efectividadGA.toFixed(0)}%</span><span>100%</span></div>
     </div>
     <div class="pp-metrics-fav-mobile" id="pp-fav-mobile">${_ppDatoCuriosoHtml(_ppKindToOpen, _favInit[_ppKindToOpen])}</div>
     ${!s.nidoReady ? `<div class="pp-nido-loading">⏳ Sincronizando con El Nido…</div>` : ''}`;
+
+  // Bloque Superior, card 2 — "Participación en Goles": barra bicolor
+  // (verde = aporte por goles propios, celeste = aporte por asistencias)
+  // en vez de la barra monocromática de Efectividad G+A de antes — ambos
+  // porcentajes salen de la misma base (promGol/promAsist, ya
+  // "goles-o-asist por partido ×100") y suman exacto el total que antes se
+  // mostraba solo (efectividadGA = promGol + promAsist).
+  const pctGol = s.promGol * 100, pctAsist = s.promAsist * 100;
+  const participacionCard = `
+    <div class="card pp-bento-card pp-particip-card">
+      <div class="pp-particip-header">
+        <div class="card-label">Participación en Goles</div>
+        <div class="pp-particip-total" id="pp-particip-total">${s.efectividadGA.toFixed(0)}%</div>
+      </div>
+      <div class="pp-particip-bar-wrap">
+        <div class="pp-particip-bar" title="${pctGol.toFixed(0)}% Gol / ${pctAsist.toFixed(0)}% Asist">
+          <div class="pp-particip-bar-gol" id="pp-particip-bar-gol" style="width:${Math.min(100, pctGol).toFixed(1)}%"></div>
+          <div class="pp-particip-bar-asist" id="pp-particip-bar-asist" style="width:${Math.min(100, pctAsist).toFixed(1)}%"></div>
+        </div>
+      </div>
+      <div class="pp-particip-legend">
+        <span class="pp-particip-legend-item"><span class="pp-particip-dot pp-particip-dot-gol"></span><span id="pp-particip-pct-gol">${pctGol.toFixed(0)}%</span> Gol</span>
+        <span class="pp-particip-legend-item"><span class="pp-particip-dot pp-particip-dot-asist"></span><span id="pp-particip-pct-asist">${pctAsist.toFixed(0)}%</span> Asist</span>
+      </div>
+    </div>`;
+
+  // Bloque Superior, card 3 — Títulos + Rojas en una sola card dividida por
+  // una línea horizontal, en vez de 2 tarjetas sueltas del grid de 8.
+  const miniStat = (id, icon, val, label, color) => `
+    <div class="pp-mini-stat">
+      <div class="pp-mini-stat-icon" style="background:${color}1a;color:${color}">${icon}</div>
+      <div class="pp-mini-stat-body">
+        <div class="pp-mini-stat-val" id="${id}" style="color:${color}">${val}</div>
+        <div class="pp-mini-stat-label">${label}</div>
+      </div>
+    </div>`;
+  const titRojasCard = `
+    <div class="card pp-bento-card pp-titrojas-card">
+      ${miniStat('pp-m-titulos', '🏆', s.titulos, 'Títulos', '#fbbf24')}
+      <div class="pp-titrojas-divider"></div>
+      ${miniStat('pp-m-rojas', '🟥', s.rojas, 'Rojas', '#ef4444')}
+    </div>`;
 
   // Left column: rendimiento por categoría (equipo). Stacked A above B if the
   // player has "doble camiseta"; a single labeled block otherwise.
@@ -6127,7 +6210,7 @@ function renderPlayerProfile(nombre) {
   // que responde al cambio de pestaña igual que ellas (ver ppFilterMetrics,
   // que llama a _ppRecordCardInnerHtml de nuevo con la categoría nueva).
   const recordCard = `
-    <div class="card pp-record-card">
+    <div class="card pp-bento-card pp-bento-span-2 pp-record-card">
       <div class="pp-record-title-row">
         <div class="card-label">Récord de Resultados</div>
         <span class="pp-info-tip" title="Balance del club (V-E-D) en los partidos donde este jugador estuvo en cancha, calculado sobre los partidos cargados en la web.">i</span>
@@ -6159,18 +6242,13 @@ function renderPlayerProfile(nombre) {
         </div>
         <div class="pp-hero-ranks">${rankings}</div>
       </div>
-      <div class="pp-dash-grid">
-        <div class="pp-dash-col-record">${recordCard}</div>
-        <div class="pp-dash-col-metrics">
-          <div class="card">
-            <div class="pp-metrics-header">
-              <div class="card-label">Métricas Totales</div>
-              ${metricsTabs}
-            </div>
-            ${metrics}
-          </div>
-        </div>
+      ${metricsTabs}
+      <div class="pp-bento-grid">
+        ${recordCard}
+        ${participacionCard}
+        ${titRojasCard}
       </div>
+      ${bottomRow}
       ${historySection}
     </div>`;
 
