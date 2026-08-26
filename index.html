@@ -15678,8 +15678,17 @@ async function loadLiveData() {
         // los tres existe en el bloque detallado).
         if (resumenResult && ok(resumenResult)) {
           const resumen = parseCopaResumenRows(ok(resumenResult));
-          det.forEach(m => {
-            const r = resumen.find(x => x.rival.toUpperCase() === String(m.rival || '').toUpperCase());
+          det.forEach((m, i) => {
+            // Matchear por rival puede fallar si el resumen y el detalle
+            // abrevian el nombre distinto (ej. "SHOLEM BLANCO" vs "SHOLEM") —
+            // ninguna fila matchea entonces y el Local/Visita real nunca pisa
+            // el adivinado por sede. Ambos bloques listan las rondas en el
+            // mismo orden (Octavos, Cuartos, ...), igual que ROUND_SEQUENCE ya
+            // asume arriba, así que matchear por posición de ronda es más
+            // confiable — el nombre de rival exacto/parcial queda de respaldo.
+            const mu = String(m.rival || '').toUpperCase();
+            const r = resumen[i]
+              || resumen.find(x => x.rival.toUpperCase() === mu || x.rival.toUpperCase().includes(mu) || mu.includes(x.rival.toUpperCase()));
             if (r) {
               if (r.local) m.local = r.local;
               if (r.parciales) m.parciales = r.parciales;
