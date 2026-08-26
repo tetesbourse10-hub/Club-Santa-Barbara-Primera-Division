@@ -2592,35 +2592,39 @@
       display:flex; align-items:flex-start; justify-content:space-between; gap:24px; flex-wrap:wrap;
       background:linear-gradient(180deg,#1c2538 0%,#151c2c 100%);
       border:1px solid rgba(255,255,255,0.08); border-radius:18px;
-      padding:22px 24px; margin-bottom:18px;
+      padding:16px 24px; margin-bottom:18px;
     }
     .pp-hero-card .pp-header { margin-bottom:0; }
     .pp-hero-ranks { display:flex; gap:14px; flex-wrap:wrap; flex:1 1 420px; }
     .pp-hero-ranks .pp-rank-layout { gap:14px; margin-bottom:0; flex:1; }
+    /* Mismo estilo neutro (fondo oscuro semi-transparente + borde fino) para
+       las dos columnas (Primera A/B e Histórico) — antes la columna
+       "General" tenía su propio tinte dorado, distinto de su hermana, y
+       cada pill de rank sumaba SU PROPIO borde de color (dorado/plateado/
+       bronce en el podio) por encima — quedaba inconsistente. Ver
+       _ppRankBadge: ahora ninguna pill trae color de borde propio. */
     .pp-hero-ranks .pp-rank-col-left,
     .pp-hero-ranks .pp-rank-col-right {
-      background:rgba(255,255,255,0.03); border:1px solid #1e2a3a; border-radius:12px;
-      padding:14px 16px; flex:1 1 220px; min-width:220px; border-left:1px solid #1e2a3a;
+      background:rgba(255,255,255,0.03); border:1px solid rgba(51,65,85,.5); border-radius:12px;
+      padding:14px 16px; flex:1 1 220px; min-width:220px;
     }
-    .pp-hero-ranks .pp-rank-col-right { background:rgba(251,191,36,0.05); border-color:rgba(251,191,36,0.2); }
     .pp-hero-ranks .pp-rank-row { margin-bottom:8px; }
     .pp-hero-ranks .pp-rank-row:last-child { margin-bottom:0; }
     .pp-hero-ranks .pp-rank-row-accent { background:none; padding:0; margin:0; }
 
     /* Dashboard superior: Récord de Resultados (4 cols) + Métricas Totales
-       (8 cols) lado a lado — cada card con SU propio alto natural (nada de
-       align-items:stretch: eso fue lo que causaba el hueco vacío enorme
-       bajo Récord de Resultados, estirada para igualar a Métricas Totales
-       cuando esta última contenía el detalle de Partidos adentro — ese
-       detalle ahora vive en su propia card a ancho completo debajo, ver
-       .pp-history-card). Mobile mantiene el stack simple de siempre (esta
-       regla solo corre ≥769px, ver breakpoint espejo en @media
-       max-width:768px). */
+       (8 cols) lado a lado — ahora con align-items:stretch para que ambas
+       cards terminen en la misma línea horizontal inferior (h-full). Esto
+       ya no genera un hueco vacío como en una versión anterior, porque el
+       detalle de Partidos vive en su propia card a ancho completo debajo
+       (ver .pp-history-card) y no infla la altura de Métricas Totales.
+       Mobile mantiene el stack simple de siempre (esta regla solo corre
+       ≥769px, ver breakpoint espejo en @media max-width:768px). */
     @media (min-width: 769px) {
-      .pp-dash-grid { display:grid; grid-template-columns: repeat(12, 1fr); gap:18px; margin-top:18px; align-items:start; }
+      .pp-dash-grid { display:grid; grid-template-columns: repeat(12, 1fr); gap:18px; margin-top:18px; align-items:stretch; }
       .pp-dash-col-record { grid-column: span 4; }
       .pp-dash-col-metrics { grid-column: span 8; }
-      .pp-dash-col-record .card, .pp-dash-col-metrics .card { margin-top:0; }
+      .pp-dash-col-record .card, .pp-dash-col-metrics .card { margin-top:0; height:100%; }
     }
 
     /* Historial de Partidos (el panel de detalle Partidos/Goles/Asist./
@@ -2694,7 +2698,7 @@
     .pp-rank-group-label-accent { color: var(--dorado); display:flex; align-items:center; gap:6px; }
     .pp-rank-hist-tag { font-size:0.6rem; font-weight:800; text-transform:none; letter-spacing:0; background: rgba(251,191,36,0.15); border: 1px solid rgba(251,191,36,0.35); color: var(--dorado); padding: 1px 7px; border-radius: 999px; }
     .pp-ranks { display:flex; gap:10px; flex-wrap:wrap; margin-bottom: 4px; }
-    .pp-rank-pill { display:flex; align-items:center; gap:6px; padding:7px 12px; border-radius:999px; border:1px solid #1e2a3a; background:rgba(255,255,255,0.03); font-size:0.78rem; font-weight:800; color:#94a3b8; }
+    .pp-rank-pill { display:flex; align-items:center; gap:6px; padding:7px 12px; border-radius:999px; border:1px solid rgba(51,65,85,.5); background:rgba(255,255,255,0.03); font-size:0.78rem; font-weight:800; color:#94a3b8; }
     .pp-rank-top { box-shadow: 0 0 0 1px rgba(255,255,255,0.02); }
     .pp-rank-label { color:var(--gris-texto); font-weight:600; font-size:0.74rem; }
     .pp-record-card { display:flex; flex-direction:column; gap:8px; }
@@ -2722,7 +2726,7 @@
     .pp-torneo-group { padding:8px 12px 12px; }
     .pp-torneo-label { font-size:0.72rem; font-weight:700; color:var(--dorado); text-transform:uppercase; letter-spacing:.04em; margin:8px 0 6px; }
     .pp-match-list { display:flex; flex-direction:column; gap:8px; max-height: 560px; overflow-y:auto; }
-    .pp-match-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 12px; border-radius:10px; background:rgba(255,255,255,0.02); border:1px solid #1e2a3a; flex-wrap:wrap; }
+    .pp-match-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:7px 12px; border-radius:10px; background:rgba(255,255,255,0.02); border:1px solid rgba(30,41,59,0.6); flex-wrap:wrap; }
     /* .pp-match-row's two children are .pp-match-desktop-layout (esto de
        acá — el layout de siempre) y .pp-match-mobile-layout (nuevo, oculto
        fuera de ≤768px) — este selector asume el rol que .pp-match-row tenía
@@ -2732,8 +2736,8 @@
     .pp-match-row-link:hover { border-color:rgba(245,158,11,.35); background:rgba(255,255,255,0.04); }
     .pp-match-arrow { color:#334155; font-size:1rem; transition:color .15s, transform .15s; }
     .pp-match-row-link:hover .pp-match-arrow { color:var(--dorado); transform:translateX(2px); }
-    .pp-match-main { display:flex; flex-direction:column; gap:2px; }
-    .pp-match-torneo { font-size:0.7rem; color:var(--gris-texto); text-transform:uppercase; letter-spacing:.04em; font-weight:700; }
+    .pp-match-main { display:flex; flex-direction:column; gap:1px; }
+    .pp-match-torneo { font-size:0.6875rem; color:var(--gris-texto); text-transform:uppercase; letter-spacing:.04em; font-weight:700; }
     .pp-match-rival { font-size:0.86rem; color:#f1f5f9; font-weight:700; }
     .pp-match-side { display:flex; align-items:center; gap:8px; }
     .pp-match-cond { font-size:0.68rem; font-weight:800; padding:4px 9px; border-radius:999px; }
@@ -2742,17 +2746,21 @@
     .pp-cond-banco { color:#94a3b8; background:rgba(148,163,184,0.1); }
     .pp-match-stat { font-size:0.78rem; font-weight:800; }
     .pp-match-resultado { font-size:0.76rem; font-weight:800; padding:3px 9px; border-radius:999px; border:1px solid transparent; }
-    .pp-match-cat { font-size:0.66rem; font-weight:700; padding:3px 8px; border-radius:999px; color:var(--gris-texto); background:rgba(255,255,255,0.05); border:1px solid #1e2a3a; }
+    .pp-match-cat { font-size:0.6875rem; font-weight:700; padding:3px 8px; border-radius:999px; color:var(--gris-texto); background:rgba(255,255,255,0.05); border:1px solid rgba(30,41,59,0.6); }
     /* Distintivo de división (Primera A / Primera B) — intencionalmente
        distinto de Titular (verde) / Suplente (azul) para no confundirse. */
     .pp-cat-a { color:#818cf8; background:rgba(99,102,241,0.12); border-color:rgba(99,102,241,0.3); }
     .pp-cat-b { color:#f472b6; background:rgba(236,72,153,0.12); border-color:rgba(236,72,153,0.3); }
-    .pp-year-chips { display:flex; gap:8px; overflow-x:auto; padding-bottom:8px; margin-bottom:10px; -webkit-overflow-scrolling:touch; }
-    .pp-year-chip { flex:0 0 auto; border:1px solid #1e2a3a; background:rgba(255,255,255,0.03); color:var(--gris-texto); font-size:0.76rem; font-weight:700; padding:7px 14px; border-radius:999px; cursor:pointer; white-space:nowrap; transition:background .15s, border-color .15s, color .15s; font-family:inherit; }
+    /* Barra única compacta que agrupa año + torneo + resultado (antes 3
+       filas apiladas por separado) — chips idénticos de siempre, solo
+       agrupados visualmente en un mismo contenedor con fondo propio. */
+    .pp-filter-bar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; background:rgba(2,6,16,0.6); padding:8px; border-radius:12px; margin-bottom:12px; }
+    .pp-year-chips { display:flex; gap:8px; flex-wrap:wrap; }
+    .pp-year-chip { flex:0 0 auto; border:1px solid rgba(51,65,85,.5); background:rgba(255,255,255,0.03); color:var(--gris-texto); font-size:0.76rem; font-weight:700; padding:7px 14px; border-radius:999px; cursor:pointer; white-space:nowrap; transition:background .15s, border-color .15s, color .15s; font-family:inherit; }
     .pp-year-chip:hover { color:#e2e8f0; border-color:rgba(245,158,11,.35); }
     .pp-year-chip.active { background:var(--dorado); color:#1a1206; border-color:var(--dorado); }
     .pp-year-chip-count { font-weight:600; opacity:.85; }
-    .pp-tipo-chips { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+    .pp-tipo-chips { display:flex; gap:6px; flex-wrap:wrap; }
     .pp-tipo-chip { font-size:0.7rem; padding:5px 12px; }
     /* "Resumen" per-rival breakdown rows (Historial de Partidos/Goles/
        Asistencias/Rojas) */
@@ -2901,7 +2909,11 @@
          Clausura/Copas como grid en vez de fila de pills sueltas. */
       .pp-detail-header-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 14px 0 8px; flex-wrap: wrap; }
       .pp-detail-header { margin: 0; }
-      .pp-year-chips { gap: 6px; }
+      /* En mobile cada grupo (año/tipo) ya trae su propio fondo (scroll
+         horizontal en año, grid oscuro en tipo) — el fondo/padding de
+         .pp-filter-bar es cosa de desktop, acá solo estorbaría anidando cajas. */
+      .pp-filter-bar { background:none; padding:0; flex-direction:column; align-items:stretch; gap:0; }
+      .pp-year-chips { gap: 6px; overflow-x:auto; padding-bottom:8px; margin-bottom:10px; -webkit-overflow-scrolling:touch; flex-wrap:nowrap; }
       .pp-year-chips::-webkit-scrollbar { display: none; }
       .pp-tipo-chips {
         display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;
@@ -4997,18 +5009,18 @@ const POS_NOMBRE = { ARQ:'Arquero', DFC:'Defensor Central', DFI:'Defensor Izquie
   ED:'Extremo Derecho', EI:'Extremo Izquierdo',
   DEL:'Delantero', AT:'Delantero' };
 
-// accent=true → golden "Histórico/General" styling regardless of top-3 medal position
 function _ppRankBadge(rank, label, accent) {
   if (!rank || !rank.pos) return '';
   const top = rank.pos <= 3;
   const medal = rank.pos === 1 ? '🥇' : rank.pos === 2 ? '🥈' : rank.pos === 3 ? '🥉' : '';
-  // Mismo look (fondo/borde dorado sutil) para las 3 pills de cada grupo —
-  // antes solo el top-3 (medalla) o el grupo "accent" (Histórico) tenían
-  // este estilo, y una pill fuera del podio en Primera A/B (ej. "#8 en
-  // Presencias") quedaba con el chip gris plano de base, distinto a sus
-  // dos hermanas del mismo grupo.
+  // Chip siempre neutro (fondo oscuro semi-transparente + borde fino, ver
+  // .pp-rank-pill) para las 3 pills de cada grupo — solo el número/medalla
+  // lleva color (oro/plata/bronce en el podio, ámbar el resto). Antes cada
+  // pill sumaba SU PROPIO borde de color por encima del chip, y el grupo
+  // "Histórico" tenía además un tinte dorado propio en la card — quedaba
+  // inconsistente entre grupos y chillón en general.
   const color = top ? (rank.pos === 1 ? '#FFD700' : rank.pos === 2 ? '#C0C0C0' : '#CD7F32') : '#fbbf24';
-  return `<div class="pp-rank-pill" style="border-color:rgba(251,191,36,.35);background:rgba(251,191,36,.08)">
+  return `<div class="pp-rank-pill">
     <span style="color:${color}">${medal || '#' + rank.pos}</span>
     <span class="pp-rank-label">${label}</span>
   </div>`;
@@ -5481,7 +5493,7 @@ function _ppDetailPanelBodyHtml(kind, fullList) {
         </div>`;
       }).join('')
       : `<div class="hist-empty">Sin registros cargados.</div>`;
-    return { html: `<div class="pp-year-chips">${yearChips}</div>${rows}`, shownCount: null };
+    return { html: `<div class="pp-filter-bar">${yearChips}</div>${rows}`, shownCount: null };
   }
 
   const yearFiltered = activeYear === 'todos' ? catList : catList.filter(p => p.anio === activeYear);
@@ -5504,19 +5516,23 @@ function _ppDetailPanelBodyHtml(kind, fullList) {
     const activeRes = resState[kind] || 'todos';
     const countRes = res => tipoFiltered.filter(p => _ppMatchResultado(p) === res).length;
     const resChip = (val, cls, label, icon) => `<button class="pp-year-chip pp-tipo-chip pp-res-chip ${cls}${activeRes === val ? ' active' : ''}" onclick="ppFilterRes('${kind}', '${val}')">${icon} ${label} <span class="pp-year-chip-count">(${countRes(val)})</span></button>`;
-    resChips = `<div class="pp-tipo-chips">
+    resChips = `
       ${resChip('win', 'pp-res-chip-win', 'Ganados', '🟢')}
       ${resChip('draw', 'pp-res-chip-draw', 'Empatados', '🟡')}
-      ${resChip('loss', 'pp-res-chip-loss', 'Perdidos', '🔴')}
-    </div>`;
+      ${resChip('loss', 'pp-res-chip-loss', 'Perdidos', '🔴')}`;
     if (activeRes !== 'todos') finalList = tipoFiltered.filter(p => _ppMatchResultado(p) === activeRes);
   }
 
   return {
+    // Año + Torneo + Resultado consolidados en una sola barra compacta
+    // (.pp-filter-bar) en vez de tres filas apiladas — mismos chips/clases
+    // de siempre, solo agrupados visualmente.
     html: `
-      <div class="pp-year-chips">${yearChips}</div>
-      <div class="pp-tipo-chips">${tipoChips}</div>
-      ${resChips}
+      <div class="pp-filter-bar">
+        ${yearChips}
+        ${tipoChips}
+        ${resChips}
+      </div>
       ${finalList.length ? finalList.map(p => _ppStatRowHtml(kind, p)).join('') : `<div class="hist-empty">Sin registros cargados.</div>`}`,
     shownCount: _ppKindTotal(kind, finalList),
   };
