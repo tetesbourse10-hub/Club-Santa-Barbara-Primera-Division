@@ -14156,11 +14156,19 @@ function parseHeaderStandings(rows) {
 function _parseResultado(raw) {
   const s = String(raw ?? '').trim();
   if (!s) return { resultado: null, gf: null, gc: null, penales: null };
-  if (/^\d+-\d+$/.test(s)) {
-    const [gf, gc] = s.split('-').map(Number);
-    return { resultado: s, gf, gc, penales: null };
+  // Tolerante a espacios alrededor del guión ("2 - 2", no solo "2-2") — el
+  // club a veces carga el resultado así, y la versión estricta sin \s lo
+  // manda directo al fallback "loose" de abajo, que deja el string CRUDO
+  // como resultado (con los espacios) en vez de la versión prolija.
+  if (/^\d+\s*-\s*\d+$/.test(s)) {
+    const [gf, gc] = s.split('-').map(v => Number(v.trim()));
+    return { resultado: `${gf}-${gc}`, gf, gc, penales: null };
   }
-  const m = s.match(/\((\d+)\)\s*(\d+)-(\d+)\s*\((\d+)\)/);
+  // Ídem para el formato con penales "(3) 2-2 (1)" — también tolerante a
+  // espacios extra ("(3) 2 - 2 (1)"), que antes hacía fallar este regex
+  // estricto y el resultado terminaba mostrándose crudo sin separar los
+  // penales ("(3) 2 - 2 (1)" tal cual, en vez de "2-2" + penales "3-1").
+  const m = s.match(/\(\s*(\d+)\s*\)\s*(\d+)\s*-\s*(\d+)\s*\(\s*(\d+)\s*\)/);
   if (m) {
     return { resultado: `${m[2]}-${m[3]}`, gf: Number(m[2]), gc: Number(m[3]), penales: `${m[1]}-${m[4]}` };
   }
@@ -15641,9 +15649,20 @@ async function loadLiveData() {
     for (const [title, detailMatches] of Object.entries(COPA_BLOCKS)) {
       const rows = byTitle[title];
       if (!rows) continue;
+      const used = new Set();
       for (const dm of detailMatches) {
-        const bm = rows.find(r => r.rival === (dm.rival || '').toUpperCase());
+        const du = (dm.rival || '').toUpperCase();
+        // Exacto primero; si el resumen abrevia el rival distinto que el
+        // detalle (ej. "GEBA BLANCO" vs "GEBA"), un solo lado incluyendo al
+        // otro también cuenta — antes exigía igualdad estricta, así que
+        // cualquier diferencia de redacción dejaba esa fila sin mergear:
+        // el Local/Visita y el Resultado (con penales) quedaban en los
+        // valores adivinados/crudos del bloque detallado en vez de los
+        // reales del resumen (causa real de Finales que mostraban victoria
+        // cuando fueron derrota, y de penales sin separar del resultado).
+        const bm = rows.find(r => !used.has(r) && (r.rival === du || r.rival.includes(du) || du.includes(r.rival)));
         if (!bm) continue;
+        used.add(bm);
         if (bm.posCSB)    dm.posCSB    = bm.posCSB;
         if (bm.local)     dm.local     = bm.local;
         if (bm.resultado) { dm.resultado = bm.resultado; dm.gf = bm.gf; dm.gc = bm.gc; dm.penales = bm.penales; }
