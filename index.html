@@ -3002,13 +3002,25 @@
       .pp-detail-header { margin: 0; }
       /* Jerarquía de Control (filtros de Partidos/Goles/Asist./Rojas/G+A) en
          mobile: se apila en columna (tabs de torneo arriba, año+resultado+
-         resumen abajo en su propia fila que envuelve si hace falta) en vez
-         de la fila única de desktop. */
-      .pp-fbar { flex-direction: column; align-items: stretch; gap: 8px; }
-      .pp-fbar-tabs { width: 100%; }
-      .pp-fbar-tab { flex: 1; }
-      .pp-fbar-right { width: 100%; justify-content: space-between; }
-      .pp-fbar-select { flex: 1; min-width: 0; }
+         resumen abajo) en vez de la fila única de desktop — pero CADA fila
+         mantiene sus botones enteros (nunca texto partido a la mitad):
+         - Tabs: scroll horizontal en vez de flex:1 igualando anchos (eso
+           forzaba "Apertura (76)" a partirse en dos líneas dentro del botón
+           en pantallas angostas) — mismo patrón que .pp-year-chips ya usaba.
+         - Derecha (año/resultado/resumen): flex-wrap en vez de una sola fila
+           forzada — si no entran los 3 juntos, el que sobra baja entero a
+           una 2da línea en vez de romper layout. */
+      .pp-fbar { flex-direction: column; align-items: stretch; gap: 10px; }
+      .pp-fbar-tabs {
+        width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+      }
+      .pp-fbar-tabs::-webkit-scrollbar { display: none; }
+      .pp-fbar-tab { flex: 0 0 auto; white-space: nowrap; }
+      .pp-fbar-right { width: 100%; flex-wrap: wrap; row-gap: 8px; }
+      .pp-fbar-res-toggle { flex: 0 0 auto; }
+      .pp-fbar-select { flex: 1 1 auto; min-width: 0; }
+      .pp-fbar-icon-btn { flex: 0 0 auto; }
       .pp-fbar-subbar { font-size: 10px; }
 
       /* 4. Historial de partidos compacto — item horizontal, caja #0b0f19
