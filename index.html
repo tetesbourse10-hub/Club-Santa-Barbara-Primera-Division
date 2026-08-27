@@ -1344,15 +1344,32 @@
     @media (max-width: 640px) { .inf-kpis { grid-template-columns: repeat(2,1fr); } }
     .inf-kpi {
       background: linear-gradient(145deg, #1a2236, #131825);
-      border: 1px solid #1e2a3a; border-radius: 18px;
+      border: 1px solid #1e2a3a; border-radius: 18px; position: relative; overflow: hidden;
       padding: 22px 16px 18px; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center;
       transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
     .inf-kpi:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
-    .inf-kpi-icon { font-size: 1.4rem; }
-    .inf-kpi-val { font-size: 2.2rem; font-weight: 900; color: var(--dorado); line-height: 1; letter-spacing: -0.02em; }
-    .inf-kpi-pct { font-size: 0.85rem; font-weight: 700; color: rgba(245,158,11,0.6); }
-    .inf-kpi-label { font-size: 0.68rem; color: #475569; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600; }
+    .inf-kpi-val { font-size: 2rem; font-weight: 900; color: #fbbf24; line-height: 1; letter-spacing: -0.02em; }
+    .inf-kpi-label { font-size: 9px; color: var(--gris-texto, #94a3b8); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; }
+    /* Ícono en caja rounded-xl con tinte/borde del color propio de la métrica */
+    .inf-kpi-icon-box {
+      width: 36px; height: 36px; border-radius: 0.75rem; border: 1px solid;
+      display: flex; align-items: center; justify-content: center; font-size: 1.15rem;
+    }
+    /* Cards de porcentaje (Plantel/Goles) — gradiente sutil, badge arriba a
+       la derecha y barra de progreso visual en la base representando el %. */
+    .inf-kpi-percent { padding-bottom: 28px; }
+    .inf-kpi-badge {
+      position: absolute; top: 10px; right: 10px; font-size: 0.58rem; font-weight: 800;
+      text-transform: uppercase; letter-spacing: .04em; padding: 2px 8px; border-radius: 999px; border: 1px solid;
+    }
+    .inf-kpi-bar {
+      position: absolute; left: 16px; right: 16px; bottom: 12px; height: 6px;
+      border-radius: 999px; background: rgba(255,255,255,0.08); overflow: hidden;
+    }
+    .inf-kpi-bar-fill { height: 100%; border-radius: 999px; }
+    .inf-kpi-grad-amber   { background: linear-gradient(145deg, rgba(245,158,11,0.1), #131825 65%); }
+    .inf-kpi-grad-emerald { background: linear-gradient(145deg, rgba(16,185,129,0.1), #131825 65%); }
 
     /* Premium horizontal row cards — one per categoría, full width */
     .inf-rows { display: flex; flex-direction: column; gap: 12px; width: 100%; }
@@ -14208,28 +14225,32 @@ function renderInferiores() {
   const categorias = (INFERIORES_LIVE && INFERIORES_LIVE.categorias.length) ? INFERIORES_LIVE.categorias : INFERIORES_DATA;
   const kpis = { ...INFERIORES_KPIS_FALLBACK, ...(INFERIORES_LIVE ? INFERIORES_LIVE.kpis : {}) };
 
+  // Ícono en caja tintada según el color propio de cada métrica (ámbar para
+  // Jugadores/Plantel, esmeralda para Goles) — el NÚMERO de las 2 cards
+  // numéricas (Jugadores/Goles) siempre queda en ámbar (mismo criterio que
+  // pidió el mockup), independiente del color del ícono.
+  const _infIconBox = (icon, color) => `<div class="inf-kpi-icon-box" style="background:${color}1a;border-color:${color}4d;color:${color}">${icon}</div>`;
+  const _infPct = v => parseFloat(String(v).replace('%', '')) || 0;
+  const infNumCard = (icon, val, label, iconColor) => `
+    <div class="inf-kpi inf-kpi-numeric">
+      ${_infIconBox(icon, iconColor)}
+      <div class="inf-kpi-val">${val}</div>
+      <div class="inf-kpi-label">${label}</div>
+    </div>`;
+  const infPctCard = (icon, val, label, color, badge, gradClass) => `
+    <div class="inf-kpi inf-kpi-percent ${gradClass}">
+      <span class="inf-kpi-badge" style="color:${color};border-color:${color}4d;background:${color}1a">${badge}</span>
+      ${_infIconBox(icon, color)}
+      <div class="inf-kpi-val" style="color:${color}">${val}</div>
+      <div class="inf-kpi-label">${label}</div>
+      <div class="inf-kpi-bar"><div class="inf-kpi-bar-fill" style="width:${_infPct(val)}%;background:${color}"></div></div>
+    </div>`;
   const kpiHtml = `
     <div class="inf-kpis">
-      <div class="inf-kpi">
-        <div class="inf-kpi-icon">🎓</div>
-        <div class="inf-kpi-val">${kpis.jugadores}</div>
-        <div class="inf-kpi-label">Jugadores de inferiores en la A</div>
-      </div>
-      <div class="inf-kpi">
-        <div class="inf-kpi-icon">📊</div>
-        <div class="inf-kpi-val">${kpis.pctJugadores}</div>
-        <div class="inf-kpi-label">Del plantel surgió de inferiores</div>
-      </div>
-      <div class="inf-kpi">
-        <div class="inf-kpi-icon">⚽</div>
-        <div class="inf-kpi-val">${kpis.goles}</div>
-        <div class="inf-kpi-label">Goles aportados por inferiores</div>
-      </div>
-      <div class="inf-kpi">
-        <div class="inf-kpi-icon">🎯</div>
-        <div class="inf-kpi-val">${kpis.pctGoles}</div>
-        <div class="inf-kpi-label">De los goles del club</div>
-      </div>
+      ${infNumCard('🎓', kpis.jugadores, 'Jugadores de inferiores en la A', '#f59e0b')}
+      ${infPctCard('📊', kpis.pctJugadores, 'Del plantel surgió de inferiores', '#f59e0b', 'Mayoría', 'inf-kpi-grad-amber')}
+      ${infNumCard('⚽', kpis.goles, 'Goles aportados por inferiores', '#10b981')}
+      ${infPctCard('🎯', kpis.pctGoles, 'De los goles del club', '#10b981', 'Aporte Gol', 'inf-kpi-grad-emerald')}
     </div>`;
 
   // Premium horizontal row-card view — one card per categoría.
