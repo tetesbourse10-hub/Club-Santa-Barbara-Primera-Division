@@ -1716,6 +1716,44 @@
     .rsm-stat-val { font-size:0.92rem; font-weight:800; color:var(--blanco); line-height:1.1; }
     .rsm-stat-label { font-size:0.56rem; color:var(--gris-texto); margin-top:3px; text-transform:uppercase; letter-spacing:.03em; }
 
+    /* Bloque Superior — 3 tarjetas de acceso rápido (Último Partido/
+       Próximo Partido/Tabla de Posiciones), cada una lleva directo a su
+       sección en vez de solo mostrar el dato en el lugar. */
+    .rsm-quicklinks { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+    .rsm-quicklink {
+      background: var(--azul-card); border:1px solid rgba(255,255,255,0.06);
+      border-radius:12px; padding:12px 4px; display:flex; flex-direction:column;
+      align-items:center; gap:6px; cursor:pointer; font-family:inherit;
+      transition:background .15s, border-color .15s;
+    }
+    .rsm-quicklink:hover, .rsm-quicklink:active { background:#1c2538; border-color:rgba(245,158,11,.3); }
+    .rsm-quicklink:disabled { opacity:.45; cursor:default; }
+    .rsm-ql-icon { font-size:1.3rem; line-height:1; }
+    .rsm-ql-label { font-size:0.62rem; font-weight:700; color:var(--texto); text-align:center; line-height:1.25; }
+
+    /* Destacados Clausura 2026 — versión mobile de la columna 3 de
+       desktop, en grilla 2x2 (2 a la izquierda, 2 a la derecha) en vez de
+       columna vertical de 4. */
+    .rsm-destacados-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-bottom:10px; }
+    .rsm-destacado-item {
+      background: var(--azul-card); border:1px solid rgba(255,255,255,0.06);
+      border-radius:12px; padding:10px; display:flex; align-items:center; gap:8px;
+    }
+    .rsm-destacado-icon {
+      width:30px; height:30px; border-radius:8px; flex-shrink:0;
+      display:flex; align-items:center; justify-content:center; font-size:0.9rem;
+    }
+    .rsm-destacado-body { flex:1; min-width:0; }
+    .rsm-destacado-label { font-size:0.58rem; color:var(--gris-texto); text-transform:uppercase; letter-spacing:.03em; font-weight:700; }
+    .rsm-destacado-name { font-size:0.74rem; font-weight:700; color:var(--blanco); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .rsm-destacado-val { font-size:1rem; font-weight:900; flex-shrink:0; }
+    .rsm-ver-plantel-btn {
+      width:100%; background:#1c2538; border:1px solid rgba(255,255,255,0.1); color:var(--texto);
+      font-family:inherit; font-size:0.76rem; font-weight:700; padding:10px; border-radius:10px;
+      cursor:pointer; transition:background .15s, border-color .15s;
+    }
+    .rsm-ver-plantel-btn:hover, .rsm-ver-plantel-btn:active { background:#242f47; border-color:rgba(245,158,11,.35); }
+
     .rsm-match-card {
       flex-shrink:0; width:92px; background:var(--azul-card); border:1px solid rgba(255,255,255,0.06);
       border-top:2px solid var(--gris-texto); border-radius:10px; padding:10px 6px; text-align:center; cursor:pointer;
@@ -1767,9 +1805,14 @@
       background: var(--azul-card); border:1px solid rgba(255,255,255,0.06);
       border-radius:14px; padding:12px 14px; display:flex; flex-direction:column; gap:8px;
     }
-    .rsm-glorias-item { font-size:0.78rem; color:var(--texto); line-height:1.4; }
+    .rsm-glorias-item { font-size:0.78rem; color:var(--texto); line-height:1.4; display:flex; align-items:center; gap:6px; }
     .rsm-glorias-item strong { color:var(--dorado); }
     .rsm-glorias-year { color:var(--gris-texto); font-weight:600; font-size:0.72rem; }
+    /* Palmarés interactivo — títulos y Máxima Goleada navegan a su
+       torneo/partido (mismo criterio que la card de desktop); Racha
+       Invicta queda sin flecha/click (no apunta a un partido puntual). */
+    .rsm-glorias-clickable { cursor:pointer; }
+    .rsm-glorias-arrow { margin-left:auto; color:var(--dorado); font-size:1rem; flex-shrink:0; }
 
     .rsm-card { background:var(--azul-card); border:1px solid rgba(255,255,255,0.06); border-radius:14px; overflow:hidden; }
     .rsm-tabs { display:flex; border-bottom:1px solid rgba(255,255,255,0.08); }
@@ -10607,10 +10650,12 @@ function renderResumen() {
 
   const container = document.getElementById('resumen-content');
   container.innerHTML = `
-    <!-- ═══ VISTA MOBILE (≤768px) ═══ — orden de actualidad a historia:
-         1) header/selector Plantel, 2) actualidad (último+próximo
-         partido), 3) tabla corta, 4) KPIs históricos, 5) TOP 5, 6) Glorias
-         (título + récord destacado) al cierre. ═══ -->
+    <!-- ═══ VISTA MOBILE (≤768px) ═══ — orden pedido: 1) header/selector
+         Plantel, 2) 3 tarjetas de acceso rápido (Último/Próximo Partido +
+         Tabla), 3) Destacados Clausura 2026 (2x2 + Ver Plantel Completo),
+         4) Estadísticas históricas, 5) TOP 3 histórico, 6) Palmarés Oficial
+         interactivo (títulos + Racha Invicta + Máxima Goleada, clickeables
+         igual que desktop) al cierre. ═══ -->
     <div class="rsm-mobile">
       <!-- Módulo 1: header + selector de Plantel -->
       <div class="resumen-mobile-head">
@@ -10621,37 +10666,61 @@ function renderResumen() {
         </div>
       </div>
 
-      <!-- Módulo 2: Actualidad — Último Partido + Próximo Partido -->
+      <!-- Módulo 2: Bloque Superior — 3 tarjetas de acceso rápido, cada una
+           lleva directo a su sección (Fecha a Fecha del último partido,
+           previa del próximo, Tabla de Posiciones completa). Reemplaza a
+           los módulos "Actualidad" + "Tabla corta" de antes (mismo dato,
+           navegación directa en vez de solo mostrarlo en el lugar). -->
       <div class="rsm-section">
-        <div class="rsm-section-title">Actualidad</div>
-        <div class="rsm-actualidad-grid">
-          <div class="rsm-match-card rsm-actualidad-card ${ultimoRes || ''}" ${ultimo ? `onclick="goToMatchFecha('${ultimo._navKey}', '${String(ultimo.fecha).replace(/'/g, "\\'")}')" title="Ver en Fecha a Fecha"` : ''}>
-            <div class="rsm-actualidad-label">⚽ Último Partido</div>
-            ${ultimo ? `
-              <div class="rsm-match-rival">vs ${ultimo.rival}</div>
-              <div class="rsm-match-score ${ultimoRes}">${ultimo.resultado}</div>
-              <span class="rsm-match-torneo ${ultimoBadgeCls(ultimo._torneoLabel)}">${ultimo._torneoLabel}</span>
-            ` : `<div class="rsm-actualidad-empty">Sin partidos jugados</div>`}
-          </div>
-          <div class="rsm-match-card rsm-actualidad-card rsm-proximo-card">
-            <div class="rsm-actualidad-label">🗓 Próximo Partido</div>
-            ${proximo ? `
-              <div class="rsm-match-rival">vs ${proximo.rival}</div>
-              <div class="rsm-actualidad-meta">${[proximo.fecha ? 'Fecha ' + proximo.fecha : '', _rsmLocalTxt(proximo.local)].filter(Boolean).join(' · ')}</div>
-              ${proximo.horario ? `<div class="rsm-actualidad-meta">${proximo.horario}</div>` : ''}
-              <span class="rsm-match-torneo ${ultimoBadgeCls(clausuraLabel)}">${clausuraLabel}</span>
-            ` : `<div class="rsm-actualidad-empty">Torneo finalizado</div>`}
-          </div>
+        <div class="rsm-quicklinks">
+          <button class="rsm-quicklink"${ultimo ? ` onclick="goToMatchFecha('${ultimo._navKey}', '${String(ultimo.fecha).replace(/'/g, "\\'")}')"` : ' disabled'}>
+            <span class="rsm-ql-icon">⚽</span>
+            <span class="rsm-ql-label">Último<br>Partido</span>
+          </button>
+          <button class="rsm-quicklink"${proximo ? ` onclick="goToMatchFecha('${clausuraNavKey}', '${String(proximo.fecha).replace(/'/g, "\\'")}')"` : ' disabled'}>
+            <span class="rsm-ql-icon">⏳</span>
+            <span class="rsm-ql-label">Próximo<br>Partido</span>
+          </button>
+          <button class="rsm-quicklink" onclick="${verTablaCompletaAttr}">
+            <span class="rsm-ql-icon">📊</span>
+            <span class="rsm-ql-label">Tabla de<br>Posiciones</span>
+          </button>
         </div>
       </div>
 
-      <!-- Módulo 3: Tabla corta (solo 3 filas: rival superior/CSB/rival inferior) -->
+      <!-- Módulo 3: Destacados Clausura 2026 — mismos 4 líderes (Goleador/
+           Asistidor/Valla Invicta/Más Presencias) que la columna 3 de
+           desktop, en grilla 2x2 en vez de columna vertical, + botón "Ver
+           Plantel Completo" (misma navegación que el "Ver Plantel →" de
+           desktop, ver verEstadisticasAttr). -->
       <div class="rsm-section">
-        <div class="rsm-section-title">Tabla de posiciones</div>
-        ${miniTablaCortaHtml(d.tabla)}
+        <div class="rsm-section-title">Destacados ${clausuraLabel}</div>
+        <div class="rsm-destacados-grid">
+          <div class="rsm-destacado-item">
+            <span class="rsm-destacado-icon" style="background:rgba(16,185,129,.12);color:#34d399">⚽</span>
+            <div class="rsm-destacado-body"><div class="rsm-destacado-label">Goleador</div><div class="rsm-destacado-name">${golLeader ? golLeader[0] : '—'}</div></div>
+            <div class="rsm-destacado-val" style="color:#34d399">${golLeader ? golLeader[1] : '—'}</div>
+          </div>
+          <div class="rsm-destacado-item">
+            <span class="rsm-destacado-icon" style="background:rgba(56,189,248,.12);color:#38bdf8">🎯</span>
+            <div class="rsm-destacado-body"><div class="rsm-destacado-label">Asistidor</div><div class="rsm-destacado-name">${asistLeader ? asistLeader[0] : '—'}</div></div>
+            <div class="rsm-destacado-val" style="color:#38bdf8">${asistLeader ? asistLeader[1] : '—'}</div>
+          </div>
+          <div class="rsm-destacado-item">
+            <span class="rsm-destacado-icon" style="background:rgba(168,85,247,.12);color:#c084fc">🧤</span>
+            <div class="rsm-destacado-body"><div class="rsm-destacado-label">Valla Invicta</div><div class="rsm-destacado-name">${vallaLeader ? vallaLeader[0] : '—'}</div></div>
+            <div class="rsm-destacado-val" style="color:#c084fc">${vallaLeader ? vallaLeader[1] : '—'}</div>
+          </div>
+          <div class="rsm-destacado-item">
+            <span class="rsm-destacado-icon" style="background:rgba(245,158,11,.12);color:#fbbf24">👕</span>
+            <div class="rsm-destacado-body"><div class="rsm-destacado-label">Más Presencias</div><div class="rsm-destacado-name">${presenciasLeader ? presenciasLeader[0] : '—'}</div></div>
+            <div class="rsm-destacado-val" style="color:#fbbf24">${presenciasLeader ? presenciasLeader[1] : '—'}</div>
+          </div>
+        </div>
+        <button class="rsm-ver-plantel-btn" onclick="${verEstadisticasAttr}">Ver Plantel Completo →</button>
       </div>
 
-      <!-- Módulo 4: KPIs históricos, grilla 4x2 -->
+      <!-- Módulo 4: KPIs históricos, grilla 4x2 (sin cambios) -->
       <div class="rsm-section">
         <div class="rsm-section-title">Estadísticas históricas</div>
         <div class="rsm-stats-grid">
@@ -10666,9 +10735,11 @@ function renderResumen() {
         </div>
       </div>
 
-      <!-- Módulo 5: TOP 5 histórico, podio de 3 con filtro Partidos/Goles/Asist. -->
+      <!-- Módulo 5: TOP 3 histórico (antes Top 5 — ver el .slice(0,3) en
+           _top5FromTotales, el podio de _top5PodiumHtml ya solo pinta
+           top3+resto así que no necesita cambios propios). -->
       <div class="rsm-section">
-        <div class="rsm-section-title">TOP 5 histórico</div>
+        <div class="rsm-section-title">TOP 3 histórico</div>
         <div class="rsm-card">
           <div class="rsm-tabs">
             <button class="rsm-tab active" data-top5="pj" onclick="_resumenMobileTop5('pj', this)">Partidos</button>
@@ -10681,17 +10752,23 @@ function renderResumen() {
         </div>
       </div>
 
-      <!-- Módulo 6: Títulos y Récords Históricos — cierre en 1 sola tarjeta
-           compacta (antes eran 2 tarjetas separadas, .titulos-card/
-           .records-card, que desktop sigue usando tal cual), con TODOS los
-           títulos de la categoría activa (antes solo el más reciente) y
-           los récords con etiqueta explícita en vez de solo el ícono. -->
+      <!-- Módulo 6: Palmarés Oficial interactivo — copiado de la card de
+           desktop (mismos textos/datos de Racha Invicta y Máxima Goleada,
+           antes ligeramente distintos acá) y ahora CLICKEABLE: títulos
+           navegan a su torneo en Torneos Antiguos (mismo tNav que
+           desktop) y Máxima Goleada abre esa ficha puntual (goleadaNav) —
+           Racha Invicta queda sin link, igual que en desktop (no hay un
+           partido puntual al que apuntar). -->
       <div class="rsm-section" style="margin-bottom:0">
-        <div class="rsm-section-title">Títulos y Récords Históricos</div>
+        <div class="rsm-section-title">Palmarés Oficial</div>
         <div class="rsm-glorias-card">
-          ${d.titulos.map(t => `<div class="rsm-glorias-item">🏅 <strong>${t.nombre}</strong> <span class="rsm-glorias-year">(${t.anio})</span></div>`).join('')}
-          <div class="rsm-glorias-item">⚡ Mayor goleada: ${isA ? '<strong>8 – 0</strong> vs Sitas (Apertura 2023)' : '<strong>13 – 0</strong> vs República del Oeste (Apertura 2023)'}</div>
-          <div class="rsm-glorias-item">🔥 Mayor racha invicta: ${isA ? '<strong>15 partidos</strong> (Apertura 2026)' : '<strong>14 partidos</strong> (Clausura 2023)'}</div>
+          ${d.titulos.map(t => {
+            const tCompetencia = t.nombre.replace(/^Campeón\s+/i, '');
+            const tNav = TORNEO_NAV_MAP[`${t.anio}|${tCompetencia}|${isA ? 'A' : 'B'}`] || TORNEO_NAV_MAP[`${t.anio}|${tCompetencia}`];
+            return `<div class="rsm-glorias-item${tNav ? ' rsm-glorias-clickable' : ''}"${tNav ? ` onclick="_navPush('Resumen', () => renderResumen()); _navPushTorneosAntiguos(); ${tNav.fn.replace(/"/g, '&quot;')}" title="Ver campeonato"` : ''}>🏅 <strong>${t.nombre}</strong> <span class="rsm-glorias-year">(${t.anio})</span>${tNav ? '<span class="rsm-glorias-arrow">›</span>' : ''}</div>`;
+          }).join('')}
+          <div class="rsm-glorias-item${goleadaNav ? ' rsm-glorias-clickable' : ''}"${goleadaNav ? ` onclick="${goleadaNav}" title="Ver partido"` : ''}>⚡ Máxima goleada: ${isA ? '<strong>8–0</strong> vs Sitas' : '<strong>13–0</strong> vs Rep. del Oeste'}${goleadaNav ? '<span class="rsm-glorias-arrow">›</span>' : ''}</div>
+          <div class="rsm-glorias-item">🔥 Racha invicta: ${isA ? '<strong>15 partidos</strong> (Apertura AIFA A 2026 y Recopa 2026)' : '<strong>15 partidos</strong> (Clausura AIFA D 2023 y Apertura AIFA D 2024)'}</div>
         </div>
       </div>
     </div>
@@ -10879,21 +10956,21 @@ function renderResumen() {
         <div class="bg-slate-950/40 border border-slate-800/60 rounded-2xl p-5">
           <div class="flex items-center gap-2.5 mb-3 pb-3 border-b border-emerald-500/20">
             <span class="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center text-base shrink-0">⚽</span>
-            <span class="text-sm font-bold text-emerald-400">Top 5 Goleadores</span>
+            <span class="text-sm font-bold text-emerald-400">Top 3 Goleadores</span>
           </div>
           ${byGoles.map((j, i) => top10RowTw(j, i, { text: 'text-emerald-400', pillBg: 'bg-emerald-500/10' })).join('')}
         </div>
         <div class="bg-slate-950/40 border border-slate-800/60 rounded-2xl p-5">
           <div class="flex items-center gap-2.5 mb-3 pb-3 border-b border-sky-500/20">
             <span class="w-8 h-8 rounded-xl bg-sky-500/10 flex items-center justify-center text-base shrink-0">🎯</span>
-            <span class="text-sm font-bold text-sky-400">Top 5 Asistidores</span>
+            <span class="text-sm font-bold text-sky-400">Top 3 Asistidores</span>
           </div>
           ${byAsist.map((j, i) => top10RowTw(j, i, { text: 'text-sky-400', pillBg: 'bg-sky-500/10' })).join('')}
         </div>
         <div class="bg-slate-950/40 border border-slate-800/60 rounded-2xl p-5">
           <div class="flex items-center gap-2.5 mb-3 pb-3 border-b border-amber-500/20">
             <span class="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center text-base shrink-0">👟</span>
-            <span class="text-sm font-bold text-amber-400">Top 5 Presencias</span>
+            <span class="text-sm font-bold text-amber-400">Top 3 Presencias</span>
           </div>
           ${byPartidos.map((j, i) => top10RowTw(j, i, { text: 'text-amber-400', pillBg: 'bg-amber-500/10' })).join('')}
         </div>
@@ -11893,11 +11970,15 @@ function renderJugadoresMenu() {
 // Builds the Resumen tab's 3 Top 5 lists (Más Presencias/Goleadores/Asistidores)
 // straight from the same rows/columns "Estadísticas Totales" uses, so both
 // views always agree. Shape matches what top10Row() expects: {nombre, valor}.
+// Top 3 histórico (antes Top 5) — único punto que recorta la cantidad;
+// tanto el podio mobile (_top5PodiumHtml, ya solo pinta top3+resto) como
+// las 3 cards de lista de desktop (top10RowTw, ya solo da estilo de medalla
+// a las primeras 3 posiciones) heredan el recorte de acá sin cambios propios.
 function _top5FromTotales(rows, col) {
   const num = v => { const n = parseFloat(String(v ?? '').replace(',', '.')); return isNaN(n) ? 0 : n; };
   const top = field => [...(rows || [])]
     .sort((a, b) => num(b[col[field]]) - num(a[col[field]]))
-    .slice(0, 5)
+    .slice(0, 3)
     .map(r => ({ nombre: r[col.nombre], valor: num(r[col[field]]) }));
   return { partidos: top('pj'), goles: top('goles'), asist: top('asist') };
 }
