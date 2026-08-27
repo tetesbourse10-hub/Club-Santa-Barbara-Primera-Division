@@ -90,6 +90,11 @@
       filter: drop-shadow(0 0 24px rgba(245,158,11,0.4));
     }
 
+    /* Header nativo mobile — oculto en desktop (el splash grande de arriba
+       sigue siendo la bienvenida ahí). Ver @media max-width:768px para el
+       resto (sticky + blur + esconder el splash). */
+    .landing-mobile-header { display: none; }
+
     .landing-title {
       font-size: 2rem;
       font-weight: 900;
@@ -935,16 +940,24 @@
        ya establecida.
        ══════════════════════════════════════════ */
     @media (max-width: 768px) {
-      #landing { padding: 24px 16px 20px; justify-content: flex-start; }
-      .landing-logo {
-        width: 56px; height: 56px; padding: 10px; box-sizing: border-box;
-        background: rgba(151,196,89,0.12); border-radius: 10px; filter: none;
-        margin-bottom: 12px;
+      #landing { padding: 0 16px 20px; justify-content: flex-start; }
+      /* Header nativo tipo app (sticky + blur) reemplaza al splash grande
+         de logo/título/subtítulo en mobile — bleed a los bordes de
+         #landing (que ya no tiene padding-top propio, ver arriba) para que
+         quede pegado al borde superior de la pantalla. */
+      .landing-mobile-header {
+        display: flex; align-items: center; gap: 10px;
+        position: sticky; top: 0; z-index: 50;
+        width: 100%; box-sizing: border-box; margin: 0 -16px 16px;
+        padding: 12px 16px; padding-top: calc(12px + env(safe-area-inset-top, 0px));
+        background: rgba(11,15,23,0.72);
+        -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+        border-bottom: 1px solid rgba(255,255,255,0.06);
       }
-      .landing-title { font-size: 1.35rem; margin-bottom: 2px; }
-      /* text-slate-400 (#94a3b8) en vez de --gris-texto (slate-500,
-         #64748b) — el subtítulo se leía muy apagado sobre el fondo oscuro. */
-      .landing-sub { font-size: 0.66rem; margin-bottom: 22px; color: #94a3b8; }
+      .lmh-logo { width: 26px; height: 26px; object-fit: contain; flex-shrink: 0; }
+      .lmh-name { font-size: 0.92rem; font-weight: 700; color: #fff; }
+      .lmh-name strong { color: var(--dorado); }
+      .landing-logo, .landing-title, .landing-sub { display: none; }
 
       /* Oculta el banner de escritorio, prende el carrusel */
       .next-match-row { display: none; }
@@ -959,41 +972,56 @@
         display: block; font-size: 0.68rem; font-weight: 700; color: #94a3b8;
         text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px;
       }
-      /* Ya no es un carrusel con scroll horizontal — con 2 casillas nomás,
-         ocupan todo el ancho disponible en partes iguales (flex:1) en vez
-         de quedar angostas y alineadas a la izquierda. Se mantiene el
-         nombre de clase (pm-carousel) para no tocar el JS que lo puebla. */
-      .pm-carousel { display: flex; gap: 12px; width: 100%; }
+      /* Hero card horizontal: ya no 2 casillas lado a lado (mitad de ancho
+         cada una) sino 2 tarjetas apiladas a todo el ancho, cada una con su
+         propia fila Escudo Local | Contador | Escudo Visita — más grande y
+         legible que el layout anterior de avatares-arriba/countdown-abajo
+         comprimido a la mitad del ancho. Se mantiene el nombre de clase
+         (pm-carousel) para no tocar el JS que lo puebla. */
+      .pm-carousel { display: flex; flex-direction: column; gap: 10px; width: 100%; }
       /* Degradé oscuro + borde iluminado + sombra — antes era un fondo
          plano (#141d2e), quedaba sin presencia frente al resto de la
          pantalla. */
       .pm-card {
-        flex: 1 1 0; min-width: 0;
+        width: 100%; box-sizing: border-box;
         background: linear-gradient(180deg, #1c263f 0%, #121826 100%);
         border: 1px solid rgba(100,116,139,0.6); border-radius: 14px;
-        padding: 18px 14px; text-align: center;
+        padding: 12px 14px;
+        display: flex; align-items: center; justify-content: space-between; gap: 8px;
         box-shadow: 0 12px 28px -8px rgba(0,0,0,0.5);
       }
       .pm-card.clickable { cursor: pointer; }
+      /* Escudo local (izquierda) / contador (centro) / escudo visita
+         (derecha), todo en una sola fila — antes label/avatares/nombres/
+         meta/countdown iban todos apilados en columna. Izquierda/derecha ya
+         no son fijos "nosotros/rival": los arma _pmCard() según la localía
+         real del partido (local a la izquierda, ver PM helpers en el JS). */
+      .pm-card-team {
+        display: flex; flex-direction: column; align-items: center; gap: 4px;
+        flex: 0 0 auto; width: 60px;
+      }
+      .pm-card-team-name {
+        font-size: 9px; font-weight: 700; color: #e2e8f0; text-align: center;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60px;
+      }
+      .pm-card-center {
+        flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column;
+        align-items: center; gap: 3px;
+      }
       .pm-card-label {
-        font-size: 0.66rem; font-weight: 800; letter-spacing: 0.08em;
-        text-transform: uppercase; margin-bottom: 12px;
+        font-size: 0.6rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
       }
       .pm-card-label.pm-label-a { color: #fac775; }
       .pm-card-label.pm-label-b { color: #85b7eb; }
-      /* Escudos arriba — antes círculos con solo iniciales; ahora <img> con
+      /* Escudos — antes círculos con solo iniciales; ahora <img> con
          fallback automático a las iniciales si la imagen no existe o falla
          (ver onerror en _pmCard()/JS — mismo patrón que usa Fecha a Fecha).
          El propio (.pm-crest-us) usa el verde institucional #00875a como
          fondo del círculo; el rival apunta a escudos/<slug>.webp — el sitio
          hoy no tiene esos archivos todavía, así que en la práctica sigue
-         mostrando el fallback de iniciales hasta que se sumen. Izquierda/
-         derecha ya no son fijos "nosotros/rival": los arma _pmCard() según
-         la localía real del partido (local a la izquierda). */
-      .pm-avatars { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 8px; }
-      .pm-vs { font-size: 0.66rem; color: var(--gris-texto); font-weight: 700; }
+         mostrando el fallback de iniciales hasta que se sumen. */
       .pm-crest {
-        width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+        width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
         display: inline-flex; align-items: center; justify-content: center;
         overflow: hidden; position: relative;
       }
@@ -1004,28 +1032,19 @@
       .pm-crest-rival img { padding: 5px; box-sizing: border-box; }
       .pm-crest-fallback {
         display: none; width: 100%; height: 100%; align-items: center; justify-content: center;
-        font-size: 0.8rem; font-weight: 800; color: #f09595;
+        font-size: 0.75rem; font-weight: 800; color: #f09595;
       }
-      /* truncate + text-[10px] — "Santa Bárbara vs Rival Con Nombre Largo"
-         partía a 2 líneas en celulares angostos (la card ocupa la mitad del
-         ancho, flex:1 con las 2 casillas lado a lado); ahora una sola línea
-         con "…" en vez del salto. */
-      .pm-team-names {
-        font-size: 10px; font-weight: 700; color: #e2e8f0; line-height: 1.25;
-        margin-bottom: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      }
-      .pm-team-names .pm-vs-inline { color: var(--gris-texto); font-weight: 600; font-size: 9px; }
-      .pm-card-meta { font-size: 0.72rem; color: var(--gris-texto); margin-bottom: 8px; }
+      .pm-card-meta { font-size: 0.62rem; color: var(--gris-texto); text-align: center; }
       .pm-local-tag { color: #cbd5e1; font-weight: 700; }
-      /* Cápsula de alto contraste — el elemento más llamativo de la card,
-         a propósito: fondo ámbar sólido (no translúcido como antes) +
-         sombra ámbar + borde, en vez de una badge tenue del mismo tono que
-         el resto. Primera B mantiene su propio acento (sky) con el mismo
-         tratamiento de "cápsula sólida". */
+      /* Cápsula de alto contraste con el conteo regresivo (ej. "2d 04h") —
+         el elemento más llamativo de la card, a propósito: fondo ámbar
+         sólido (no translúcido como antes) + sombra ámbar + borde, en vez
+         de una badge tenue del mismo tono que el resto. Primera B mantiene
+         su propio acento (sky) con el mismo tratamiento de "cápsula sólida". */
       .pm-card-countdown {
         display: inline-flex; align-items: center; justify-content: center;
-        margin: 0 auto; padding: 6px 16px; border-radius: 999px;
-        font-size: 0.92rem; font-weight: 900;
+        padding: 5px 14px; border-radius: 999px;
+        font-size: 0.85rem; font-weight: 900; white-space: nowrap;
       }
       .pm-card-countdown.pm-cd-a {
         background: #f59e0b; color: #020617; border: 1px solid rgba(251,191,36,0.4);
@@ -1059,7 +1078,28 @@
          quedar una más "pesada" que la otra visualmente. Solo mobile: se
          apaga el emoji real (font-size:0) y se pinta uno fijo por CSS. */
       .landing-cards .landing-card:nth-child(-n+2) .card-icon { font-size: 0; }
-      .landing-cards .landing-card:nth-child(-n+2) .card-icon::before { content: '🏆'; font-size: 1.6rem; }
+      .landing-cards .landing-card:nth-child(-n+2) .card-icon::before { content: '🏆'; font-size: 1.15rem; }
+
+      /* Primera A/B: de tarjeta "pesada" (icono/nombre arriba, badge de
+         torneo en su propia línea, footer de racha+puntos abajo del todo)
+         a una única fila horizontal compacta — ícono, nombre + badge de
+         torneo, racha G/E/P chica, posición y puntos, todo en la misma
+         línea (envuelve a una 2da línea solo si no entra, nunca vuelve al
+         stack de 3 bloques de antes). */
+      .landing-cards .landing-card:nth-child(-n+2) {
+        display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 10px 12px;
+      }
+      .landing-cards .landing-card:nth-child(-n+2) .lc-card-head { flex: 1 1 auto; min-width: 0; }
+      .landing-cards .landing-card:nth-child(-n+2) .lc-card-head-left { flex: 1 1 auto; min-width: 0; }
+      .landing-cards .landing-card:nth-child(-n+2) .card-desc { display: none; }
+      .landing-cards .landing-card:nth-child(-n+2) .card-name { font-size: 0.85rem; }
+      .landing-cards .landing-card:nth-child(-n+2) .lc-badge { flex: 0 0 auto; }
+      .landing-cards .landing-card:nth-child(-n+2) > .card-badge {
+        flex: 0 0 auto; margin: 0; font-size: 0.6rem; padding: 2px 8px; white-space: nowrap;
+      }
+      .landing-cards .landing-card:nth-child(-n+2) .lc-footer {
+        flex: 0 0 auto; width: auto; margin: 0; padding: 0; border-top: none;
+      }
 
       /* El Nido (3ra tarjeta): compactada a un solo renglón — ícono +
          nombre a la izquierda, badge "N jugadores" a la derecha (ambos ya
@@ -3158,6 +3198,13 @@
      LANDING
 ══════════════════════════════════════════ -->
 <div id="landing">
+  <!-- Header nativo mobile (sticky + blur) — reemplaza al splash grande de
+     logo/título en mobile (ver @media max-width:768px), oculto en desktop
+     (ese layout sigue mostrando el splash centrado de siempre). -->
+  <div class="landing-mobile-header">
+    <img src="logo-csb.webp" alt="CSB" class="lmh-logo" />
+    <span class="lmh-name">Club <strong>Santa Bárbara</strong></span>
+  </div>
   <img src="logo-csb.webp" class="landing-logo" alt="Club Santa Bárbara" />
   <div class="landing-title">Club <span>Santa Bárbara</span></div>
   <div class="landing-sub">Estadísticas Generales</div>
@@ -15356,16 +15403,23 @@ function _pmCard(label, labelClass, m, navKey) {
   const rightCrest = isVisitante ? PM_CSB_CREST_HTML : rivalCrest;
   const leftName  = isVisitante ? m.rival : 'Santa Bárbara';
   const rightName = isVisitante ? 'Santa Bárbara' : m.rival;
+  // Fila única: Escudo Local (izquierda) | Contador (centro) | Escudo
+  // Visita (derecha) — antes iba todo apilado en columna (label/avatares/
+  // nombres/meta/countdown).
   return `<div class="pm-card${clickAttr ? ' clickable' : ''}"${clickAttr}>
-    <div class="pm-card-label ${labelClass}">${label}</div>
-    <div class="pm-avatars">
+    <div class="pm-card-team">
       ${leftCrest}
-      <span class="pm-vs">vs</span>
-      ${rightCrest}
+      <span class="pm-card-team-name">${leftName}</span>
     </div>
-    <div class="pm-team-names">${leftName} <span class="pm-vs-inline">vs</span> ${rightName}</div>
-    <div class="pm-card-meta">${metaLine || 'Fecha a confirmar'}${meta.localTxt ? ` · <span class="pm-local-tag">${meta.localTxt}</span>` : ''}</div>
-    ${cd ? `<div class="pm-card-countdown ${cdClass}">${cdVal}</div>` : ''}
+    <div class="pm-card-center">
+      <div class="pm-card-label ${labelClass}">${label}</div>
+      ${cd ? `<div class="pm-card-countdown ${cdClass}">${cdVal}</div>` : `<div class="pm-card-countdown ${cdClass}">VS</div>`}
+      <div class="pm-card-meta">${metaLine || 'Fecha a confirmar'}${meta.localTxt ? ` · <span class="pm-local-tag">${meta.localTxt}</span>` : ''}</div>
+    </div>
+    <div class="pm-card-team">
+      ${rightCrest}
+      <span class="pm-card-team-name">${rightName}</span>
+    </div>
   </div>`;
 }
 function renderLandingNextMatchCarousel(matchA, matchB) {
