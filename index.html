@@ -1982,6 +1982,15 @@
       position: fixed; left:0; right:0; bottom:0; z-index: 90;
       background: var(--azul-mid); border-top: 1px solid var(--gris);
       padding-bottom: env(safe-area-inset-bottom, 0);
+      /* BUG REAL reportado (Safari iOS): la barra se despegaba del fondo
+         al hacer scroll. WebKit "pierde" temporalmente el anclaje de
+         position:fixed durante el resize del viewport que dispara la
+         barra de direcciones al scrollear, salvo que el elemento ya esté
+         promovido a su propia capa de composición — forzarla con
+         translateZ(0)/will-change es el fix estándar para este jank. */
+      transform: translateZ(0);
+      -webkit-transform: translateZ(0);
+      will-change: transform;
     }
     @media (min-width: 769px) { #mobile-bottom-nav { display: none !important; } }
     .bnav-btn {
