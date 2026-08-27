@@ -10832,9 +10832,9 @@ function renderResumen() {
         </div>
       </div>
 
-      <!-- Módulo 5: TOP 3 histórico (antes Top 5 — ver el .slice(0,3) en
-           _top5FromTotales, el podio de _top5PodiumHtml ya solo pinta
-           top3+resto así que no necesita cambios propios). -->
+      <!-- Módulo 5: TOP 3 histórico — mobile se queda en 3 (recorte propio
+           acá con .slice(0,3)); desktop, más abajo, vuelve a mostrar las 5
+           completas que ya trae byPartidos/byGoles/byAsist. -->
       <div class="rsm-section">
         <div class="rsm-section-title">TOP 3 histórico</div>
         <div class="rsm-card">
@@ -10843,9 +10843,9 @@ function renderResumen() {
             <button class="rsm-tab" data-top5="goles" onclick="_resumenMobileTop5('goles', this)">Goles</button>
             <button class="rsm-tab" data-top5="asist" onclick="_resumenMobileTop5('asist', this)">Asist.</button>
           </div>
-          <div class="rsm-panel" id="rsm-top5-pj">${_top5PodiumHtml(byPartidos.map(j => ({ nombre: j.nombre, val: j.valor })))}</div>
-          <div class="rsm-panel" id="rsm-top5-goles" style="display:none">${_top5PodiumHtml(byGoles.map(j => ({ nombre: j.nombre, val: j.valor })))}</div>
-          <div class="rsm-panel" id="rsm-top5-asist" style="display:none">${_top5PodiumHtml(byAsist.map(j => ({ nombre: j.nombre, val: j.valor })))}</div>
+          <div class="rsm-panel" id="rsm-top5-pj">${_top5PodiumHtml(byPartidos.slice(0, 3).map(j => ({ nombre: j.nombre, val: j.valor })))}</div>
+          <div class="rsm-panel" id="rsm-top5-goles" style="display:none">${_top5PodiumHtml(byGoles.slice(0, 3).map(j => ({ nombre: j.nombre, val: j.valor })))}</div>
+          <div class="rsm-panel" id="rsm-top5-asist" style="display:none">${_top5PodiumHtml(byAsist.slice(0, 3).map(j => ({ nombre: j.nombre, val: j.valor })))}</div>
         </div>
       </div>
 
@@ -11064,21 +11064,21 @@ function renderResumen() {
         <div class="bg-slate-950/40 border border-slate-800/60 rounded-2xl p-5">
           <div class="flex items-center gap-2.5 mb-3 pb-3 border-b border-emerald-500/20">
             <span class="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center text-base shrink-0">⚽</span>
-            <span class="text-sm font-bold text-emerald-400">Top 3 Goleadores</span>
+            <span class="text-sm font-bold text-emerald-400">Top 5 Goleadores</span>
           </div>
           ${byGoles.map((j, i) => top10RowTw(j, i, { text: 'text-emerald-400', pillBg: 'bg-emerald-500/10' })).join('')}
         </div>
         <div class="bg-slate-950/40 border border-slate-800/60 rounded-2xl p-5">
           <div class="flex items-center gap-2.5 mb-3 pb-3 border-b border-sky-500/20">
             <span class="w-8 h-8 rounded-xl bg-sky-500/10 flex items-center justify-center text-base shrink-0">🎯</span>
-            <span class="text-sm font-bold text-sky-400">Top 3 Asistidores</span>
+            <span class="text-sm font-bold text-sky-400">Top 5 Asistidores</span>
           </div>
           ${byAsist.map((j, i) => top10RowTw(j, i, { text: 'text-sky-400', pillBg: 'bg-sky-500/10' })).join('')}
         </div>
         <div class="bg-slate-950/40 border border-slate-800/60 rounded-2xl p-5">
           <div class="flex items-center gap-2.5 mb-3 pb-3 border-b border-amber-500/20">
             <span class="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center text-base shrink-0">👟</span>
-            <span class="text-sm font-bold text-amber-400">Top 3 Presencias</span>
+            <span class="text-sm font-bold text-amber-400">Top 5 Presencias</span>
           </div>
           ${byPartidos.map((j, i) => top10RowTw(j, i, { text: 'text-amber-400', pillBg: 'bg-amber-500/10' })).join('')}
         </div>
@@ -12078,15 +12078,16 @@ function renderJugadoresMenu() {
 // Builds the Resumen tab's 3 Top 5 lists (Más Presencias/Goleadores/Asistidores)
 // straight from the same rows/columns "Estadísticas Totales" uses, so both
 // views always agree. Shape matches what top10Row() expects: {nombre, valor}.
-// Top 3 histórico (antes Top 5) — único punto que recorta la cantidad;
-// tanto el podio mobile (_top5PodiumHtml, ya solo pinta top3+resto) como
-// las 3 cards de lista de desktop (top10RowTw, ya solo da estilo de medalla
-// a las primeras 3 posiciones) heredan el recorte de acá sin cambios propios.
+// Top 5 histórico — desktop (top10RowTw, columnas de lista) usa las 5 tal
+// cual; el podio mobile recorta esto a 3 por su cuenta (ver el
+// .slice(0,3) sobre byPartidos/byGoles/byAsist en renderResumen(), justo
+// antes de pasarlos a _top5PodiumHtml), así que un solo array de acá
+// alcanza para los dos layouts.
 function _top5FromTotales(rows, col) {
   const num = v => { const n = parseFloat(String(v ?? '').replace(',', '.')); return isNaN(n) ? 0 : n; };
   const top = field => [...(rows || [])]
     .sort((a, b) => num(b[col[field]]) - num(a[col[field]]))
-    .slice(0, 3)
+    .slice(0, 5)
     .map(r => ({ nombre: r[col.nombre], valor: num(r[col[field]]) }));
   return { partidos: top('pj'), goles: top('goles'), asist: top('asist') };
 }
