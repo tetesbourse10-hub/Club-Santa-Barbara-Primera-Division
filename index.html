@@ -5768,32 +5768,37 @@ function _ppDetailPanelBodyHtml(kind, fullList) {
   // píldoras micro (punto de color + número) en vez de texto completo. Vive
   // en su propia caja a la derecha (junto con año/resumen), separado de los
   // tabs de torneo.
+  // Filtro "Capitán" — solo se ofrece si el jugador fue capitán alguna vez
+  // (ver p.esCapitan, ya calculado en _buildPlayerPartidos a partir del
+  // "(C)" del nombre en el Fecha a Fecha). Va ANTES que Resultado a
+  // propósito: así el conteo de Ganados/Empatados/Perdidos (y el propio
+  // filtrado) reflejan solo el subconjunto ya recortado por Capitán
+  // (y por las tabs de torneo, ya aplicadas en tipoFiltered) — antes el
+  // toggle de Resultado seguía contando sobre TODOS los partidos aunque
+  // Capitán ya hubiera acotado la lista.
+  let capBtnHtml = '';
+  let capFiltered = tipoFiltered;
+  if (kind === 'partidos' && catList.some(p => p.esCapitan)) {
+    const capState = window._ppCapFilter || (window._ppCapFilter = {});
+    const activeCap = !!capState[kind];
+    const capCount = tipoFiltered.filter(p => p.esCapitan).length;
+    capBtnHtml = `<button class="pp-fbar-icon-btn pp-fbar-cap-btn${activeCap ? ' active' : ''}" onclick="ppFilterCap('${kind}')" title="Partidos siendo capitán">©️ ${capCount}</button>`;
+    if (activeCap) capFiltered = tipoFiltered.filter(p => p.esCapitan);
+  }
+
   let resToggleHtml = '';
-  let finalList = tipoFiltered;
+  let finalList = capFiltered;
   if (kind === 'partidos') {
     const resState = window._ppResFilter || (window._ppResFilter = {});
     const activeRes = resState[kind] || 'todos';
-    const countRes = res => tipoFiltered.filter(p => _ppMatchResultado(p) === res).length;
+    const countRes = res => capFiltered.filter(p => _ppMatchResultado(p) === res).length;
     const resDot = (val, cls, label) => `<button class="pp-fbar-res-dot ${cls}${activeRes === val ? ' active' : ''}" onclick="ppFilterRes('${kind}', '${val}')" title="${label}"><span class="pp-fbar-res-dot-ico"></span>${countRes(val)}</button>`;
     resToggleHtml = `<div class="pp-fbar-res-toggle">
       ${resDot('win', 'pp-fbar-res-win', 'Ganados')}
       ${resDot('draw', 'pp-fbar-res-draw', 'Empatados')}
       ${resDot('loss', 'pp-fbar-res-loss', 'Perdidos')}
     </div>`;
-    if (activeRes !== 'todos') finalList = tipoFiltered.filter(p => _ppMatchResultado(p) === activeRes);
-  }
-
-  // Filtro "Capitán" — solo se ofrece si el jugador fue capitán alguna vez
-  // (ver p.esCapitan, ya calculado en _buildPlayerPartidos a partir del
-  // "(C)" del nombre en el Fecha a Fecha). Toggle independiente del de
-  // Resultado — se puede combinar (ej. "victorias siendo capitán").
-  let capBtnHtml = '';
-  if (kind === 'partidos' && catList.some(p => p.esCapitan)) {
-    const capState = window._ppCapFilter || (window._ppCapFilter = {});
-    const activeCap = !!capState[kind];
-    const capCount = tipoFiltered.filter(p => p.esCapitan).length;
-    capBtnHtml = `<button class="pp-fbar-icon-btn pp-fbar-cap-btn${activeCap ? ' active' : ''}" onclick="ppFilterCap('${kind}')" title="Partidos siendo capitán">©️ ${capCount}</button>`;
-    if (activeCap) finalList = finalList.filter(p => p.esCapitan);
+    if (activeRes !== 'todos') finalList = capFiltered.filter(p => _ppMatchResultado(p) === activeRes);
   }
 
   // Segmented control de torneo (Todos/Apertura/Clausura/Copas), separado
