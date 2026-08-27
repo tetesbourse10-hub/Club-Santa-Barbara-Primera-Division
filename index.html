@@ -872,8 +872,33 @@
        Actuales use plain scrollable tables, no sticky columns, so they
        don't reproduce this specific name-wrap/overlap bug). */
     .jtot-kpi-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 12px; }
+    /* Cards 1-4 (métricas) y 5-6 (líderes) del resumen superior de
+       "Estadísticas Jugadores" — misma estructura/tamaños que antes (para
+       no romper mobile, que reusa este mismo HTML), el tratamiento visual
+       nuevo (ícono en caja tintada, tipografía font-black/9px, highlight
+       ámbar en las cards de líder) va SOLO en el media query desktop de
+       más abajo. */
+    .jtot-kpi-metric { display:flex; align-items:center; gap:10px; }
+    .jtot-kpi-icon-box { font-size:1.3rem; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+    .jtot-kpi-val { font-weight:900; line-height:1; font-size:1.15rem; }
+    .jtot-kpi-label { color:var(--gris-texto); text-transform:uppercase; letter-spacing:.06em; margin-top:1px; font-size:0.65rem; }
+    .jtot-kpi-leader-head { font-size:0.6rem; color:var(--gris-texto); text-transform:uppercase; letter-spacing:.08em; margin-bottom:4px; }
+    .jtot-kpi-leader-name { font-size:0.9rem; color:#fff; font-weight:800; line-height:1.1; }
+    .jtot-kpi-leader-val { font-size:1.05rem; font-weight:900; margin-top:2px; }
     .jtot-tabrow { display: flex; gap: 5px; flex-wrap: wrap; }
     .jtot-mobile-only { display: none; }
+    @media (min-width: 769px) {
+      .jtot-kpi-icon-box {
+        width:38px; height:38px; border-radius:0.75rem;
+        background:var(--kpi-bg); border:1px solid var(--kpi-border); color:var(--kpi-color);
+      }
+      .jtot-kpi-val { font-size:1.3rem; font-weight:900; }
+      .jtot-kpi-label { font-size:9px; color:#94a3b8; }
+      .jtot-kpi-leader.jtot-kpi-highlight {
+        border-radius:0.75rem; border:1px solid rgba(245,158,11,0.3);
+        background: linear-gradient(135deg, rgba(245,158,11,0.1), rgba(15,23,42,0.5) 65%);
+      }
+    }
     @media (max-width: 768px) {
       .jtot-desktop-only { display: none !important; }
       .jtot-mobile-only { display: block; }
@@ -12319,23 +12344,19 @@ function _jugTotalKpi() {
   const maxPJ  = [..._jugTotalesData].sort((a,b) => n(b[JUG_COL.pj]) - n(a[JUG_COL.pj]))[0];
   const maxGol = [..._jugTotalesData].sort((a,b) => n(b[JUG_COL.goles]) - n(a[JUG_COL.goles]))[0];
   const kpiCard = (icon, label, val, sub, color) => `
-    <div class="jtot-kpi-card">
-      <div style="display:flex;align-items:center;gap:10px">
-        <div style="font-size:1.3rem;flex-shrink:0">${icon}</div>
-        <div>
-          <div style="font-size:1.15rem;font-weight:900;color:${color};line-height:1">${val}</div>
-          <div style="font-size:0.65rem;color:var(--gris-texto);text-transform:uppercase;letter-spacing:.06em;margin-top:1px">${label}</div>
-          ${sub ? `<div style="font-size:0.7rem;color:rgba(255,255,255,0.4);margin-top:1px">${sub}</div>` : ''}
-        </div>
+    <div class="jtot-kpi-card jtot-kpi-metric">
+      <div class="jtot-kpi-icon-box" style="--kpi-bg:${color}1a;--kpi-border:${color}4d;--kpi-color:${color}">${icon}</div>
+      <div>
+        <div class="jtot-kpi-val" style="color:${color}">${val}</div>
+        <div class="jtot-kpi-label">${label}</div>
+        ${sub ? `<div style="font-size:0.7rem;color:rgba(255,255,255,0.4);margin-top:1px">${sub}</div>` : ''}
       </div>
     </div>`;
   const kpiLeader = (icon, label, name, val, color) => `
-    <div class="jtot-kpi-card">
-      <div>
-        <div style="font-size:0.6rem;color:var(--gris-texto);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">${icon} ${label}</div>
-        <div style="font-size:0.9rem;font-weight:800;color:#fff;line-height:1.1">${name}</div>
-        <div style="font-size:1.05rem;font-weight:900;color:${color};margin-top:2px">${val}</div>
-      </div>
+    <div class="jtot-kpi-card jtot-kpi-leader jtot-kpi-highlight">
+      <div class="jtot-kpi-leader-head">${icon} ${label}</div>
+      <div class="jtot-kpi-leader-name">${name}</div>
+      <div class="jtot-kpi-leader-val" style="color:${color}">${val}</div>
     </div>`;
   el.innerHTML =
     kpiCard('👤', 'Jugadores', _jugTotalesData.length, '', '#94a3b8') +
@@ -12630,23 +12651,19 @@ function _jugBKpi() {
   const maxPJ  = [..._jugBData].sort((a,b) => n(b[JUG_COL_B.pj]) - n(a[JUG_COL_B.pj]))[0];
   const maxGol = [..._jugBData].sort((a,b) => n(b[JUG_COL_B.goles]) - n(a[JUG_COL_B.goles]))[0];
   const kpiCard = (icon, label, val, sub, color) => `
-    <div class="jtot-kpi-card">
-      <div style="display:flex;align-items:center;gap:10px">
-        <div style="font-size:1.3rem;flex-shrink:0">${icon}</div>
-        <div>
-          <div style="font-size:1.15rem;font-weight:900;color:${color};line-height:1">${val}</div>
-          <div style="font-size:0.65rem;color:var(--gris-texto);text-transform:uppercase;letter-spacing:.06em;margin-top:1px">${label}</div>
-          ${sub ? `<div style="font-size:0.7rem;color:rgba(255,255,255,0.4);margin-top:1px">${sub}</div>` : ''}
-        </div>
+    <div class="jtot-kpi-card jtot-kpi-metric">
+      <div class="jtot-kpi-icon-box" style="--kpi-bg:${color}1a;--kpi-border:${color}4d;--kpi-color:${color}">${icon}</div>
+      <div>
+        <div class="jtot-kpi-val" style="color:${color}">${val}</div>
+        <div class="jtot-kpi-label">${label}</div>
+        ${sub ? `<div style="font-size:0.7rem;color:rgba(255,255,255,0.4);margin-top:1px">${sub}</div>` : ''}
       </div>
     </div>`;
   const kpiLeader = (icon, label, name, val, color) => `
-    <div class="jtot-kpi-card">
-      <div>
-        <div style="font-size:0.6rem;color:var(--gris-texto);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">${icon} ${label}</div>
-        <div style="font-size:0.9rem;font-weight:800;color:#fff;line-height:1.1">${name}</div>
-        <div style="font-size:1.05rem;font-weight:900;color:${color};margin-top:2px">${val}</div>
-      </div>
+    <div class="jtot-kpi-card jtot-kpi-leader jtot-kpi-highlight">
+      <div class="jtot-kpi-leader-head">${icon} ${label}</div>
+      <div class="jtot-kpi-leader-name">${name}</div>
+      <div class="jtot-kpi-leader-val" style="color:${color}">${val}</div>
     </div>`;
   el.innerHTML =
     kpiCard('👤', 'Jugadores', _jugBData.length, '', '#94a3b8') +
