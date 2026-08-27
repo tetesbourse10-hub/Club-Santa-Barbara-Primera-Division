@@ -94,6 +94,7 @@
        sigue siendo la bienvenida ahí). Ver @media max-width:768px para el
        resto (sticky + blur + esconder el splash). */
     .landing-mobile-header { display: none; }
+    .landing-footer-note { display: none; }
 
     .landing-title {
       font-size: 2rem;
@@ -267,6 +268,23 @@
     .lc-res-g { color: #4ade80; font-weight: 800; }
     .lc-res-e { color: #fbbf24; font-weight: 800; }
     .lc-res-p { color: #f87171; font-weight: 800; }
+
+    /* El Nido footer rotator (_paintNidoRotator): label chico + fila de
+       avatar/nombre/chip de valor — reemplaza la línea de texto plano de
+       antes ("Vallas Invictas · Primera A: 🧤 Theo Jurs — 35 vallas"). Sin
+       gatear por breakpoint (funciona igual en desktop/mobile) porque todo
+       vive dentro de un único wrapper con su propio display:flex inline —
+       el layout no depende de cómo esté armado .lc-footer del padre. */
+    .lc-nido-label { font-size: 9.5px; color: #6b7690; text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 8px; }
+    .lc-nido-row { display: flex; align-items: center; gap: 10px; }
+    .lc-nido-avatar {
+      width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 700;
+    }
+    .lc-nido-name { flex: 1; min-width: 0; font-size: 0.82rem; font-weight: 600; color: #f2f4f8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lc-nido-chip { border-radius: 8px; padding: 5px 12px; text-align: center; flex-shrink: 0; }
+    .lc-nido-chip-val { margin: 0; font-size: 1rem; font-weight: 700; line-height: 1; }
+    .lc-nido-chip-unit { margin: 1px 0 0; font-size: 7.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; }
 
     /* ── Landing widgets: skeleton placeholders (first visit, no SWR cache
        yet) + soft-update fade (avoids a jarring snap when the background
@@ -1072,12 +1090,12 @@
         font-size: 0.85rem; font-weight: 900; white-space: nowrap;
       }
       .pm-card-countdown.pm-cd-a {
-        background: #f59e0b; color: #020617; border: 1px solid rgba(251,191,36,0.4);
-        box-shadow: 0 6px 16px -4px rgba(245,158,11,0.5);
+        background: #ef9f27; color: #0b1220; border: 1px solid rgba(239,159,39,0.4);
+        box-shadow: 0 6px 16px -4px rgba(239,159,39,0.5);
       }
       .pm-card-countdown.pm-cd-b {
-        background: #38bdf8; color: #020617; border: 1px solid rgba(56,189,248,0.4);
-        box-shadow: 0 6px 16px -4px rgba(56,189,248,0.5);
+        background: #85b7eb; color: #0b1220; border: 1px solid rgba(133,183,235,0.4);
+        box-shadow: 0 6px 16px -4px rgba(133,183,235,0.5);
       }
 
       /* Cards principales: de stack centrado a fila compacta */
@@ -1125,17 +1143,36 @@
       .landing-cards .landing-card:nth-child(-n+2) .lc-footer {
         flex: 0 0 auto; width: auto; margin: 0; padding: 0; border-top: none;
       }
+      /* Cuadraditos de racha (G/E/P) más grandes acá — 20px/6px quedaban
+         chicos y pegados al "X pts" en la fila única compacta; separados
+         del texto de puntos con un divisor vertical sutil en vez de uno
+         horizontal (no hay una 2da línea propia en este layout de fila
+         única, a diferencia del apilado que usa El Nido). */
+      .landing-cards .landing-card:nth-child(-n+2) .lc-res-pill {
+        width: 24px; height: 24px; border-radius: 7px;
+      }
+      .landing-cards .landing-card:nth-child(-n+2) .lc-foot-pts {
+        border-left: 1px solid rgba(255,255,255,0.14); padding-left: 9px;
+      }
 
       /* El Nido (3ra tarjeta): compactada a un solo renglón — ícono +
          nombre a la izquierda, badge "N jugadores" a la derecha (ambos ya
          vienen así de .lc-card-head, sin cambios); se esconde la bajada
          ("Jugadores de la Primera...") y el badge estático "NUESTROS
          JUGADORES" (redundante con la badge de jugadores) para que ese
-         renglón sea lo único arriba, dejando el dato aleatorio rotativo
-         (.lc-footer-nido) como única línea debajo. */
+         renglón sea lo único arriba, dejando el rotador de rankings
+         (.lc-footer-nido, ver _paintNidoRotator) como bloque de cierre. */
       .landing-cards .landing-card:nth-child(3) .card-desc { display: none; }
       .landing-cards .landing-card:nth-child(3) > .card-badge { display: none; }
       .landing-cards .landing-card:nth-child(3) .lc-footer { margin-top: 10px; padding-top: 10px; }
+
+      /* Footer discreto de cierre — antes quedaba un espacio vacío grande
+         antes del borde inferior (la landing no comparte el <footer> del
+         app shell, ese vive fuera de #landing). */
+      .landing-footer-note {
+        display: block; text-align: center; font-size: 0.68rem; color: #4a5268;
+        margin-top: 18px; padding-bottom: 4px;
+      }
     }
 
     footer { text-align: center; padding: 24px; font-size: 0.72rem; color: var(--gris-texto); border-top: 1px solid var(--gris); margin-top: 40px; }
@@ -3390,6 +3427,7 @@
       <div class="lc-footer" id="lc-footer-nido"></div>
     </div>
   </div>
+  <div class="landing-footer-note">Temporada 2026</div>
 </div>
 
 <!-- ══════════════════════════════════════════
@@ -4583,6 +4621,29 @@ function _rivalInitials(nombre) {
 }
 function _rivalAvatarHtml(nombre) {
   return `<span class="rival-avatar">${_rivalInitials(nombre)}</span>`;
+}
+// Color de avatar por rival — hash simple sobre el nombre del club en vez
+// de un tono fijo para todos (antes todos los avatares de rival compartían
+// el mismo marrón/vinoso apagado, sin distinguirse entre sí). Mismo club
+// siempre cae en el mismo color (determinístico), consistente entre
+// widgets (Inicio, Historial vs Clubes, etc.).
+const _RIVAL_AVATAR_PALETTE = [
+  { bg: '#2a1f3d', color: '#c9a9e8' }, // púrpura
+  { bg: '#0f3d3a', color: '#7fd4c9' }, // teal
+  { bg: '#1c2b4d', color: '#93c5fd' }, // azul
+  { bg: '#3d1f2a', color: '#f4a8c0' }, // rosa
+  { bg: '#3d2f14', color: '#fbbf24' }, // ámbar
+  { bg: '#173404', color: '#97c459' }, // verde
+  { bg: '#241f4d', color: '#a5b4fc' }, // índigo
+  { bg: '#3d2410', color: '#fdba74' }, // naranja
+  { bg: '#0f2f3d', color: '#67e8f9' }, // cian
+  { bg: '#3d1f38', color: '#f0abfc' }, // fucsia
+];
+function _rivalAvatarColor(nombre) {
+  const s = String(nombre || '').toUpperCase();
+  let hash = 0;
+  for (let i = 0; i < s.length; i++) hash = (hash * 31 + s.charCodeAt(i)) >>> 0;
+  return _RIVAL_AVATAR_PALETTE[hash % _RIVAL_AVATAR_PALETTE.length];
 }
 
 let _ppReturnHash = '';
@@ -15699,9 +15760,10 @@ function _renderNextMatchBox(elId, boxClass, label, m, navKey) {
 // tocar este código.
 function _pmCrestHtml(rival) {
   const slug = slugify(rival);
-  return `<span class="pm-crest pm-crest-rival">
+  const c = _rivalAvatarColor(rival);
+  return `<span class="pm-crest pm-crest-rival" style="background:${c.bg};border-color:${c.color}59">
     <img src="escudos/${slug}.webp" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-    <span class="pm-crest-fallback">${_rivalInitials(rival)}</span>
+    <span class="pm-crest-fallback" style="color:${c.color}">${_rivalInitials(rival)}</span>
   </span>`;
 }
 const PM_CSB_CREST_HTML = `<span class="pm-crest pm-crest-us"><img src="logo-csb.webp" alt=""></span>`;
@@ -15727,13 +15789,18 @@ function _pmCard(label, labelClass, m, navKey) {
   const rightCrest = isVisitante ? PM_CSB_CREST_HTML : rivalCrest;
   const leftName  = isVisitante ? m.rival : 'Santa Bárbara';
   const rightName = isVisitante ? 'Santa Bárbara' : m.rival;
+  // Nuestro propio nombre ("Santa Bárbara") se omite del todo de ese lado
+  // — el escudo ya identifica que somos nosotros, y antes quedaba cortado
+  // a la mitad ("Santa Bárb...") por el ancho fijo de 60px, leyéndose como
+  // bug. El rival sí conserva su nombre debajo del escudo.
+  const leftIsUs = !isVisitante, rightIsUs = isVisitante;
   // Fila única: Escudo Local (izquierda) | Contador (centro) | Escudo
   // Visita (derecha) — antes iba todo apilado en columna (label/avatares/
   // nombres/meta/countdown).
   return `<div class="pm-card${clickAttr ? ' clickable' : ''}"${clickAttr}>
     <div class="pm-card-team">
       ${leftCrest}
-      <span class="pm-card-team-name">${leftName}</span>
+      ${leftIsUs ? '' : `<span class="pm-card-team-name">${leftName}</span>`}
     </div>
     <div class="pm-card-center">
       <div class="pm-card-label ${labelClass}">${label}</div>
@@ -15742,7 +15809,7 @@ function _pmCard(label, labelClass, m, navKey) {
     </div>
     <div class="pm-card-team">
       ${rightCrest}
-      <span class="pm-card-team-name">${rightName}</span>
+      ${rightIsUs ? '' : `<span class="pm-card-team-name">${rightName}</span>`}
     </div>
   </div>`;
 }
@@ -15846,17 +15913,20 @@ let _landingNidoRotIdx = 0;
 // Icon + unit label per RANK_METRICS key (same keys "Base de Datos de
 // Jugadores" already uses) — purely cosmetic, falls back to a star + the
 // metric's own label for anything not explicitly listed here.
+// Colores por métrica — mismo código que ya usa "Estadísticas Totales"
+// (ver COL_META): verde para goles, celeste/azul para asist./vallas, morado
+// para G+A, dorado para títulos, gris para PJ.
 const NIDO_RANK_DISPLAY = {
-  pj:         { icon: '📋', unit: 'PJ' },
-  goles:      { icon: '⚽', unit: 'goles' },
-  asist:      { icon: '🎯', unit: 'asist.' },
-  gmas:       { icon: '🔥', unit: 'G+A' },
-  titulos:    { icon: '🏆', unit: 'títulos' },
-  vallas:     { icon: '🧤', unit: 'vallas' },
-  promGol:    { icon: '⚽', unit: 'prom. goles' },
-  promAsist:  { icon: '🎯', unit: 'prom. asist.' },
-  promGmas:   { icon: '🔥', unit: 'prom. G+A' },
-  vallasProm: { icon: '🧤', unit: 'prom. vallas' },
+  pj:         { icon: '📋', unit: 'PJ',           color: '#94a3b8' },
+  goles:      { icon: '⚽', unit: 'goles',        color: '#22c55e' },
+  asist:      { icon: '🎯', unit: 'asist.',       color: '#3b82f6' },
+  gmas:       { icon: '🔥', unit: 'G+A',          color: '#a855f7' },
+  titulos:    { icon: '🏆', unit: 'títulos',      color: '#fbbf24' },
+  vallas:     { icon: '🧤', unit: 'vallas',       color: '#85b7eb' },
+  promGol:    { icon: '⚽', unit: 'prom. goles',  color: '#22c55e' },
+  promAsist:  { icon: '🎯', unit: 'prom. asist.', color: '#3b82f6' },
+  promGmas:   { icon: '🔥', unit: 'prom. G+A',    color: '#a855f7' },
+  vallasProm: { icon: '🧤', unit: 'prom. vallas', color: '#85b7eb' },
 };
 // Every (ranking × categoría) combination with at least one player above
 // zero in that metric — the rotator cycles through ALL of them (Goleadores,
@@ -15886,7 +15956,23 @@ function _paintNidoRotator(el) {
   const groups = _landingNidoRankGroups();
   if (!groups.length) { el.innerHTML = `<span>Sin registros aún</span>`; return; }
   const g = groups[_landingNidoRotIdx % groups.length];
-  el.innerHTML = `<span><span style="color:var(--gris-texto)">${g.metricLabel} · ${g.catLabel}:</span> ${g.disp.icon} <strong>${g.top.nombre}</strong></span><span class="lc-foot-pts">${g.val} ${g.disp.unit}</span>`;
+  const color = g.disp.color || '#85b7eb';
+  const initials = String(g.top.nombre || '').trim().split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+  // Envuelto en un solo wrapper con su propio display:flex column — así el
+  // layout (label arriba, fila de avatar/nombre/chip abajo) no depende de
+  // cómo esté armado .lc-footer del padre (row en desktop, distinto en
+  // mobile), un solo hijo evita que ambos bloques queden lado a lado.
+  el.innerHTML = `<div style="display:flex;flex-direction:column;width:100%">
+    <p class="lc-nido-label">${g.metricLabel} · ${g.catLabel}</p>
+    <div class="lc-nido-row">
+      <div class="lc-nido-avatar" style="background:${color}26;color:${color}">${initials}</div>
+      <span class="lc-nido-name">${g.top.nombre}</span>
+      <div class="lc-nido-chip" style="background:${color}1f">
+        <p class="lc-nido-chip-val" style="color:${color}">${g.val}</p>
+        <p class="lc-nido-chip-unit" style="color:${color}">${g.disp.unit.toUpperCase()}</p>
+      </div>
+    </div>
+  </div>`;
 }
 function renderLandingNidoFooter() {
   const nidoBadge = document.getElementById('lc-badge-nido');
