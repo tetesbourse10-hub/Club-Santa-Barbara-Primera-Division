@@ -482,14 +482,17 @@
     .pp-metrics-grid .hist-kpi-loss .hist-kpi-icon { background: rgba(239,68,68,0.12);  color: #f87171; }
     .pp-metrics-grid .hist-kpi-val { font-size: 1.5rem; font-weight: 900; color: #fff; }
     @media (min-width: 769px) { .pp-metrics-grid .hist-kpi-val { font-size: 1.75rem; } }
-    .pp-metrics-grid .hist-kpi-label { font-size: 0.72rem; font-weight: 700; color: #cbd5e1; letter-spacing: .05em; }
+    /* Título principal (PARTIDOS/GOLES/ASISTENCIAS/G+A) con más presencia
+       que la sub-métrica de abajo — antes competían en tamaño/peso. */
+    .pp-metrics-grid .hist-kpi-label { font-size: 0.75rem; font-weight: 900; color: #e2e8f0; text-transform: uppercase; letter-spacing: .06em; }
     .pp-metrics-grid .pp-favorito-name { font-size: 0.72rem; color: #fbbf24; font-weight: 600; }
     /* El promedio (Prom. X/PJ) de Goles/Asistencias, antes solo visible en
        mobile (ver @media max-width:768px más abajo), ahora se muestra
        siempre en el Bloque Inferior — ya no hay una tarjeta de "Promedio"
-       aparte con la que duplicarlo. */
+       aparte con la que duplicarlo. Jerarquía baja a propósito (más chica
+       y más apagada que el título) para que no compita con él. */
     .pp-metrics-grid-main { margin-top: 14px; }
-    .pp-metrics-grid-main .pp-kpi-sec-mobile { display: block; }
+    .pp-metrics-grid-main .pp-kpi-sec-mobile { display: block; font-size: 0.625rem; font-weight: 600; color: #64748b; margin-top: 2px; }
 
     .hist-kpi {
       background: rgba(255,255,255,0.03);
@@ -2683,24 +2686,32 @@
     .pp-particip-bar { display:flex; height:10px; border-radius:999px; overflow:hidden; }
     .pp-particip-bar-gol   { background:#10b981; }
     .pp-particip-bar-asist { background:#38bdf8; }
-    .pp-particip-legend { display:flex; gap:14px; flex-wrap:wrap; font-size:0.72rem; color:#cbd5e1; font-weight:700; }
+    .pp-particip-legend { display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap; font-size:0.72rem; color:#cbd5e1; font-weight:700; }
     .pp-particip-legend-item { display:flex; align-items:center; gap:5px; }
     .pp-particip-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
     .pp-particip-dot-gol   { background:#10b981; }
     .pp-particip-dot-asist { background:#38bdf8; }
+    /* Micro-leyenda atenuada al pie — rellena el espacio vacío que quedaba
+       debajo de la leyenda de colores. */
+    .pp-particip-caption { font-size:0.625rem; color:#64748b; margin-top:2px; }
 
     /* Títulos + Rojas — una sola card dividida por una línea horizontal en
        vez de 2 tarjetas del grid de 8 (ambas comparten poco espacio en
        común como para justificar 2 cards completas). */
-    .pp-titrojas-card { display:flex; flex-direction:column; justify-content:space-between; gap:8px; }
-    .pp-mini-stat { display:flex; align-items:center; gap:10px; }
+    .pp-titrojas-card { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
+    .pp-mini-stat {
+      display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+      background:transparent; border:1px solid #1e293b; border-radius:12px; padding:12px 6px;
+      cursor:pointer; font-family:inherit; transition:background .15s, border-color .15s;
+    }
+    .pp-mini-stat:hover { background:#1e293b; border-color:#334155; }
+    .pp-mini-stat.pp-kpi-active { background:#1e293b; border-color:#334155; }
     .pp-mini-stat-icon {
       width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center;
       font-size:1.05rem; flex-shrink:0;
     }
-    .pp-mini-stat-val { font-size:1.4rem; font-weight:900; line-height:1; }
-    .pp-mini-stat-label { font-size:0.68rem; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:.04em; margin-top:2px; }
-    .pp-titrojas-divider { height:1px; background:#1e293b; }
+    .pp-mini-stat-val { font-size:1.5rem; font-weight:900; line-height:1; }
+    .pp-mini-stat-label { font-size:0.68rem; font-weight:700; color:#cbd5e1; text-transform:uppercase; letter-spacing:.04em; }
     .pp-history-card {
       background:#111827; border:1px solid #1e293b; border-radius:16px; padding:24px;
     }
@@ -4611,7 +4622,7 @@ function ppFilterMetrics(cat, btn) {
   // ver el mismo isArquero check en renderPlayerProfile).
   const isArquero = window._ppIsArquero;
   const fields = [
-    ['pp-m-pj',       c.pj,                                          `Partidos (${c.titular} tit · ${c.sup} sup)`],
+    ['pp-m-pj',       c.pj],
     ['pp-m-goles',    c.goles],
     ['pp-m-asist',    c.asist],
     ['pp-m-ga',       c.goles + c.asist],
@@ -4671,6 +4682,7 @@ function ppFilterMetrics(cat, btn) {
   // ver kpi(..., secMobile) en renderPlayerProfile.
   const isArqueroFilter = window._ppIsArquero;
   const secFields = [
+    ['pp-m-pj-sec', `${c.titular} TIT · ${c.sup} SUP`],
     ['pp-m-goles-sec', `Prom. ${c.promGol.toFixed(2).replace('.', ',')}/PJ`],
     ['pp-m-asist-sec', `Prom. ${c.promAsist.toFixed(2).replace('.', ',')}/PJ`],
     ['pp-m-ga-sec', isArqueroFilter ? `🧤 ${c.vallas} Vallas Invictas` : `Efectividad ${c.efectividadGA.toFixed(0)}%`],
@@ -6134,15 +6146,16 @@ function renderPlayerProfile(nombre) {
   // hay una tarjeta de "Promedio" aparte con la que no duplicarlo.
   const bottomRow = `
     <div class="hist-kpis pp-metrics-grid pp-metrics-grid-main">
-      ${kpi('pp-m-pj',      '📋', s.pj,   'Partidos (' + s.titular + ' tit · ' + s.sup + ' sup)', null, 'partidos',
-        favBanner('pp-fav-pj', '⚔️', 'Rival Favorito', _favInit.pj, 'PJ'))}
+      ${kpi('pp-m-pj',      '📋', s.pj,   'Partidos', null, 'partidos',
+        favBanner('pp-fav-pj', '⚔️', 'Rival Favorito', _favInit.pj, 'PJ'),
+        `${s.titular} TIT · ${s.sup} SUP`)}
       ${kpi('pp-m-goles',   '⚽', s.goles, 'Goles', '#22c55e', 'goles',
         favBanner('pp-fav-goles', '🎯', 'Víctima Favorita', _favInit.goles, 'Goles'),
         `Prom. ${s.promGol.toFixed(2).replace('.', ',')}/PJ`)}
       ${kpi('pp-m-asist',   '🎯', s.asist, 'Asistencias', '#38bdf8', 'asist',
         favBanner('pp-fav-asist', '🅰️', 'Asistencia Favorita', _favInit.asist, 'Asist.'),
         `Prom. ${s.promAsist.toFixed(2).replace('.', ',')}/PJ`)}
-      ${kpi('pp-m-ga',      '🔥', s.goles + s.asist, 'G+A', '#a855f7', 'ga',
+      ${kpi('pp-m-ga',      '🔥', s.goles + s.asist, 'G+A Total', '#a855f7', 'ga',
         `<div class="pp-favorito-banner" id="pp-fav-ga">${_ppFavoritoGaBannerInner('🔥', 'Mayor Impacto', _favInit.ga)}</div>`,
         isArquero ? `🧤 ${s.vallas} Vallas Invictas` : `Efectividad ${s.efectividadGA.toFixed(0)}%`)}
     </div>
@@ -6172,23 +6185,23 @@ function renderPlayerProfile(nombre) {
         <span class="pp-particip-legend-item"><span class="pp-particip-dot pp-particip-dot-gol"></span><span id="pp-particip-pct-gol">${pctGol.toFixed(0)}%</span> Gol</span>
         <span class="pp-particip-legend-item"><span class="pp-particip-dot pp-particip-dot-asist"></span><span id="pp-particip-pct-asist">${pctAsist.toFixed(0)}%</span> Asist</span>
       </div>
+      <div class="pp-particip-caption">Aporte directo en el marcador del equipo</div>
     </div>`;
 
-  // Bloque Superior, card 3 — Títulos + Rojas en una sola card dividida por
-  // una línea horizontal, en vez de 2 tarjetas sueltas del grid de 8.
-  const miniStat = (id, icon, val, label, color) => `
-    <div class="pp-mini-stat">
+  // Bloque Superior, card 3 — Títulos + Rojas: 2 botones lado a lado (sub-
+  // grilla de 2 columnas) en vez de 2 tarjetas sueltas del grid de 8 —
+  // clickeables, mismo onclick que las tarjetas del Bloque Inferior
+  // (ppShowDetail abre el panel de detalle correspondiente debajo).
+  const miniStat = (kind, icon, val, label, color) => `
+    <button class="pp-mini-stat pp-kpi-tab" id="pp-kpi-${kind}" onclick="ppShowDetail('${kind}')">
       <div class="pp-mini-stat-icon" style="background:${color}1a;color:${color}">${icon}</div>
-      <div class="pp-mini-stat-body">
-        <div class="pp-mini-stat-val" id="${id}" style="color:${color}">${val}</div>
-        <div class="pp-mini-stat-label">${label}</div>
-      </div>
-    </div>`;
+      <div class="pp-mini-stat-val" id="pp-m-${kind}" style="color:${color}">${val}</div>
+      <div class="pp-mini-stat-label">${label}</div>
+    </button>`;
   const titRojasCard = `
     <div class="card pp-bento-card pp-titrojas-card">
-      ${miniStat('pp-m-titulos', '🏆', s.titulos, 'Títulos', '#fbbf24')}
-      <div class="pp-titrojas-divider"></div>
-      ${miniStat('pp-m-rojas', '🟥', s.rojas, 'Rojas', '#ef4444')}
+      ${miniStat('titulos', '🏆', s.titulos, 'Títulos', '#fbbf24')}
+      ${miniStat('rojas', '🟥', s.rojas, 'Rojas', '#ef4444')}
     </div>`;
 
   // Left column: rendimiento por categoría (equipo). Stacked A above B if the
