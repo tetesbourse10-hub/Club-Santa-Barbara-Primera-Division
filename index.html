@@ -13263,7 +13263,7 @@ window._anuMobileRankTab = function(idPrefix, key, btn) {
   });
 };
 function _anuMobileRankRowsHtml(players, key, suffix) {
-  const top = [...players].filter(p => p[key] > 0).sort((a, b) => b[key] - a[key]).slice(0, 5);
+  const top = [...players].filter(p => p[key] > 0).sort((a, b) => b[key] - a[key]).slice(0, 3);
   return _top5PodiumHtml(top.map(p => ({ nombre: p.nombre, val: `${p[key]}${suffix || ''}` })));
 }
 function _anuMobileFillRankings(idPrefix, players) {
@@ -13271,6 +13271,140 @@ function _anuMobileFillRankings(idPrefix, players) {
     const el = document.getElementById(`anu-rank-${idPrefix}-${k}`);
     if (el) el.innerHTML = _anuMobileRankRowsHtml(players, k, k === 'pj' ? ' PJ' : '');
   });
+}
+
+// ── Estadísticas Anuales (mobile) — Plantel completo de la temporada ──────
+// Mismo diseño visual de card/filtro que Plantel de los torneos actuales
+// (.mrow-card, .pmf-bar — ver _plantelMobileCard/_plantelMobileFilterBarHtml
+// más arriba), pero SIN las casillas de máximos goleadores/asistidores de
+// arriba (para eso ya está el bloque de Rankings de la temporada) y con
+// estado propio por idPrefix ('a'/'b') en vez de reusar las variables
+// globales de Plantel — los datos de Anuales no traen Titular/Citado
+// (solo pos/pj/goles/asist/gmas), así que comparten estructura de card
+// pero no el mismo shape de fila.
+const ANU_PLANTEL_SORT_OPTS = [
+  { key: 'pj', label: 'PJ' }, { key: 'goles', label: 'Goles' },
+  { key: 'asist', label: 'Asist.' }, { key: 'gmas', label: 'G+A' },
+];
+const ANU_PLANTEL_HIGHLIGHT_META = {
+  pj:    { label: 'PJ',     color: 'var(--dorado)' },
+  goles: { label: 'Goles',  color: '#22c55e' },
+  asist: { label: 'Asist.', color: '#38bdf8' },
+  gmas:  { label: 'G+A',    color: '#a855f7' },
+};
+const _anuPlantelState = {};
+function _anuPlantelSt(idPrefix) {
+  return _anuPlantelState[idPrefix] || (_anuPlantelState[idPrefix] = { rows: [], query: '', pos: 'todas', sort: 'pj', posOpen: false, sortOpen: false });
+}
+function _anuPlantelCardHtml(p, st) {
+  const pc = _plantelPosColor(p.pos);
+  const meta = ANU_PLANTEL_HIGHLIGHT_META[st.sort] || ANU_PLANTEL_HIGHLIGHT_META.pj;
+  return `
+    <div class="mrow-card">
+      <div class="mrow-top">
+        <div class="mrow-top-main">
+          ${p.pos ? `<span class="mrow-badge" style="color:${pc};background:${pc}1a;border:1px solid ${pc}44;margin-bottom:4px">${p.pos}</span>` : ''}
+          <div class="mrow-title-row"><div class="mrow-title">${p.nombre}</div></div>
+        </div>
+        <div class="mrow-highlight">
+          <div class="mrow-highlight-val" style="color:${meta.color}">${p[st.sort] || 0}</div>
+          <div class="mrow-highlight-label">${meta.label}</div>
+        </div>
+      </div>
+      <div class="mrow-secondary">
+        <div class="mrow-sec-item"><span class="mrow-sec-val">${p.pj || 0}</span><span class="mrow-sec-label">PJ</span></div>
+        <div class="mrow-sec-item"><span class="mrow-sec-val" style="color:#22c55e">${p.goles || 0}</span><span class="mrow-sec-label">Goles</span></div>
+        <div class="mrow-sec-item"><span class="mrow-sec-val" style="color:#38bdf8">${p.asist || 0}</span><span class="mrow-sec-label">Asist.</span></div>
+        <div class="mrow-sec-item"><span class="mrow-sec-val" style="color:#a855f7">${p.gmas || 0}</span><span class="mrow-sec-label">G+A</span></div>
+      </div>
+    </div>`;
+}
+function _anuPlantelFilteredSorted(st) {
+  let rows = st.rows;
+  if (st.pos !== 'todas') rows = rows.filter(r => r.pos === st.pos);
+  if (st.query) {
+    const q = normName(st.query);
+    rows = rows.filter(r => normName(r.nombre).includes(q));
+  }
+  const key = st.sort;
+  return [...rows].sort((x, y) => (y[key] || 0) - (x[key] || 0));
+}
+function _anuPlantelListHtml(idPrefix) {
+  const st = _anuPlantelSt(idPrefix);
+  const rows = _anuPlantelFilteredSorted(st);
+  return rows.length ? rows.map(p => _anuPlantelCardHtml(p, st)).join('') : '<div class="mrow-empty">Ningún jugador coincide con el filtro.</div>';
+}
+function _anuPlantelRerenderList(idPrefix) {
+  const el = document.getElementById(`anu-plantel-list-${idPrefix}`);
+  if (el) el.innerHTML = _anuPlantelListHtml(idPrefix);
+}
+window._anuPlantelSearch = function(idPrefix, q) {
+  _anuPlantelSt(idPrefix).query = q;
+  _anuPlantelRerenderList(idPrefix);
+};
+window._anuPlantelPosToggle = function(idPrefix) {
+  const st = _anuPlantelSt(idPrefix);
+  st.posOpen = !st.posOpen; st.sortOpen = false;
+  _anuPlantelRerenderFilterBar(idPrefix);
+};
+window._anuPlantelSortToggle = function(idPrefix) {
+  const st = _anuPlantelSt(idPrefix);
+  st.sortOpen = !st.sortOpen; st.posOpen = false;
+  _anuPlantelRerenderFilterBar(idPrefix);
+};
+window._anuPlantelPosSelect = function(idPrefix, pos) {
+  const st = _anuPlantelSt(idPrefix);
+  st.pos = pos; st.posOpen = false;
+  _anuPlantelRerenderFilterBar(idPrefix); _anuPlantelRerenderList(idPrefix);
+};
+window._anuPlantelSortSelect = function(idPrefix, sort) {
+  const st = _anuPlantelSt(idPrefix);
+  st.sort = sort; st.sortOpen = false;
+  _anuPlantelRerenderFilterBar(idPrefix); _anuPlantelRerenderList(idPrefix);
+};
+function _anuPlantelRerenderFilterBar(idPrefix) {
+  const el = document.getElementById(`anu-plantel-bar-${idPrefix}`);
+  if (el) el.outerHTML = _anuPlantelFilterBarHtml(idPrefix);
+}
+function _anuPlantelFilterBarHtml(idPrefix) {
+  const st = _anuPlantelSt(idPrefix);
+  const positions = [...new Set(st.rows.map(r => r.pos).filter(Boolean))]
+    .sort((a, b) => {
+      const ia = PLANTEL_POS_ORDER.indexOf(a), ib = PLANTEL_POS_ORDER.indexOf(b);
+      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+    });
+  const posLabel = st.pos === 'todas' ? 'Todas' : st.pos;
+  const posMenu = ['todas', ...positions].map(p => `<div class="pmf-menu-item${p === st.pos ? ' active' : ''}"
+    onclick="window._anuPlantelPosSelect('${idPrefix}','${p}')">${p === 'todas' ? 'Todas' : p}</div>`).join('');
+  const sortMeta = ANU_PLANTEL_SORT_OPTS.find(o => o.key === st.sort) || ANU_PLANTEL_SORT_OPTS[0];
+  const sortMenu = ANU_PLANTEL_SORT_OPTS.map(o => `<div class="pmf-menu-item${o.key === st.sort ? ' active' : ''}"
+    onclick="window._anuPlantelSortSelect('${idPrefix}','${o.key}')">${o.label}</div>`).join('');
+  return `<div class="pmf-bar" id="anu-plantel-bar-${idPrefix}">
+    <div class="pmf-row">
+      <div class="pmf-dd">
+        <button class="pmf-btn${st.pos !== 'todas' ? ' active' : ''}" onclick="window._anuPlantelPosToggle('${idPrefix}')">Pos: ${posLabel} <span>▾</span></button>
+        ${st.posOpen ? `<div class="pmf-menu">${posMenu}</div>` : ''}
+      </div>
+      <div class="pmf-dd">
+        <button class="pmf-btn active" onclick="window._anuPlantelSortToggle('${idPrefix}')">Orden: ${sortMeta.label} <span>▾</span></button>
+        ${st.sortOpen ? `<div class="pmf-menu">${sortMenu}</div>` : ''}
+      </div>
+    </div>
+    <div class="pmf-search"><input type="text" placeholder="Buscar jugador…" value="${st.query.replace(/"/g, '&quot;')}" oninput="window._anuPlantelSearch('${idPrefix}', this.value)" /></div>
+  </div>`;
+}
+function _anuPlantelCardsHtml(idPrefix, rows) {
+  const st = _anuPlantelSt(idPrefix);
+  st.rows = rows || []; st.query = ''; st.pos = 'todas'; st.sort = 'pj'; st.posOpen = false; st.sortOpen = false;
+  return `${_anuPlantelFilterBarHtml(idPrefix)}<div class="mrow-cards" id="anu-plantel-list-${idPrefix}">${_anuPlantelListHtml(idPrefix)}</div>`;
+}
+function _anuMobileFillPlantel(idPrefix, players) {
+  const el = document.getElementById(`anu-plantel-${idPrefix}`);
+  if (el) el.innerHTML = _anuPlantelCardsHtml(idPrefix, players || []);
+}
+function _anuMobilePlantelSectionHtml(idPrefix) {
+  return `<div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gris-texto);margin:16px 0 8px">👥 Plantel completo de la temporada</div>
+    <div id="anu-plantel-${idPrefix}"><div style="color:var(--gris-texto);font-size:0.82rem">Cargando plantel...</div></div>`;
 }
 
 function renderJugAnualesMenu() {
@@ -13368,6 +13502,7 @@ function _anualesMobileHtml(year, years, torneos, total) {
     <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">${torneosHtml}</div>
     <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gris-texto);margin-bottom:8px">🏅 Rankings de la temporada</div>
     ${_anuMobileRankingsShellHtml('a')}
+    ${_anuMobilePlantelSectionHtml('a')}
   </div>`;
 }
 window._anualesMobileGoYear = function(year) {
@@ -13591,7 +13726,8 @@ function _anualesMobileHtmlB(year, years, torneosYear, total) {
     <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gris-texto);margin-bottom:8px">🏟️ Rendimiento por torneo</div>
     <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">${torneosHtml}</div>
     ${hasRankings ? `<div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gris-texto);margin-bottom:8px">🏅 Rankings de la temporada</div>
-    ${_anuMobileRankingsShellHtml('b')}` : ''}
+    ${_anuMobileRankingsShellHtml('b')}
+    ${_anuMobilePlantelSectionHtml('b')}` : ''}
   </div>`;
 }
 window._anualesMobileGoYearB = function(year) {
@@ -13735,6 +13871,7 @@ function _anualesSortB(col) {
 function _anualesBuildRankingsB(year) {
   const players = _anualesPlayersB[year] || SEED_ANUALES_PLAYERS_B[year] || [];
   _anuMobileFillRankings('b', players);
+  _anuMobileFillPlantel('b', players);
   const el = document.getElementById('jug-anual-rankings-b');
   if (!el) return;
   if (!players.length) { el.innerHTML = '<div style="color:var(--gris-texto);font-size:0.82rem">Sin datos de jugadores.</div>'; return; }
@@ -13886,6 +14023,7 @@ function _anualesBuildAll(year) {
   _anualesBuildRankings(year);
   _anualesBuildTable(year);
   _anuMobileFillRankings('a', _anualesPlayers[year] || []);
+  _anuMobileFillPlantel('a', _anualesPlayers[year] || []);
 }
 
 function _anualesBuildRankings(year) {
