@@ -2698,7 +2698,13 @@
     /* Títulos + Rojas — una sola card dividida por una línea horizontal en
        vez de 2 tarjetas del grid de 8 (ambas comparten poco espacio en
        común como para justificar 2 cards completas). */
-    .pp-titrojas-card { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
+    /* grid-template-columns: 1fr auto 1fr en vez de repeat(2,1fr) — el
+       divisor del medio necesita su propia columna angosta para notarse
+       claramente como línea separadora entre 2 elementos clickeables
+       distintos (antes solo el gap/borde propio de cada botón, poco
+       visible). */
+    .pp-titrojas-card { display:grid; grid-template-columns:1fr auto 1fr; align-items:stretch; gap:8px; }
+    .pp-titrojas-divider { width:1px; background:#1e293b; }
     .pp-mini-stat {
       display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
       background:transparent; border:1px solid #1e293b; border-radius:12px; padding:12px 6px;
@@ -2852,6 +2858,12 @@
     .pp-match-row-link:hover .pp-match-arrow { color:var(--dorado); transform:translateX(2px); }
     .pp-match-main { display:flex; flex-direction:column; gap:2px; }
     .pp-match-torneo { font-size:0.75rem; color:#f59e0b; text-transform:uppercase; letter-spacing:.04em; font-weight:700; }
+    /* Mismo color por tipo de torneo que las tabs del filtro (cyan
+       Apertura / ámbar Clausura / púrpura Copas), para que el listado se
+       pueda diferenciar de un vistazo igual que el filtro. */
+    .pp-match-torneo-apertura  { color:#22d3ee; }
+    .pp-match-torneo-clausura  { color:#fbbf24; }
+    .pp-match-torneo-copas     { color:#c084fc; }
     .pp-match-rival { font-size:1rem; color:#fff; font-weight:700; display:flex; align-items:center; gap:6px; }
     .pp-match-side { display:flex; align-items:center; gap:8px; }
     .pp-match-cond { font-size:0.72rem; font-weight:700; padding:4px 10px; border-radius:6px; }
@@ -2904,6 +2916,13 @@
     }
     .pp-fbar-icon-btn:hover { border-color:rgba(245,158,11,.4); }
     .pp-fbar-icon-btn.active { background:rgba(245,158,11,.12); border-color:rgba(245,158,11,.4); }
+    /* Filtro "Capitán" — mismo botón base pero ancho automático (trae un
+       número al lado del ícono) y acento naranja propio en vez del ámbar
+       genérico, para no confundirse con "Resumen". */
+    .pp-fbar-cap-btn { width:auto; padding:0 10px; gap:5px; font-size:0.74rem; font-weight:700; color:#94a3b8; }
+    .pp-fbar-cap-btn:hover { border-color:rgba(249,115,22,.4); }
+    .pp-fbar-cap-btn.active { background:rgba(249,115,22,.12); border-color:rgba(249,115,22,.4); color:#fb923c; }
+    .pp-fbar-res-toggle { display:flex; gap:4px; background:#020617; padding:4px; border-radius:10px; border:1px solid #1e293b; }
     .pp-fbar-res-dot {
       display:flex; align-items:center; gap:5px; border:1px solid transparent; border-radius:8px;
       padding:5px 9px; font-size:0.74rem; font-weight:800; cursor:pointer; font-family:inherit;
@@ -5361,6 +5380,13 @@ function _ppStatRowHtml(kind, p) {
     : `class="pp-match-row"`;
   const catBadge = `<span class="pp-match-cat ${_ppCatClass(p.categoria)}">${p.categoria}</span>`;
   const condBadge = `<span class="pp-match-cond ${PP_COND_CLASS[p.condCorta] || ''}">${p.condCorta}</span>`;
+  // Mismo color por tipo de torneo que las tabs del filtro (cyan Apertura /
+  // ámbar Clausura / púrpura Copas) — así el listado se diferencia igual
+  // que el filtro con el que se lo recorta.
+  const torneoTipo = _ppTipoOf(p);
+  const torneoClass = torneoTipo === 'apertura' ? 'pp-match-torneo-apertura'
+    : torneoTipo === 'clausura' ? 'pp-match-torneo-clausura'
+    : torneoTipo === 'copas' ? 'pp-match-torneo-copas' : '';
   const icons = (kind === 'partidos' || kind === 'ga') ? _ppImpactIconsHtml(p) : (statVal != null ? `<span class="pp-match-stat">${statIco}${statVal > 1 ? ' ×' + statVal : ''}</span>` : '');
   const resultado = _ppResultadoPillHtml(p);
   const arrowHtml = clickable ? '<span class="pp-match-arrow">›</span>' : '';
@@ -5368,7 +5394,7 @@ function _ppStatRowHtml(kind, p) {
   return `<div ${rowAttrs}>
     <div class="pp-match-desktop-layout">
       <div class="pp-match-main">
-        <span class="pp-match-torneo">${p.torneo}</span>
+        <span class="pp-match-torneo ${torneoClass}">${p.torneo}</span>
         <span class="pp-match-rival">${rivalLine}</span>
       </div>
       <div class="pp-match-side">
@@ -5739,34 +5765,49 @@ function _ppDetailPanelBodyHtml(kind, fullList) {
   // para la pestaña Partidos (las demás cuentan goles/asist/rojas, no
   // resultados de partido). Mismo patrón que año/tipo: estado propio en
   // window._ppResFilter, un chip por resultado con su conteo. Ahora son
-  // píldoras micro (punto de color + número) en vez de texto completo.
-  let resDotsHtml = [];
+  // píldoras micro (punto de color + número) en vez de texto completo. Vive
+  // en su propia caja a la derecha (junto con año/resumen), separado de los
+  // tabs de torneo.
+  let resToggleHtml = '';
   let finalList = tipoFiltered;
   if (kind === 'partidos') {
     const resState = window._ppResFilter || (window._ppResFilter = {});
     const activeRes = resState[kind] || 'todos';
     const countRes = res => tipoFiltered.filter(p => _ppMatchResultado(p) === res).length;
     const resDot = (val, cls, label) => `<button class="pp-fbar-res-dot ${cls}${activeRes === val ? ' active' : ''}" onclick="ppFilterRes('${kind}', '${val}')" title="${label}"><span class="pp-fbar-res-dot-ico"></span>${countRes(val)}</button>`;
-    resDotsHtml = [
-      resDot('win', 'pp-fbar-res-win', 'Ganados'),
-      resDot('draw', 'pp-fbar-res-draw', 'Empatados'),
-      resDot('loss', 'pp-fbar-res-loss', 'Perdidos'),
-    ];
+    resToggleHtml = `<div class="pp-fbar-res-toggle">
+      ${resDot('win', 'pp-fbar-res-win', 'Ganados')}
+      ${resDot('draw', 'pp-fbar-res-draw', 'Empatados')}
+      ${resDot('loss', 'pp-fbar-res-loss', 'Perdidos')}
+    </div>`;
     if (activeRes !== 'todos') finalList = tipoFiltered.filter(p => _ppMatchResultado(p) === activeRes);
   }
-  // Segmented control único: tabs de torneo + toggle de resultado juntos en
-  // una sola caja, separados por un divisor vertical fino entre CADA opción
-  // clickeable (antes eran 2 cajas redondeadas sueltas una al lado de la
-  // otra).
-  const divider = `<div class="pp-fbar-divider"></div>`;
-  const unifiedHtml = `<div class="pp-fbar-unified">${[...tipoTabsHtml, ...resDotsHtml].join(divider)}</div>`;
 
-  // "Jerarquía de Control": segmented control (torneo + resultado) a la
-  // izquierda, año + resumen compactos a la derecha, en una sola fila que
-  // nunca rompe layout (se apila en mobile, ver CSS ≤768px). Sub-barra
-  // debajo con el total mostrado y "Limpiar filtros" (solo si hay algo
-  // activo para limpiar).
-  const hasActiveFilter = activeYear !== 'todos' || activeTipo !== 'todos' || (window._ppResFilter?.[kind] || 'todos') !== 'todos';
+  // Filtro "Capitán" — solo se ofrece si el jugador fue capitán alguna vez
+  // (ver p.esCapitan, ya calculado en _buildPlayerPartidos a partir del
+  // "(C)" del nombre en el Fecha a Fecha). Toggle independiente del de
+  // Resultado — se puede combinar (ej. "victorias siendo capitán").
+  let capBtnHtml = '';
+  if (kind === 'partidos' && catList.some(p => p.esCapitan)) {
+    const capState = window._ppCapFilter || (window._ppCapFilter = {});
+    const activeCap = !!capState[kind];
+    const capCount = tipoFiltered.filter(p => p.esCapitan).length;
+    capBtnHtml = `<button class="pp-fbar-icon-btn pp-fbar-cap-btn${activeCap ? ' active' : ''}" onclick="ppFilterCap('${kind}')" title="Partidos siendo capitán">©️ ${capCount}</button>`;
+    if (activeCap) finalList = finalList.filter(p => p.esCapitan);
+  }
+
+  // Segmented control de torneo (Todos/Apertura/Clausura/Copas), separado
+  // por un divisor vertical fino entre CADA tab.
+  const divider = `<div class="pp-fbar-divider"></div>`;
+  const unifiedHtml = `<div class="pp-fbar-unified">${tipoTabsHtml.join(divider)}</div>`;
+
+  // "Jerarquía de Control": tabs de torneo a la izquierda, resultado +
+  // capitán + año + resumen a la derecha, en una sola fila que nunca rompe
+  // layout (se apila en mobile, ver CSS ≤768px). Sub-barra debajo con el
+  // total mostrado y "Limpiar filtros" (solo si hay algo activo para
+  // limpiar).
+  const hasActiveFilter = activeYear !== 'todos' || activeTipo !== 'todos'
+    || (window._ppResFilter?.[kind] || 'todos') !== 'todos' || !!window._ppCapFilter?.[kind];
   const kindWord = PP_RESUMEN_UNIT[kind] === 'PJ' ? 'partidos' : (PP_DETAIL_LABELS[kind] || '').replace(/^[^\wÀ-ÿ]+/, '').toLowerCase();
   const subbarHtml = `<div class="pp-fbar-subbar">
     <span>Mostrando <strong>${_ppKindTotal(kind, finalList)}</strong> ${kindWord}</span>
@@ -5776,7 +5817,7 @@ function _ppDetailPanelBodyHtml(kind, fullList) {
     html: `
       <div class="pp-fbar">
         ${unifiedHtml}
-        <div class="pp-fbar-right">${yearSelectHtml}${resumenBtnHtml}</div>
+        <div class="pp-fbar-right">${resToggleHtml}${capBtnHtml}${yearSelectHtml}${resumenBtnHtml}</div>
       </div>
       ${subbarHtml}
       ${finalList.length ? finalList.map(p => _ppStatRowHtml(kind, p)).join('') : `<div class="hist-empty">Sin registros cargados.</div>`}`,
@@ -5855,6 +5896,7 @@ window.ppShowDetail = function(kind) {
     (window._ppYearFilter || (window._ppYearFilter = {}))[kind] = 'todos';
     (window._ppTipoFilter || (window._ppTipoFilter = {}))[kind] = 'todos';
     (window._ppResFilter || (window._ppResFilter = {}))[kind] = 'todos';
+    (window._ppCapFilter || (window._ppCapFilter = {}))[kind] = false;
   }
   _ppRenderDetailPanel(kind);
   _ppUpdateDatoCurioso(kind);
@@ -5883,12 +5925,20 @@ window.ppFilterRes = function(kind, res) {
   _ppRenderDetailPanel(kind);
 };
 
-// "Limpiar filtros" de la sub-barra — resetea año/torneo/resultado a
-// 'todos' de una sola vez (en vez de tener que ir chip por chip).
+// Toggle "Capitán" — independiente del de Resultado, se puede combinar.
+window.ppFilterCap = function(kind) {
+  const state = window._ppCapFilter || (window._ppCapFilter = {});
+  state[kind] = !state[kind];
+  _ppRenderDetailPanel(kind);
+};
+
+// "Limpiar filtros" de la sub-barra — resetea año/torneo/resultado/capitán
+// a 'todos'/apagado de una sola vez (en vez de tener que ir chip por chip).
 window.ppClearFilters = function(kind) {
   (window._ppYearFilter || (window._ppYearFilter = {}))[kind] = 'todos';
   (window._ppTipoFilter || (window._ppTipoFilter = {}))[kind] = 'todos';
   (window._ppResFilter || (window._ppResFilter = {}))[kind] = 'todos';
+  (window._ppCapFilter || (window._ppCapFilter = {}))[kind] = false;
   _ppRenderDetailPanel(kind);
 };
 
@@ -6114,6 +6164,7 @@ function renderPlayerProfile(nombre) {
   window._ppYearFilter = {};
   window._ppTipoFilter = {};
   window._ppResFilter = {};
+  window._ppCapFilter = {};
   window._ppCareerPJ = s.pj;
   // Resuelve window._ppRecordShowLoading/_ppRecordIncomplete (y programa un
   // reintento si hace falta) ANTES de armar el HTML de abajo, para que
@@ -6217,6 +6268,7 @@ function renderPlayerProfile(nombre) {
   const titRojasCard = `
     <div class="card pp-bento-card pp-titrojas-card">
       ${miniStat('titulos', '🏆', s.titulos, 'Títulos', '#fbbf24')}
+      <div class="pp-titrojas-divider"></div>
       ${miniStat('rojas', '🟥', s.rojas, 'Rojas', '#ef4444')}
     </div>`;
 
