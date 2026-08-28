@@ -7759,10 +7759,10 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
     return `<div class="ap-squad-item-m">
       <span class="ap-squad-pos-m" style="color:${pc};background:${pc}33;border-color:${pc}66">${j.pos || '–'}</span>
       <span class="ap-squad-name-m">${pl(j.nombre)}</span>
-      ${stateIco}
       ${j.goles > 0 ? `<span class="ap-squad-stat-m gol">⚽${j.goles > 1 ? j.goles : ''}</span>` : ''}
       ${j.asist > 0 ? `<span class="ap-squad-stat-m ast">🎯${j.asist > 1 ? j.asist : ''}</span>` : ''}
       ${j.rojas > 0 ? `<span class="ap-squad-stat-m roja">🟥</span>` : ''}
+      ${stateIco}
     </div>`;
   };
   const titRowsMobile = titulares.length
