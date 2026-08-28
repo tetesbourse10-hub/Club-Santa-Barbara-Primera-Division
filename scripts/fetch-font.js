@@ -1,83 +1,84 @@
-// Descarga los .ttf de Inter (Regular 400 + Bold 700 + Black 900 — los
-// mismos pesos que usa el resto del sitio, incluida la tarjeta de share)
-// para pasárselos a resvg como buffer real.
+// Lee los .ttf de Inter (Regular 400 + Bold 700 + Black 900 — los mismos
+// pesos que usa el resto del sitio, incluida la tarjeta de share) para
+// pasárselos a resvg como buffer real.
 // Sin esto, resvg no tiene ninguna fuente "Inter" instalada y cae a lo que
 // sea que tenga la máquina de build — que es exactamente el bug original
 // (texto en una fuente serif/default en vez de Inter).
 //
-// Historial de por qué esto terminó así: la API CSS2 de Google Fonts
-// decide qué formato de fuente devolver (woff2 vs. truetype) según el
-// header User-Agent del pedido — pero qué UA produce qué formato resultó
-// bastante menos predecible de lo que documentación/tutoriales sugieren:
-// un User-Agent viejo (Chrome 24) devolvió woff2 en vez de truetype; sin
-// ningún User-Agent (default de fetch) tampoco devolvió woff2. En vez de
-// seguir adivinando un cuarto User-Agent "correcto", el parser ahora
-// acepta CUALQUIERA de los dos formatos que venga en la respuesta —
-// truetype se usa tal cual, woff2 se descomprime acá con `wawoff2`
-// (decodificador puro JS) — así que no importa cuál termine sirviendo
-// Google para el User-Agent que mandemos, el build no se rompe por eso.
-// Se manda igual un User-Agent de navegador moderno (el más probable para
-// conseguir woff2, más liviano de bajar) pero ya no es una apuesta de la
-// que dependa todo.
+// BUG REAL encontrado (reportado como "el texto y los números no son
+// acordes a los de la página" + "se ve muy chico"): esta función ANTES
+// scrapeaba el CSS dinámico de Google Fonts (fonts.googleapis.com/css2).
+// Verificado a mano: para el subset "latin" (el que realmente se usa acá,
+// sin unicode-range restringido) Google devuelve HOY el mismo archivo
+// .woff2 para los 3 pesos pedidos (400/700/900) — confirmado por hash: los
+// 3 buffers descargados salían byte-por-byte IDÉNTICOS. Ese .woff2 resultó
+// ser una fuente VARIABLE (trae tabla 'fvar'), no 3 estáticas — resvg no
+// instancia el eje de peso de una variable font a partir de sólo
+// font-weight="900" en el SVG, así que terminaba dibujando siempre el
+// mismo maestro (más parecido a Regular) sin importar qué peso pidiera
+// cada texto. Como la tabla 'name' de esa variable font sí dice "Inter"
+// (ver el chequeo en generate-og.js), el build nunca tiraba error — el
+// texto salía con la fuente "correcta" de nombre pero con un peso
+// incorrecto, más fino y por eso más chico/gris de lo esperado.
+//
+// Fix: en vez de depender del CSS dinámico de Google (que puede volver a
+// cambiar de variable a estática sin aviso), se leen directamente los 3
+// archivos .woff2 ESTÁTICOS del paquete npm @fontsource/inter (ver
+// package.json) — cada peso es un archivo propio, sin ambigüedad de eje
+// variable, versionado y reproducible entre builds.
+const fs = require('fs');
+const path = require('path');
 const wawoff2 = require('wawoff2');
 
-const FONT_CSS_URL = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap';
-const MODERN_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-
-// Separado de fetchInterFonts() para poder testearlo con un CSS de
-// muestra, sin red — ver unit_test_fetch_font.js. Devuelve, por peso,
-// { url, format } — format es 'woff2' o 'truetype', lo que haya ofrecido
-// ese @font-face (se prueban ambos formatos por bloque; si un bloque
-// ofreciera los dos — no pasa en la práctica, cada @font-face trae un solo
-// src — woff2 gana por ser el que menos hay que procesar después).
-function parseFontUrlsByWeight(css) {
-  const fontsByWeight = {};
-  for (const block of css.split('@font-face').slice(1)) {
-    const weightMatch = block.match(/font-weight:\s*(\d+)/);
-    if (!weightMatch) continue;
-    const weight = weightMatch[1];
-    const woff2Match = block.match(/url\((https:\/\/fonts\.gstatic\.com\/[^)]+)\)\s*format\('woff2'\)/);
-    const ttfMatch = block.match(/url\((https:\/\/fonts\.gstatic\.com\/[^)]+)\)\s*format\('truetype'\)/);
-    if (woff2Match) fontsByWeight[weight] = { url: woff2Match[1], format: 'woff2' };
-    else if (ttfMatch) fontsByWeight[weight] = { url: ttfMatch[1], format: 'truetype' };
+// Ruta a los .woff2 que trae el paquete — falla temprano y con mensaje
+// claro si @fontsource/inter no está instalado en vez de un ENOENT crudo
+// más abajo.
+function fontsDir() {
+  try {
+    // require.resolve encuentra el propio package.json del paquete sin
+    // asumir la ubicación de node_modules (funciona igual si el build
+    // corre desde otro cwd).
+    return path.join(path.dirname(require.resolve('@fontsource/inter/package.json')), 'files');
+  } catch (e) {
+    throw new Error(
+      'No se encontró el paquete "@fontsource/inter" (ver package.json → dependencies). ' +
+      'Corré "npm install" antes del build. Error original: ' + e.message
+    );
   }
-  return fontsByWeight;
 }
 
-async function downloadFont({ url, format }) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`No se pudo descargar ${url} (status ${res.status}).`);
-  const buffer = Buffer.from(await res.arrayBuffer());
-  if (format === 'woff2') {
-    const ttfBuffer = await wawoff2.decompress(buffer);
-    return Buffer.from(ttfBuffer);
+async function loadWeight(dir, weight) {
+  const file = path.join(dir, `inter-latin-${weight}-normal.woff2`);
+  if (!fs.existsSync(file)) {
+    throw new Error(`No se encontró ${file} — ¿cambió el layout de archivos de @fontsource/inter?`);
   }
-  return buffer; // truetype: resvg lo puede usar tal cual, sin procesar.
+  const woff2Buf = fs.readFileSync(file);
+  return Buffer.from(await wawoff2.decompress(woff2Buf));
 }
 
 async function fetchInterFonts() {
-  const cssRes = await fetch(FONT_CSS_URL, { headers: { 'User-Agent': MODERN_UA } });
-  if (!cssRes.ok) {
-    throw new Error(`No se pudo descargar el CSS de Google Fonts para Inter (status ${cssRes.status}).`);
-  }
-  const css = await cssRes.text();
-  const fontsByWeight = parseFontUrlsByWeight(css);
+  const dir = fontsDir();
+  const [regular, bold, black] = await Promise.all([
+    loadWeight(dir, 400),
+    loadWeight(dir, 700),
+    loadWeight(dir, 900),
+  ]);
 
-  if (!fontsByWeight['400'] || !fontsByWeight['700'] || !fontsByWeight['900']) {
+  // Red de seguridad barata contra esta MISMA clase de bug si la fuente
+  // volviera a servirse consolidada (variable) por cualquier motivo: si
+  // dos pesos terminan siendo el mismo archivo, el build falla fuerte acá
+  // en vez de generar imágenes con el peso equivocado en silencio.
+  const md5 = buf => require('crypto').createHash('md5').update(buf).digest('hex');
+  const hashes = { regular: md5(regular), bold: md5(bold), black: md5(black) };
+  const unique = new Set(Object.values(hashes));
+  if (unique.size !== 3) {
     throw new Error(
-      'No se encontraron URLs de Inter 400/700/900 (ni woff2 ni truetype) en la respuesta de Google Fonts ' +
-      '(¿cambió el formato de la respuesta de la API?). ' +
-      `Pesos encontrados: ${Object.keys(fontsByWeight).join(', ') || 'ninguno'}.`
+      `Los 3 pesos de Inter (Regular/Bold/Black) deberían ser 3 archivos distintos, pero al menos dos son idénticos ` +
+      `(hashes: ${JSON.stringify(hashes)}). Esto es exactamente el bug de "texto con el peso equivocado" — build abortado.`
     );
   }
-
-  const [regular, bold, black] = await Promise.all([
-    downloadFont(fontsByWeight['400']),
-    downloadFont(fontsByWeight['700']),
-    downloadFont(fontsByWeight['900']),
-  ]);
 
   return { regular, bold, black };
 }
 
-module.exports = { fetchInterFonts, parseFontUrlsByWeight };
+module.exports = { fetchInterFonts };

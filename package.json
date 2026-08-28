@@ -6,6 +6,7 @@
     "build": "node scripts/generate-og.js"
   },
   "dependencies": {
+    "@fontsource/inter": "^5.1.0",
     "jsdom": "^24.1.1",
     "@resvg/resvg-js": "^2.6.2",
     "sharp": "^0.33.5",
