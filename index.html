@@ -330,6 +330,9 @@
       #mobile-bottom-nav { border-radius: 0 0 22px 22px; }
     }
     .header-back {
+      display: none; /* JS-controlled — ver _updateBackBtnVisibility(): solo
+        aparece cuando _navStack tiene algo real para volver, en vez de
+        quedar siempre visible aunque tocarla no lleve a ningún lado. */
       background: none;
       border: none;
       color: var(--gris-texto);
@@ -3554,11 +3557,11 @@
   </header>
 
   <nav id="main-nav">
-    <button class="active" onclick="showTab('resumen', this)">Inicio</button>
-    <button onclick="showTab('posiciones', this)">En Vivo</button>
-    <button onclick="showTab('jugadores', this)">Estadísticas Jugadores</button>
-    <button onclick="showTab('historial', this)">Historial vs Clubes</button>
-    <button onclick="showTab('graficos', this)">Torneos Antiguos</button>
+    <button class="active" onclick="_navGoTab('resumen', this)">Inicio</button>
+    <button onclick="_navGoTab('posiciones', this)">En Vivo</button>
+    <button onclick="_navGoTab('jugadores', this)">Estadísticas Jugadores</button>
+    <button onclick="_navGoTab('historial', this)">Historial vs Clubes</button>
+    <button onclick="_navGoTab('graficos', this)">Torneos Antiguos</button>
   </nav>
   <div id="refresh-bar">
     <span id="refresh-status"></span>
@@ -3569,15 +3572,15 @@
        sincroniza el estado activo de acá). Oculta en la landing y en
        escritorio (ver CSS + openSection/goBack). -->
   <nav id="mobile-bottom-nav">
-    <button class="bnav-btn active" onclick="showTab('resumen', document.querySelectorAll('#main-nav button')[0])">
+    <button class="bnav-btn active" onclick="_navGoTab('resumen', document.querySelectorAll('#main-nav button')[0])">
       <span class="bnav-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg></span>Inicio</button>
-    <button class="bnav-btn" onclick="showTab('posiciones', document.querySelectorAll('#main-nav button')[1])">
+    <button class="bnav-btn" onclick="_navGoTab('posiciones', document.querySelectorAll('#main-nav button')[1])">
       <span class="bnav-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z"/></svg></span>En Vivo</button>
-    <button class="bnav-btn" onclick="showTab('jugadores', document.querySelectorAll('#main-nav button')[2])">
+    <button class="bnav-btn" onclick="_navGoTab('jugadores', document.querySelectorAll('#main-nav button')[2])">
       <span class="bnav-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M22 20v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>Jugadores</button>
-    <button class="bnav-btn" onclick="showTab('historial', document.querySelectorAll('#main-nav button')[3])">
+    <button class="bnav-btn" onclick="_navGoTab('historial', document.querySelectorAll('#main-nav button')[3])">
       <span class="bnav-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></span>Historial</button>
-    <button class="bnav-btn" onclick="showTab('graficos', document.querySelectorAll('#main-nav button')[4])">
+    <button class="bnav-btn" onclick="_navGoTab('graficos', document.querySelectorAll('#main-nav button')[4])">
       <span class="bnav-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 5H4a2 2 0 0 0 2 4"/><path d="M17 5h3a2 2 0 0 1-2 4"/></svg></span>Torneos</button>
   </nav>
 
@@ -6811,6 +6814,11 @@ window.addEventListener('popstate', () => {
 function openSection(section) {
   document.getElementById('landing').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
+  // Entrada fresca desde la landing — cualquier historial de drill-down
+  // que hubiera quedado de una visita anterior ya no aplica, y con esto
+  // la flecha "← Volver" arranca oculta (ver _updateBackBtnVisibility).
+  _navStack = [];
+  _updateBackBtnVisibility();
 
   if (section === 'nido') {
     // El Nido no tiene un destino propio en la bottom nav (esos 5 accesos
@@ -6851,6 +6859,8 @@ function goBack() {
   document.getElementById('mobile-bottom-nav').style.display = 'none';
   document.body.classList.remove('has-bottom-nav');
   destroyCharts();
+  _navStack = [];
+  _updateBackBtnVisibility();
 }
 
 const JUG_SUB_IDS = ['tab-jug-totales','tab-jug-anuales','tab-jug-debuts','tab-jug-inferiores'];
@@ -6873,11 +6883,23 @@ const JUG_SUB_IDS = ['tab-jug-totales','tab-jug-anuales','tab-jug-debuts','tab-j
 // (e.g. a physical Back pops the hash but not this array). Its button is
 // still restyled to the same `.volver-btn` look for visual consistency.
 let _navStack = [];
+// Flecha "← Volver" del header (.header-back) — antes vivía siempre
+// visible, incluso parada en un nivel superior (Inicio, En Vivo, etc.)
+// donde tocarla no llevaba a ningún lado útil (caía en el fallback de
+// abajo, que re-renderiza LA MISMA sección). Ahora se muestra/oculta según
+// haya o no algo real en _navStack para volver — "inteligente": solo
+// aparece cuando efectivamente hay un paso atrás que dar.
+function _updateBackBtnVisibility() {
+  const btn = document.querySelector('.header-back');
+  if (btn) btn.style.display = _navStack.length ? 'inline-block' : 'none';
+}
 function _navPush(label, restore) {
   _navStack.push({ label, restore, scrollY: window.scrollY });
+  _updateBackBtnVisibility();
 }
 function volverAtras() {
   const entry = _navStack.pop();
+  _updateBackBtnVisibility();
   if (entry && typeof entry.restore === 'function') {
     entry.restore();
     if (typeof entry.scrollY === 'number') setTimeout(() => window.scrollTo(0, entry.scrollY), 0);
@@ -6885,7 +6907,10 @@ function volverAtras() {
   }
   // Fallback seguro: sin historial propio (enlace directo, recarga a mitad
   // de una vista) — volver a la sección de nivel superior que corresponda
-  // según lo que esté visible ahora mismo, en vez de no hacer nada.
+  // según lo que esté visible ahora mismo, en vez de no hacer nada. Con la
+  // flecha ya oculta en ese estado (_navStack vacío), este fallback queda
+  // como red de seguridad para llamadas a volverAtras() que no vengan del
+  // propio botón (recarga a mitad de una vista, por ejemplo).
   const activeMainBtn = document.querySelector('#main-nav button.active');
   const idx = activeMainBtn ? [...document.querySelectorAll('#main-nav button')].indexOf(activeMainBtn) : -1;
   if (idx === 0) { showTab('resumen', activeMainBtn); return; }
@@ -6894,6 +6919,16 @@ function volverAtras() {
   if (idx === 3) { showTab('historial', activeMainBtn); return; }
   if (idx === 4) { showTab('graficos', activeMainBtn); return; }
   goBack();
+}
+// Wrapper de los 5 accesos de nivel superior (#main-nav y su espejo
+// #mobile-bottom-nav) — tocar un tab de arriba es "empezar de cero" en esa
+// sección, así que limpia cualquier historial de drill-down que hubiera
+// quedado de la sección anterior (si no, la flecha podía quedar visible
+// apuntando a un restore() que ya no tiene sentido tras el salto directo).
+function _navGoTab(name, btn) {
+  _navStack = [];
+  showTab(name, btn);
+  _updateBackBtnVisibility();
 }
 // La casilla "← Volver" en línea se eliminó de cada vista — esa función
 // la cumple ahora la flecha del header (.header-back, ver arriba), que
