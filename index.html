@@ -558,15 +558,15 @@
     .hist-search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #475569; font-size: 1rem; pointer-events: none; }
 
     /* Filtro de orden mobile — desktop ya ordena tocando los headers de
-       .hist-table (mrow-desktop-only, oculta en mobile), así que esta fila
-       de chips es la única forma de reordenar el listado ≤768px. Reusa
-       exactamente el mismo histSort(col)/_histSort globales que ya mueven
-       la tabla desktop, ver renderHistorial(). */
-    .hist-sort-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
-    .hist-sort-btn { background: transparent; border: 1px solid #1e2a3a; border-radius: 20px; padding: 4px 13px; font-size: .75rem; color: #475569; cursor: pointer; transition: all .2s; font-family: inherit; }
-    .hist-sort-btn:hover { border-color: var(--dorado); color: var(--dorado); }
-    .hist-sort-btn.active { background: var(--dorado); border-color: var(--dorado); color: #0B0E14; font-weight: 700; }
-    @media (min-width: 769px) { .hist-sort-bar { display: none; } }
+       .hist-table (mrow-desktop-only, oculta en mobile), así que este
+       dropdown es la única forma de reordenar el listado ≤768px. Reusa
+       .pmf-bar/-dd/-btn/-menu, el mismo componente visual del filtro
+       "Pos/Orden" de Plantel (ver _plantelMobileFilterBarHtml) — ese
+       mismo bloque ya se muestra solo en mobile y se esconde en desktop
+       por su propia media query, sin necesitar reglas propias acá.
+       histSort(col)/_histSort son los mismos globales que ya mueven la
+       tabla desktop, ver renderHistorial(). */
+    .hist-sort-bar { margin-bottom: 12px; }
 
     .hist-table-wrap { overflow-x: auto; border-radius: 16px; border: 1px solid #1e2a3a; }
     .hist-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
@@ -1155,7 +1155,7 @@
       .landing-cards .landing-card:nth-child(-n+2) .card-name { font-size: 0.85rem; }
       .landing-cards .landing-card:nth-child(-n+2) .lc-badge { position: static; margin-top: 2px; }
       .landing-cards .landing-card:nth-child(-n+2) > .card-badge {
-        margin: 4px 0 0; font-size: 0.6rem; padding: 2px 8px; white-space: nowrap;
+        align-self: center; margin: 4px 0 0; font-size: 0.6rem; padding: 2px 8px; white-space: nowrap;
       }
       .landing-cards .landing-card:nth-child(-n+2) .lc-footer {
         flex-direction: column; align-items: center; gap: 6px; width: 100%;
@@ -11479,6 +11479,10 @@ const SEED_HISTORIAL = [
 ];
 
 let _histSort = { col:'rival', asc: true };
+// Estado abierto/cerrado del dropdown "Orden" mobile de Historial vs
+// Clubes (ver buildSortBar() dentro de renderHistorial) — mismo patrón
+// que _plantelMobileSortOpen.
+let _histSortMenuOpen = false;
 
 // Whether "Historial vs Clubes" is currently showing a rival drilldown
 // (renderHistorialDetalle) instead of the top-level club list. The 60s
@@ -11601,18 +11605,30 @@ function renderHistorial() {
     return rows;
   }
 
-  // Chips de orden — solo visibles en mobile (ver .hist-sort-bar), donde no
-  // hay headers de tabla clickeables para reordenar el listado. Reusa
-  // histSort(col)/_histSort tal cual, así el estado queda 100% sincronizado
-  // con lo que ordenaría el mismo click en un header de escritorio.
+  // Dropdown de orden — solo visible en mobile (ver .hist-sort-bar), donde
+  // no hay headers de tabla clickeables para reordenar el listado. Mismo
+  // componente visual que el filtro "Pos/Orden" de Plantel (.pmf-bar/-dd/
+  // -btn/-menu, ver _plantelMobileFilterBarHtml) en vez de una fila de
+  // chips propia — reusa histSort(col)/_histSort tal cual, así el estado
+  // queda 100% sincronizado con lo que ordenaría el mismo click en un
+  // header de escritorio.
   const HIST_MOBILE_SORTS = [
     ['pg', 'Más victorias'], ['pp', 'Más derrotas'], ['pe', 'Más empates'],
     ['dif', 'Mejor diferencia'], ['gf', 'Más goles a favor'], ['gc', 'Más goles en contra'],
   ];
   function buildSortBar() {
-    return HIST_MOBILE_SORTS.map(([col, label]) =>
-      `<button class="hist-sort-btn${_histSort.col === col ? ' active' : ''}" onclick="histSort('${col}')">${label}</button>`
-    ).join('');
+    const active = HIST_MOBILE_SORTS.find(([col]) => col === _histSort.col);
+    const label = active ? active[1] : 'Rival (A-Z)';
+    const menu = HIST_MOBILE_SORTS.map(([col, l]) => `<div class="pmf-menu-item${_histSort.col === col ? ' active' : ''}"
+      onclick="window._histSortSelect('${col}')">${l}</div>`).join('');
+    return `<div class="pmf-bar hist-sort-bar" id="hist-sort-bar">
+      <div class="pmf-row">
+        <div class="pmf-dd">
+          <button class="pmf-btn active" onclick="window._histSortToggle()">Orden: ${label} <span>▾</span></button>
+          ${_histSortMenuOpen ? `<div class="pmf-menu">${menu}</div>` : ''}
+        </div>
+      </div>
+    </div>`;
   }
 
   function paint() {
@@ -11621,9 +11637,19 @@ function renderHistorial() {
     const sortEl = document.getElementById('hist-sort-bar');
     const tblEl = document.getElementById('hist-table-container');
     if (kpiEl) kpiEl.innerHTML = buildKpiBar(data);
-    if (sortEl) sortEl.innerHTML = buildSortBar();
+    if (sortEl) sortEl.outerHTML = buildSortBar();
     if (tblEl) tblEl.innerHTML = buildTable(getSorted(q));
   }
+
+  window._histSortToggle = function() {
+    _histSortMenuOpen = !_histSortMenuOpen;
+    const el = document.getElementById('hist-sort-bar');
+    if (el) el.outerHTML = buildSortBar();
+  };
+  window._histSortSelect = function(col) {
+    _histSortMenuOpen = false;
+    histSort(col);
+  };
 
   document.getElementById('partidos-grid').innerHTML = `
     <div class="hist-wrap">
@@ -11632,7 +11658,7 @@ function renderHistorial() {
         <span class="hist-search-icon">🔍</span>
         <input class="hist-search" id="hist-search-input" placeholder="Buscar entre ${data.length} clubes…" oninput="histFilter(this.value)">
       </div>
-      <div class="hist-sort-bar" id="hist-sort-bar">${buildSortBar()}</div>
+      ${buildSortBar()}
       <div id="hist-table-container">${buildTable(getSorted(''))}</div>
     </div>`;
 
