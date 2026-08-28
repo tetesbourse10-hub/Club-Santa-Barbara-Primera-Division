@@ -1212,6 +1212,18 @@
     .torneo-card-icon { font-size: 2.2rem; }
     .torneo-card-name { font-size: 1.05rem; font-weight: 800; color: var(--blanco); }
     .torneo-card-sub  { font-size: 0.78rem; color: var(--gris-texto); }
+    /* Mobile: estas fichas solo llevan a otra pantalla (ícono + nombre +
+       una línea de subtítulo) — el padding/tipografía de escritorio las
+       hacía ocupar casi toda la pantalla por cada una, obligando a
+       scrollear 4 tarjetas completas para elegir una sub-sección. En 2
+       columnas y bastante más compactas entran las 4 sin scroll. */
+    @media (max-width:768px) {
+      .torneos-picker-grid { grid-template-columns: repeat(2,1fr) !important; gap: 10px !important; max-width: none !important; }
+      .torneo-card { padding: 14px 12px; gap: 4px; border-radius: 12px; }
+      .torneo-card-icon { font-size: 1.5rem; }
+      .torneo-card-name { font-size: 0.82rem; }
+      .torneo-card-sub { font-size: 0.66rem; line-height: 1.25; }
+    }
     /* ── Global "Volver" button — single reusable back-navigation component,
        replaces the old per-section .torneo-back/.hd-back buttons that each
        hardcoded their own destination. ── */
@@ -2214,10 +2226,15 @@
          entera ya es clickeable con flecha), menos padding, y el V-E-D como
          chips con un borde superior separándolo del resto. */
       .hist-tc-detail-badge { display:none; }
-      .hist-torneo-card { padding:14px 14px 12px; }
+      .hist-torneo-card { padding:12px 12px 10px; }
+      .hist-tc-header { margin-bottom: 8px; }
+      .hist-tc-pos { margin: 4px 0 8px; }
+      .hist-tc-pos-liga { font-size: 1.5rem; }
+      .hist-tc-pos-liga.hist-tc-pos-long { font-size: 1.15rem; }
+      .hist-tc-pos-copa { font-size: 1.1rem; }
       .hist-tc-record-inline { display:none; }
       .hist-tc-ved-chips {
-        display:flex; margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.07);
+        display:flex; margin-top:8px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.07);
       }
       /* Campeón: degradado dorado sutil sobre el fondo oscuro de la card
          (desktop ya tiene su propio tratamiento más discreto — este es más
@@ -2971,6 +2988,16 @@
     }
     .pp-mini-stat-val { font-size:1.5rem; font-weight:900; line-height:1; }
     .pp-mini-stat-label { font-size:0.68rem; font-weight:700; color:#cbd5e1; text-transform:uppercase; letter-spacing:.04em; }
+    /* Títulos/Rojas ahora van DEBAJO de Partidos/Goles/Asist./G+A (antes al
+       revés, arriba del todo y del mismo tamaño o más grandes — se leían
+       como la métrica principal cuando son secundarias). Esta variante más
+       chica marca esa jerarquía: Partidos/Goles/Asist./G+A son la fila
+       protagonista, Títulos/Rojas quedan como fila de cierre más discreta. */
+    .pp-titrojas-sm { margin-top: 10px; }
+    .pp-titrojas-sm .pp-mini-stat { padding: 8px 6px; gap: 4px; }
+    .pp-titrojas-sm .pp-mini-stat-icon { width: 24px; height: 24px; border-radius: 7px; font-size: 0.82rem; }
+    .pp-titrojas-sm .pp-mini-stat-val { font-size: 1.05rem; }
+    .pp-titrojas-sm .pp-mini-stat-label { font-size: 0.6rem; }
     .pp-history-card {
       background:#111827; border:1px solid #1e293b; border-radius:16px; padding:24px;
     }
@@ -4960,7 +4987,7 @@ function ppFilterMetrics(cat, btn) {
   // KPI numbers above.
   const fav = _ppComputeFavoritos();
   const favFields = [
-    ['pp-fav-pj', '⚔️', 'Rival Favorito', fav.pj, 'PJ'],
+    ['pp-fav-pj', '⚔️', 'Rival Favorito', fav.partidos, 'PJ'],
     ['pp-fav-goles', '🎯', 'Víctima Favorita', fav.goles, 'Goles'],
     ['pp-fav-asist', '🅰️', 'Asistencia Favorita', fav.asist, 'Asist.'],
   ];
@@ -5909,7 +5936,15 @@ function _ppRivalGaBreakdown(list) {
 function _ppComputeFavoritos() {
   const list = _ppFilterByCat(window._ppDetailLists.partidos || []);
   return {
-    pj:    _ppFavoritoRival(list, 'pj'),
+    // Clave 'partidos' (no 'pj') a propósito — es el mismo nombre de kind
+    // que usan ppShowDetail/PP_DATO_CURIOSO_META/el id de la tarjeta
+    // ("pp-kpi-partidos"). BUG REAL encontrado: esta función devolvía la
+    // clave 'pj', pero todo lo que lee este objeto por kind dinámico
+    // (_ppUpdateDatoCurioso, el pie mobile de la grilla) busca
+    // fav['partidos'] — con la clave desalineada, el "Rival Más Enfrentado"
+    // nunca aparecía al seleccionar la tarjeta de Partidos Jugados, quedaba
+    // siempre en "—" aunque el dato sí existía (fav.pj).
+    partidos: _ppFavoritoRival(list, 'pj'),
     goles: _ppFavoritoRival(list.filter(p => p.goles > 0), 'goles'),
     asist: _ppFavoritoRival(list.filter(p => p.asist > 0), 'asist'),
     ga:    _ppRivalGaBreakdown(list)[0] || null,
@@ -6077,10 +6112,11 @@ function _ppDetailPanelBodyHtml(kind, fullList) {
     const activeRes = resState[kind] || 'todos';
     const countRes = res => capFiltered.filter(p => _ppMatchResultado(p) === res).length;
     const resDot = (val, cls, label) => `<button class="pp-fbar-res-dot ${cls}${activeRes === val ? ' active' : ''}" onclick="ppFilterRes('${kind}', '${val}')" title="${label}"><span class="pp-fbar-res-dot-ico"></span>${countRes(val)}</button>`;
+    // Mismo divisor vertical fino entre cada píldora que ya separa las tabs
+    // de torneo (Apertura/Clausura/Copas, ver `divider` más abajo).
+    const resDivider = `<div class="pp-fbar-divider"></div>`;
     resToggleHtml = `<div class="pp-fbar-res-toggle">
-      ${resDot('win', 'pp-fbar-res-win', 'Ganados')}
-      ${resDot('draw', 'pp-fbar-res-draw', 'Empatados')}
-      ${resDot('loss', 'pp-fbar-res-loss', 'Perdidos')}
+      ${[resDot('win', 'pp-fbar-res-win', 'Ganados'), resDot('draw', 'pp-fbar-res-draw', 'Empatados'), resDot('loss', 'pp-fbar-res-loss', 'Perdidos')].join(resDivider)}
     </div>`;
     if (activeRes !== 'todos') finalList = capFiltered.filter(p => _ppMatchResultado(p) === activeRes);
   }
@@ -6496,14 +6532,17 @@ function renderPlayerProfile(nombre) {
       <button class="pp-metric-tab" data-cat="b" onclick="ppFilterMetrics('b', this)">Primera B</button>
     </div>`;
 
-  // Bloque Inferior (Ataque & Presencias) — Partidos/Goles/Asistencias/G+A
-  // en una fila de 4 columnas iguales. El promedio (antes solo visible en
-  // mobile, ver .pp-kpi-sec-mobile) ahora se muestra siempre acá — ya no
-  // hay una tarjeta de "Promedio" aparte con la que no duplicarlo.
+  // Fila principal (Ataque & Presencias) — Partidos/Goles/Asistencias/G+A
+  // en una fila de 4 columnas iguales, primera fila de métricas después del
+  // bento de Récord/Participación (antes Títulos/Rojas se mostraba primero
+  // y más grande, invirtiendo la jerarquía real — ver titRojasCard más
+  // abajo, ahora chico y debajo de esta fila). El promedio (antes solo
+  // visible en mobile, ver .pp-kpi-sec-mobile) se muestra siempre acá — ya
+  // no hay una tarjeta de "Promedio" aparte con la que no duplicarlo.
   const bottomRow = `
     <div class="hist-kpis pp-metrics-grid pp-metrics-grid-main">
       ${kpi('pp-m-pj',      '📋', s.pj,   'Partidos', null, 'partidos',
-        favBanner('pp-fav-pj', '⚔️', 'Rival Favorito', _favInit.pj, 'PJ'),
+        favBanner('pp-fav-pj', '⚔️', 'Rival Favorito', _favInit.partidos, 'PJ'),
         `${s.titular} TIT · ${s.sup} SUP`)}
       ${kpi('pp-m-goles',   '⚽', s.goles, 'Goles', '#22c55e', 'goles',
         favBanner('pp-fav-goles', '🎯', 'Víctima Favorita', _favInit.goles, 'Goles'),
@@ -6526,7 +6565,7 @@ function renderPlayerProfile(nombre) {
   // mostraba solo (efectividadGA = promGol + promAsist).
   const pctGol = s.promGol * 100, pctAsist = s.promAsist * 100;
   const participacionCard = `
-    <div class="card pp-bento-card pp-particip-card">
+    <div class="card pp-bento-card pp-bento-span-2 pp-particip-card">
       <div class="pp-particip-header">
         <div class="card-label">Participación en Goles</div>
         <div class="pp-particip-total" id="pp-particip-total">${s.efectividadGA.toFixed(0)}%</div>
@@ -6544,10 +6583,12 @@ function renderPlayerProfile(nombre) {
       <div class="pp-particip-caption">Aporte directo en el marcador del equipo</div>
     </div>`;
 
-  // Bloque Superior, card 3 — Títulos + Rojas: 2 botones lado a lado (sub-
-  // grilla de 2 columnas) en vez de 2 tarjetas sueltas del grid de 8 —
-  // clickeables, mismo onclick que las tarjetas del Bloque Inferior
-  // (ppShowDetail abre el panel de detalle correspondiente debajo).
+  // Títulos + Rojas: 2 botones lado a lado (sub-grilla de 2 columnas),
+  // ahora como fila de cierre chica DEBAJO de Partidos/Goles/Asist./G+A
+  // (antes vivían arriba del todo, en el bento de Récord/Participación, del
+  // mismo tamaño o más grandes que las métricas principales — ver
+  // .pp-titrojas-sm) — clickeables, mismo onclick que las tarjetas de
+  // arriba (ppShowDetail abre el panel de detalle correspondiente debajo).
   const miniStat = (kind, icon, val, label, color) => `
     <button class="pp-mini-stat pp-kpi-tab" id="pp-kpi-${kind}" onclick="ppShowDetail('${kind}')">
       <div class="pp-mini-stat-icon" style="background:${color}1a;color:${color}">${icon}</div>
@@ -6555,7 +6596,7 @@ function renderPlayerProfile(nombre) {
       <div class="pp-mini-stat-label">${label}</div>
     </button>`;
   const titRojasCard = `
-    <div class="card pp-bento-card pp-titrojas-card">
+    <div class="card pp-titrojas-card pp-titrojas-sm">
       ${miniStat('titulos', '🏆', s.titulos, 'Títulos', '#fbbf24')}
       <div class="pp-titrojas-divider"></div>
       ${miniStat('rojas', '🟥', s.rojas, 'Rojas', '#ef4444')}
@@ -6616,9 +6657,9 @@ function renderPlayerProfile(nombre) {
       <div class="pp-bento-grid">
         ${recordCard}
         ${participacionCard}
-        ${titRojasCard}
       </div>
       ${bottomRow}
+      ${titRojasCard}
       ${historySection}
     </div>`;
 
