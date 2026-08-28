@@ -111,13 +111,22 @@ function splitName(nombre, maxLine = 16) {
 // 1080px de este SVG (factor 1080/420 ≈ 2.571) — antes los números de las
 // tiles eran ~25px, la mitad de lo que les correspondía (~62px), la causa
 // concreta de "los datos quedan muy chicos" reportado.
+//
+// BUG REAL reportado después ("el diseño del texto y los números no son
+// acordes a los de la página"): el label de cada tile iba en minúscula/
+// capitalizada normal, más grande y sin tracking — en TODO el resto del
+// sitio, cualquier tile de métrica (rsm-stat-label, hist-kpi-label,
+// jtot-kpi-label, pp-mini-stat-label, sin excepciones) usa un label chico
+// en MAYÚSCULA con letter-spacing, no texto plano. Se alinea acá al mismo
+// idioma: número grande con tracking apretado (mismo criterio que
+// .hist-kpi-val, letter-spacing:-.02em) + label uppercase chico tracked.
 function statCard({ x, y, w, h, val, label, valColor, big }) {
   const parts = [];
   parts.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="16" fill="${big ? '#141d2e' : 'rgba(255,255,255,0.035)'}" />`);
   const valSize = big ? 60 : 34;
-  const labelSize = big ? 22 : 20;
-  parts.push(`<text x="${x + w / 2}" y="${y + h / 2 - (big ? 8 : 4)}" font-family="${FONT}" font-size="${valSize}" font-weight="900" fill="${valColor || '#ffffff'}" text-anchor="middle">${escapeXml(String(val))}</text>`);
-  parts.push(`<text x="${x + w / 2}" y="${y + h / 2 + (big ? 42 : 32)}" font-family="${FONT}" font-size="${labelSize}" font-weight="700" fill="#8a94ab" text-anchor="middle">${escapeXml(label)}</text>`);
+  const labelSize = big ? 17 : 15;
+  parts.push(`<text x="${x + w / 2}" y="${y + h / 2 - (big ? 8 : 4)}" font-family="${FONT}" font-size="${valSize}" font-weight="900" letter-spacing="-1" fill="${valColor || '#ffffff'}" text-anchor="middle">${escapeXml(String(val))}</text>`);
+  parts.push(`<text x="${x + w / 2}" y="${y + h / 2 + (big ? 42 : 32)}" font-family="${FONT}" font-size="${labelSize}" font-weight="800" letter-spacing="${labelSize * 0.09}" fill="#8a94ab" text-anchor="middle">${escapeXml(label.toUpperCase())}</text>`);
   return parts.join('\n');
 }
 
