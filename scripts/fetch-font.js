@@ -58,11 +58,24 @@ async function loadWeight(dir, weight) {
 
 async function fetchInterFonts() {
   const dir = fontsDir();
-  const [regular, bold, black] = await Promise.all([
-    loadWeight(dir, 400),
-    loadWeight(dir, 700),
-    loadWeight(dir, 900),
-  ]);
+  // BUG REAL encontrado en el build de Netlify (después de este mismo
+  // cambio): descomprimir los 3 .woff2 en paralelo vía Promise.all corrompe
+  // silenciosamente 2 de los 3 buffers — `wawoff2` decodifica sobre una
+  // instancia de WASM compartida, y descomprimir 3 archivos DISTINTOS al
+  // mismo tiempo pisa la memoria lineal compartida entre llamadas
+  // concurrentes (confirmado a mano: en paralelo, 2 de los 3 buffers
+  // salían con bytes de arranque que no son un sfnt/TTF válido — ni
+  // siquiera tiraban excepción, el .ttf quedaba corrupto en silencio, así
+  // que el chequeo de la tabla 'name' fallaba con "(no encontrado)"). Antes
+  // este mismo Promise.all no lo mostraba porque los 3 pesos resolvían a
+  // la MISMA URL (el bug de la fuente variable, ver más abajo) — 3
+  // descompresiones concurrentes de datos IDÉNTICOS no se pisan de forma
+  // visible entre sí. Con 3 archivos realmente distintos, sí. Se
+  // descomprime secuencial (await uno por uno) para no correr wawoff2 en
+  // paralelo — 3 archivos chicos, el costo extra es insignificante.
+  const regular = await loadWeight(dir, 400);
+  const bold = await loadWeight(dir, 700);
+  const black = await loadWeight(dir, 900);
 
   // Red de seguridad barata contra esta MISMA clase de bug si la fuente
   // volviera a servirse consolidada (variable) por cualquier motivo: si
