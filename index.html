@@ -1787,6 +1787,47 @@
       font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em;
       color: var(--gris-texto); font-weight: 700; margin-bottom: 10px;
     }
+    /* Tarjetas contenedoras por sección — antes cada módulo (Actualidad,
+       Tabla, Destacados, etc.) flotaba directo sobre el fondo con solo un
+       título gris arriba, sin ninguna delimitación física entre uno y el
+       siguiente. Un marco sutil (border + fondo apenas más claro que el
+       fondo general) + un badge de color propio (en vez de texto plano)
+       encajona cada bloque temático, así se lee de un vistazo dónde
+       termina uno y empieza el otro. */
+    .rsm-card-box {
+      background: rgba(15,23,42,0.4); border: 1px solid rgba(148,163,184,0.15);
+      border-radius: 16px; padding: 14px; margin-bottom: 14px;
+    }
+    .rsm-card-badge-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+    .rsm-card-badge-row .rsm-card-badge { margin-bottom: 0; }
+    .rsm-card-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 0.66rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
+      padding: 4px 10px; border-radius: 8px; margin-bottom: 12px;
+    }
+    .rsm-card-badge-sky     { background: rgba(56,189,248,0.12);  color: #38bdf8; }
+    .rsm-card-badge-emerald { background: rgba(16,185,129,0.12);  color: #34d399; }
+    .rsm-card-badge-amber   { background: rgba(245,158,11,0.12);  color: #fbbf24; }
+    .rsm-card-badge-purple  { background: rgba(168,85,247,0.12);  color: #c084fc; }
+    .rsm-card-badge-gold    { background: rgba(250,199,117,0.14); color: #fac775; }
+
+    /* Estadísticas Históricas — antes 8 fichas cuadradas sueltas (2 filas de
+       4), cada una con su propio fondo/borde/radio, ocupaban mucho aire
+       vertical y se leían inconexas. Un solo bloque técnico con divisores
+       finos entre celdas (estilo divide-x/divide-y) reduce la altura casi a
+       la mitad y se lee como un tablero analítico único en vez de 8
+       tarjetas separadas. */
+    .rsm-stats-table {
+      display: grid; grid-template-columns: repeat(4,1fr);
+      border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; overflow: hidden;
+    }
+    .rsm-stats-cell {
+      padding: 9px 4px; text-align: center;
+      border-right: 1px solid rgba(255,255,255,0.08);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .rsm-stats-cell:nth-child(4n) { border-right: none; }
+    .rsm-stats-cell:nth-child(n+5) { border-bottom: none; }
     .rsm-stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
     .rsm-stat {
       background: var(--azul-card); border:1px solid rgba(255,255,255,0.06);
@@ -1922,13 +1963,24 @@
     .rsm-tabla-row-csb .rsm-tabla-pts { color:var(--dorado); }
 
     .rsm-card { background:var(--azul-card); border:1px solid rgba(255,255,255,0.06); border-radius:14px; overflow:hidden; }
-    .rsm-tabs { display:flex; border-bottom:1px solid rgba(255,255,255,0.08); }
+    /* Variante sin marco propio — usada cuando .rsm-card ya vive adentro de
+       un .rsm-card-box (el módulo TOP 3 histórico de Inicio, que quiere UN
+       SOLO marco exterior en vez de una caja dentro de otra caja); la
+       versión de Estadísticas Anuales sigue usando .rsm-card "normal" (con
+       su propio fondo/borde), sin .rsm-card-box alrededor. */
+    .rsm-card.rsm-card-flat { background:transparent; border:none; border-radius:0; }
+    /* Pestañas como segmento integrado (mismo idioma visual que el switch
+       Primera A/Primera B del header, ver .resumen-cat-switch) en vez de
+       tabs de subrayado sueltas al aire. */
+    .rsm-tabs { display:flex; background:#141d2e; border-radius:999px; padding:3px; gap:2px; margin-bottom:8px; }
+    .rsm-card:not(.rsm-card-flat) .rsm-tabs { margin:12px 12px 8px; }
     .rsm-tab {
-      flex:1; background:none; border:none; color:var(--gris-texto); font-size:0.72rem; font-weight:700;
-      padding:11px 4px; cursor:pointer; border-bottom:2px solid transparent;
+      flex:1; background:transparent; border:none; color:var(--gris-texto); font-size:0.7rem; font-weight:700;
+      padding:7px 4px; cursor:pointer; border-radius:999px; transition:background .18s, color .18s;
     }
-    .rsm-tab.active { color:var(--dorado); border-bottom-color:var(--dorado); }
+    .rsm-tab.active { background:#412402; color:#fac775; }
     .rsm-panel { padding: 4px 14px 8px; }
+    .rsm-card-flat .rsm-panel { padding: 4px 0 0; }
     .rsm-panel .top10-row { padding: 8px 0; }
 
     /* ── TOP 5 podio horizontal mobile — usado por Resumen (Inicio) y
@@ -1945,6 +1997,7 @@
       order:2; transform:translateY(-4px);
       background:linear-gradient(160deg, rgba(245,158,11,0.16), #151c2c 75%);
       border-color:rgba(245,158,11,0.5);
+      box-shadow: 0 0 18px -4px rgba(245,158,11,0.45);
     }
     .t5-pcol.t5-p2 { order:1; border-color:rgba(203,213,225,0.28); }
     .t5-pcol.t5-p3 { order:3; border-color:rgba(217,119,6,0.3); }
@@ -10819,9 +10872,11 @@ function renderResumen() {
         </div>
       </div>
 
-      <!-- Módulo 2: Actualidad — Último Partido + Próximo Partido -->
-      <div class="rsm-section">
-        <div class="rsm-section-title">Actualidad</div>
+      <!-- Módulo 2: Actualidad — Último Partido + Próximo Partido, en su
+           propia tarjeta contenedora (antes flotaba directo sobre el fondo,
+           con solo un título gris arriba — ver rsm-card-box/-badge). -->
+      <div class="rsm-card-box">
+        <div class="rsm-card-badge rsm-card-badge-sky">📊 Actualidad</div>
         <div class="rsm-actualidad-grid">
           <div class="rsm-match-card rsm-actualidad-card ${ultimoRes || ''}" ${ultimo ? `onclick="goToMatchFecha('${ultimo._navKey}', '${String(ultimo.fecha).replace(/'/g, "\\'")}')" title="Ver en Fecha a Fecha"` : ''}>
             <div class="rsm-actualidad-label">⚽ Último Partido</div>
@@ -10844,9 +10899,9 @@ function renderResumen() {
 
       <!-- Módulo 3: Tabla de Posiciones — 3 filas centradas en CSB (1 arriba,
            CSB, 1 abajo) + link "Ver Completa" a la tabla real. -->
-      <div class="rsm-section">
-        <div class="rsm-section-title-row">
-          <div class="rsm-section-title" style="margin-bottom:0">Tabla de Posiciones</div>
+      <div class="rsm-card-box">
+        <div class="rsm-card-badge-row">
+          <div class="rsm-card-badge rsm-card-badge-emerald">📈 Tabla de Posiciones</div>
           <span class="rsm-ver-completa" onclick="${verTablaCompletaAttr}">Ver Completa →</span>
         </div>
         <div class="rsm-tabla-card">
@@ -10865,9 +10920,9 @@ function renderResumen() {
            desktop, en grilla 2x2 en vez de columna vertical, + botón "Ver
            Plantel Completo" (misma navegación que el "Ver Plantel →" de
            desktop, ver verEstadisticasAttr). -->
-      <div class="rsm-section">
-        <div class="rsm-section-title-row">
-          <div class="rsm-section-title" style="margin-bottom:0">Destacados ${clausuraLabel}</div>
+      <div class="rsm-card-box">
+        <div class="rsm-card-badge-row">
+          <div class="rsm-card-badge rsm-card-badge-amber">🌟 Destacados ${clausuraLabel}</div>
           <span class="rsm-pj-badge">${ligaClausura.length} PJ</span>
         </div>
         <div class="rsm-destacados-grid">
@@ -10895,27 +10950,36 @@ function renderResumen() {
         <button class="rsm-ver-plantel-btn" onclick="${verEstadisticasAttr}">Ver Plantel Completo →</button>
       </div>
 
-      <!-- Módulo 4: KPIs históricos, grilla 4x2 (sin cambios) -->
-      <div class="rsm-section">
-        <div class="rsm-section-title">Estadísticas históricas</div>
-        <div class="rsm-stats-grid">
-          <div class="rsm-stat"><div class="rsm-stat-val">${h.pj}</div><div class="rsm-stat-label">PJ</div></div>
-          <div class="rsm-stat"><div class="rsm-stat-val" style="color:var(--verde)">${h.pg}</div><div class="rsm-stat-label">Victorias</div></div>
-          <div class="rsm-stat"><div class="rsm-stat-val" style="color:var(--dorado)">${h.pe}</div><div class="rsm-stat-label">Empates</div></div>
-          <div class="rsm-stat"><div class="rsm-stat-val" style="color:var(--rojo)">${h.pp}</div><div class="rsm-stat-label">Derrotas</div></div>
-          <div class="rsm-stat"><div class="rsm-stat-val" style="color:var(--azul-claro)">${h.gf}</div><div class="rsm-stat-label">GF</div></div>
-          <div class="rsm-stat"><div class="rsm-stat-val" style="color:var(--rojo)">${h.gc}</div><div class="rsm-stat-label">GC</div></div>
-          <div class="rsm-stat"><div class="rsm-stat-val">${h.vi}</div><div class="rsm-stat-label">Vallas</div></div>
-          <div class="rsm-stat"><div class="rsm-stat-val" style="color:${(h.gf-h.gc)>=0?'var(--verde)':'var(--rojo)'}">${h.gf-h.gc>=0?'+':''}${h.gf-h.gc}</div><div class="rsm-stat-label">Dif.</div></div>
+      <!-- Módulo 4: KPIs históricos — antes 8 fichas cuadradas sueltas (ver
+           rsm-stats-grid/.rsm-stat), ahora un solo tablero con divisores
+           finos entre celdas (rsm-stats-table/-cell), misma info, mitad de
+           altura. -->
+      <div class="rsm-card-box">
+        <div class="rsm-card-badge rsm-card-badge-purple">📈 Estadísticas Históricas</div>
+        <div class="rsm-stats-table">
+          <div class="rsm-stats-cell"><div class="rsm-stat-val">${h.pj}</div><div class="rsm-stat-label">PJ</div></div>
+          <div class="rsm-stats-cell"><div class="rsm-stat-val" style="color:var(--verde)">${h.pg}</div><div class="rsm-stat-label">Victorias</div></div>
+          <div class="rsm-stats-cell"><div class="rsm-stat-val" style="color:var(--dorado)">${h.pe}</div><div class="rsm-stat-label">Empates</div></div>
+          <div class="rsm-stats-cell"><div class="rsm-stat-val" style="color:var(--rojo)">${h.pp}</div><div class="rsm-stat-label">Derrotas</div></div>
+          <div class="rsm-stats-cell"><div class="rsm-stat-val" style="color:var(--azul-claro)">${h.gf}</div><div class="rsm-stat-label">GF</div></div>
+          <div class="rsm-stats-cell"><div class="rsm-stat-val" style="color:var(--rojo)">${h.gc}</div><div class="rsm-stat-label">GC</div></div>
+          <div class="rsm-stats-cell"><div class="rsm-stat-val">${h.vi}</div><div class="rsm-stat-label">Vallas</div></div>
+          <div class="rsm-stats-cell"><div class="rsm-stat-val" style="color:${(h.gf-h.gc)>=0?'var(--verde)':'var(--rojo)'}">${h.gf-h.gc>=0?'+':''}${h.gf-h.gc}</div><div class="rsm-stat-label">Dif.</div></div>
         </div>
       </div>
 
-      <!-- Módulo 5: TOP 3 histórico — mobile se queda en 3 (recorte propio
-           acá con .slice(0,3)); desktop, más abajo, vuelve a mostrar las 5
-           completas que ya trae byPartidos/byGoles/byAsist. -->
-      <div class="rsm-section">
-        <div class="rsm-section-title">TOP 3 histórico</div>
-        <div class="rsm-card">
+      <!-- Módulo 5: TOP 3 histórico — módulo tabulado contenedor: un solo
+           marco exterior (rsm-card-box, igual que el resto de los módulos),
+           pestañas como segmento integrado en el header (rsm-tabs, mismo
+           idioma visual que el switch Primera A/B) en vez de tabs sueltas,
+           y el podio (#1 con halo dorado, ver .t5-pcol.t5-p1) directo
+           adentro — .rsm-card-flat saca el marco propio de .rsm-card para
+           no duplicar caja-dentro-de-caja. Mobile se queda en Top 3
+           (recorte propio acá con .slice(0,3)); desktop, más abajo, sigue
+           mostrando las 5 completas de byPartidos/byGoles/byAsist. -->
+      <div class="rsm-card-box">
+        <div class="rsm-card-badge rsm-card-badge-gold">🏆 Top 3 Histórico</div>
+        <div class="rsm-card rsm-card-flat">
           <div class="rsm-tabs">
             <button class="rsm-tab active" data-top5="pj" onclick="_resumenMobileTop5('pj', this)">Partidos</button>
             <button class="rsm-tab" data-top5="goles" onclick="_resumenMobileTop5('goles', this)">Goles</button>
@@ -10934,8 +10998,8 @@ function renderResumen() {
            antes filas apiladas acá). Máxima Goleada abre esa ficha puntual
            (goleadaNav) — Racha Invicta queda sin link, igual que en
            desktop (no hay un partido puntual al que apuntar). -->
-      <div class="rsm-section" style="margin-bottom:0">
-        <div class="rsm-section-title">Palmarés Oficial</div>
+      <div class="rsm-card-box" style="margin-bottom:0">
+        <div class="rsm-card-badge rsm-card-badge-amber">🏅 Palmarés Oficial</div>
         <div class="rsm-glorias-card">
           ${d.titulos.map(t => {
             const tCompetencia = t.nombre.replace(/^Campeón\s+/i, '');
