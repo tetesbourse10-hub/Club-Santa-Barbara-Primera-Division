@@ -117,6 +117,7 @@
     /* Solo mobile (ver @media más abajo) — desktop no tenía ni necesita un
        label sobre las 3 tarjetas de torneo. */
     .landing-cards-label { display: none; }
+    .landing-cards-mid-label { display: none; }
 
     .landing-cards {
       display: flex;
@@ -556,10 +557,16 @@
     .hist-search::placeholder { color: #475569; }
     .hist-search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #475569; font-size: 1rem; pointer-events: none; }
 
+    /* Filtro de orden mobile — desktop ya ordena tocando los headers de
+       .hist-table (mrow-desktop-only, oculta en mobile), así que esta fila
+       de chips es la única forma de reordenar el listado ≤768px. Reusa
+       exactamente el mismo histSort(col)/_histSort globales que ya mueven
+       la tabla desktop, ver renderHistorial(). */
     .hist-sort-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
     .hist-sort-btn { background: transparent; border: 1px solid #1e2a3a; border-radius: 20px; padding: 4px 13px; font-size: .75rem; color: #475569; cursor: pointer; transition: all .2s; font-family: inherit; }
     .hist-sort-btn:hover { border-color: var(--dorado); color: var(--dorado); }
     .hist-sort-btn.active { background: var(--dorado); border-color: var(--dorado); color: #0B0E14; font-weight: 700; }
+    @media (min-width: 769px) { .hist-sort-bar { display: none; } }
 
     .hist-table-wrap { overflow-x: auto; border-radius: 16px; border: 1px solid #1e2a3a; }
     .hist-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
@@ -1098,8 +1105,17 @@
         box-shadow: 0 6px 16px -4px rgba(133,183,235,0.5);
       }
 
-      /* Cards principales: de stack centrado a fila compacta */
-      .landing-cards { flex-direction: column; align-items: stretch; gap: 12px; width: 100%; max-width: none; }
+      /* Cards principales: Primera A/B en 2 columnas lado a lado (tarjeta
+         vertical, ver más abajo) + El Nido a ancho completo debajo — antes
+         las 3 iban apiladas en una sola columna, todas con el mismo
+         tratamiento. El label "Nuestros Jugadores" (nuevo, entre medio) es
+         su propio ítem de grid a ancho completo. */
+      .landing-cards { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; width: 100%; max-width: none; }
+      .landing-cards .landing-card:last-child { grid-column: 1 / -1; }
+      .landing-cards-mid-label {
+        display: block; grid-column: 1 / -1; font-size: 0.68rem; font-weight: 700; color: #94a3b8;
+        text-transform: uppercase; letter-spacing: 0.1em; margin: 2px 0 -2px;
+      }
       .landing-card {
         width: 100%; max-width: none; background: #141d2e;
         border: 1px solid rgba(255,255,255,0.08); border-radius: 14px;
@@ -1121,38 +1137,35 @@
          quedar una más "pesada" que la otra visualmente. Solo mobile: se
          apaga el emoji real (font-size:0) y se pinta uno fijo por CSS. */
       .landing-cards .landing-card:nth-child(-n+2) .card-icon { font-size: 0; }
-      .landing-cards .landing-card:nth-child(-n+2) .card-icon::before { content: '🏆'; font-size: 1.15rem; }
+      .landing-cards .landing-card:nth-child(-n+2) .card-icon::before { content: '🏆'; font-size: 1.4rem; }
 
-      /* Primera A/B: de tarjeta "pesada" (icono/nombre arriba, badge de
-         torneo en su propia línea, footer de racha+puntos abajo del todo)
-         a una única fila horizontal compacta — ícono, nombre + badge de
-         torneo, racha G/E/P chica, posición y puntos, todo en la misma
-         línea (envuelve a una 2da línea solo si no entra, nunca vuelve al
-         stack de 3 bloques de antes). */
+      /* Primera A/B: tarjeta vertical (ícono/nombre/badge centrados,
+         racha+puntos al pie) en vez de la fila horizontal compacta de
+         antes — ahora que van lado a lado en 2 columnas angostas, apilar
+         todo centrado da más variación de layout y entra mejor que una
+         fila. */
       .landing-cards .landing-card:nth-child(-n+2) {
-        display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 10px 12px;
+        display: flex; flex-direction: column; align-items: center; text-align: center;
+        gap: 4px; padding: 16px 10px 14px;
       }
-      .landing-cards .landing-card:nth-child(-n+2) .lc-card-head { flex: 1 1 auto; min-width: 0; }
-      .landing-cards .landing-card:nth-child(-n+2) .lc-card-head-left { flex: 1 1 auto; min-width: 0; }
+      .landing-cards .landing-card:nth-child(-n+2) .lc-card-head { flex-direction: column; align-items: center; gap: 4px; }
+      .landing-cards .landing-card:nth-child(-n+2) .lc-card-head-left { flex-direction: column; gap: 4px; }
+      .landing-cards .landing-card:nth-child(-n+2) .lc-card-head-info { align-items: center; }
       .landing-cards .landing-card:nth-child(-n+2) .card-desc { display: none; }
       .landing-cards .landing-card:nth-child(-n+2) .card-name { font-size: 0.85rem; }
-      .landing-cards .landing-card:nth-child(-n+2) .lc-badge { flex: 0 0 auto; }
+      .landing-cards .landing-card:nth-child(-n+2) .lc-badge { position: static; margin-top: 2px; }
       .landing-cards .landing-card:nth-child(-n+2) > .card-badge {
-        flex: 0 0 auto; margin: 0; font-size: 0.6rem; padding: 2px 8px; white-space: nowrap;
+        margin: 4px 0 0; font-size: 0.6rem; padding: 2px 8px; white-space: nowrap;
       }
       .landing-cards .landing-card:nth-child(-n+2) .lc-footer {
-        flex: 0 0 auto; width: auto; margin: 0; padding: 0; border-top: none;
+        flex-direction: column; align-items: center; gap: 6px; width: 100%;
+        margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08);
       }
+      .landing-cards .landing-card:nth-child(-n+2) .lc-foot-results { justify-content: center; }
       /* Cuadraditos de racha (G/E/P) más grandes acá — 20px/6px quedaban
-         chicos y pegados al "X pts" en la fila única compacta; separados
-         del texto de puntos con un divisor vertical sutil en vez de uno
-         horizontal (no hay una 2da línea propia en este layout de fila
-         única, a diferencia del apilado que usa El Nido). */
+         chicos. */
       .landing-cards .landing-card:nth-child(-n+2) .lc-res-pill {
-        width: 24px; height: 24px; border-radius: 7px;
-      }
-      .landing-cards .landing-card:nth-child(-n+2) .lc-foot-pts {
-        border-left: 1px solid rgba(255,255,255,0.14); padding-left: 9px;
+        width: 22px; height: 22px; border-radius: 6px;
       }
 
       /* El Nido (3ra tarjeta): compactada a un solo renglón — ícono +
@@ -1162,9 +1175,9 @@
          JUGADORES" (redundante con la badge de jugadores) para que ese
          renglón sea lo único arriba, dejando el rotador de rankings
          (.lc-footer-nido, ver _paintNidoRotator) como bloque de cierre. */
-      .landing-cards .landing-card:nth-child(3) .card-desc { display: none; }
-      .landing-cards .landing-card:nth-child(3) > .card-badge { display: none; }
-      .landing-cards .landing-card:nth-child(3) .lc-footer { margin-top: 10px; padding-top: 10px; }
+      .landing-cards .landing-card:last-child .card-desc { display: none; }
+      .landing-cards .landing-card:last-child > .card-badge { display: none; }
+      .landing-cards .landing-card:last-child .lc-footer { margin-top: 10px; padding-top: 10px; }
 
       /* Footer discreto de cierre — antes quedaba un espacio vacío grande
          antes del borde inferior (la landing no comparte el <footer> del
@@ -1950,7 +1963,9 @@
     .rsm-glorias-box-sub { font-size:0.58rem; color:var(--gris-texto); font-weight:600; }
 
     /* Widget "Tabla de Posiciones" — título + link "Ver Completa" + 3 filas
-       centradas en CSB (destacada con fondo/borde dorado y ⭐). */
+       centradas en CSB (destacada con fondo/texto verde — antes dorado con
+       una ⭐ al lado del nombre, sacada porque el color ya alcanza para
+       distinguir la fila sin sumar un ícono más). */
     .rsm-section-title-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
     .rsm-ver-completa { font-size:0.68rem; font-weight:700; color:var(--dorado); cursor:pointer; white-space:nowrap; }
     .rsm-tabla-card {
@@ -1963,17 +1978,17 @@
     }
     .rsm-tabla-row:last-child { border-bottom:none; }
     .rsm-tabla-row-csb {
-      background: rgba(245,158,11,0.08); margin:0 -12px; padding:9px 12px;
+      background: rgba(34,197,94,0.1); margin:0 -12px; padding:9px 12px;
       border-radius:8px; border-bottom-color:transparent;
     }
     .rsm-tabla-row-csb + .rsm-tabla-row { border-top:1px solid rgba(255,255,255,0.05); }
     .rsm-tabla-pos { width:18px; flex-shrink:0; color:var(--gris-texto); font-weight:700; }
-    .rsm-tabla-row-csb .rsm-tabla-pos { color:var(--dorado); }
+    .rsm-tabla-row-csb .rsm-tabla-pos { color:var(--verde); }
     .rsm-tabla-team { flex:1; min-width:0; color:var(--texto); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .rsm-tabla-row-csb .rsm-tabla-team { color:var(--dorado); font-weight:800; }
+    .rsm-tabla-row-csb .rsm-tabla-team { color:var(--verde); font-weight:800; }
     .rsm-tabla-pj { color:var(--gris-texto); font-size:0.68rem; flex-shrink:0; }
     .rsm-tabla-pts { color:var(--blanco); font-weight:800; flex-shrink:0; width:52px; text-align:right; }
-    .rsm-tabla-row-csb .rsm-tabla-pts { color:var(--dorado); }
+    .rsm-tabla-row-csb .rsm-tabla-pts { color:var(--verde); }
 
     .rsm-card { background:var(--azul-card); border:1px solid rgba(255,255,255,0.06); border-radius:14px; overflow:hidden; }
     /* Variante sin marco propio — usada cuando .rsm-card ya vive adentro de
@@ -3202,7 +3217,7 @@
     .pp-fbar-cap-btn { width:auto; padding:0 10px; gap:5px; font-size:0.74rem; font-weight:700; color:#94a3b8; }
     .pp-fbar-cap-btn:hover { border-color:rgba(249,115,22,.4); }
     .pp-fbar-cap-btn.active { background:rgba(249,115,22,.12); border-color:rgba(249,115,22,.4); color:#fb923c; }
-    .pp-fbar-res-toggle { display:flex; gap:4px; background:#020617; padding:4px; border-radius:10px; border:1px solid #1e293b; }
+    .pp-fbar-res-toggle { display:flex; align-items:center; gap:4px; background:#020617; padding:4px; border-radius:10px; border:1px solid #1e293b; }
     .pp-fbar-res-dot {
       display:flex; align-items:center; gap:5px; border:1px solid transparent; border-radius:8px;
       padding:5px 9px; font-size:0.74rem; font-weight:800; cursor:pointer; font-family:inherit;
@@ -3463,7 +3478,7 @@
     <div class="pm-carousel" id="landing-next-match-carousel"></div>
   </div>
 
-  <div class="landing-cards-label">Torneos en curso</div>
+  <div class="landing-cards-label">Planteles</div>
   <div class="landing-cards">
     <!-- Los wrapper .lc-card-head/-left/-info de acá abajo son
          display:contents en desktop (no existen para el layout — el ícono,
@@ -3501,6 +3516,8 @@
       <span class="card-badge badge-blue">Clausura AIFA B 2026</span>
       <div class="lc-footer" id="lc-footer-b"></div>
     </div>
+
+    <div class="landing-cards-mid-label">Nuestros Jugadores</div>
 
     <div class="landing-card" onclick="openSection('nido')">
       <div class="lc-card-head">
@@ -8345,7 +8362,7 @@ function _plantelMobileCard({ j, g, a, tit, cit, pj, pos }) {
   const meta = PLANTEL_HIGHLIGHT_META[sortKey];
   const highlightVal = sortKey === 'ga' ? (g + a) : { pj, g, a, tit }[sortKey];
   return `
-    <div class="mrow-card">
+    <div class="mrow-card clickable" onclick="goToPlayer('${j.nombre.replace(/'/g, "\\'")}')">
       <div class="mrow-top">
         <div class="mrow-top-main">
           ${pos ? `<span class="mrow-badge" style="color:${pc};background:${pc}1a;border:1px solid ${pc}44;margin-bottom:4px">${pos}</span>` : ''}
@@ -10950,7 +10967,7 @@ function renderResumen() {
           ${tablaTresFilas.length ? tablaTresFilas.map(t => `
             <div class="rsm-tabla-row${t.csb ? ' rsm-tabla-row-csb' : ''}">
               <span class="rsm-tabla-pos">${t.pos}</span>
-              <span class="rsm-tabla-team">${t.csb ? '⭐ ' : ''}${t.equipo}</span>
+              <span class="rsm-tabla-team">${t.equipo}</span>
               <span class="rsm-tabla-pj">${t.pj} PJ</span>
               <span class="rsm-tabla-pts">${t.pts} pts</span>
             </div>`).join('') : `<div class="rsm-actualidad-empty" style="padding:16px;text-align:center">Tabla no disponible</div>`}
@@ -11584,11 +11601,27 @@ function renderHistorial() {
     return rows;
   }
 
+  // Chips de orden — solo visibles en mobile (ver .hist-sort-bar), donde no
+  // hay headers de tabla clickeables para reordenar el listado. Reusa
+  // histSort(col)/_histSort tal cual, así el estado queda 100% sincronizado
+  // con lo que ordenaría el mismo click en un header de escritorio.
+  const HIST_MOBILE_SORTS = [
+    ['pg', 'Más victorias'], ['pp', 'Más derrotas'], ['pe', 'Más empates'],
+    ['dif', 'Mejor diferencia'], ['gf', 'Más goles a favor'], ['gc', 'Más goles en contra'],
+  ];
+  function buildSortBar() {
+    return HIST_MOBILE_SORTS.map(([col, label]) =>
+      `<button class="hist-sort-btn${_histSort.col === col ? ' active' : ''}" onclick="histSort('${col}')">${label}</button>`
+    ).join('');
+  }
+
   function paint() {
     const q = document.getElementById('hist-search-input')?.value || '';
     const kpiEl = document.getElementById('hist-kpi-bar');
+    const sortEl = document.getElementById('hist-sort-bar');
     const tblEl = document.getElementById('hist-table-container');
     if (kpiEl) kpiEl.innerHTML = buildKpiBar(data);
+    if (sortEl) sortEl.innerHTML = buildSortBar();
     if (tblEl) tblEl.innerHTML = buildTable(getSorted(q));
   }
 
@@ -11599,6 +11632,7 @@ function renderHistorial() {
         <span class="hist-search-icon">🔍</span>
         <input class="hist-search" id="hist-search-input" placeholder="Buscar entre ${data.length} clubes…" oninput="histFilter(this.value)">
       </div>
+      <div class="hist-sort-bar" id="hist-sort-bar">${buildSortBar()}</div>
       <div id="hist-table-container">${buildTable(getSorted(''))}</div>
     </div>`;
 
