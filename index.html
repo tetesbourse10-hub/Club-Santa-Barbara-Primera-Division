@@ -12231,8 +12231,12 @@ function renderHistorialDetalle(rival) {
         </div>
       </div>`;
 
-    // ── Match list grouped by year → torneo, orden cronológico (el más
-    // reciente queda al fondo, igual que la página de "Partidos") ──────────
+    // ── Match list grouped by year → torneo, más reciente primero ──────────
+    // `matches` está en orden cronológico ascendente (heredado de la hoja,
+    // ver más arriba). Para este listado se muestra al revés: el grupo más
+    // reciente arriba, y dentro de cada grupo el partido más reciente arriba
+    // también — solo el orden VISUAL se invierte, el cálculo de "último
+    // resultado"/KPIs de más arriba sigue usando el orden cronológico real.
     function resClass(m) {
       if (m.gf === null || m.gc === null) return 'hd-res-p';
       return m.gf > m.gc ? 'hd-res-w' : m.gf === m.gc ? 'hd-res-d' : 'hd-res-l';
@@ -12245,6 +12249,8 @@ function renderHistorialDetalle(rival) {
       if (!grouped[key]) { grouped[key] = []; order.push(key); }
       grouped[key].push(m);
     });
+    order.reverse();
+    Object.values(grouped).forEach(g => g.reverse());
 
     const noData = matches.length === 0
       ? `<div class="hd-empty-state">
