@@ -12132,16 +12132,20 @@ function renderHistorialDetalle(rival) {
   const isB = currentData === DATA_B;
   Promise.all([isB ? _loadPartidosCacheB() : _loadPartidosCache(), _ppEnsureAllHistoricoLoaded()]).then(([allMatches]) => {
     const rivalUp = rival.toUpperCase();
-    // All matches vs this rival, sorted newest first (reverse chronological)
-    const matches = allMatches
-      .filter(m => m.rival === rivalUp)
-      .slice()
-      .sort((a, b) => {
-        const ay = Number(a.anio) || 0, by = Number(b.anio) || 0;
-        if (ay !== by) return by - ay;
-        const af = Number(a.fecha) || 0, bf = Number(b.fecha) || 0;
-        return bf - af;
-      });
+    // All matches vs this rival. NO se reordena: `allMatches` (parseado por
+    // _parsePartidosPorTorneos) ya viene en el orden real de la hoja "Partidos
+    // Historial" — año tras año, torneo tras torneo tal como se jugaron — así
+    // que filtrar sin volver a ordenar preserva el orden cronológico real.
+    // BUG REAL encontrado (reportado como "no respeta la fecha, muestra
+    // primero Apertura y después Clausura" + "el último partido no aparece
+    // correcto"): antes se reordenaba acá con un sort manual por año y
+    // NÚMERO de fecha (`m.fecha`), pero ese número reinicia en 1 en cada
+    // torneo — la fecha 3 de Clausura y la fecha 3 de Apertura del mismo año
+    // comparaban igual, y un Apertura con más fechas jugadas (ej. fecha 15)
+    // terminaba ordenado como "más reciente" que un Clausura con pocas
+    // (fecha 3), aunque el Clausura sea siempre posterior. Al no reordenar,
+    // se hereda el orden cronológico real de la hoja.
+    const matches = allMatches.filter(m => m.rival === rivalUp);
 
     // Resolve each visible match to its Fecha-a-Fecha ficha (lineup + navKey)
     // when one has been loaded — powers both the click-through into "Fecha a
@@ -12163,8 +12167,9 @@ function renderHistorialDetalle(rival) {
     const efectividad = pj > 0 ? Math.round(((pg * 3 + pe) / (pj * 3)) * 100) : 0;
     const difSign = dif > 0 ? '+' : '';
 
-    // Last match (newest) result
-    const last = played[0];
+    // Last match (newest) result — `played` ahora está en orden cronológico
+    // ascendente (heredado de la hoja), así que el más reciente es el último.
+    const last = played[played.length - 1];
     let rachaIcon = '—', rachaLabel = '—', rachaColor = '#64748b';
     if (last) {
       if (last.gf > last.gc) { rachaIcon = '✅'; rachaLabel = `Victoria ${last.resultado}`; rachaColor = '#22c55e'; }
@@ -12226,7 +12231,8 @@ function renderHistorialDetalle(rival) {
         </div>
       </div>`;
 
-    // ── Match list grouped by year → torneo, newest first ─────────────────
+    // ── Match list grouped by year → torneo, orden cronológico (el más
+    // reciente queda al fondo, igual que la página de "Partidos") ──────────
     function resClass(m) {
       if (m.gf === null || m.gc === null) return 'hd-res-p';
       return m.gf > m.gc ? 'hd-res-w' : m.gf === m.gc ? 'hd-res-d' : 'hd-res-l';
