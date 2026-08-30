@@ -1947,13 +1947,22 @@
       background: var(--azul-card); border:1px solid rgba(255,255,255,0.06);
       border-radius:14px; padding:12px 14px; display:flex; flex-direction:column; gap:8px;
     }
-    .rsm-glorias-item { font-size:0.78rem; color:var(--texto); line-height:1.4; display:flex; align-items:center; gap:6px; }
+    /* Cada título es su propia mini-tarjeta (antes todos los títulos
+       flotaban dentro de una única .rsm-glorias-card compartida, sin
+       separación visual entre uno y otro — con 2 títulos parecía un solo
+       bloque). Mismo tratamiento de tarjeta que .rsm-glorias-box de abajo. */
+    .rsm-glorias-item {
+      font-size:0.78rem; color:var(--texto); line-height:1.4; display:flex; align-items:center; gap:6px;
+      background: rgba(0,0,0,0.18); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:10px 12px;
+    }
     .rsm-glorias-item strong { color:var(--dorado); }
     .rsm-glorias-year { color:var(--gris-texto); font-weight:600; font-size:0.72rem; }
     /* Palmarés interactivo — títulos y Máxima Goleada navegan a su
        torneo/partido (mismo criterio que la card de desktop); Racha
-       Invicta queda sin flecha/click (no apunta a un partido puntual). */
-    .rsm-glorias-clickable { cursor:pointer; }
+       Invicta queda sin flecha/click (no apunta a un partido puntual).
+       Los clickeables suman borde+fondo ámbar (no solo el cursor/flecha)
+       para que se note a simple vista que se puede entrar. */
+    .rsm-glorias-clickable { cursor:pointer; border-color:rgba(245,158,11,0.35) !important; background:rgba(245,158,11,0.07) !important; }
     .rsm-glorias-arrow { margin-left:auto; color:var(--dorado); font-size:1rem; flex-shrink:0; }
     /* Racha Invicta + Máxima Goleada — mismo tratamiento 2 columnas que la
        card de desktop (grid grid-cols-2), en vez de filas apiladas. */
