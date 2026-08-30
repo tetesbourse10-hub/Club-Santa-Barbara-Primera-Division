@@ -14007,12 +14007,43 @@ function _anualesLoadPlayersB(year) {
   }).catch(() => {});
 }
 
+// BUG REAL encontrado (reportado: "en Estadísticas Anuales de Primera B en
+// Desktop te lleva directamente al torneo 2026 sin la opción de elegir el
+// año"): esta función saltaba derecho a renderJugAnualesYearB(years[0]) sin
+// mostrar nunca el grid de años — a diferencia de renderJugAnualesMenu (A),
+// que sí arma ese picker desktop y deja el salto directo a la última
+// temporada solo para el bloque mobile. Ahora replica esa misma estructura.
 function renderJugAnualesMenuB() {
   const back = _volverBtnHtml('margin-bottom:16px');
   const years = [...new Set(_anualesSourceB().map(t => t.anio))].sort((a, b) => b - a);
-  // Mobile arranca directo en la última temporada — mismo criterio que el
-  // lado de Primera A (ver renderJugAnualesMenu).
-  renderJugAnualesYearB(years[0]);
+  document.getElementById('jug-anuales-content').innerHTML = back + `
+    <div class="mrow-desktop-only">
+      <div style="margin-bottom:18px">
+        <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gris-texto);margin-bottom:2px">Club Santa Bárbara — Primera B</div>
+        <div style="font-size:1.25rem;font-weight:900;color:#fff">📅 Estadísticas Anuales</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;max-width:600px">
+        ${years.map(y => `
+          <div onclick="_navPush('Estadísticas Anuales', () => renderJugAnualesMenuB());renderJugAnualesYearB('${y}')" style="cursor:pointer;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:22px 20px;text-align:center;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,0.09)';this.style.borderColor='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.04)';this.style.borderColor='rgba(255,255,255,0.1)'">
+            <div style="font-size:2rem;margin-bottom:8px">📊</div>
+            <div style="font-size:1.5rem;font-weight:900;color:#fff">${y}</div>
+            <div style="font-size:0.72rem;color:var(--gris-texto);margin-top:4px">Ver temporada →</div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  // El mobile arranca directo en la temporada más reciente — sin el paso
+  // intermedio de la grilla de años (esa queda solo para desktop arriba) —
+  // mismo criterio que renderJugAnualesMenu (A).
+  const yr0 = years[0];
+  const torneosYear = _anualesSourceB().filter(t => t.anio === yr0);
+  const total = torneosYear.reduce((acc, t) => {
+    acc.pj += t.pj || 0; acc.g += t.pg || 0; acc.e += t.pe || 0; acc.p += t.pp || 0;
+    acc.gf += t.gf || 0; acc.gc += t.gc || 0;
+    return acc;
+  }, { pj: 0, g: 0, e: 0, p: 0, gf: 0, gc: 0 });
+  document.getElementById('jug-anuales-content').insertAdjacentHTML('beforeend',
+    _anualesMobileHtmlB(String(yr0), years.map(String), torneosYear, total));
+  _anualesLoadPlayersB(yr0);
 }
 
 // Bloque mobile de una temporada de Primera B — mismos builders compartidos
