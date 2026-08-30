@@ -8912,7 +8912,7 @@ function renderTorneoApertura() {
       const dfColor = t.df > 0 ? 'color:#22c55e' : t.df < 0 ? 'color:#ef4444' : '';
       return `<tr class="${isLeader ? 'leader-row' : t.csb ? 'csb-row' : ''}">
         <td style="font-weight:700;color:${isLeader ? '#22c55e' : 'var(--gris-texto)'}">${t.pos}</td>
-        <td>${isLeader ? '🏆 ' : t.csb ? '⭐ ' : ''}${t.equipo}</td>
+        <td>${isLeader ? '🏆 ' : ''}${t.equipo}</td>
         <td>${copaBadge(t.copas)}</td>
         <td><strong style="color:${isLeader ? '#22c55e' : '#f1f5f9'}">${t.pts}</strong></td>
         <td>${t.pj??'–'}</td><td>${t.pg??'–'}</td><td>${t.pe??'–'}</td><td>${t.pp??'–'}</td>
@@ -9218,7 +9218,7 @@ function renderTorneoApertura2025A() {
       const dfColor = t.df > 0 ? 'color:#22c55e' : t.df < 0 ? 'color:#ef4444' : '';
       return `<tr class="${isLeader ? 'leader-row' : t.csb ? 'csb-row' : ''}">
         <td style="font-weight:700;color:${isLeader ? '#22c55e' : 'var(--gris-texto)'}">${t.pos}</td>
-        <td>${isLeader ? '🏆 ' : t.csb ? '⭐ ' : ''}${t.equipo}</td>
+        <td>${isLeader ? '🏆 ' : ''}${t.equipo}</td>
         <td>${copaBadge(t.copas)}</td>
         <td><strong style="color:${isLeader ? '#22c55e' : '#f1f5f9'}">${t.pts}</strong></td>
         <td>${t.pj??'–'}</td><td>${t.pg??'–'}</td><td>${t.pe??'–'}</td><td>${t.pp??'–'}</td>
@@ -9512,7 +9512,7 @@ function renderTorneoHistoricoGeneric(d, name, fechaLabels) {
       const dfColor = t.df > 0 ? 'color:#22c55e' : t.df < 0 ? 'color:#ef4444' : '';
       return `<tr class="${isLeader ? 'leader-row' : t.csb ? 'csb-row' : ''}">
         <td style="font-weight:700;color:${isLeader ? '#22c55e' : 'var(--gris-texto)'}">${t.pos}</td>
-        <td>${isLeader ? '🏆 ' : t.csb ? '⭐ ' : ''}${t.equipo}</td>
+        <td>${isLeader ? '🏆 ' : ''}${t.equipo}</td>
         <td>${copaBadge(t.copas)}</td>
         <td><strong style="color:${isLeader ? '#22c55e' : '#f1f5f9'}">${t.pts}</strong></td>
         <td>${t.pj??'–'}</td><td>${t.pg??'–'}</td><td>${t.pe??'–'}</td><td>${t.pp??'–'}</td>
@@ -10416,7 +10416,7 @@ function renderTorneoApt2024DB() {
         const dfColor = t.df > 0 ? 'color:#22c55e' : t.df < 0 ? 'color:#ef4444' : '';
         return `<tr class="${isLeader ? 'leader-row' : t.csb ? 'csb-row' : ''}">
           <td style="font-weight:700;color:${isLeader ? '#22c55e' : 'var(--gris-texto)'}">${t.pos}</td>
-          <td>${isLeader ? '🏆 ' : t.csb ? '⭐ ' : ''}${t.equipo}</td>
+          <td>${isLeader ? '🏆 ' : ''}${t.equipo}</td>
           <td>${copaBadge(t.copas)}</td>
           <td><strong style="color:${isLeader ? '#22c55e' : '#f1f5f9'}">${t.pts}</strong></td>
           <td>${t.pj??'–'}</td><td>${t.pg??'–'}</td><td>${t.pe??'–'}</td><td>${t.pp??'–'}</td>
