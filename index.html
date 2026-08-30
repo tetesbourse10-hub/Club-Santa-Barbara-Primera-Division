@@ -6957,6 +6957,21 @@ function _navPushJugadores() {
 function _navPushTorneosAntiguos() {
   _navPush('Torneos Antiguos', () => showTab('graficos', document.querySelectorAll('#main-nav button')[4]));
 }
+// BUG REAL encontrado (reportado: clickear un torneo desde "Estadísticas
+// Anuales" y después tocar "← Volver" no hacía nada visible): los 4 cards de
+// torneo de esa vista (A/B, desktop/mobile) empujaban un restore que solo
+// llamaba a renderJugAnualesYear(B)(year) — eso reescribe el innerHTML de
+// #jug-anuales-content, pero showHistoricoTorneo/showTorneo ya habían
+// ocultado ese panel entero (JUG_SUB_IDS a display:none) y cambiado la
+// pestaña activa de #main-nav a "Torneos Antiguos"/"En Vivo". El contenido
+// quedaba bien armado pero invisible. Este helper restaura primero la
+// pestaña "Jugadores" + su sub-panel "Anuales" (mismo mecanismo que
+// showJugSub) y recién ahí renderiza la temporada puntual de la que se vino.
+function _navRestoreAnualesYear(year, isB) {
+  showTab('jugadores', document.querySelectorAll('#main-nav button')[2]);
+  showJugSub('anuales');
+  if (isB) renderJugAnualesYearB(year); else renderJugAnualesYear(year);
+}
 
 // Mismo orden que #main-nav/#mobile-bottom-nav (5 destinos 1:1) — usado por
 // showTab para mantener sincronizado el estado activo de la bottom nav sin
@@ -13839,7 +13854,7 @@ function _anualesMobileHtml(year, years, torneos, total) {
       const nav = (year === '2026' && LIVE_2026_NAV_A[t.nombre])
         ? { fn: LIVE_2026_NAV_A[t.nombre] }
         : (TORNEO_NAV_MAP[`${year}|${competenciaFull}|A`] || TORNEO_NAV_MAP[`${year}|${competenciaFull}`]);
-      const navAttrs = nav ? `style="cursor:pointer;background:#141d2e;border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 14px" onclick="_navPush('Estadísticas Anuales', () => renderJugAnualesYear('${year}')); ${nav.fn}"` : null;
+      const navAttrs = nav ? `style="cursor:pointer;background:#141d2e;border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 14px" onclick="_navPush('Estadísticas Anuales', () => _navRestoreAnualesYear('${year}', false)); ${nav.fn}"` : null;
       const badgesHtml = isLeague
         ? `${statBadge(t.pts + ' pts', '', '#f1f5f9')}${statBadge(t.g, 'G', '#22c55e')}${statBadge(t.e, 'E', '#f59e0b')}${statBadge(t.p, 'P', '#ef4444')}${statBadge(t.gf + ':' + t.gc, '', '#94a3b8')}`
         : `${statBadge(t.pj, 'PJ', '#94a3b8')}${statBadge(t.gf + ':' + t.gc, '', '#94a3b8')}`;
@@ -13932,7 +13947,7 @@ function renderJugAnualesYear(year) {
         const nav = (year === '2026' && LIVE_2026_NAV_A[t.nombre])
           ? { fn: LIVE_2026_NAV_A[t.nombre] }
           : (TORNEO_NAV_MAP[`${year}|${competenciaFull}|A`] || TORNEO_NAV_MAP[`${year}|${competenciaFull}`]);
-        const cardAttrs = nav ? `onclick="_navPush('Estadísticas Anuales', () => renderJugAnualesYear(${year})); ${nav.fn}" style="cursor:pointer;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px 14px;transition:border-color .15s,background .15s" onmouseover="this.style.background='rgba(255,255,255,0.07)';this.style.borderColor='rgba(245,158,11,0.35)'" onmouseout="this.style.background='rgba(255,255,255,0.04)';this.style.borderColor='rgba(255,255,255,0.07)'"`
+        const cardAttrs = nav ? `onclick="_navPush('Estadísticas Anuales', () => _navRestoreAnualesYear('${year}', false)); ${nav.fn}" style="cursor:pointer;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px 14px;transition:border-color .15s,background .15s" onmouseover="this.style.background='rgba(255,255,255,0.07)';this.style.borderColor='rgba(245,158,11,0.35)'" onmouseout="this.style.background='rgba(255,255,255,0.04)';this.style.borderColor='rgba(255,255,255,0.07)'"`
           : `style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px 14px"`;
         return `<div ${cardAttrs}>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
@@ -14099,7 +14114,7 @@ function _anualesMobileHtmlB(year, years, torneosYear, total) {
     const posBadge = `<span style="display:inline-block;padding:3px 10px;border-radius:999px;background:${posColor}1f;border:1px solid ${posColor}59;color:${posColor};font-size:0.75rem;font-weight:800;flex-shrink:0">${t.pos || '—'}</span>`;
     const statBadge = (val, label, color) => `<span style="display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:6px;background:rgba(255,255,255,0.06);font-size:0.72rem;font-weight:700;color:${color}">${val}<span style="font-weight:400;color:rgba(255,255,255,0.4);font-size:0.65rem">&thinsp;${label}</span></span>`;
     const nav = TORNEO_NAV_MAP[`${year}|${t.competencia}|B`] || TORNEO_NAV_MAP[`${year}|${t.competencia}`];
-    const navAttrs = nav ? `style="cursor:pointer;background:#141d2e;border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 14px" onclick="_navPush('Estadísticas Anuales', () => renderJugAnualesYearB('${year}')); ${nav.fn}"` : null;
+    const navAttrs = nav ? `style="cursor:pointer;background:#141d2e;border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 14px" onclick="_navPush('Estadísticas Anuales', () => _navRestoreAnualesYear('${year}', true)); ${nav.fn}"` : null;
     const badgesHtml = `${isLeague ? statBadge(t.pts + ' pts', '', '#f1f5f9') : ''}${statBadge(t.pg, 'G', '#22c55e')}${statBadge(t.pe, 'E', '#f59e0b')}${statBadge(t.pp, 'P', '#ef4444')}${statBadge(t.gf + ':' + t.gc, '', '#94a3b8')}`;
     return _anuMobileTorneoCardHtml({ title: `${t.competencia} ${year}`, posBadge, badgesHtml, maxGolHtml: '', navAttrs });
   }).join('');
@@ -14187,7 +14202,7 @@ function renderJugAnualesYearB(year) {
         // t.competencia here is already the full name (e.g. "Clausura AIFA C",
         // "Recopa") — same convention TORNEO_NAV_MAP is keyed by.
         const nav = TORNEO_NAV_MAP[`${year}|${t.competencia}|B`] || TORNEO_NAV_MAP[`${year}|${t.competencia}`];
-        const cardAttrs = nav ? `onclick="_navPush('Estadísticas Anuales', () => renderJugAnualesYearB(${year})); ${nav.fn}" style="cursor:pointer;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px 14px;transition:border-color .15s,background .15s" onmouseover="this.style.background='rgba(255,255,255,0.07)';this.style.borderColor='rgba(245,158,11,0.35)'" onmouseout="this.style.background='rgba(255,255,255,0.04)';this.style.borderColor='rgba(255,255,255,0.07)'"`
+        const cardAttrs = nav ? `onclick="_navPush('Estadísticas Anuales', () => _navRestoreAnualesYear('${year}', true)); ${nav.fn}" style="cursor:pointer;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px 14px;transition:border-color .15s,background .15s" onmouseover="this.style.background='rgba(255,255,255,0.07)';this.style.borderColor='rgba(245,158,11,0.35)'" onmouseout="this.style.background='rgba(255,255,255,0.04)';this.style.borderColor='rgba(255,255,255,0.07)'"`
           : `style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px 14px"`;
         return `<div ${cardAttrs}>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
