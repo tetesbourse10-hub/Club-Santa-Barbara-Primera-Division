@@ -8531,7 +8531,7 @@ function _tablaMobileCardsHtml(tabla, legendItems, aifaUrl) {
     const df = (t.df > 0 ? '+' : '') + (t.df ?? '–');
     return `<div class="tbm-row${t.csb ? ' csb' : ''}">
       <span class="tbm-pos${t.csb ? ' csb' : ''}">${t.pos}</span>
-      <span class="tbm-team${t.csb ? ' csb' : ''}"><span class="tbm-avatar">${_rivalInitials(t.equipo)}</span>${t.csb ? '⭐ ' : ''}${t.equipo}</span>
+      <span class="tbm-team${t.csb ? ' csb' : ''}"><span class="tbm-avatar">${_rivalInitials(t.equipo)}</span>${t.equipo}</span>
       <span class="tbm-num${t.csb ? ' csb' : ''}">${t.pts}</span>
       <span class="tbm-num">${t.pj ?? '–'}</span>
       <span class="tbm-num" style="color:${dfColor}">${df}</span>
@@ -11208,7 +11208,7 @@ function renderResumen() {
                 <div class="flex items-center gap-2.5 px-2.5 py-2 rounded-xl ${t.csb ? 'bg-emerald-950/40 border border-emerald-500/50' : ''}">
                   <span class="w-5 text-xs font-extrabold shrink-0 ${t.csb ? 'text-emerald-400' : 'text-slate-500'}">${t.pos}</span>
                   <span class="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[0.6rem] font-extrabold text-slate-300 shrink-0">${_rivalInitials(t.equipo)}</span>
-                  <span class="flex-1 text-xs font-semibold truncate ${t.csb ? 'text-emerald-400' : 'text-slate-400'}">${t.csb ? '⭐ ' : ''}${t.equipo}</span>
+                  <span class="flex-1 text-xs font-semibold truncate ${t.csb ? 'text-emerald-400' : 'text-slate-400'}">${t.equipo}</span>
                   <span class="text-xs font-extrabold shrink-0 ${t.csb ? 'text-emerald-400' : 'text-slate-300'}">${t.pts} pts</span>
                 </div>`).join('')}
             </div>
