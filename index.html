@@ -12272,6 +12272,19 @@ function renderHistorialDetalle(rival) {
         const fechaTag = m.fecha && /^\d+$/.test(String(m.fecha))
           ? `<span class="hd-tag">Fecha ${m.fecha}</span>`
           : m.fecha ? `<span class="hd-tag">${m.fecha}</span>` : '';
+        // BUG REAL encontrado (reportado como "aparece 3°°"): la hoja ya trae
+        // posCSB con el símbolo "°" incluido (ej. "3°"), y acá se le sumaba
+        // otro más a mano. Se limpia el que ya viene antes de agregarlo — y
+        // se evita agregarlo directamente cuando es el nombre de una ronda de
+        // copa (Octavos/Cuartos/etc.), que no es una posición numérica.
+        const isRoundName = v => /octavos|cuartos|semifinal|final|ronda/i.test(String(v || ''));
+        const cleanPos = v => String(v || '').replace(/°+$/, '');
+        const csbPosClean = cleanPos(m.posCSB);
+        const rivalPosClean = cleanPos(m.posRival);
+        const posTags = `
+          ${csbPosClean && !isRoundName(csbPosClean) ? `<span class="hd-tag">CSB: ${csbPosClean}°</span>` : ''}
+          ${rivalPosClean && !isRoundName(rivalPosClean) ? `<span class="hd-tag">Rival: ${rivalPosClean}°</span>` : ''}
+        `;
         // Clickable straight into that date's "Fecha a Fecha" ficha whenever
         // this match resolved to a loaded lineup source (_nav) — matches
         // still pending digitization stay as plain, non-clickable cards.
@@ -12286,7 +12299,7 @@ function renderHistorialDetalle(rival) {
             <div class="hd-match-info">
               <div class="hd-match-meta">
                 ${fechaTag}${localTag}
-                ${m.posCSB ? `<span class="hd-tag">CSB: ${m.posCSB}°</span>` : ''}
+                ${posTags}
               </div>
               ${m.parciales ? `<div class="hd-match-parcial">Parciales: ${m.parciales}</div>` : ''}
               ${obsHtml}
