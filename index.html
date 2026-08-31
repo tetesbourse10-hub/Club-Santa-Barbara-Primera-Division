@@ -15934,7 +15934,15 @@ function _teamNextMatch(d, navKey) {
   const next = pending[0];
   if (!next) return null;
   const det = (d.apertura || []).find(m => String(m.fecha) === String(next.fecha));
-  return { rival: next.rival, fecha: next.fecha, dia: det?.dia || '', hora: det?.hora || '', lugar: det?.lugar || '',
+  // BUG REAL encontrado (Primera A no mostraba la ubicación en la casilla de
+  // Próximo Partido del home, aunque el sheet sí la tenía cargada, mientras
+  // Primera B sí la mostraba): el bloque detallado de Fecha a Fecha de
+  // Clausura AIFA A 2026 suele traer "Lugar" en blanco (ver comentario en
+  // loadLiveData, cerca de aClBasic) — la ubicación real vive en la tabla
+  // corta/básico, que _mergeBasicoIntoPartidos ya vuelca en next.estadio.
+  // Este fallback faltaba acá, así que se perdía aunque el dato ya estuviera
+  // disponible en memoria.
+  return { rival: next.rival, fecha: next.fecha, dia: det?.dia || '', hora: det?.hora || '', lugar: det?.lugar || next.estadio || '',
     local: next.local || '', dt: det ? _parseFechaHora(det.dia, det.hora) : null,
     navKey, locator: next.fecha };
 }
