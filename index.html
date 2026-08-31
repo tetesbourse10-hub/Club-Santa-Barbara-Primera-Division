@@ -9940,14 +9940,14 @@ function _applyTablaFix(tabla, fixes) {
 // los agrega solo si ese fecha no vino ya del fetch en vivo, así que si algún
 // día el fetch empieza a traerlo bien, esta entrada queda inerte.
 const HISTORICO_GENERIC_MANUAL_MATCHES = {
-  // Clausura AIFA A 2022 — Fecha 1 vs ITALIANO (Santa Bárbara 2-0, Local,
-  // parcial 1-0). El fetch en vivo del rango "Fecha a Fecha" nunca la
-  // levanta (se probó ensanchar el rango de arranque, sin efecto) mientras
-  // que Centro de Datos sí la trae — cargada a mano con el detalle de
-  // plantel confirmado por el club directamente sobre el sheet.
+  // Clausura AIFA A 2022 — Fecha 1 vs ITALIANO (Santa Bárbara 1-0, Local).
+  // El fetch en vivo del rango "Fecha a Fecha" nunca la levanta (se probó
+  // ensanchar el rango de arranque, sin efecto) mientras que Centro de
+  // Datos sí la trae — cargada a mano con el detalle de plantel confirmado
+  // por el club directamente sobre el sheet.
   'clausura-2022a': [{
     rival: 'ITALIANO', fecha: '1', lugar: 'Nido', dia: 'Martes', hora: '21hs',
-    formacionCSB: '4-3-3', formacionRival: '', resultado: '2-0', gf: 2, gc: 0, penales: null,
+    formacionCSB: '4-3-3', formacionRival: '', resultado: '1-0', gf: 1, gc: 0, penales: null,
     jugadores: [
       { nombre:'Iñaki Usandizaga',  citado:false, titular:false, entro:false, salio:false, goles:0, asist:0, rojas:0, pos:'ARQ', porQuien:'' },
       { nombre:'Ayrton Gardoqui',   citado:true,  titular:false, entro:false, salio:false, goles:0, asist:0, rojas:0, pos:'ARQ', porQuien:'' },
