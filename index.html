@@ -15216,27 +15216,6 @@ async function fetchGvizByGid(sheetId, gid, range) {
   return parseCSV(await r.text());
 }
 
-// BUG REAL encontrado (reportado: "en Fecha a Fecha de la A no aparece la
-// ubicación como en la B" — confirmado a mano: rival/fecha/día/hora de la
-// MISMA fila llegan bien vía fetchGvizByGid, pero "lugar" llega vacío, Y SE
-// CONFIRMÓ que el CSV crudo que devuelve gviz/tq YA viene vacío en esa
-// columna, aunque la celda del sheet tiene texto real, no combinada): el
-// endpoint /gviz/tq infiere el tipo de cada columna mirando TODA la hoja
-// (no solo el rango pedido) y, cuando eso lo confunde, descarta texto real
-// silenciosamente en vez de tirar error — un bug conocido de la
-// Visualization API de Google, no del parser de acá. El endpoint de
-// exportación real (/export?format=csv) vuelca el texto de cada celda tal
-// cual está, sin ninguna inferencia de tipo — a cambio no soporta &range=
-// (trae la pestaña entera), pero parseDetailedMatches ya escanea fila por
-// fila buscando los mismos patrones sin asumir dónde empieza el rango, así
-// que funciona igual con filas de más antes/después del bloque real.
-async function fetchCSVExport(sheetId, gid) {
-  const url = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}&_=${Date.now()}`;
-  const r = await fetch(url, { mode: 'cors', cache: 'no-store' });
-  if (!r.ok) throw new Error('HTTP ' + r.status);
-  return parseCSV(await r.text());
-}
-
 function parseCSV(text) {
   const rows = []; let row = [], f = '', q = false;
   for (let i = 0; i < text.length; i++) {
@@ -16555,12 +16534,8 @@ async function loadLiveData() {
     // ── Clausura AIFA A 2026 (live season, its own new tab — fetched by gid).
     //    Club-confirmed ranges; partidos is derived from the detailed Fecha a
     //    Fecha (_deriveBasicFromDetailed), then enriched below from its own
-    //    short "basic" table — same pattern as Clausura AIFA B 2026 above.
-    //    fetchCSVExport en vez de fetchGvizByGid: la columna "Lugar" de esta
-    //    pestaña específica le llega vacía a gviz/tq por su inferencia de
-    //    tipo de columna (ver el comentario en fetchCSVExport) — el endpoint
-    //    de exportación real no tiene ese problema. ──
-    fetchCSVExport(GS.A_MAIN, 618783090),
+    //    short "basic" table — same pattern as Clausura AIFA B 2026 above. ──
+    fetchGvizByGid(GS.A_MAIN, 618783090, 'A22:I532'),
     // Club-confirmed updated ranges (plantel grew, tabla row shifted down).
     fetchGvizByGid(GS.A_MAIN, 618783090, 'L3:X31'),
     fetchGvizByGid(GS.A_MAIN, 618783090, 'L35:V51'),
