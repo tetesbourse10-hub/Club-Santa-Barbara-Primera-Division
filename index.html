@@ -9746,7 +9746,7 @@ function _stripAperturaB2026CopaRowsBasic(rows) {
 function _deriveBasicFromDetailed(detailed) {
   return detailed.map(m => ({
     rival: m.rival, fecha: m.fecha, local: _inferLocalFromLugar(m.lugar),
-    resultado: m.resultado, gf: m.gf, gc: m.gc,
+    resultado: m.resultado, gf: m.gf, gc: m.gc, lugar: m.lugar || '',
     parciales: '', posCSB: '', posRival: '', obs: '',
   }));
 }
@@ -11181,6 +11181,7 @@ function renderResumen() {
               ${_rsmLocalTxt(proximo.local) ? `<span class="text-[0.65rem] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 shrink-0">${_rsmLocalTxt(proximo.local)}</span>` : ''}
               ${proximoDiaHora ? `<span class="text-slate-600">·</span><span class="text-slate-400 text-sm">${proximoDiaHora}</span>` : ''}
             </div>
+            ${(proximo.lugar || proximo.estadio) ? `<div class="text-[0.65rem] text-slate-500 font-semibold mt-1.5 truncate">📍 ${proximo.lugar || proximo.estadio}</div>` : ''}
           ` : `<span class="text-slate-500 text-sm font-semibold">Torneo finalizado</span>`}
         </div>
       </div>
