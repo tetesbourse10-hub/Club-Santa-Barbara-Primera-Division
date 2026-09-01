@@ -1777,6 +1777,7 @@
       width:18px; height:18px; border-radius:50%;
       background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.3);
       color:var(--dorado); font-size:0.52rem; font-weight:800;
+      overflow:hidden; position:relative;
     }
     .mini-tabla tr.csb-row .mini-tabla-avatar { background:rgba(245,158,11,0.22); }
 
@@ -1915,7 +1916,12 @@
     .rsm-match-card.draw { border-top-color: var(--dorado); }
     .rsm-match-card.loss { border-top-color: var(--rojo); }
     .rsm-match-card .rival-avatar { margin: 0 auto 6px; }
-    .rsm-match-rival { font-size:0.66rem; color:var(--blanco); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .rsm-match-rival { font-size:0.66rem; color:var(--blanco); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:flex; align-items:center; gap:5px; }
+    .rsm-match-crest {
+      width:16px; height:16px; border-radius:50%; flex-shrink:0; background:#fff;
+      display:inline-flex; align-items:center; justify-content:center; overflow:hidden; position:relative;
+      font-size:0.4rem; font-weight:800; color:#334155;
+    }
     .rsm-match-score { font-size:0.88rem; font-weight:800; margin-top:2px; }
     .rsm-match-score.win  { color: var(--verde); }
     .rsm-match-score.draw { color: var(--dorado); }
@@ -2170,6 +2176,11 @@
     .ap-table tr.leader-row td { background:rgba(34,197,94,.07); }
     .ap-table tr.leader-row td:first-child { border-left:3px solid #22c55e; }
     .ap-table tr.leader-row td:nth-child(2) { color:#22c55e; font-weight:700; }
+    .tabla-team-crest {
+      display:inline-flex; align-items:center; justify-content:center; vertical-align:middle;
+      width:18px; height:18px; border-radius:50%; background:#fff; margin-right:5px;
+      overflow:hidden; position:relative; font-size:0.5rem; font-weight:800; color:#334155;
+    }
     .copa-badge { display:inline-block; padding:2px 7px; border-radius:20px; font-size:0.6rem; font-weight:700; white-space:nowrap; }
     .copa-campeon   { background:rgba(245,158,11,.12); color:#f59e0b; border:1px solid rgba(245,158,11,.3); }
     .copa-recopa    { background:rgba(34,197,94,.10);  color:#22c55e; border:1px solid rgba(34,197,94,.25); }
@@ -2444,6 +2455,7 @@
       width:18px; height:18px; border-radius:50%;
       background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.3);
       color:var(--dorado); font-size:0.52rem; font-weight:800;
+      overflow:hidden; position:relative;
     }
     .tbm-num { text-align:right; font-weight:700; color:#e2e8f0; }
     .tbm-num.csb { color:var(--dorado); }
@@ -4775,6 +4787,15 @@ function _rivalAvatarHtml(nombre) {
     <img src="${src}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
     <span class="rival-avatar-fallback">${_rivalInitials(nombre)}</span>
   </span>`;
+}
+// Igual que _rivalAvatarHtml pero SIN el wrapper <span class="rival-avatar">
+// propio — para insertar dentro de un contenedor que cada call site ya
+// estiló a su manera (tamaño/fondo/borde distintos según el widget). Ese
+// contenedor solo necesita position:relative + overflow:hidden para que el
+// <img> quede bien recortado (mismo patrón onerror de siempre).
+function _crestImgHtml(nombre) {
+  const src = RIVAL_CREST_URLS[String(nombre || '').toUpperCase().trim()] || `escudos/${slugify(nombre)}.webp`;
+  return `<img src="${src}" alt="" style="width:100%;height:100%;object-fit:contain" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span style="display:none;width:100%;height:100%;align-items:center;justify-content:center">${_rivalInitials(nombre)}</span>`;
 }
 // Color de avatar por rival — hash simple sobre el nombre del club en vez
 // de un tono fijo para todos (antes todos los avatares de rival compartían
@@ -8590,7 +8611,7 @@ function _tablaMobileCardsHtml(tabla, legendItems, aifaUrl) {
     const df = (t.df > 0 ? '+' : '') + (t.df ?? '–');
     return `<div class="tbm-row${t.csb ? ' csb' : ''}">
       <span class="tbm-pos${t.csb ? ' csb' : ''}">${t.pos}</span>
-      <span class="tbm-team${t.csb ? ' csb' : ''}"><span class="tbm-avatar">${_rivalInitials(t.equipo)}</span>${t.equipo}</span>
+      <span class="tbm-team${t.csb ? ' csb' : ''}"><span class="tbm-avatar">${_crestImgHtml(t.equipo)}</span>${t.equipo}</span>
       <span class="tbm-num${t.csb ? ' csb' : ''}">${t.pts}</span>
       <span class="tbm-num">${t.pj ?? '–'}</span>
       <span class="tbm-num" style="color:${dfColor}">${df}</span>
@@ -8971,7 +8992,7 @@ function renderTorneoApertura() {
       const dfColor = t.df > 0 ? 'color:#22c55e' : t.df < 0 ? 'color:#ef4444' : '';
       return `<tr class="${isLeader ? 'leader-row' : t.csb ? 'csb-row' : ''}">
         <td style="font-weight:700;color:${isLeader ? '#22c55e' : 'var(--gris-texto)'}">${t.pos}</td>
-        <td>${isLeader ? '🏆 ' : ''}${t.equipo}</td>
+        <td>${isLeader ? '🏆 ' : ''}<span class="tabla-team-crest">${_crestImgHtml(t.equipo)}</span>${t.equipo}</td>
         <td>${copaBadge(t.copas)}</td>
         <td><strong style="color:${isLeader ? '#22c55e' : '#f1f5f9'}">${t.pts}</strong></td>
         <td>${t.pj??'–'}</td><td>${t.pg??'–'}</td><td>${t.pe??'–'}</td><td>${t.pp??'–'}</td>
@@ -9277,7 +9298,7 @@ function renderTorneoApertura2025A() {
       const dfColor = t.df > 0 ? 'color:#22c55e' : t.df < 0 ? 'color:#ef4444' : '';
       return `<tr class="${isLeader ? 'leader-row' : t.csb ? 'csb-row' : ''}">
         <td style="font-weight:700;color:${isLeader ? '#22c55e' : 'var(--gris-texto)'}">${t.pos}</td>
-        <td>${isLeader ? '🏆 ' : ''}${t.equipo}</td>
+        <td>${isLeader ? '🏆 ' : ''}<span class="tabla-team-crest">${_crestImgHtml(t.equipo)}</span>${t.equipo}</td>
         <td>${copaBadge(t.copas)}</td>
         <td><strong style="color:${isLeader ? '#22c55e' : '#f1f5f9'}">${t.pts}</strong></td>
         <td>${t.pj??'–'}</td><td>${t.pg??'–'}</td><td>${t.pe??'–'}</td><td>${t.pp??'–'}</td>
@@ -9571,7 +9592,7 @@ function renderTorneoHistoricoGeneric(d, name, fechaLabels) {
       const dfColor = t.df > 0 ? 'color:#22c55e' : t.df < 0 ? 'color:#ef4444' : '';
       return `<tr class="${isLeader ? 'leader-row' : t.csb ? 'csb-row' : ''}">
         <td style="font-weight:700;color:${isLeader ? '#22c55e' : 'var(--gris-texto)'}">${t.pos}</td>
-        <td>${isLeader ? '🏆 ' : ''}${t.equipo}</td>
+        <td>${isLeader ? '🏆 ' : ''}<span class="tabla-team-crest">${_crestImgHtml(t.equipo)}</span>${t.equipo}</td>
         <td>${copaBadge(t.copas)}</td>
         <td><strong style="color:${isLeader ? '#22c55e' : '#f1f5f9'}">${t.pts}</strong></td>
         <td>${t.pj??'–'}</td><td>${t.pg??'–'}</td><td>${t.pe??'–'}</td><td>${t.pp??'–'}</td>
@@ -10475,7 +10496,7 @@ function renderTorneoApt2024DB() {
         const dfColor = t.df > 0 ? 'color:#22c55e' : t.df < 0 ? 'color:#ef4444' : '';
         return `<tr class="${isLeader ? 'leader-row' : t.csb ? 'csb-row' : ''}">
           <td style="font-weight:700;color:${isLeader ? '#22c55e' : 'var(--gris-texto)'}">${t.pos}</td>
-          <td>${isLeader ? '🏆 ' : ''}${t.equipo}</td>
+          <td>${isLeader ? '🏆 ' : ''}<span class="tabla-team-crest">${_crestImgHtml(t.equipo)}</span>${t.equipo}</td>
           <td>${copaBadge(t.copas)}</td>
           <td><strong style="color:${isLeader ? '#22c55e' : '#f1f5f9'}">${t.pts}</strong></td>
           <td>${t.pj??'–'}</td><td>${t.pg??'–'}</td><td>${t.pe??'–'}</td><td>${t.pp??'–'}</td>
@@ -10732,7 +10753,7 @@ function renderResumen() {
     const end = Math.min(tabla.length, idx + 2);
     const slice = tabla.slice(start, end);
     const rows = slice.map(t => `<tr class="${t.csb ? 'csb-row' : ''}">
-      <td>${t.pos}</td><td><span class="mini-tabla-team"><span class="mini-tabla-avatar">${_rivalInitials(t.equipo)}</span><span class="mini-tabla-team-name">${t.csb ? '⭐ ' : ''}${t.equipo}</span></span></td>
+      <td>${t.pos}</td><td><span class="mini-tabla-team"><span class="mini-tabla-avatar">${_crestImgHtml(t.equipo)}</span><span class="mini-tabla-team-name">${t.equipo}</span></span></td>
       <td>${t.pts}</td><td>${t.pj}</td>
     </tr>`).join('');
     return `<div class="mini-tabla-wrap">
@@ -10862,7 +10883,7 @@ function renderResumen() {
     </div>`;
   const _ultimoRivalTeamHtml = ultimo ? `
     <div class="flex flex-col items-center gap-1 w-16">
-      <span class="w-12 h-12 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-extrabold text-slate-300">${_rivalInitials(ultimo.rival)}</span>
+      <span class="w-12 h-12 rounded-full bg-white border border-slate-700 flex items-center justify-center text-xs font-extrabold text-slate-700 relative overflow-hidden">${_crestImgHtml(ultimo.rival)}</span>
       <span class="text-[0.6rem] text-slate-400 font-semibold truncate max-w-full">${ultimo.rival}</span>
       ${_ultimoRivalPos ? `<span class="text-[0.58rem] text-slate-500 font-bold">${_ultimoRivalPos}</span>` : ''}
     </div>` : '';
@@ -11038,7 +11059,7 @@ function renderResumen() {
           <div class="rsm-match-card rsm-actualidad-card ${ultimoRes || ''}" ${ultimo ? `onclick="goToMatchFecha('${ultimo._navKey}', '${String(ultimo.fecha).replace(/'/g, "\\'")}')" title="Ver en Fecha a Fecha"` : ''}>
             <div class="rsm-actualidad-label">⚽ Último Partido</div>
             ${ultimo ? `
-              <div class="rsm-match-rival">vs ${ultimo.rival}</div>
+              <div class="rsm-match-rival"><span class="rsm-match-crest">${_crestImgHtml(ultimo.rival)}</span>vs ${ultimo.rival}</div>
               <div class="rsm-match-score ${ultimoRes}">${ultimo.resultado}</div>
               <span class="rsm-match-torneo ${ultimoBadgeCls(ultimo._torneoLabel)}">${ultimo._torneoLabel}</span>
             ` : `<div class="rsm-actualidad-empty">Sin partidos jugados</div>`}
@@ -11046,7 +11067,7 @@ function renderResumen() {
           <div class="rsm-match-card rsm-actualidad-card rsm-proximo-card"${proximo ? ` onclick="goToMatchFecha('${clausuraNavKey}', '${String(proximo.fecha).replace(/'/g, "\\'")}')" title="Ver en Fecha a Fecha"` : ''}>
             <div class="rsm-actualidad-label">🗓 Próximo Partido</div>
             ${proximo ? `
-              <div class="rsm-match-rival">vs ${proximo.rival}</div>
+              <div class="rsm-match-rival"><span class="rsm-match-crest">${_crestImgHtml(proximo.rival)}</span>vs ${proximo.rival}</div>
               <div class="rsm-actualidad-meta">${[proximo.fecha ? 'Fecha ' + proximo.fecha : '', _rsmLocalTxt(proximo.local)].filter(Boolean).join(' · ')}</div>
               <span class="rsm-match-torneo ${ultimoBadgeCls(clausuraLabel)}">${proximoDiaFmt}</span>
             ` : `<div class="rsm-actualidad-empty">Torneo finalizado</div>`}
@@ -11212,7 +11233,7 @@ function renderResumen() {
               ${proximoCdVal ? `<span class="text-xs font-black px-2.5 py-1 rounded-full bg-emerald-500 text-slate-950 shrink-0">${proximoCdVal}</span>` : ''}
             </div>
             <div class="flex items-center gap-2 mt-2">
-              ${(() => { const rc = _rivalAvatarColor(proximo.rival); return `<span class="w-7 h-7 rounded-full flex items-center justify-center text-[0.65rem] font-extrabold shrink-0" style="background:${rc.bg};color:${rc.color};border:1px solid ${rc.color}59">${_rivalInitials(proximo.rival)}</span>`; })()}
+              ${(() => { const rc = _rivalAvatarColor(proximo.rival); return `<span class="w-7 h-7 rounded-full flex items-center justify-center text-[0.65rem] font-extrabold shrink-0 relative overflow-hidden" style="background:#fff;color:${rc.color};border:1px solid ${rc.color}59">${_crestImgHtml(proximo.rival)}</span>`; })()}
               <span class="text-white font-bold text-sm">vs ${proximo.rival}</span>
               ${_rsmLocalTxt(proximo.local) ? `<span class="text-[0.65rem] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 shrink-0">${_rsmLocalTxt(proximo.local)}</span>` : ''}
               ${proximoDiaHora ? `<span class="text-slate-600">·</span><span class="text-slate-400 text-sm">${proximoDiaHora}</span>` : ''}
@@ -11267,7 +11288,7 @@ function renderResumen() {
               ${tablaCorta.map(t => `
                 <div class="flex items-center gap-2.5 px-2.5 py-2 rounded-xl ${t.csb ? 'bg-emerald-950/40 border border-emerald-500/50' : ''}">
                   <span class="w-5 text-xs font-extrabold shrink-0 ${t.csb ? 'text-emerald-400' : 'text-slate-500'}">${t.pos}</span>
-                  <span class="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[0.6rem] font-extrabold text-slate-300 shrink-0">${_rivalInitials(t.equipo)}</span>
+                  <span class="w-7 h-7 rounded-full bg-white border border-slate-700 flex items-center justify-center text-[0.6rem] font-extrabold text-slate-700 shrink-0 relative overflow-hidden">${_crestImgHtml(t.equipo)}</span>
                   <span class="flex-1 text-xs font-semibold truncate ${t.csb ? 'text-emerald-400' : 'text-slate-400'}">${t.equipo}</span>
                   <span class="text-xs font-extrabold shrink-0 ${t.csb ? 'text-emerald-400' : 'text-slate-300'}">${t.pts} pts</span>
                 </div>`).join('')}
@@ -16208,6 +16229,35 @@ const RIVAL_CREST_URLS = {
   'LA MATANZA':    'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/team-u-n-l-a-m-1771103331619.png',
   'UBA':           'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/team-uba-1769914100861.png',
   'VILO':          'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/team-vilo-1771103107596.jpeg',
+  // Confirmados (el nombre ya aparecía literal en otro lado del código).
+  'ARQUITECTURA':   'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/team-arquitectura--a--1768392053387.jpeg',
+  'EL CHASQUI':     'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/team-el-chasqui--a--1771102713794.png',
+  'HEBRAICA':       'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/hebraica-1772320286629.png',
+  'MITRE':          'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/team-mitre-f-c-1771103483281.png',
+  'SHOLEM':         'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/sholem-1771886781736.jpg',
+  'SHOLEM ROJO':    'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/sholem-1771886781736.jpg',
+  'ASTURIANO':      'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/team-asturiano-1768672180026.png',
+  'ONCE CORAZONES': 'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/once-corazones-1772111715227.jpg',
+  'ZAFADOS F.C.':   'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/zafados-f-c-1771433831149.png',
+  'EL RETIRO':      'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/el-retiro-1785502527998.png',
+  'REPUBLICA DEL OESTE': 'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/rep-del-oeste-1770048498290.jpeg',
+  'DEFENSORES DE HURLINGHAM': 'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/c-d-hurlinghan-azul-1772388474415.jpeg',
+  // Nombres SIN confirmar (nunca vi estos nombres escritos en ningún otro
+  // lugar del código) — si alguno no muestra el escudo, avisame el nombre
+  // exacto tal cual está en el sheet y corrijo la key.
+  'CARACOTXE':      'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/caracotxe-f-c-1770301992796.png',
+  'ZONA VERDE':     'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/club-zona-verde-f-c-1772461658830.jpg',
+  'SAN FERNANDO':   'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/san-fernando-1772549723907.jpg',
+  'VIAJANTES':      'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/viajantes-1770053529282.jpeg',
+  'RUTA 28':        'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/a-c-ruta-28-f-c-a-1773440355605.png',
+  'CAZA Y PESCA':   'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/caza-y-pesca-1773242273874.jpg',
+  'CATALUÑA':       'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/e-d-catalu-a-1773088501756.jpg',
+  'ROMA':           'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/roma-f-c-b-1771551832738.png',
+  'INGENIERIA':     'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/ingenieria-a-1770049274826.JPG',
+  'SAN CARLOS':     'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/san-carlos-1770389349842.jpeg',
+  'VILLANUEVA':     'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/sb5-sports-villanueva-1771957072343.jpeg',
+  'BANCO NACION':   'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/banco-nacion-b-1772991368343.jpg',
+  'BANCO NACION B': 'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/banco-nacion-b-1772991368343.jpg',
 };
 // Versión mobile de _renderNextMatchBox: card angosta con dos avatares
 // enfrentados en vez del layout horizontal de escritorio — misma data
