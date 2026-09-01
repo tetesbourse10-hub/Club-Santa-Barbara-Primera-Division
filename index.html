@@ -1086,13 +1086,13 @@
         overflow: hidden; position: relative;
       }
       .pm-crest img { width: 100%; height: 100%; object-fit: contain; }
-      .pm-crest-us { background: #00875a; padding: 6px; box-sizing: border-box; }
+      .pm-crest-us { background: #fff; padding: 6px; box-sizing: border-box; border: 1px solid rgba(0,0,0,0.08); }
       .pm-crest-us img { object-fit: contain; }
-      .pm-crest-rival { background: rgba(240,149,149,0.15); border: 1px solid rgba(240,149,149,0.35); }
+      .pm-crest-rival { background: #fff; border: 1px solid rgba(0,0,0,0.08); }
       .pm-crest-rival img { padding: 5px; box-sizing: border-box; }
       .pm-crest-fallback {
         display: none; width: 100%; height: 100%; align-items: center; justify-content: center;
-        font-size: 0.75rem; font-weight: 800; color: #f09595;
+        font-size: 0.75rem; font-weight: 800; color: #334155;
       }
       .pm-card-meta { font-size: 0.62rem; color: var(--gris-texto); text-align: center; }
       .pm-local-tag { color: #cbd5e1; font-weight: 700; }
@@ -1775,11 +1775,10 @@
     .mini-tabla-avatar {
       display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;
       width:18px; height:18px; border-radius:50%;
-      background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.3);
-      color:var(--dorado); font-size:0.52rem; font-weight:800;
+      background:#fff; border:1px solid rgba(245,158,11,0.3);
+      color:#334155; font-size:0.52rem; font-weight:800;
       overflow:hidden; position:relative;
     }
-    .mini-tabla tr.csb-row .mini-tabla-avatar { background:rgba(245,158,11,0.22); }
 
     /* ── Mobile: filas parejas, nombre en 1 línea, fila CSB destacada,
        badges de clasificación más chicos ── */
@@ -2453,8 +2452,8 @@
     .tbm-avatar {
       display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;
       width:18px; height:18px; border-radius:50%;
-      background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.3);
-      color:var(--dorado); font-size:0.52rem; font-weight:800;
+      background:#fff; border:1px solid rgba(245,158,11,0.3);
+      color:#334155; font-size:0.52rem; font-weight:800;
       overflow:hidden; position:relative;
     }
     .tbm-num { text-align:right; font-weight:700; color:#e2e8f0; }
@@ -4796,6 +4795,14 @@ function _rivalAvatarHtml(nombre) {
 function _crestImgHtml(nombre) {
   const src = RIVAL_CREST_URLS[String(nombre || '').toUpperCase().trim()] || `escudos/${slugify(nombre)}.webp`;
   return `<img src="${src}" alt="" style="width:100%;height:100%;object-fit:contain" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span style="display:none;width:100%;height:100%;align-items:center;justify-content:center">${_rivalInitials(nombre)}</span>`;
+}
+// Igual que _crestImgHtml, pero para filas de TABLA DE POSICIONES (donde
+// Santa Bárbara es una fila de equipo más, no un "rival") — usa el escudo
+// real del club (logo-csb.webp) en vez de buscarlo en RIVAL_CREST_URLS
+// (que solo tiene rivales, nunca al propio CSB).
+function _teamCrestHtml(equipo, isCsb) {
+  if (isCsb) return `<img src="logo-csb.webp" alt="" style="width:100%;height:100%;object-fit:contain">`;
+  return _crestImgHtml(equipo);
 }
 // Color de avatar por rival — hash simple sobre el nombre del club en vez
 // de un tono fijo para todos (antes todos los avatares de rival compartían
@@ -8609,9 +8616,10 @@ function _tablaMobileCardsHtml(tabla, legendItems, aifaUrl) {
     const dot = _tablaMobileDotColor(t.copas);
     const dfColor = t.df > 0 ? '#22c55e' : t.df < 0 ? '#ef4444' : 'inherit';
     const df = (t.df > 0 ? '+' : '') + (t.df ?? '–');
+    const isLeader = parseInt(t.pos) === 1;
     return `<div class="tbm-row${t.csb ? ' csb' : ''}">
-      <span class="tbm-pos${t.csb ? ' csb' : ''}">${t.pos}</span>
-      <span class="tbm-team${t.csb ? ' csb' : ''}"><span class="tbm-avatar">${_crestImgHtml(t.equipo)}</span>${t.equipo}</span>
+      <span class="tbm-pos${t.csb ? ' csb' : ''}">${isLeader ? '🏆' : t.pos}</span>
+      <span class="tbm-team${t.csb ? ' csb' : ''}"><span class="tbm-avatar">${_teamCrestHtml(t.equipo, t.csb)}</span>${t.equipo}</span>
       <span class="tbm-num${t.csb ? ' csb' : ''}">${t.pts}</span>
       <span class="tbm-num">${t.pj ?? '–'}</span>
       <span class="tbm-num" style="color:${dfColor}">${df}</span>
@@ -8991,8 +8999,8 @@ function renderTorneoApertura() {
       const df = (t.df > 0 ? '+' : '') + (t.df ?? 0);
       const dfColor = t.df > 0 ? 'color:#22c55e' : t.df < 0 ? 'color:#ef4444' : '';
       return `<tr class="${isLeader ? 'leader-row' : t.csb ? 'csb-row' : ''}">
-        <td style="font-weight:700;color:${isLeader ? '#22c55e' : 'var(--gris-texto)'}">${t.pos}</td>
-        <td>${isLeader ? '🏆 ' : ''}<span class="tabla-team-crest">${_crestImgHtml(t.equipo)}</span>${t.equipo}</td>
+        <td style="font-weight:700;color:${isLeader ? '#22c55e' : 'var(--gris-texto)'};font-size:${isLeader ? '0.95rem' : 'inherit'}">${isLeader ? '🏆' : t.pos}</td>
+        <td><span class="tabla-team-crest">${_teamCrestHtml(t.equipo, t.csb)}</span>${t.equipo}</td>
         <td>${copaBadge(t.copas)}</td>
         <td><strong style="color:${isLeader ? '#22c55e' : '#f1f5f9'}">${t.pts}</strong></td>
         <td>${t.pj??'–'}</td><td>${t.pg??'–'}</td><td>${t.pe??'–'}</td><td>${t.pp??'–'}</td>
@@ -9297,8 +9305,8 @@ function renderTorneoApertura2025A() {
       const df = (t.df > 0 ? '+' : '') + (t.df ?? 0);
       const dfColor = t.df > 0 ? 'color:#22c55e' : t.df < 0 ? 'color:#ef4444' : '';
       return `<tr class="${isLeader ? 'leader-row' : t.csb ? 'csb-row' : ''}">
-        <td style="font-weight:700;color:${isLeader ? '#22c55e' : 'var(--gris-texto)'}">${t.pos}</td>
-        <td>${isLeader ? '🏆 ' : ''}<span class="tabla-team-crest">${_crestImgHtml(t.equipo)}</span>${t.equipo}</td>
+        <td style="font-weight:700;color:${isLeader ? '#22c55e' : 'var(--gris-texto)'};font-size:${isLeader ? '0.95rem' : 'inherit'}">${isLeader ? '🏆' : t.pos}</td>
+        <td><span class="tabla-team-crest">${_teamCrestHtml(t.equipo, t.csb)}</span>${t.equipo}</td>
         <td>${copaBadge(t.copas)}</td>
         <td><strong style="color:${isLeader ? '#22c55e' : '#f1f5f9'}">${t.pts}</strong></td>
         <td>${t.pj??'–'}</td><td>${t.pg??'–'}</td><td>${t.pe??'–'}</td><td>${t.pp??'–'}</td>
@@ -9591,8 +9599,8 @@ function renderTorneoHistoricoGeneric(d, name, fechaLabels) {
       const df = (t.df > 0 ? '+' : '') + (t.df ?? 0);
       const dfColor = t.df > 0 ? 'color:#22c55e' : t.df < 0 ? 'color:#ef4444' : '';
       return `<tr class="${isLeader ? 'leader-row' : t.csb ? 'csb-row' : ''}">
-        <td style="font-weight:700;color:${isLeader ? '#22c55e' : 'var(--gris-texto)'}">${t.pos}</td>
-        <td>${isLeader ? '🏆 ' : ''}<span class="tabla-team-crest">${_crestImgHtml(t.equipo)}</span>${t.equipo}</td>
+        <td style="font-weight:700;color:${isLeader ? '#22c55e' : 'var(--gris-texto)'};font-size:${isLeader ? '0.95rem' : 'inherit'}">${isLeader ? '🏆' : t.pos}</td>
+        <td><span class="tabla-team-crest">${_teamCrestHtml(t.equipo, t.csb)}</span>${t.equipo}</td>
         <td>${copaBadge(t.copas)}</td>
         <td><strong style="color:${isLeader ? '#22c55e' : '#f1f5f9'}">${t.pts}</strong></td>
         <td>${t.pj??'–'}</td><td>${t.pg??'–'}</td><td>${t.pe??'–'}</td><td>${t.pp??'–'}</td>
@@ -10495,8 +10503,8 @@ function renderTorneoApt2024DB() {
         const df = (t.df > 0 ? '+' : '') + (t.df ?? 0);
         const dfColor = t.df > 0 ? 'color:#22c55e' : t.df < 0 ? 'color:#ef4444' : '';
         return `<tr class="${isLeader ? 'leader-row' : t.csb ? 'csb-row' : ''}">
-          <td style="font-weight:700;color:${isLeader ? '#22c55e' : 'var(--gris-texto)'}">${t.pos}</td>
-          <td>${isLeader ? '🏆 ' : ''}<span class="tabla-team-crest">${_crestImgHtml(t.equipo)}</span>${t.equipo}</td>
+          <td style="font-weight:700;color:${isLeader ? '#22c55e' : 'var(--gris-texto)'};font-size:${isLeader ? '0.95rem' : 'inherit'}">${isLeader ? '🏆' : t.pos}</td>
+          <td><span class="tabla-team-crest">${_teamCrestHtml(t.equipo, t.csb)}</span>${t.equipo}</td>
           <td>${copaBadge(t.copas)}</td>
           <td><strong style="color:${isLeader ? '#22c55e' : '#f1f5f9'}">${t.pts}</strong></td>
           <td>${t.pj??'–'}</td><td>${t.pg??'–'}</td><td>${t.pe??'–'}</td><td>${t.pp??'–'}</td>
@@ -10753,7 +10761,7 @@ function renderResumen() {
     const end = Math.min(tabla.length, idx + 2);
     const slice = tabla.slice(start, end);
     const rows = slice.map(t => `<tr class="${t.csb ? 'csb-row' : ''}">
-      <td>${t.pos}</td><td><span class="mini-tabla-team"><span class="mini-tabla-avatar">${_crestImgHtml(t.equipo)}</span><span class="mini-tabla-team-name">${t.equipo}</span></span></td>
+      <td>${parseInt(t.pos) === 1 ? '🏆' : t.pos}</td><td><span class="mini-tabla-team"><span class="mini-tabla-avatar">${_teamCrestHtml(t.equipo, t.csb)}</span><span class="mini-tabla-team-name">${t.equipo}</span></span></td>
       <td>${t.pts}</td><td>${t.pj}</td>
     </tr>`).join('');
     return `<div class="mini-tabla-wrap">
@@ -10877,7 +10885,7 @@ function renderResumen() {
     || (ultimo.rival || '').toUpperCase().includes((t.equipo || '').toUpperCase()))?.pos || null : null;
   const _ultimoCsbTeamHtml = `
     <div class="flex flex-col items-center gap-1 w-16">
-      <img src="logo-csb.webp" alt="Santa Bárbara" class="w-12 h-12 rounded-full object-contain bg-slate-950/60 border border-slate-700 p-1" />
+      <img src="logo-csb.webp" alt="Santa Bárbara" class="w-12 h-12 rounded-full object-contain bg-white border border-slate-700 p-1" />
       <span class="text-[0.6rem] text-slate-400 font-semibold truncate max-w-full">CSB</span>
       ${_ultimoCsbPos ? `<span class="text-[0.58rem] text-slate-500 font-bold">${_ultimoCsbPos}</span>` : ''}
     </div>`;
@@ -11287,8 +11295,8 @@ function renderResumen() {
             <div class="flex-1 flex flex-col justify-evenly gap-2">
               ${tablaCorta.map(t => `
                 <div class="flex items-center gap-2.5 px-2.5 py-2 rounded-xl ${t.csb ? 'bg-emerald-950/40 border border-emerald-500/50' : ''}">
-                  <span class="w-5 text-xs font-extrabold shrink-0 ${t.csb ? 'text-emerald-400' : 'text-slate-500'}">${t.pos}</span>
-                  <span class="w-7 h-7 rounded-full bg-white border border-slate-700 flex items-center justify-center text-[0.6rem] font-extrabold text-slate-700 shrink-0 relative overflow-hidden">${_crestImgHtml(t.equipo)}</span>
+                  <span class="w-5 text-xs font-extrabold shrink-0 ${t.csb ? 'text-emerald-400' : 'text-slate-500'}">${parseInt(t.pos) === 1 ? '🏆' : t.pos}</span>
+                  <span class="w-7 h-7 rounded-full bg-white border border-slate-700 flex items-center justify-center text-[0.6rem] font-extrabold text-slate-700 shrink-0 relative overflow-hidden">${_teamCrestHtml(t.equipo, t.csb)}</span>
                   <span class="flex-1 text-xs font-semibold truncate ${t.csb ? 'text-emerald-400' : 'text-slate-400'}">${t.equipo}</span>
                   <span class="text-xs font-extrabold shrink-0 ${t.csb ? 'text-emerald-400' : 'text-slate-300'}">${t.pts} pts</span>
                 </div>`).join('')}
@@ -16851,35 +16859,37 @@ async function loadLiveData() {
   }
   _fillCopasPorPosicion(DATA_A.tabla, COPAS_POR_POSICION_A);
 
-  // Partido puntual vs LA PLATA (Fecha 4, Clausura AIFA A 2026) — cargado a
-  // mano, club-confirmado: 5/9, 15hs, Visitante, Universidad de La Plata.
-  // El fetch en vivo no trae bien Día/Hora/Lugar para esta fila puntual —
-  // la columna Fecha se reutiliza como "Citado" y Lugar como "Titular" en
-  // las filas de jugador de la MISMA hoja, y esa mezcla confunde la
-  // inferencia de tipo por columna de la API de Google usada acá (bug del
-  // lado de Google, no del sheet). Se pisa/agrega solo lo puntual de esta
-  // fecha, sin tocar el resto de la temporada.
-  {
-    const laPlataFix = { rival: 'LA PLATA', fecha: '4', dia: '5/9', hora: '15hs', lugar: 'Universidad de La Plata', local: 'VISITANTE' };
-    let m4 = (DATA_A.apertura || []).find(m => String(m.fecha) === '4');
-    if (m4) {
-      m4.rival = m4.rival || laPlataFix.rival;
-      m4.dia   = laPlataFix.dia;
-      m4.hora  = laPlataFix.hora;
-      m4.lugar = laPlataFix.lugar;
+  // Partidos puntuales de Clausura AIFA A 2026 cargados a mano, club-
+  // confirmados, porque el fetch en vivo no trae bien Fecha/Día/Hora/Lugar
+  // para esas filas específicas — la columna Fecha se reutiliza como
+  // "Citado" y Lugar como "Titular" en las filas de jugador de la MISMA
+  // hoja, y esa mezcla confunde la inferencia de tipo por columna de la API
+  // de Google usada acá (bug del lado de Google, no del sheet ni del
+  // parser). Cada uno se pisa/agrega sin tocar el resto de la temporada;
+  // sumar un caso nuevo es solo agregar una entrada acá.
+  [
+    { rival: 'LA PLATA', fecha: '4', dia: '5/9',  hora: '15hs', lugar: 'Universidad de La Plata', local: 'VISITANTE' },
+    { rival: 'NORDELTA', fecha: '5', dia: '12/9', hora: '',     lugar: '',                          local: '' },
+  ].forEach(fix => {
+    let m = (DATA_A.apertura || []).find(mm => String(mm.fecha) === fix.fecha);
+    if (m) {
+      m.rival = m.rival || fix.rival;
+      if (fix.dia)   m.dia   = fix.dia;
+      if (fix.hora)  m.hora  = fix.hora;
+      if (fix.lugar) m.lugar = fix.lugar;
     } else {
       DATA_A.apertura = [...(DATA_A.apertura || []), {
-        ...laPlataFix, formacionCSB: '', formacionRival: '',
+        ...fix, formacionCSB: '', formacionRival: '',
         resultado: null, gf: null, gc: null, penales: null, jugadores: [],
       }].sort((a, b) => (parseInt(a.fecha) || 0) - (parseInt(b.fecha) || 0));
     }
-    let p4 = (DATA_A.partidos || []).find(m => String(m.fecha) === '4');
-    if (p4) {
-      p4.estadio = p4.estadio || laPlataFix.lugar;
-      p4.horario = p4.horario || laPlataFix.hora;
-      p4.local   = p4.local   || laPlataFix.local;
+    let p = (DATA_A.partidos || []).find(pp => String(pp.fecha) === fix.fecha);
+    if (p) {
+      if (fix.lugar) p.estadio = p.estadio || fix.lugar;
+      if (fix.hora)  p.horario = p.horario || fix.hora;
+      if (fix.local) p.local   = p.local   || fix.local;
     }
-  }
+  });
 
   // PRIMERA B — Apertura AIFA B 2026 (finished season, archived data source)
   const bApTbl = ok(bApBasic) ? parseHeaderStandings(ok(bApBasic)) : [];
