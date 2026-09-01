@@ -645,14 +645,14 @@
     }
     .hd-club-avatar {
       width: 58px; height: 58px; border-radius: 50%; margin: 0 auto 10px;
-      background: linear-gradient(135deg,rgba(245,158,11,.18),rgba(245,158,11,.04));
+      background: #fff;
       border: 2px solid rgba(245,158,11,.28);
       display: flex; align-items: center; justify-content: center;
       font-size: 1.2rem; font-weight: 900; color: var(--dorado);
       overflow: hidden; position: relative;
     }
     .hd-club-avatar img { width: 100%; height: 100%; object-fit: contain; padding: 6px; box-sizing: border-box; }
-    .hd-club-avatar-fallback { display: none; width: 100%; height: 100%; align-items: center; justify-content: center; }
+    .hd-club-avatar-fallback { display: none; width: 100%; height: 100%; align-items: center; justify-content: center; color: #334155; }
     .hd-club-name { font-size: 1rem; font-weight: 800; color: #e2e8f0; margin-bottom: 3px; }
     .hd-club-sub { font-size: .68rem; color: rgba(255,255,255,.35); text-transform: uppercase; letter-spacing: .07em; }
 
@@ -1723,15 +1723,17 @@
     .rival-avatar {
       display: inline-flex; align-items: center; justify-content: center;
       width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
-      background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.3);
-      color: var(--dorado); font-size: 0.58rem; font-weight: 800; letter-spacing: 0;
+      background: #fff; border: 1px solid rgba(245,158,11,0.3);
+      font-size: 0.58rem; font-weight: 800; letter-spacing: 0;
       overflow: hidden; position: relative;
     }
     /* Escudo real (RIVAL_CREST_URLS/escudos/<slug>.webp) con fallback a las
        iniciales de siempre — ver _rivalAvatarHtml(). Mismo patrón onerror
-       que ya usa la caja de Próximo Partido (.pm-crest). */
+       que ya usa la caja de Próximo Partido (.pm-crest). Fondo blanco
+       (pedido explícito) en vez del dorado/negro de antes, para que el
+       escudo se vea prolijo sin importar sus propios colores. */
     .rival-avatar img { width: 100%; height: 100%; object-fit: contain; padding: 2px; box-sizing: border-box; }
-    .rival-avatar-fallback { display: none; width: 100%; height: 100%; align-items: center; justify-content: center; }
+    .rival-avatar-fallback { display: none; width: 100%; height: 100%; align-items: center; justify-content: center; color: #334155; }
     .ultimo-local { font-size: 0.65rem; color: #475569; font-weight: 500; }
     .ultimo-resultado {
       font-size: 1.15rem; font-weight: 900; letter-spacing: .04em; white-space: nowrap; text-align: right;
@@ -15709,43 +15711,20 @@ function parseDetailedMatches(rows, startInSection = false) {
       && c2 !== '1'
       && !/^\d+([.,]\d+)?$/.test(c2)          // not a number (excludes cumulative-stats rows)
       && !/^(ARQ|DF[ICD]?|MC[EOI]?|MD|MI|DC|DEL|AT[ADI]?)$/i.test(c2); // not a position code
-    // BUG REAL encontrado (un fixture pendiente con Fecha/Día/Hora ya
-    // cargados pero sin Lugar ni plantel todavía no aparecía en Fecha a
-    // Fecha — quedaba como si el partido no existiera): esta fila solo se
-    // reconocía como cabecera de partido con Lugar no vacío (isVenue) O si
-    // la fila siguiente era el header de jugadores (precedesPlayerHeader,
-    // pensado para cuando YA hay plantel cargado). Un fixture recién
-    // agregado sin lugar y sin plantel no cumplía ninguna de las dos.
-    //
-    // BUG REAL #2 encontrado en el primer intento de este fix: usar
-    // "row[3]/row[4] no vacíos" como señal de Día/Hora rompió TODO el
-    // parseo — row[3]/row[4] son las MISMAS posiciones que Entró/Salió en
-    // una fila de JUGADOR (flags "1"/vacío), así que cualquier suplente que
-    // entró o salió (row[3] o row[4] = "1") se detectaba como si fuera la
-    // cabecera de un partido nuevo, cortando el plantel real a la mitad y
-    // mostrando el nombre de ese jugador como si fuera el rival. Acá se
-    // exige que el valor tenga FORMA de fecha o de hora real (nunca "1" ni
-    // vacío) para no poder confundirse con esos flags.
-    // "hs" es obligatorio en el patrón de hora (no opcional) a propósito:
-    // así "15hs"/"15:30hs" matchean pero un simple flag "1" (Citado/
-    // Titular/Entró/Salió de una fila de jugador) nunca puede matchear —
-    // sin esa "h" literal, un "1" solo también pasaba el patrón.
-    const looksLikeDia  = /^\d{1,2}[\/\-]\d{1,2}([\/\-]\d{2,4})?$/.test((row[3]||'').trim())
-      || /lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo/i.test((row[3]||'').trim());
-    const looksLikeHora = /^\d{1,2}(:\d{2})?\s*hs?$/i.test((row[4]||'').trim());
-    const hasDiaOrHora = looksLikeDia || looksLikeHora;
+    // Se intentó relajar esta detección para reconocer fixtures pendientes
+    // sin Lugar/plantel todavía (Día/Hora solos, o Fecha también en
+    // blanco) — pasó por 2 versiones y ambas terminaron generando partidos
+    // fantasma o cortando el plantel real de otras fechas (ver historial
+    // del chat). Se revierte del todo a la detección original, segura: solo
+    // Lugar no vacío (isVenue) o plantel ya cargado abajo (precedesPlayer-
+    // Header) cuentan como partido real. El caso puntual de un fixture sin
+    // esos datos (ej. LA PLATA, Fecha 4 de Clausura AIFA A 2026) se resuelve
+    // con una inyección manual puntual en loadLiveData, no tocando este
+    // parser compartido por toda la temporada.
     const nextRowC0 = String(rows[i + 1]?.[0] ?? '').trim();
     const precedesPlayerHeader = /^(Jugador|Nombre)$/i.test(nextRowC0);
-    // Caso real encontrado (LA PLATA, fecha 4): la fila del fixture puede
-    // tener la propia columna Fecha (c1) TODAVÍA en blanco además de Lugar
-    // — solo Día/Hora cargados. isFecha exige un número real ahí, así que
-    // sin esto la fila nunca se reconocía. Con c1 en blanco Y Día/Hora con
-    // forma real, se trata igual como cabecera de partido — el número de
-    // fecha sale del contador `seq` de más abajo (mismo mecanismo ya usado
-    // para temporadas viejas con Fecha en blanco).
-    const blankFechaWithDiaHora = !c1 && hasDiaOrHora;
 
-    if ((isFecha && (isVenue || hasDiaOrHora)) || blankFechaWithDiaHora || precedesPlayerHeader) {
+    if ((isFecha && isVenue) || precedesPlayerHeader) {
       seq++;
       const { resultado: resOk, gf, gc, penales } = _parseResultado(row[7]);
       current = {
@@ -16223,6 +16202,10 @@ const RIVAL_CREST_URLS = {
   'NORDELTA':      'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/team-nordelta--a--1771103050433.png',
   'TROVADOR':      'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/team-trovador-1771103261214.png',
   'UNLAM':         'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/team-u-n-l-a-m-1771103331619.png',
+  // "Universidad de La Matanza" es el mismo club que UNLAM — la hoja
+  // resumen de Historial vs Clubes lo escribe con el nombre completo.
+  'UNIVERSIDAD DE LA MATANZA': 'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/team-u-n-l-a-m-1771103331619.png',
+  'LA MATANZA':    'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/team-u-n-l-a-m-1771103331619.png',
   'UBA':           'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/team-uba-1769914100861.png',
   'VILO':          'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/team-vilo-1771103107596.jpeg',
 };
