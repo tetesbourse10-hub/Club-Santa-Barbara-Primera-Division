@@ -16718,6 +16718,36 @@ async function loadLiveData() {
   }
   _fillCopasPorPosicion(DATA_A.tabla, COPAS_POR_POSICION_A);
 
+  // Partido puntual vs LA PLATA (Fecha 4, Clausura AIFA A 2026) — cargado a
+  // mano, club-confirmado: 5/9, 15hs, Visitante, Universidad de La Plata.
+  // El fetch en vivo no trae bien Día/Hora/Lugar para esta fila puntual —
+  // la columna Fecha se reutiliza como "Citado" y Lugar como "Titular" en
+  // las filas de jugador de la MISMA hoja, y esa mezcla confunde la
+  // inferencia de tipo por columna de la API de Google usada acá (bug del
+  // lado de Google, no del sheet). Se pisa/agrega solo lo puntual de esta
+  // fecha, sin tocar el resto de la temporada.
+  {
+    const laPlataFix = { rival: 'LA PLATA', fecha: '4', dia: '5/9', hora: '15hs', lugar: 'Universidad de La Plata', local: 'VISITANTE' };
+    let m4 = (DATA_A.apertura || []).find(m => String(m.fecha) === '4');
+    if (m4) {
+      m4.rival = m4.rival || laPlataFix.rival;
+      m4.dia   = laPlataFix.dia;
+      m4.hora  = laPlataFix.hora;
+      m4.lugar = laPlataFix.lugar;
+    } else {
+      DATA_A.apertura = [...(DATA_A.apertura || []), {
+        ...laPlataFix, formacionCSB: '', formacionRival: '',
+        resultado: null, gf: null, gc: null, penales: null, jugadores: [],
+      }].sort((a, b) => (parseInt(a.fecha) || 0) - (parseInt(b.fecha) || 0));
+    }
+    let p4 = (DATA_A.partidos || []).find(m => String(m.fecha) === '4');
+    if (p4) {
+      p4.estadio = p4.estadio || laPlataFix.lugar;
+      p4.horario = p4.horario || laPlataFix.hora;
+      p4.local   = p4.local   || laPlataFix.local;
+    }
+  }
+
   // PRIMERA B — Apertura AIFA B 2026 (finished season, archived data source)
   const bApTbl = ok(bApBasic) ? parseHeaderStandings(ok(bApBasic)) : [];
   if (bApTbl.length >= 5) DATA_B_APERTURA2026.tabla = bApTbl;
