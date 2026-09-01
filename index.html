@@ -15688,14 +15688,26 @@ function parseDetailedMatches(rows, startInSection = false) {
     // mostrando el nombre de ese jugador como si fuera el rival. Acá se
     // exige que el valor tenga FORMA de fecha o de hora real (nunca "1" ni
     // vacío) para no poder confundirse con esos flags.
+    // "hs" es obligatorio en el patrón de hora (no opcional) a propósito:
+    // así "15hs"/"15:30hs" matchean pero un simple flag "1" (Citado/
+    // Titular/Entró/Salió de una fila de jugador) nunca puede matchear —
+    // sin esa "h" literal, un "1" solo también pasaba el patrón.
     const looksLikeDia  = /^\d{1,2}[\/\-]\d{1,2}([\/\-]\d{2,4})?$/.test((row[3]||'').trim())
       || /lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo/i.test((row[3]||'').trim());
-    const looksLikeHora = /^\d{1,2}[:\.]\d{2}\s*h?s?$/i.test((row[4]||'').trim());
+    const looksLikeHora = /^\d{1,2}(:\d{2})?\s*hs?$/i.test((row[4]||'').trim());
     const hasDiaOrHora = looksLikeDia || looksLikeHora;
     const nextRowC0 = String(rows[i + 1]?.[0] ?? '').trim();
     const precedesPlayerHeader = /^(Jugador|Nombre)$/i.test(nextRowC0);
+    // Caso real encontrado (LA PLATA, fecha 4): la fila del fixture puede
+    // tener la propia columna Fecha (c1) TODAVÍA en blanco además de Lugar
+    // — solo Día/Hora cargados. isFecha exige un número real ahí, así que
+    // sin esto la fila nunca se reconocía. Con c1 en blanco Y Día/Hora con
+    // forma real, se trata igual como cabecera de partido — el número de
+    // fecha sale del contador `seq` de más abajo (mismo mecanismo ya usado
+    // para temporadas viejas con Fecha en blanco).
+    const blankFechaWithDiaHora = !c1 && hasDiaOrHora;
 
-    if ((isFecha && (isVenue || hasDiaOrHora)) || precedesPlayerHeader) {
+    if ((isFecha && (isVenue || hasDiaOrHora)) || blankFechaWithDiaHora || precedesPlayerHeader) {
       seq++;
       const { resultado: resOk, gf, gc, penales } = _parseResultado(row[7]);
       current = {
