@@ -15671,10 +15671,22 @@ function parseDetailedMatches(rows, startInSection = false) {
       && c2 !== '1'
       && !/^\d+([.,]\d+)?$/.test(c2)          // not a number (excludes cumulative-stats rows)
       && !/^(ARQ|DF[ICD]?|MC[EOI]?|MD|MI|DC|DEL|AT[ADI]?)$/i.test(c2); // not a position code
+    // BUG REAL encontrado (un fixture pendiente con Fecha/Día/Hora ya
+    // cargados pero sin Lugar ni plantel todavía no aparecía en Fecha a
+    // Fecha — quedaba como si el partido no existiera): esta fila solo se
+    // reconocía como cabecera de partido con Lugar no vacío (isVenue) O si
+    // la fila siguiente era el header de jugadores (precedesPlayerHeader,
+    // pensado para cuando YA hay plantel cargado). Un fixture recién
+    // agregado sin lugar y sin plantel no cumplía ninguna de las dos. El
+    // filtro final de esta misma función (`matches.filter` más abajo) YA
+    // acepta un partido así como real con `(m.dia || m.lugar) && m.rival`
+    // — esta detección ahora usa el mismo criterio, agregando Día/Hora como
+    // señal alternativa a Lugar en vez de exigir Lugar sí o sí.
+    const hasDiaOrHora = !!(row[3] || '').trim() || !!(row[4] || '').trim();
     const nextRowC0 = String(rows[i + 1]?.[0] ?? '').trim();
     const precedesPlayerHeader = /^(Jugador|Nombre)$/i.test(nextRowC0);
 
-    if ((isFecha && isVenue) || precedesPlayerHeader) {
+    if ((isFecha && (isVenue || hasDiaOrHora)) || precedesPlayerHeader) {
       seq++;
       const { resultado: resOk, gf, gc, penales } = _parseResultado(row[7]);
       current = {
