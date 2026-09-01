@@ -15677,12 +15677,21 @@ function parseDetailedMatches(rows, startInSection = false) {
     // reconocía como cabecera de partido con Lugar no vacío (isVenue) O si
     // la fila siguiente era el header de jugadores (precedesPlayerHeader,
     // pensado para cuando YA hay plantel cargado). Un fixture recién
-    // agregado sin lugar y sin plantel no cumplía ninguna de las dos. El
-    // filtro final de esta misma función (`matches.filter` más abajo) YA
-    // acepta un partido así como real con `(m.dia || m.lugar) && m.rival`
-    // — esta detección ahora usa el mismo criterio, agregando Día/Hora como
-    // señal alternativa a Lugar en vez de exigir Lugar sí o sí.
-    const hasDiaOrHora = !!(row[3] || '').trim() || !!(row[4] || '').trim();
+    // agregado sin lugar y sin plantel no cumplía ninguna de las dos.
+    //
+    // BUG REAL #2 encontrado en el primer intento de este fix: usar
+    // "row[3]/row[4] no vacíos" como señal de Día/Hora rompió TODO el
+    // parseo — row[3]/row[4] son las MISMAS posiciones que Entró/Salió en
+    // una fila de JUGADOR (flags "1"/vacío), así que cualquier suplente que
+    // entró o salió (row[3] o row[4] = "1") se detectaba como si fuera la
+    // cabecera de un partido nuevo, cortando el plantel real a la mitad y
+    // mostrando el nombre de ese jugador como si fuera el rival. Acá se
+    // exige que el valor tenga FORMA de fecha o de hora real (nunca "1" ni
+    // vacío) para no poder confundirse con esos flags.
+    const looksLikeDia  = /^\d{1,2}[\/\-]\d{1,2}([\/\-]\d{2,4})?$/.test((row[3]||'').trim())
+      || /lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo/i.test((row[3]||'').trim());
+    const looksLikeHora = /^\d{1,2}[:\.]\d{2}\s*h?s?$/i.test((row[4]||'').trim());
+    const hasDiaOrHora = looksLikeDia || looksLikeHora;
     const nextRowC0 = String(rows[i + 1]?.[0] ?? '').trim();
     const precedesPlayerHeader = /^(Jugador|Nombre)$/i.test(nextRowC0);
 
