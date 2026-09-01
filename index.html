@@ -16564,32 +16564,11 @@ async function loadLiveData() {
     // Observaciones/Parciales siempre en blanco — _deriveBasicFromDetailed
     // deja esos campos vacíos a propósito cuando no hay nada que los pise.
     fetchGvizByGid(GS.B_HIST, 266944794, 'A1:J16'),
-    // ── Clausura AIFA A 2026 (live season, its own new tab — nombre de
-    //    pestaña club-confirmado: "Clausura 2026"). Partidos es derivado del
-    //    detalle de Fecha a Fecha (_deriveBasicFromDetailed), enriquecido más
-    //    abajo con su propia tabla "básica" corta.
-    //    fetchProxy (script intermediario, lee celdas directo) en vez de
-    //    fetchGvizByGid: confirmado a mano que /gviz/tq (la API de
-    //    Visualización de Google) devuelve Fecha y Lugar en blanco para
-    //    filas puntuales de esta pestaña — la columna Fecha se reutiliza
-    //    como "Citado" y Lugar como "Titular" en las filas de jugador de la
-    //    MISMA hoja, y esa mezcla confunde la inferencia de tipo por columna
-    //    que hace esa API al exportar (bug documentado de gviz, no un
-    //    problema del sheet ni del parser). fetchProxy lee los valores tal
-    //    cual con Apps Script, sin esa inferencia, así que no debería
-    //    pisarle el dato a ninguna celda real.
-    //    Resguardo: si fetchProxy falla o no encuentra la pestaña "Clausura
-    //    2026" (nombres de pestaña en este mismo libro ya dejaron de andar
-    //    antes, ver Apertura 2026 más arriba), cae a fetchGvizByGid — el
-    //    peor caso posible es seguir como estábamos, nunca romper toda la
-    //    sección por este cambio. ──
-    (async () => {
-      try {
-        const rows = await fetchProxy('Clausura 2026', 'A22:I532', GS.A_MAIN);
-        if (rows && rows.length > 5) return rows;
-      } catch (e) { console.warn('[Clausura A 2026] fetchProxy falló, cae a fetchGvizByGid:', e.message || e); }
-      return fetchGvizByGid(GS.A_MAIN, 618783090, 'A22:I532');
-    })(),
+    // ── Clausura AIFA A 2026 (live season, its own new tab — fetched by gid).
+    //    Club-confirmed ranges; partidos is derived from the detailed Fecha a
+    //    Fecha (_deriveBasicFromDetailed), then enriched below from its own
+    //    short "basic" table — same pattern as Clausura AIFA B 2026 above. ──
+    fetchGvizByGid(GS.A_MAIN, 618783090, 'A22:I532'),
     // Club-confirmed updated ranges (plantel grew, tabla row shifted down).
     fetchGvizByGid(GS.A_MAIN, 618783090, 'L3:X31'),
     fetchGvizByGid(GS.A_MAIN, 618783090, 'L35:V51'),
