@@ -649,7 +649,10 @@
       border: 2px solid rgba(245,158,11,.28);
       display: flex; align-items: center; justify-content: center;
       font-size: 1.2rem; font-weight: 900; color: var(--dorado);
+      overflow: hidden; position: relative;
     }
+    .hd-club-avatar img { width: 100%; height: 100%; object-fit: contain; padding: 6px; box-sizing: border-box; }
+    .hd-club-avatar-fallback { display: none; width: 100%; height: 100%; align-items: center; justify-content: center; }
     .hd-club-name { font-size: 1rem; font-weight: 800; color: #e2e8f0; margin-bottom: 3px; }
     .hd-club-sub { font-size: .68rem; color: rgba(255,255,255,.35); text-transform: uppercase; letter-spacing: .07em; }
 
@@ -1722,7 +1725,13 @@
       width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
       background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.3);
       color: var(--dorado); font-size: 0.58rem; font-weight: 800; letter-spacing: 0;
+      overflow: hidden; position: relative;
     }
+    /* Escudo real (RIVAL_CREST_URLS/escudos/<slug>.webp) con fallback a las
+       iniciales de siempre — ver _rivalAvatarHtml(). Mismo patrón onerror
+       que ya usa la caja de Próximo Partido (.pm-crest). */
+    .rival-avatar img { width: 100%; height: 100%; object-fit: contain; padding: 2px; box-sizing: border-box; }
+    .rival-avatar-fallback { display: none; width: 100%; height: 100%; align-items: center; justify-content: center; }
     .ultimo-local { font-size: 0.65rem; color: #475569; font-weight: 500; }
     .ultimo-resultado {
       font-size: 1.15rem; font-weight: 900; letter-spacing: .04em; white-space: nowrap; text-align: right;
@@ -4741,8 +4750,17 @@ function pl(nombre) {
 function _rivalInitials(nombre) {
   return String(nombre || '').trim().split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 3).join('').toUpperCase();
 }
+// Escudo real si está cargado en RIVAL_CREST_URLS (o en escudos/<slug>.webp),
+// con fallback automático a las iniciales de siempre — mismo patrón onerror
+// que ya usa la caja de Próximo Partido (ver _pmCrestHtml). RIVAL_CREST_URLS
+// se define más abajo en el archivo, pero como esto solo se lee cuando la
+// función se LLAMA (nunca al declararla), el orden no importa.
 function _rivalAvatarHtml(nombre) {
-  return `<span class="rival-avatar">${_rivalInitials(nombre)}</span>`;
+  const src = RIVAL_CREST_URLS[String(nombre || '').toUpperCase().trim()] || `escudos/${slugify(nombre)}.webp`;
+  return `<span class="rival-avatar">
+    <img src="${src}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+    <span class="rival-avatar-fallback">${_rivalInitials(nombre)}</span>
+  </span>`;
 }
 // Color de avatar por rival — hash simple sobre el nombre del club en vez
 // de un tono fijo para todos (antes todos los avatares de rival compartían
@@ -12217,11 +12235,15 @@ function renderHistorialDetalle(rival) {
     // ── Unified sidebar ───────────────────────────────────────────────────
     function initials(s) { return s.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
     const rivalPlayerStats = _histLeadersFromMatches(matches.map(m => m._nav).filter(Boolean));
+    const rivalCrestSrc = RIVAL_CREST_URLS[rivalUp] || `escudos/${slugify(rival)}.webp`;
     const sidebar = `
       <div class="hd-sidebar">
         <div class="hd-profile-card">
           <div class="hd-profile-identity">
-            <div class="hd-club-avatar">${initials(rival)}</div>
+            <div class="hd-club-avatar">
+              <img src="${rivalCrestSrc}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+              <span class="hd-club-avatar-fallback">${initials(rival)}</span>
+            </div>
             <div class="hd-club-name">${rival}</div>
             <div class="hd-club-sub">${matches.length} partido${matches.length !== 1 ? 's' : ''} desde ${currentData === DATA_B ? '2021' : '2016'}</div>
           </div>
@@ -16136,8 +16158,26 @@ function _renderNextMatchBox(elId, boxClass, label, m, navKey) {
 // mano (clic derecho → "Copiar dirección de imagen" en aifa.ar) a medida
 // que se necesiten. Key = mismo nombre que usa el sheet (MAYÚSCULAS).
 const RIVAL_CREST_URLS = {
-  'LA PLATA': 'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/team-univ-d-l-plata-1771156444571.png',
-  'TOCALLI':  'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/team-academia-tocalli-1768671991345.png',
+  'LA PLATA':      'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/team-univ-d-l-plata-1771156444571.png',
+  'TOCALLI':       'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/team-academia-tocalli-1768671991345.png',
+  // Rivales de Primera B (club-confirmados por URL, ver historial del chat).
+  'BANCO CIUDAD':  'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/team-banco-ciudad-1769480962621.png',
+  'CISSAB':        'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/cissab-1769281132910.png',
+  'GALICIA BLANCO':'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/galicia-blanco-1772493842796.jpeg',
+  'ITALIANO B':    'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/team-italiano--b--1771102450979.jpg',
+  'LAMROTH HAKOL': 'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/team-lamroth-hakol-1771102891896.png',
+  'LASALLE':       'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/team-lasalle-1771103511612.png',
+  'LIBERTADOR':    'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/libertador-a-1771589240836.jpeg',
+  'LOS MOLINOS':   'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/los-molinos-1770239552369.jpg',
+  'MELMAC':        'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/team-melmac--a--1771103229063.png',
+  'HACOAJ':        'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/nautico-hacoaj-1770384135443.png',
+  'P.A.C':         'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/team-p-a-c-1771103146858.jpg',
+  'RHINO':         'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/rhino-1773244120097.png',
+  'SITAS B':       'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/team-sitas--b--1769914176061.png',
+  // Nombre incierto (no lo vi escrito igual en ningún otro lugar del
+  // código) — si no aparece el escudo de este rival, avisame el nombre
+  // exacto tal cual está en el sheet y corrijo la key.
+  'AVELLANEDA':    'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/spo-avellaneda-a-1775060684141.jpeg',
 };
 // Versión mobile de _renderNextMatchBox: card angosta con dos avatares
 // enfrentados en vez del layout horizontal de escritorio — misma data
