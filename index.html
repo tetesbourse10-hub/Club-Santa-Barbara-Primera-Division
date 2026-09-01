@@ -16127,6 +16127,18 @@ function _renderNextMatchBox(elId, boxClass, label, m, navKey) {
       </div>` : ''}
     </div>`);
 }
+// Escudos reales de rivales, tomados del propio sitio de AIFA (URLs
+// públicas de Supabase Storage que AIFA usa para alojarlos — no hay CORS
+// para <img>, y el onerror de abajo ya cubre el caso de que un link se
+// rompa en algún momento). Como el nombre de archivo lleva un sufijo
+// numérico por club sin ningún patrón predecible, no se puede armar la URL
+// sola a partir del nombre del rival — hay que ir sumando cada uno acá a
+// mano (clic derecho → "Copiar dirección de imagen" en aifa.ar) a medida
+// que se necesiten. Key = mismo nombre que usa el sheet (MAYÚSCULAS).
+const RIVAL_CREST_URLS = {
+  'LA PLATA': 'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/team-univ-d-l-plata-1771156444571.png',
+  'TOCALLI':  'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/team-academia-tocalli-1768671991345.png',
+};
 // Versión mobile de _renderNextMatchBox: card angosta con dos avatares
 // enfrentados en vez del layout horizontal de escritorio — misma data
 // (_primeraANextMatch/_teamNextMatch), mismo navKey/locator para el click.
@@ -16134,16 +16146,17 @@ function _renderNextMatchBox(elId, boxClass, label, m, navKey) {
 // ahora") — el rival usa _rivalInitials, igual que en Últimos Partidos,
 // Centro de Datos, etc.
 // Escudo propio: logo-csb.webp (imagen real) sobre fondo verde
-// institucional. Escudo rival: apunta a escudos/<slug>.webp — el sitio no
-// tiene esos archivos todavía, así que onerror lo esconde y muestra el
-// fallback de iniciales (.pm-crest-fallback, ya en el DOM) automáticamente;
-// el día que se sumen imágenes reales ahí, empiezan a mostrarse solas sin
-// tocar este código.
+// institucional. Escudo rival: RIVAL_CREST_URLS primero (si ya se cargó
+// ese club), si no escudos/<slug>.webp (por si algún día se suman archivos
+// propios locales) — cualquiera de los dos que falle cae al fallback de
+// iniciales (.pm-crest-fallback, ya en el DOM) vía onerror, así que un
+// rival sin escudo cargado sigue mostrando algo en vez de romperse.
 function _pmCrestHtml(rival) {
   const slug = slugify(rival);
+  const src = RIVAL_CREST_URLS[(rival || '').toUpperCase().trim()] || `escudos/${slug}.webp`;
   const c = _rivalAvatarColor(rival);
   return `<span class="pm-crest pm-crest-rival" style="background:${c.bg};border-color:${c.color}59">
-    <img src="escudos/${slug}.webp" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+    <img src="${src}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
     <span class="pm-crest-fallback" style="color:${c.color}">${_rivalInitials(rival)}</span>
   </span>`;
 }
