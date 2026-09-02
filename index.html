@@ -539,13 +539,18 @@
     .pp-favorito-banner {
       margin-top: 8px; padding-top: 6px; width: 100%;
       border-top: 1px solid #1e293b; /* border-slate-800 */
-      display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 3px;
+      display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 5px;
       font-size: 0.66rem; color: #cbd5e1; /* text-slate-300 */
       background: rgba(2,6,23,0.4); /* bg-slate-950/40 */
-      padding: 5px 8px; border-radius: 8px;
+      padding: 7px 10px; border-radius: 8px;
       transition: opacity .3s ease;
     }
     .pp-favorito-banner.pp-fading { opacity: 0; }
+    /* El escudo (.pp-match-crest, 18px) queda desproporcionado al lado de
+       este texto chico (0.66rem) — se achica y se le suma un poco de
+       margen para que quede prolijo en vez de "flotando" más grande que
+       las letras de al lado. */
+    .pp-favorito-banner .pp-match-crest { width: 13px; height: 13px; font-size: 0.3rem; margin: 0 1px; }
     .pp-favorito-name { color: #fb923c; font-weight: 700; } /* text-orange-400 font-semibold */
     .hist-kpi-label { font-size: .56rem; color: rgba(255,255,255,0.55); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
 
