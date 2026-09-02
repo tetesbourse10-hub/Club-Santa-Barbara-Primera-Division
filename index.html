@@ -541,6 +541,9 @@
       border-top: 1px solid #1e293b; /* border-slate-800 */
       display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 5px;
       font-size: 0.66rem; color: #cbd5e1; /* text-slate-300 */
+      line-height: 1; /* sin esto, el texto plano (label y "(N Goles)") usa el
+        alto de línea normal del font, más alto que el de la píldora del
+        rival (line-height:1) — quedan verticalmente desparejos entre sí */
       background: rgba(2,6,23,0.4); /* bg-slate-950/40 */
       padding: 7px 10px; border-radius: 8px;
       transition: opacity .3s ease;
