@@ -3178,9 +3178,20 @@
     #pp-history-body { transition:opacity .15s; }
     #pp-history-body.pp-fading { opacity:0; }
     .pp-effectiveness { margin-top: 16px; }
-    .pp-kpi-tab { cursor:pointer; transition:background .15s, border-color .15s; border:1px solid transparent; }
+    .pp-kpi-tab { cursor:pointer; transition:background .15s, border-color .15s; border:1px solid transparent; position:relative; }
     .pp-kpi-tab:hover { background:rgba(255,255,255,0.04); }
+    .pp-kpi-tab:active { background:rgba(255,255,255,0.08); }
     .pp-kpi-active { border-color:rgba(245,158,11,.4); background:rgba(245,158,11,.08); }
+    /* En mobile no hay :hover — sin esto, nada avisaba que estas tarjetas
+       (Partidos/Goles/Asistencias/G+A) se pueden tocar para abrir el
+       detalle. Un chevron fijo en la esquina (visible siempre, no solo al
+       pasar el mouse) resuelve eso sin agregar texto ni romper el layout. */
+    @media (max-width:768px) {
+      .pp-kpi-tab::after {
+        content:'›'; position:absolute; top:6px; right:8px; line-height:1;
+        font-size:0.95rem; font-weight:900; color:rgba(255,255,255,0.3);
+      }
+    }
     .pp-detail-header { font-size:0.75rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--gris-texto); margin:14px 0 8px; }
     .pp-year-group { margin-bottom:10px; border:1px solid #1e2a3a; border-radius:10px; overflow:hidden; }
     .pp-year-summary { cursor:pointer; padding:10px 14px; font-weight:800; font-size:0.88rem; color:#f1f5f9; background:rgba(255,255,255,0.03); list-style:none; }
@@ -3209,6 +3220,11 @@
     .pp-match-torneo-clausura  { color:#fbbf24; }
     .pp-match-torneo-copas     { color:#c084fc; }
     .pp-match-rival { font-size:1rem; color:#fff; font-weight:700; display:flex; align-items:center; gap:6px; }
+    .pp-match-crest {
+      width:18px; height:18px; border-radius:50%; flex-shrink:0; background:#fff;
+      display:inline-flex; align-items:center; justify-content:center; overflow:hidden; position:relative;
+      font-size:0.5rem; font-weight:800; color:#334155;
+    }
     .pp-match-side { display:flex; align-items:center; gap:8px; }
     .pp-match-cond { font-size:0.72rem; font-weight:700; padding:4px 10px; border-radius:6px; }
     .pp-cond-tit   { color:#22c55e; background:rgba(34,197,94,0.12); }
@@ -5798,7 +5814,7 @@ function _ppStatRowHtml(kind, p) {
     <div class="pp-match-desktop-layout">
       <div class="pp-match-main">
         <span class="pp-match-torneo ${torneoClass}">${p.torneo}</span>
-        <span class="pp-match-rival">${rivalLine}</span>
+        <span class="pp-match-rival"><span class="pp-match-crest">${_crestImgHtml(p.rival)}</span>${rivalLine}</span>
       </div>
       <div class="pp-match-side">
         ${icons}
@@ -5810,7 +5826,7 @@ function _ppStatRowHtml(kind, p) {
     </div>
     <div class="pp-match-mobile-layout">
       <div class="pp-match-m2-left">
-        <div class="pp-match-m2-rival">vs ${p.rival} ${catBadge}${icons}</div>
+        <div class="pp-match-m2-rival"><span class="pp-match-crest">${_crestImgHtml(p.rival)}</span>vs ${p.rival} ${catBadge}${icons}</div>
         <div class="pp-match-m2-meta">${label ? label + ' · ' : ''}${p.torneo}</div>
       </div>
       <div class="pp-match-m2-right">
@@ -6046,13 +6062,13 @@ function _ppComputeFavoritos() {
 function _ppFavoritoBannerInner(icon, label, fav, unit) {
   if (!fav) return `${icon} <span style="color:rgba(255,255,255,0.4)">${label}: —</span>`;
   // Rivales son clubes, no jugadores — texto plano, no pl() (que linkea a un perfil de jugador).
-  return `${icon} ${label}: <span class="pp-favorito-name">${fav.rival}</span> (<span class="pp-favorito-name">${fav.val}</span> ${unit})`;
+  return `${icon} ${label}: <span class="pp-match-crest">${_crestImgHtml(fav.rival)}</span><span class="pp-favorito-name">${fav.rival}</span> (${fav.val} ${unit})`;
 }
 // G+A banner shows the goles/asist split instead of just the combined
 // number — same "X G+A ➔ Y ⚽ + Z 🎯" format used in the Resumen tab.
 function _ppFavoritoGaBannerInner(icon, label, fav) {
   if (!fav) return `${icon} <span style="color:rgba(255,255,255,0.4)">${label}: —</span>`;
-  return `${icon} ${label}: <span class="pp-favorito-name">${fav.rival}</span> (<span class="pp-favorito-name">${fav.val}</span> G+A ➔ ${fav.goles} ⚽ + ${fav.asist} 🎯)`;
+  return `${icon} ${label}: <span class="pp-match-crest">${_crestImgHtml(fav.rival)}</span><span class="pp-favorito-name">${fav.rival}</span> (<span class="pp-favorito-name">${fav.val}</span> G+A ➔ ${fav.goles} ⚽ + ${fav.asist} 🎯)`;
 }
 
 // "Dato Curioso" dinámico del pie de la grilla de Métricas Totales (mobile,
@@ -16580,7 +16596,17 @@ function refreshCurrentView() {
       // renderHistorial() overwrites #partidos-grid unconditionally, which
       // otherwise snapped the user back to the club list mid-read.
       if (id === 'tab-historial' && _histInDrilldown) break;
+      // BUG REAL encontrado (reportado como "la página salta" cada vez que
+      // se actualiza en vivo — molesto si estás leyendo algo hace rato):
+      // fn() reconstruye TODO el innerHTML de la pestaña activa cada 60s
+      // (renderTorneoApertura ya restaura qué sub-pestaña/fecha estaba
+      // abierta, ver su propio comentario, pero ninguno de los renders acá
+      // restauraba el SCROLL — el navegador lo resetea a 0 al reemplazar
+      // contenido). Se guarda la posición antes y se restaura después,
+      // igual que ya hace volverAtras() con _navStack.
+      const _refreshScrollY = window.scrollY;
       fn();
+      if (_refreshScrollY > 0) setTimeout(() => window.scrollTo(0, _refreshScrollY), 0);
       break;
     }
   }
