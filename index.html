@@ -4807,6 +4807,12 @@ function _rivalInitials(nombre) {
 // que ya usa la caja de Próximo Partido (ver _pmCrestHtml). RIVAL_CREST_URLS
 // se define más abajo en el archivo, pero como esto solo se lee cuando la
 // función se LLAMA (nunca al declararla), el orden no importa.
+// Círculo de solo iniciales, SIN buscar ningún escudo — para nombres de
+// JUGADOR, no de club (ver _playerAvatarHtml, único caller). Reusa el mismo
+// wrapper/clases visuales que _rivalAvatarHtml, solo sin el <img>/onerror.
+function _playerAvatarHtml(nombre) {
+  return `<span class="rival-avatar"><span class="rival-avatar-fallback" style="display:flex">${_rivalInitials(nombre)}</span></span>`;
+}
 function _rivalAvatarHtml(nombre) {
   const src = RIVAL_CREST_URLS[String(nombre || '').toUpperCase().trim()] || `escudos/${slugify(nombre)}.webp`;
   return `<span class="rival-avatar">
@@ -7323,7 +7329,7 @@ function _edMobileCard(p, i, key, unitLabel, rid) {
         <div class="mrow-top-main">
           <div class="mrow-title-row">
             <span class="ed-rank${i < 3 ? ' ed-medal' : ''}">${rankDisplay}</span>
-            <span style="cursor:pointer" onclick="event.stopPropagation();goToPlayer('${nombreEsc}')">${_rivalAvatarHtml(p.nombre)}</span>
+            <span style="cursor:pointer" onclick="event.stopPropagation();goToPlayer('${nombreEsc}')">${_playerAvatarHtml(p.nombre)}</span>
             <div class="mrow-title">${pl(p.nombre)}</div>
           </div>
         </div>
@@ -16975,6 +16981,23 @@ async function loadLiveData() {
       if (fix.hora)  p.horario = p.horario || fix.hora;
       if (fix.local) p.local   = fix.local;
     }
+  });
+  // BUG REAL encontrado (Fecha 5 aparecía duplicada dos veces como "vs
+  // NORDELTA" en el selector): confirmado a mano (consola) que
+  // DATA_A.partidos tenía DOS objetos distintos con fecha:'5' — el parser
+  // detectó esa fila dos veces al mismo tiempo que el club terminaba de
+  // cargar el fixture. El fix de arriba solo corrige el PRIMERO que
+  // encuentra (find), dejando el segundo intacto. Se descartan duplicados
+  // por número de fecha acá, quedándose con el primero de cada uno (que es
+  // justo el que el fix de arriba ya completó) — solo puede haber un
+  // partido real por fecha en un torneo de liga de todos contra todos.
+  const _seenFechasA = new Set();
+  DATA_A.apertura = (DATA_A.apertura || []).filter(m => {
+    const k = String(m.fecha); if (_seenFechasA.has(k)) return false; _seenFechasA.add(k); return true;
+  });
+  const _seenFechasP = new Set();
+  DATA_A.partidos = (DATA_A.partidos || []).filter(m => {
+    const k = String(m.fecha); if (_seenFechasP.has(k)) return false; _seenFechasP.add(k); return true;
   });
 
   // PRIMERA B — Apertura AIFA B 2026 (finished season, archived data source)
