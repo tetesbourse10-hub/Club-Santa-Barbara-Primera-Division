@@ -12743,6 +12743,7 @@ function renderJugadoresTotales() {
         style="flex:1;min-width:160px;padding:7px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:#fff;font-size:0.85rem;outline:none">
       <div id="jug-tab-row" class="jtot-tabrow"></div>
     </div>
+    <div id="jug-sort-bar"></div>
     <div class="table-wrap" id="jug-totales-wrap" style="overflow:auto;max-height:640px;position:relative">
       <div style="color:var(--gris-texto);padding:24px;text-align:center">Cargando...</div>
     </div>`;
@@ -12801,6 +12802,42 @@ function _jugTotalSetTab(key) {
   if (sortCol !== undefined) _jugTotalesSort = { col: sortCol, asc: false };
   _jugTotalBuild();
 }
+
+// Desplegable "Ordenar por: ▾" (mobile) para Estadísticas Totales — antes la
+// única forma de ordenar por Goles/Asist/G+A en mobile era tocar el chip
+// secundario dentro de cada card, sin ningún indicio visual de que fuera
+// tocable (mismo estilo que texto plano), así que en la práctica pasaba
+// desapercibido y la lista "parecía" ordenarse solo por PJ. Mismo
+// componente .pmf-bar/-dd/-btn/-menu que ya usa el filtro "Orden" de
+// Plantel, para que sea igual de visible y consistente.
+let _jugTotalSortMenuOpen = false;
+function _jugTotalSortBarHtml() {
+  const activeCols = JUG_TABS.find(t => t.key === _jugTotalesTab)?.cols || JUG_TABS[0].cols;
+  const curCol = activeCols.includes(_jugTotalesSort.col) ? _jugTotalesSort.col : activeCols[0];
+  const meta = COL_META[curCol] || { label: 'PJ', icon: '' };
+  const menu = activeCols.map(ci => {
+    const m = COL_META[ci] || { label: '', icon: '' };
+    return `<div class="pmf-menu-item${ci === curCol ? ' active' : ''}" onclick="window._jugTotalSortMenuSelect(${ci})">${m.icon} ${m.label}</div>`;
+  }).join('');
+  return `<div class="pmf-bar" id="jug-sort-bar">
+    <div class="pmf-row">
+      <div class="pmf-dd">
+        <button class="pmf-btn active" onclick="window._jugTotalSortMenuToggle()">Ordenar por: ${meta.icon} ${meta.label} <span>▾</span></button>
+        ${_jugTotalSortMenuOpen ? `<div class="pmf-menu">${menu}</div>` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+window._jugTotalSortMenuToggle = function() {
+  _jugTotalSortMenuOpen = !_jugTotalSortMenuOpen;
+  const el = document.getElementById('jug-sort-bar');
+  if (el) el.outerHTML = _jugTotalSortBarHtml();
+};
+window._jugTotalSortMenuSelect = function(colIdx) {
+  _jugTotalesSort = { col: colIdx, asc: false };
+  _jugTotalSortMenuOpen = false;
+  _jugTotalBuild();
+};
 
 function _jugTotalNumeric(v) {
   if (!v || v === '-' || v === '\\-' || v === '#DIV/0!' || v === '') return null;
@@ -12862,6 +12899,9 @@ function _jugTotalBuild() {
   // Update search placeholder with player count
   const searchEl = document.getElementById('jug-search');
   if (searchEl) searchEl.placeholder = `🔍 Buscar entre ${_jugTotalesData.length} jugadores…`;
+
+  const sortBarEl = document.getElementById('jug-sort-bar');
+  if (sortBarEl) sortBarEl.outerHTML = _jugTotalSortBarHtml();
 
   const activeCols = JUG_TABS.find(t => t.key === _jugTotalesTab)?.cols || JUG_TABS[0].cols;
 
@@ -13031,6 +13071,7 @@ function renderJugadoresTotalesB() {
         style="flex:1;min-width:160px;padding:7px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:#fff;font-size:0.85rem;outline:none">
       <div id="jug-tab-row-b" class="jtot-tabrow"></div>
     </div>
+    <div id="jug-sort-bar-b"></div>
     <div class="table-wrap" id="jug-totales-wrap-b" style="overflow:auto;max-height:640px;position:relative">
       <div style="color:var(--gris-texto);padding:24px;text-align:center">Cargando...</div>
     </div>`;
@@ -13110,6 +13151,36 @@ function _jugBSetTab(key) {
   _jugBBuild();
 }
 
+// Ver _jugTotalSortBarHtml (misma idea, versión Primera B).
+let _jugBSortMenuOpen = false;
+function _jugBSortBarHtml() {
+  const activeCols = JUG_TABS_B.find(t => t.key === _jugBTab)?.cols || JUG_TABS_B[0].cols;
+  const curCol = activeCols.includes(_jugBSort.col) ? _jugBSort.col : activeCols[0];
+  const meta = COL_META_B[curCol] || { label: 'PJ', icon: '' };
+  const menu = activeCols.map(ci => {
+    const m = COL_META_B[ci] || { label: '', icon: '' };
+    return `<div class="pmf-menu-item${ci === curCol ? ' active' : ''}" onclick="window._jugBSortMenuSelect(${ci})">${m.icon} ${m.label}</div>`;
+  }).join('');
+  return `<div class="pmf-bar" id="jug-sort-bar-b">
+    <div class="pmf-row">
+      <div class="pmf-dd">
+        <button class="pmf-btn active" onclick="window._jugBSortMenuToggle()">Ordenar por: ${meta.icon} ${meta.label} <span>▾</span></button>
+        ${_jugBSortMenuOpen ? `<div class="pmf-menu">${menu}</div>` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+window._jugBSortMenuToggle = function() {
+  _jugBSortMenuOpen = !_jugBSortMenuOpen;
+  const el = document.getElementById('jug-sort-bar-b');
+  if (el) el.outerHTML = _jugBSortBarHtml();
+};
+window._jugBSortMenuSelect = function(colIdx) {
+  _jugBSort = { col: colIdx, asc: false };
+  _jugBSortMenuOpen = false;
+  _jugBBuild();
+};
+
 function _jugBNumeric(v) {
   if (!v || v === '-' || v === '\\-' || v === '#DIV/0!' || v === '') return null;
   return parseFloat(v.replace(',', '.'));
@@ -13167,6 +13238,9 @@ function _jugBBuild() {
 
   const searchEl = document.getElementById('jug-search-b');
   if (searchEl) searchEl.placeholder = `🔍 Buscar entre ${_jugBData.length} jugadores…`;
+
+  const sortBarElB = document.getElementById('jug-sort-bar-b');
+  if (sortBarElB) sortBarElB.outerHTML = _jugBSortBarHtml();
 
   const activeCols = JUG_TABS_B.find(t => t.key === _jugBTab)?.cols || JUG_TABS_B[0].cols;
 
@@ -13248,7 +13322,7 @@ function _jugBBuild() {
         <tbody>${trs || `<tr><td colspan="${2 + activeCols.length}" style="text-align:center;color:var(--gris-texto);padding:32px">Sin resultados</td></tr>`}</tbody>
       </table>
     </div>
-    ${_jugTotalMobileCardsHtml(rows, sortCol, activeCols, JUG_COL_B, POS_COLOR_B, POS_BG_B, COL_META_B, '_jugBSort')}`;
+    ${_jugTotalMobileCardsHtml(rows, sortCol, activeCols, JUG_COL_B, POS_COLOR_B, POS_BG_B, COL_META_B, '_jugBSortCol')}`;
 }
 
 // ── Debuts ───────────────────────────────────────────────────────────────────
