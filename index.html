@@ -546,12 +546,17 @@
       transition: opacity .3s ease;
     }
     .pp-favorito-banner.pp-fading { opacity: 0; }
-    /* El escudo (.pp-match-crest, 18px) queda desproporcionado al lado de
-       este texto chico (0.66rem) — se achica. El margen es explícito en el
-       propio ícono (no el gap del flex padre, que no separaba lo suficiente
-       del nombre pegado justo al lado) para asegurar que quede espacio real
-       entre el círculo y el nombre del rival. */
-    .pp-favorito-banner .pp-match-crest { width: 13px; height: 13px; font-size: 0.3rem; margin: 0 6px 0 3px; }
+    /* Escudo+nombre del rival como una sola "píldora" con fondo propio, en
+       vez de un ícono chico suelto pegado al texto — ajustar solo el
+       margen del escudo no alcanzaba para que se sintiera separado. El
+       padding de la píldora garantiza el espacio real entre el círculo y
+       el nombre, y la agrupa como una unidad visual centrada. */
+    .pp-favorito-rival-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 999px; padding: 3px 10px 3px 4px; margin: 1px 2px;
+    }
+    .pp-favorito-banner .pp-match-crest { width: 14px; height: 14px; font-size: 0.32rem; }
     .pp-favorito-name { color: #fb923c; font-weight: 700; } /* text-orange-400 font-semibold */
     .hist-kpi-label { font-size: .56rem; color: rgba(255,255,255,0.55); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
 
@@ -6085,13 +6090,13 @@ function _ppComputeFavoritos() {
 function _ppFavoritoBannerInner(icon, label, fav, unit) {
   if (!fav) return `${icon} <span style="color:rgba(255,255,255,0.4)">${label}: —</span>`;
   // Rivales son clubes, no jugadores — texto plano, no pl() (que linkea a un perfil de jugador).
-  return `${icon} ${label}: <span class="pp-match-crest">${_crestImgHtml(fav.rival)}</span><span class="pp-favorito-name">${fav.rival}</span> (${fav.val} ${unit})`;
+  return `${icon} ${label}: <span class="pp-favorito-rival-chip"><span class="pp-match-crest">${_crestImgHtml(fav.rival)}</span><span class="pp-favorito-name">${fav.rival}</span></span> (${fav.val} ${unit})`;
 }
 // G+A banner shows the goles/asist split instead of just the combined
 // number — same "X G+A ➔ Y ⚽ + Z 🎯" format used in the Resumen tab.
 function _ppFavoritoGaBannerInner(icon, label, fav) {
   if (!fav) return `${icon} <span style="color:rgba(255,255,255,0.4)">${label}: —</span>`;
-  return `${icon} ${label}: <span class="pp-match-crest">${_crestImgHtml(fav.rival)}</span><span class="pp-favorito-name">${fav.rival}</span> (<span class="pp-favorito-name">${fav.val}</span> G+A ➔ ${fav.goles} ⚽ + ${fav.asist} 🎯)`;
+  return `${icon} ${label}: <span class="pp-favorito-rival-chip"><span class="pp-match-crest">${_crestImgHtml(fav.rival)}</span><span class="pp-favorito-name">${fav.rival}</span></span> (<span class="pp-favorito-name">${fav.val}</span> G+A ➔ ${fav.goles} ⚽ + ${fav.asist} 🎯)`;
 }
 
 // "Dato Curioso" dinámico del pie de la grilla de Métricas Totales (mobile,
