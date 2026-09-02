@@ -17503,11 +17503,6 @@ async function loadLiveData() {
     { bg: 'rgba(180,120,60,0.10)',  border: 'rgba(180,120,60,0.20)',  medal: '🥉' },
   ];
 
-  function fmtStat(v, isFloat) {
-    if (isFloat) return v > 0 ? v.toFixed(2) : '—';
-    return v;
-  }
-
   // Map prom-ranking key → which base column it replaces and how to display it
   const PROM_MAP = {
     promGol:   { replaces: 'goles',  header: 'PROM.G',   field: 'promGol'   },
