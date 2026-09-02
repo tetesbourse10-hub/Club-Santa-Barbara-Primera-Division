@@ -547,10 +547,11 @@
     }
     .pp-favorito-banner.pp-fading { opacity: 0; }
     /* El escudo (.pp-match-crest, 18px) queda desproporcionado al lado de
-       este texto chico (0.66rem) — se achica y se le suma un poco de
-       margen para que quede prolijo en vez de "flotando" más grande que
-       las letras de al lado. */
-    .pp-favorito-banner .pp-match-crest { width: 13px; height: 13px; font-size: 0.3rem; margin: 0 1px; }
+       este texto chico (0.66rem) — se achica. El margen es explícito en el
+       propio ícono (no el gap del flex padre, que no separaba lo suficiente
+       del nombre pegado justo al lado) para asegurar que quede espacio real
+       entre el círculo y el nombre del rival. */
+    .pp-favorito-banner .pp-match-crest { width: 13px; height: 13px; font-size: 0.3rem; margin: 0 6px 0 3px; }
     .pp-favorito-name { color: #fb923c; font-weight: 700; } /* text-orange-400 font-semibold */
     .hist-kpi-label { font-size: .56rem; color: rgba(255,255,255,0.55); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
 
