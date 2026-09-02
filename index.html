@@ -16266,7 +16266,7 @@ const RIVAL_CREST_URLS = {
   'ZAFADOS F.C.':   'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/zafados-f-c-1771433831149.png',
   'EL RETIRO':      'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/el-retiro-1785502527998.png',
   'REPUBLICA DEL OESTE': 'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/rep-del-oeste-1770048498290.jpeg',
-  'DEFENSORES DE HURLINGHAM': 'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/c-d-hurlinghan-azul-1772388474415.jpeg',
+  'DEFENSORES DE HURLINGHAM': 'https://volleybox.net/media/upload/teams/big_17506958165hEwX.png',
   // Nombres SIN confirmar (nunca vi estos nombres escritos en ningún otro
   // lugar del código) — si alguno no muestra el escudo, avisame el nombre
   // exacto tal cual está en el sheet y corrijo la key.
@@ -16285,6 +16285,26 @@ const RIVAL_CREST_URLS = {
   'BANCO NACION B': 'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/banco-nacion-b-1772991368343.jpg',
   'BARKOJBA':       'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/barkojba-35-1775830293252.png',
   'PLAY FUTBOL':    'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/playfutbol-35-1774897859265.jpeg',
+  // Clubes sin escudo en AIFA — logos de otras fuentes que el club pasó
+  // directamente (mismo criterio: se muestran igual, con fallback a
+  // iniciales si el link se cae en algún momento).
+  'BANCO PROVINCIA':        'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQXlir2AFBlAVub7OR7X80OY83hwpgKNADWvy7F8SBtmfrXJ6v5ODPcYZzs&s=10',
+  'BENAVIDEZ':               'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTg816AsVucBvQXndxOJGnO12hQDtms_oIPi4TAtTAJcAHkG1P9316OaXym&s=10',
+  'BENAVIDEZ RANCH SPORTS':  'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTg816AsVucBvQXndxOJGnO12hQDtms_oIPi4TAtTAJcAHkG1P9316OaXym&s=10',
+  'BRIT AJIM':               'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQQSLT9g8gBrfgEMl_itAhF331bBhqqAZygfDanfhD6KAh9Zwr7lqiX9Pd6&s=10',
+  'CSPFA':                   'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTsVijokHHu0s3xACzaYexQ8Hc2sd61soshBiDWbyPyYpCnv6lGaxMnqm4&s=10',
+  'D10':                     'https://irp.cdn-website.com/cd8a8525/dms3rep/multi/opt/ESCUDO+2025-1920w.png',
+  'DEPORTIVO SANTA MARIA':   'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRm6hcnQ06EzXRLvrqNs1crknCO1QugIXbUbxMR9MvSkg&s',
+  'DI TELLA':                'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQf2-NVINxESzqzsxkJQlHc1hbAnJOr6jjstjCeoMxx97UcegwAJnnQ5CkK&s=10',
+  'EL NACIONAL':             'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTW2nRSgRKROwjglSjjUexRc8bVnS_l7V4yg_OKm4V6nGjL7ywpJ2mZbHk&s=10',
+  'ESCOBAR':                 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSCsaCXBr24K8ofYwrUJwuNdurIbKmHr4GSxwbGrp16Apuxdy_D684XM89M&s=10',
+  'JPH LIONS':               'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSavjNADVaKhZqGbTS9qLEV85I0YjzYqmvtKrXWvnbBhza2STA-yG00e6k&s=10',
+  'LINIERS':                 'https://lineaoeste.com.ar/img/Feb,2020/foto1952-1.jpg',
+  'SAN ANDRES':              'https://upload.wikimedia.org/wikipedia/commons/5/57/Escudo-dsa.png',
+  'SANTA ALICIA':            'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTGtiIyom--vMR2gXZpftooTZFQf0GVRmckAdldjjklaUeMa4mGRoPC1uBY&s=10',
+  'QUINQUELA MARTIN':        'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTM4OKw6MuAhgAPTbgmggkpwIxNTxzY58ka8A9gYYkvgYujeLaa7h7Ipafd&s=10',
+  'TRONCOS':                 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSvE82ZRA6R2t4lsu5fPAPsqt2eIOKqHE-qu8c1hYTBQYqjsQdmOVhXqiE&s=10',
+  'VENECIA':                 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTV4dbibr2RWUcz1wNfYIomsr9sw0K5K4krLQsYIAMBVGwQyS9MfPLvJWs3&s=10',
 };
 // Versión mobile de _renderNextMatchBox: card angosta con dos avatares
 // enfrentados en vez del layout horizontal de escritorio — misma data
