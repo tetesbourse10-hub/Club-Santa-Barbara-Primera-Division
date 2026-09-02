@@ -555,8 +555,17 @@
       display: inline-flex; align-items: center; gap: 6px;
       background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
       border-radius: 999px; padding: 3px 10px 3px 4px; margin: 1px 2px;
+      max-width: 150px;
     }
     .pp-favorito-banner .pp-match-crest { width: 14px; height: 14px; font-size: 0.32rem; }
+    /* Sin esto, un rival con nombre largo ("LAMROTH HAKOL") agranda la
+       píldora mucho más que uno corto ("VILO"), y toda la línea (ícono +
+       label + píldora + paréntesis) termina desparejo/rota de un caso a
+       otro. Se trunca con "…" a un ancho fijo — la píldora queda del mismo
+       tamaño sin importar qué rival sea. */
+    .pp-favorito-rival-chip .pp-favorito-name {
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100px;
+    }
     .pp-favorito-name { color: #fb923c; font-weight: 700; } /* text-orange-400 font-semibold */
     .hist-kpi-label { font-size: .56rem; color: rgba(255,255,255,0.55); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
 
