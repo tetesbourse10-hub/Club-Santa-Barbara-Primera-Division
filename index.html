@@ -16954,7 +16954,7 @@ async function loadLiveData() {
   // temporada; sumar un caso nuevo es solo agregar una entrada acá.
   [
     { rival: 'LA PLATA', fecha: '4', dia: '5/9',  hora: '15hs', lugar: 'Universidad de La Plata', local: 'VISITANTE' },
-    { rival: 'NORDELTA', fecha: '5', dia: '12/9', hora: '',     lugar: '',                          local: '' },
+    { rival: 'NORDELTA', fecha: '5', dia: '12/9', hora: '',     lugar: '',                          local: 'LOCAL' },
   ].forEach(fix => {
     let m = (DATA_A.apertura || []).find(mm => String(mm.fecha) === fix.fecha);
     if (m) {
@@ -16973,7 +16973,7 @@ async function loadLiveData() {
       p.rival = fix.rival;
       if (fix.lugar) p.estadio = p.estadio || fix.lugar;
       if (fix.hora)  p.horario = p.horario || fix.hora;
-      if (fix.local) p.local   = p.local   || fix.local;
+      if (fix.local) p.local   = fix.local;
     }
   });
 
