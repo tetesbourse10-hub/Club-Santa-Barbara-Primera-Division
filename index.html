@@ -7155,8 +7155,35 @@ function _tryRestoreRouteFromHash() {
         if (window.apSwitchTab) window.apSwitchTab('fechas');
         if (typeof selectFecha === 'function') selectFecha(rest[j + 1]);
       }
-    } else if (tabName === 'jugadores' && rest[i0] === 'sub' && rest[i0 + 1] && typeof showJugSub === 'function') {
-      showJugSub(rest[i0 + 1]);
+    } else if (tabName === 'jugadores' && rest[i0] === 'sub' && rest[i0 + 1]) {
+      const subKey = rest[i0 + 1];
+      if (typeof showJugSub === 'function') showJugSub(subKey);
+      // Categoría (tab)/columna de orden de Estadísticas Totales — se
+      // mutan directo las mismas variables que ya usan _jugTotalBuild/
+      // _jugBBuild (son let de nivel superior, no privadas de ninguna
+      // función) en vez de pasar por _jugTotalSetTab/_jugTotalSortMenuSelect,
+      // que siempre fuerzan asc:false y no permiten restaurar la dirección
+      // exacta que tenía el usuario.
+      if (subKey === 'totales' && rest[i0 + 2] === 'cat' && rest[i0 + 3]) {
+        const isB = currentData === DATA_B;
+        const col = rest[i0 + 4] === 'col' && rest[i0 + 5] != null ? parseInt(rest[i0 + 5], 10) : null;
+        const asc = rest[i0 + 6] === 'dir' && rest[i0 + 7] === 'asc';
+        if (isB) {
+          _jugBTab = rest[i0 + 3];
+          if (col != null) _jugBSort = { col, asc };
+          if (typeof _jugBBuild === 'function') _jugBBuild();
+        } else {
+          _jugTotalesTab = rest[i0 + 3];
+          if (col != null) _jugTotalesSort = { col, asc };
+          if (typeof _jugTotalBuild === 'function') _jugTotalBuild();
+        }
+      }
+    } else if (tabName === 'historial') {
+      if (rest[i0] === 'rival' && rest[i0 + 1] != null && window.histDrilldown) {
+        window.histDrilldown(rest[i0 + 1]);
+      } else if (rest[i0] === 'sort' && rest[i0 + 1] != null && rest[i0 + 2] != null && window.histSort) {
+        window.histSort(rest[i0 + 1], rest[i0 + 2] === 'asc');
+      }
     }
     return true;
   } finally {
@@ -12315,10 +12342,12 @@ function renderHistorial() {
   window.histFilter = q => {
     document.getElementById('hist-table-container').innerHTML = buildTable(getSorted(q));
   };
-  window.histSort = col => {
-    if (_histSort.col === col) _histSort.asc = !_histSort.asc;
+  window.histSort = (col, forceAsc) => {
+    if (forceAsc != null) _histSort = { col, asc: forceAsc };
+    else if (_histSort.col === col) _histSort.asc = !_histSort.asc;
     else { _histSort.col = col; _histSort.asc = col === 'rival'; }
     paint();
+    _routeSetPrefix([..._routeTorneoBase, 'sort', _histSort.col, _histSort.asc ? 'asc' : 'desc']);
   };
   // Both categories now share the exact same interactive drilldown
   // (renderHistorialDetalle already branches internally on currentData to
@@ -12328,6 +12357,7 @@ function renderHistorial() {
   window.histDrilldown = rival => {
     _navPush('Historial vs Clubes', () => renderHistorial());
     renderHistorialDetalle(rival);
+    _routeSetPrefix([..._routeTorneoBase, 'rival', rival]);
   };
 
   if (currentData === DATA_B) {
@@ -13379,6 +13409,7 @@ function _jugTotalBuild() {
     return asc ? cmp : -cmp;
   });
   if (_jugTotalesSort.col !== sortCol) _jugTotalesSort = { col: sortCol, asc: false };
+  _routeSetPrefix([..._routeTorneoBase, 'cat', _jugTotalesTab, 'col', _jugTotalesSort.col, 'dir', _jugTotalesSort.asc ? 'asc' : 'desc']);
 
   const countEl = document.getElementById('jug-count');
   if (countEl) countEl.textContent = `${rows.length} jugador${rows.length !== 1 ? 'es' : ''}`;
@@ -13718,6 +13749,7 @@ function _jugBBuild() {
     return asc ? cmp : -cmp;
   });
   if (_jugBSort.col !== sortCol) _jugBSort = { col: sortCol, asc: false };
+  _routeSetPrefix([..._routeTorneoBase, 'cat', _jugBTab, 'col', _jugBSort.col, 'dir', _jugBSort.asc ? 'asc' : 'desc']);
 
   const medalBorder = ['#fbbf24', '#94a3b8', '#b47c3c'];
   const medalBg     = ['rgba(251,191,36,0.08)', 'rgba(148,163,184,0.06)', 'rgba(180,120,60,0.06)'];
