@@ -2803,7 +2803,12 @@
        ilegibles. Se fuerza siempre el tamaño grande, más grande incluso que
        el desktop normal, pensado para leerse bien ya reducido en redes. */
     .fd-share-card .ap-pitch { max-width:780px; }
-    .fd-share-card .ap-pdot { width:74px !important; height:74px !important; font-size:1.1rem !important; border-width:3px !important; }
+    /* box-shadow se saca (no solo el brillo hat-trick) — html2canvas lo
+       renderiza como un blur pixelado/sucio en vez de una sombra suave,
+       y era buena parte de lo que se veía "de mala calidad" en la
+       captura. El aro de color (border) ya alcanza para distinguir al
+       capitán/hat-trick sin necesitar el glow. */
+    .fd-share-card .ap-pdot { width:74px !important; height:74px !important; font-size:1.1rem !important; border-width:3px !important; box-shadow:none !important; }
     .fd-share-card .ap-pdot-badge, .fd-share-card .ap-pdot-roja, .fd-share-card .ap-pdot-sub { font-size:1.15rem !important; }
     .fd-share-card .ap-pdot-cap { width:24px !important; height:24px !important; font-size:0.85rem !important; }
     .fd-share-card .ap-pname { font-size:0.98rem !important; padding:4px 10px !important; max-width:150px !important; border-radius:5px !important; }
@@ -8106,6 +8111,11 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
       ${shareDestacados ? `<div class="fd-share-destacados"><div class="fd-share-destacados-title">📋 Destacados del Partido</div>${shareDestacados}</div>` : ''}
       <div class="fd-share-footer">🟢⚪ Club Santa Bárbara</div>
     </div>`;
+  // Texto que acompaña la imagen al compartir (ver navigator.share en
+  // shareFechaCard) — antes era un genérico "Club Santa Bárbara" sin
+  // relación con el partido en sí.
+  const shareResultTxt = played ? `${resultado}${penales ? ` (pen. ${penales})` : ''}` : 'a jugarse';
+  window._fdShareText = `${leftName} ${shareResultTxt} ${rightName} — ${isRoundName(fecha) ? fecha : `Fecha ${fecha}`}, ${(currentData && currentData.badge) || ''}`;
 
   const shareBtnHtml = `<div class="ap-fd-share-row"><button class="ap-fd-share-btn" onclick="shareFechaCard()">📤 Compartir</button></div>`;
 
@@ -8165,12 +8175,18 @@ window.shareFechaCard = async function() {
     // capturar — sin esto, alguna imagen a veces se capturaba en blanco por
     // no haber terminado de decodificar todavía.
     await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-    const canvas = await html2canvas(holder.firstElementChild, { backgroundColor: '#0B0E14', scale: 2, useCORS: true });
+    // scale:3 (antes 2) + letterRendering para más nitidez de texto — a
+    // costa de un archivo más pesado, aceptable acá porque es una imagen
+    // puntual generada bajo demanda, no algo que se cargue en cada visita.
+    const canvas = await html2canvas(holder.firstElementChild, {
+      backgroundColor: '#0B0E14', scale: 3, useCORS: true, letterRendering: true,
+    });
     const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
     if (!blob) throw new Error('toBlob devolvió null');
     const file = new File([blob], 'partido-santa-barbara.png', { type: 'image/png' });
+    const shareText = window._fdShareText || 'Club Santa Bárbara';
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file], title: 'Club Santa Bárbara' });
+      await navigator.share({ files: [file], title: shareText, text: shareText });
     } else {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
