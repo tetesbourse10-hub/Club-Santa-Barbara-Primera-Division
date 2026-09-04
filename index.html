@@ -232,7 +232,13 @@
       font-size: 0.66rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
       margin-bottom: 6px;
     }
-    .nmb-rival { font-size: 1.05rem; font-weight: 800; margin-bottom: 4px; }
+    .nmb-rival { font-size: 1.05rem; font-weight: 800; margin-bottom: 4px; display: flex; align-items: center; gap: 7px; }
+    .nmb-crest {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 22px; height: 22px; border-radius: 50%; background: #fff;
+      overflow: hidden; position: relative; flex-shrink: 0;
+      font-size: 0.5rem; font-weight: 800; color: #334155;
+    }
     .nmb-meta { font-size: 0.76rem; color: var(--gris-texto); }
     .nmb-meta .nmb-local { color: var(--texto); font-weight: 600; }
     .nmb-countdown { text-align: right; flex-shrink: 0; }
@@ -549,6 +555,13 @@
       transition: opacity .3s ease;
     }
     .pp-favorito-banner.pp-fading { opacity: 0; }
+    /* El emoji del ícono tiene métricas de línea más altas que el texto
+       latino que lo acompaña — eso empuja hacia abajo el texto plano
+       (label y el "(N Goles)" final) dentro de su propia caja, quedando
+       más bajo que la píldora del rival pese a align-items:center. Un
+       pequeño corrimiento hacia arriba lo empareja con el centro visual
+       del escudo/nombre de la píldora. */
+    .pp-favorito-banner .pp-favorito-text { position: relative; top: -1px; }
     /* Escudo+nombre del rival como una sola "píldora" con fondo propio, en
        vez de un ícono chico suelto pegado al texto — ajustar solo el
        margen del escudo no alcanzaba para que se sintiera separado. El
@@ -872,7 +885,7 @@
         text-transform: uppercase; letter-spacing: .05em; white-space: nowrap;
         text-align: center; background: #1a2337; border-bottom: 1px solid rgba(255,255,255,0.08);
       }
-      .nido-mtable-th-active { color: #a5b4fc; }
+      .nido-mtable-th-active { color: #f1f5f9; }
       /* 162px (era 175px, se probó 108px pero achicaba demasiado el nombre)
          — deja lugar para 4 columnas de stats visibles sin scrollear
          horizontal en mobile, sin sacrificar la legibilidad del nombre. */
@@ -886,7 +899,7 @@
         text-align: center; white-space: nowrap; border-bottom: 1px solid rgba(255,255,255,0.05);
       }
       .nido-mtable-active {
-        background: rgba(99,102,241,0.1); color: #a5b4fc; font-weight: 700; border-radius: 0;
+        background: rgba(99,102,241,0.1); color: #f1f5f9; font-weight: 700; border-radius: 0;
       }
       .nido-mtable-sticky-td {
         position: sticky; left: 0; z-index: 10; padding: 8px 8px;
@@ -6102,15 +6115,15 @@ function _ppComputeFavoritos() {
   };
 }
 function _ppFavoritoBannerInner(icon, label, fav, unit) {
-  if (!fav) return `${icon} <span style="color:rgba(255,255,255,0.4)">${label}: —</span>`;
+  if (!fav) return `<span class="pp-favorito-text">${icon} ${label}: —</span>`;
   // Rivales son clubes, no jugadores — texto plano, no pl() (que linkea a un perfil de jugador).
-  return `${icon} ${label}: <span class="pp-favorito-rival-chip"><span class="pp-match-crest">${_crestImgHtml(fav.rival)}</span><span class="pp-favorito-name">${fav.rival}</span></span> (${fav.val} ${unit})`;
+  return `<span class="pp-favorito-text">${icon} ${label}:</span> <span class="pp-favorito-rival-chip"><span class="pp-match-crest">${_crestImgHtml(fav.rival)}</span><span class="pp-favorito-name">${fav.rival}</span></span> <span class="pp-favorito-text">(${fav.val} ${unit})</span>`;
 }
 // G+A banner shows the goles/asist split instead of just the combined
 // number — same "X G+A ➔ Y ⚽ + Z 🎯" format used in the Resumen tab.
 function _ppFavoritoGaBannerInner(icon, label, fav) {
-  if (!fav) return `${icon} <span style="color:rgba(255,255,255,0.4)">${label}: —</span>`;
-  return `${icon} ${label}: <span class="pp-favorito-rival-chip"><span class="pp-match-crest">${_crestImgHtml(fav.rival)}</span><span class="pp-favorito-name">${fav.rival}</span></span> (<span class="pp-favorito-name">${fav.val}</span> G+A ➔ ${fav.goles} ⚽ + ${fav.asist} 🎯)`;
+  if (!fav) return `<span class="pp-favorito-text">${icon} ${label}: —</span>`;
+  return `<span class="pp-favorito-text">${icon} ${label}:</span> <span class="pp-favorito-rival-chip"><span class="pp-match-crest">${_crestImgHtml(fav.rival)}</span><span class="pp-favorito-name">${fav.rival}</span></span> <span class="pp-favorito-text">(<span class="pp-favorito-name">${fav.val}</span> G+A ➔ ${fav.goles} ⚽ + ${fav.asist} 🎯)</span>`;
 }
 
 // "Dato Curioso" dinámico del pie de la grilla de Métricas Totales (mobile,
@@ -12646,7 +12659,7 @@ const JUG_TAB_SORT_COL = {
 };
 
 const COL_META = {
-  [JUG_COL.pj]:       { label:'PJ',    icon:'🎮', color:'#94a3b8' },
+  [JUG_COL.pj]:       { label:'PJ',    icon:'🎮', color:'#f1f5f9' },
   [JUG_COL.goles]:    { label:'Goles', icon:'⚽', color:'#22c55e' },
   [JUG_COL.asist]:    { label:'Asist', icon:'🎯', color:'#3b82f6' },
   [JUG_COL.gmas]:     { label:'G+A',   icon:'🔥', color:'#a855f7' },
@@ -13037,7 +13050,7 @@ const JUG_TAB_SORT_COL_B = {
 };
 
 const COL_META_B = {
-  [JUG_COL_B.pj]:       { label:'PJ',       icon:'🎮', color:'#94a3b8' },
+  [JUG_COL_B.pj]:       { label:'PJ',       icon:'🎮', color:'#f1f5f9' },
   [JUG_COL_B.goles]:    { label:'Goles',    icon:'⚽', color:'#22c55e' },
   [JUG_COL_B.asist]:    { label:'Asist',    icon:'🎯', color:'#3b82f6' },
   [JUG_COL_B.gmas]:     { label:'G+A',      icon:'🔥', color:'#a855f7' },
@@ -16296,7 +16309,7 @@ function _renderNextMatchBox(elId, boxClass, label, m, navKey) {
     <div class="next-match-box ${boxClass}${clickAttr ? ' clickable' : ''}"${clickAttr}>
       <div class="nmb-main">
         <div class="nmb-label">Próximo Partido · ${label}</div>
-        <div class="nmb-rival">vs ${m.rival}</div>
+        <div class="nmb-rival"><span class="nmb-crest">${_crestImgHtml(m.rival)}</span>vs ${m.rival}</div>
         <div class="nmb-meta">📅 ${metaLine || 'Fecha a confirmar'}${meta.localTxt ? ` · <span class="nmb-local">${meta.localTxt}</span>` : ''}${m.lugar ? ' · 📍 ' + m.lugar : ''}</div>
       </div>
       ${cd ? `<div class="nmb-countdown">
