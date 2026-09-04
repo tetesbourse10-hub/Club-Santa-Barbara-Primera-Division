@@ -11815,7 +11815,12 @@ function renderHistorial() {
   // chips propia — reusa histSort(col)/_histSort tal cual, así el estado
   // queda 100% sincronizado con lo que ordenaría el mismo click en un
   // header de escritorio.
+  // "Rival (A-Z)" antes solo aparecía como label implícito del estado
+  // inicial (default), sin una entrada propia en el menú — en cuanto elegías
+  // cualquier otra opción, no había forma de volver a ese orden desde el
+  // dropdown. Ahora es una opción más de la lista, como el resto.
   const HIST_MOBILE_SORTS = [
+    ['rival', 'Rival (A-Z)'],
     ['pg', 'Más victorias'], ['pp', 'Más derrotas'], ['pe', 'Más empates'],
     ['dif', 'Mejor diferencia'], ['gf', 'Más goles a favor'], ['gc', 'Más goles en contra'],
   ];
