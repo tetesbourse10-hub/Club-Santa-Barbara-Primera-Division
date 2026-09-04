@@ -48,15 +48,55 @@ function escapeXml(s) {
 const FONT = 'Inter';
 const DEFENSOR_CODES = new Set(['LI', 'LD', 'DFI', 'DFD', 'DEF', 'DFC']);
 
-// Mismos colores que usa el perfil de jugador real (ver los kpi('pp-m-...')
-// dentro de renderPlayerProfile en index.html) para cada métrica — antes
-// esta tarjeta usaba variantes parecidas pero no idénticas (ej. Goles en
-// naranja acá vs. verde en el sitio), o directamente sin color.
+// Paleta Tailwind (Dark Slate + Verde Esmeralda + acentos Dorado/Celeste),
+// pedida explícitamente para que la tarjeta se sienta como Wyscout/
+// Sofascore/EA Sports en vez del verde/azul genérico de antes. Nombres de
+// variable = nombre de la clase Tailwind correspondiente, para poder
+// comparar 1 a 1 contra el diseño de referencia (HTML+Tailwind) del que
+// sale esta paleta.
+const COLORS = {
+  slate950: '#020617',
+  slate900: '#0f172a',
+  slate800: '#1e293b',
+  slate700: '#334155',
+  slate500: '#64748b',
+  slate400: '#94a3b8',
+  slate300: '#cbd5e1',
+  white: '#f8fafc',
+  emerald500: '#10b981',
+  emerald400: '#34d399',
+  emerald300: '#6ee7b7',
+  amber500: '#f59e0b',
+  amber400: '#fbbf24',
+  amber300: '#fcd34d',
+  sky400: '#38bdf8',
+  rose500: '#f43f5e',
+  rose400: '#fb7185',
+  purple400: '#c084fc',
+};
+// Mismos colores por métrica que usa el perfil real (ver los kpi('pp-m-...')
+// dentro de renderPlayerProfile en index.html), alineados a la paleta de
+// arriba.
 const STAT_COLORS = {
-  goles: '#22c55e',
-  asist: '#3b82f6',
-  ga: '#a855f7',
-  vallas: '#60a5fa',
+  goles: COLORS.emerald400,
+  asist: COLORS.sky400,
+  ga: COLORS.purple400,
+  vallas: COLORS.sky400,
+};
+// Código de posición → nombre completo ("MD" → "Mediocampista Derecho") —
+// mismo mapeo que POS_NOMBRE en index.html, duplicado a mano acá (en vez de
+// leerlo vía window.POS_NOMBRE) porque ese objeto es un `const` de nivel
+// superior: no queda expuesto en window dentro del jsdom de generate-og.js
+// (mismo motivo, real, documentado en netlify/functions/_matchData.js para
+// GS/RIVAL_CREST_URLS) — como es un mapa chico y estático que casi nunca
+// cambia, duplicarlo acá es más simple y confiable que resolver ese problema
+// para un solo uso.
+const POS_NOMBRE = {
+  ARQ: 'Arquero', DFC: 'Defensor Central', DFI: 'Defensor Izquierdo', DFD: 'Defensor Derecho',
+  LI: 'Lateral Izquierdo', LD: 'Lateral Derecho', MC: 'Mediocampista', MCO: 'Mediocampista Ofensivo',
+  MCE: 'Mediocampista', MI: 'Mediocampista Izquierdo', MD: 'Mediocampista Derecho', DC: 'Delantero Centro',
+  ED: 'Extremo Derecho', EI: 'Extremo Izquierdo',
+  DEL: 'Delantero', AT: 'Delantero',
 };
 
 // Ancho aproximado de un carácter en Inter Bold/Black, como fracción del
@@ -106,211 +146,204 @@ function splitName(nombre, maxLine = 16) {
   return line2 ? [line1, line2] : [line1];
 }
 
-// Tamaños calibrados contra el diseño de referencia real de la tarjeta
-// (.pp-share-card en index.html, 420px de ancho) escalado al lienzo de
-// 1080px de este SVG (factor 1080/420 ≈ 2.571) — antes los números de las
-// tiles eran ~25px, la mitad de lo que les correspondía (~62px), la causa
-// concreta de "los datos quedan muy chicos" reportado.
-//
-// BUG REAL reportado después ("el diseño del texto y los números no son
-// acordes a los de la página"): el label de cada tile iba en minúscula/
-// capitalizada normal, más grande y sin tracking — en TODO el resto del
-// sitio, cualquier tile de métrica (rsm-stat-label, hist-kpi-label,
-// jtot-kpi-label, pp-mini-stat-label, sin excepciones) usa un label chico
-// en MAYÚSCULA con letter-spacing, no texto plano. Se alinea acá al mismo
-// idioma: número grande con tracking apretado (mismo criterio que
-// .hist-kpi-val, letter-spacing:-.02em) + label uppercase chico tracked.
-function statCard({ x, y, w, h, val, label, valColor, big }) {
-  const parts = [];
-  parts.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="16" fill="${big ? '#141d2e' : 'rgba(255,255,255,0.035)'}" />`);
-  const valSize = big ? 60 : 34;
-  const labelSize = big ? 17 : 15;
-  parts.push(`<text x="${x + w / 2}" y="${y + h / 2 - (big ? 8 : 4)}" font-family="${FONT}" font-size="${valSize}" font-weight="900" letter-spacing="-1" fill="${valColor || '#ffffff'}" text-anchor="middle">${escapeXml(String(val))}</text>`);
-  parts.push(`<text x="${x + w / 2}" y="${y + h / 2 + (big ? 42 : 32)}" font-family="${FONT}" font-size="${labelSize}" font-weight="800" letter-spacing="${labelSize * 0.09}" fill="#8a94ab" text-anchor="middle">${escapeXml(label.toUpperCase())}</text>`);
-  return parts.join('\n');
+// Rediseño pedido a partir de una referencia HTML+Tailwind (Dark Slate +
+// Verde Esmeralda + acentos Dorado/Celeste, estilo Wyscout/Sofascore/EA
+// Sports) — traducido a mano a SVG (no se migra el motor a Satori/Puppeteer,
+// ver la explicación dada en el chat: mismo problema de fuentes que ya
+// resolvimos acá, más el costo/riesgo de una infraestructura nueva en
+// Netlify Functions). Sin emoji (👑🎯🔄⚽🅰️🟥 de la referencia): Inter no
+// tiene esos glifos, se reemplazan por badges de color con texto/iniciales.
+function panelRect({ x, y, w, h, rx = 28, fill, fillOpacity, stroke, strokeWidth = 1.5 }) {
+  const fo = fillOpacity != null ? ` fill-opacity="${fillOpacity}"` : '';
+  const st = stroke ? ` stroke="${stroke}" stroke-width="${strokeWidth}"` : '';
+  return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${fill}"${fo}${st}/>`;
 }
 
 function buildShareCardSvg({ nombre, pos, posColor, goles, asist, pj, gmas, titulos, promGol, promAsist, vallas, vallasProm, pg, pe, pp, hasA, hasB, logros, logoDataUri }) {
   const W = 1080, H = 1350;
-  const PAD_X = 56, PAD_TOP = 44, PAD_BOTTOM = 44;
+  const PAD_X = 64, PAD_TOP = 48, PAD_BOTTOM = 48;
   const bodyTop = PAD_TOP, bodyBottom = H - PAD_BOTTOM, bodyHeight = bodyBottom - bodyTop;
   const contentW = W - PAD_X * 2;
+  const cx = W / 2;
 
   const isArquero = pos === 'ARQ';
-  const isDefensor = DEFENSOR_CODES.has(pos);
   const initials = String(nombre || '').trim().split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase();
   const logrosList = (logros || []).slice(0, 4);
   const nameLines = splitName(nombre);
+  const posFull = POS_NOMBRE[pos] || pos || '—';
+  const teamLabels = [hasA ? '1ra A' : null, hasB ? '1ra B' : null].filter(Boolean);
 
   const blocks = []; // { height, render(y) }
 
-  // ── 1. Header ────────────────────────────────────────────────────────
-  // Tamaños calibrados contra .pp-share-card (420px de referencia) escalado
-  // ×2.571 al lienzo de 1080px — ver la nota completa en statCard() más
-  // abajo, mismo motivo en todos los bloques de este archivo.
+  // ── 1. Header: escudo + nombre de club + pestaña de temporada ───────
+  const HEADER_H = 100;
   blocks.push({
-    height: 64,
+    height: HEADER_H,
     render(y) {
       const parts = [];
-      // Logo real del club (rasterizado, embebido en base64) en vez del
-      // emoji 🛡️ — resvg solo tiene cargada la fuente Inter (sin glifos de
-      // emoji), así que cualquier emoji salía como una casilla vacía.
-      const logoD = 48, logoTextX = PAD_X + (logoDataUri ? logoD + 14 : 0);
+      const iconR = 34, iconCx = PAD_X + iconR, iconCy = y + iconR;
+      parts.push(`<circle cx="${iconCx}" cy="${iconCy}" r="${iconR}" fill="${hexAlpha(COLORS.emerald500, 0.15)}" stroke="${hexAlpha(COLORS.emerald500, 0.4)}" stroke-width="2"/>`);
       if (logoDataUri) {
-        parts.push(`<image x="${PAD_X}" y="${y + (64 - logoD) / 2}" width="${logoD}" height="${logoD}" href="${logoDataUri}" />`);
+        const logoR = iconR - 6;
+        parts.push(`<defs><clipPath id="hdrLogoClip"><circle cx="${iconCx}" cy="${iconCy}" r="${logoR}"/></clipPath></defs>`);
+        parts.push(`<image x="${iconCx - logoR}" y="${iconCy - logoR}" width="${logoR * 2}" height="${logoR * 2}" href="${logoDataUri}" clip-path="url(#hdrLogoClip)" preserveAspectRatio="xMidYMid slice"/>`);
       }
-      parts.push(`<text x="${logoTextX}" y="${y + 38}" font-family="${FONT}" font-size="30" font-weight="700" fill="#ffffff">Club Santa Bárbara</text>`);
-      const badgeW = 118, badgeH = 50;
-      parts.push(`<rect x="${W - PAD_X - badgeW}" y="${y + (64 - badgeH) / 2}" width="${badgeW}" height="${badgeH}" rx="25" fill="#412402" />`);
-      parts.push(`<text x="${W - PAD_X - badgeW / 2}" y="${y + 39}" font-family="${FONT}" font-size="22" font-weight="700" fill="#fac775" text-anchor="middle">2026</text>`);
+      const textX = iconCx + iconR + 22;
+      parts.push(`<text x="${textX}" y="${y + 30}" font-family="${FONT}" font-size="30" font-weight="900" fill="${COLORS.white}">Club Santa Bárbara</text>`);
+      parts.push(`<text x="${textX}" y="${y + 54}" font-family="${FONT}" font-size="17" font-weight="700" letter-spacing="1" fill="${COLORS.slate400}">FICHA OFICIAL DE JUGADOR</text>`);
+      const badgeW = 220, badgeH = 48;
+      parts.push(panelRect({ x: W - PAD_X - badgeW, y: y + 8, w: badgeW, h: badgeH, rx: 24, fill: hexAlpha(COLORS.emerald500, 0.1), stroke: hexAlpha(COLORS.emerald500, 0.25) }));
+      parts.push(`<text x="${W - PAD_X - badgeW / 2}" y="${y + 38}" font-family="${FONT}" font-size="20" font-weight="900" fill="${COLORS.emerald400}" text-anchor="middle">TEMPORADA 2026</text>`);
+      parts.push(`<line x1="${PAD_X}" y1="${y + HEADER_H - 4}" x2="${W - PAD_X}" y2="${y + HEADER_H - 4}" stroke="${COLORS.slate800}" stroke-width="1.5"/>`);
       return parts.join('\n');
     },
   });
 
-  // ── 2. Identidad ─────────────────────────────────────────────────────
-  const AVATAR_D = 148;
-  const nameGap = 18, nameLineH = 50, badgesGap = 18, badgesRowH = 46;
-  const identityH = AVATAR_D + nameGap + nameLines.length * nameLineH + badgesGap + badgesRowH;
+  // ── 2. Tarjeta de identidad: avatar + nombre + pos/equipo + logros ──
+  const PAD_INNER = 44;
+  const AVATAR_D = 200, AVATAR_R = AVATAR_D / 2;
+  const gapAvatarName = 30, nameLineH = 60, gapNamePills = 24, pillsRowH = 56;
+  const logroRowH = 68, logroGap = 16;
+  const logrosBlockH = logrosList.length ? logrosList.length * logroRowH + (logrosList.length - 1) * logroGap : 0;
+  const identityInnerH = AVATAR_D + gapAvatarName + nameLines.length * nameLineH + gapNamePills + pillsRowH
+    + (logrosList.length ? 28 + logrosBlockH : 0);
+  const identityPanelH = PAD_INNER * 2 + identityInnerH;
   blocks.push({
-    height: identityH,
+    height: identityPanelH,
     render(y) {
       const parts = [];
-      const cx = W / 2;
-      const avatarCy = y + AVATAR_D / 2;
-      parts.push(`<circle cx="${cx}" cy="${avatarCy}" r="${AVATAR_D / 2}" fill="${hexAlpha(posColor, 0.18)}" stroke="${hexAlpha(posColor, 0.4)}" stroke-width="3" />`);
-      parts.push(`<text x="${cx}" y="${avatarCy + 17}" font-family="${FONT}" font-size="45" font-weight="900" fill="${posColor}" text-anchor="middle">${escapeXml(initials)}</text>`);
-      let ny = y + AVATAR_D + nameGap;
+      parts.push(panelRect({ x: PAD_X, y, w: contentW, h: identityPanelH, rx: 28, fill: COLORS.slate900, fillOpacity: 0.6, stroke: COLORS.slate800 }));
+
+      const avatarCy = y + PAD_INNER + AVATAR_R;
+      parts.push(`<defs><linearGradient id="avatarGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="${COLORS.slate800}"/><stop offset="100%" stop-color="${COLORS.slate900}"/></linearGradient></defs>`);
+      parts.push(`<circle cx="${cx}" cy="${avatarCy}" r="${AVATAR_R}" fill="url(#avatarGrad)" stroke="${hexAlpha(COLORS.emerald500, 0.5)}" stroke-width="4"/>`);
+      parts.push(`<text x="${cx}" y="${avatarCy + 20}" font-family="${FONT}" font-size="56" font-weight="900" fill="${COLORS.emerald400}" text-anchor="middle">${escapeXml(initials)}</text>`);
+      // Badge de posición superpuesto (abajo-derecha del avatar).
+      const posBadgeLabel = pos || '—';
+      const posBadgeW = Math.max(74, 34 + posBadgeLabel.length * 22), posBadgeH = 46;
+      const pbCx = cx + AVATAR_R * 0.62, pbCy = avatarCy + AVATAR_R * 0.62;
+      parts.push(panelRect({ x: pbCx - posBadgeW / 2, y: pbCy - posBadgeH / 2, w: posBadgeW, h: posBadgeH, rx: 14, fill: COLORS.emerald500, stroke: COLORS.slate950, strokeWidth: 3 }));
+      parts.push(`<text x="${pbCx}" y="${pbCy + 8}" font-family="${FONT}" font-size="22" font-weight="900" fill="${COLORS.slate950}" text-anchor="middle">${escapeXml(posBadgeLabel)}</text>`);
+
+      let ny = y + PAD_INNER + AVATAR_D + gapAvatarName;
       nameLines.forEach((line, i) => {
-        parts.push(`<text x="${cx}" y="${ny + 38 + i * nameLineH}" font-family="${FONT}" font-size="46" font-weight="900" fill="#ffffff" text-anchor="middle">${escapeXml(line)}</text>`);
+        parts.push(`<text x="${cx}" y="${ny + 46 + i * nameLineH}" font-family="${FONT}" font-size="52" font-weight="900" fill="${COLORS.white}" text-anchor="middle">${escapeXml(line)}</text>`);
       });
-      ny += nameLines.length * nameLineH + badgesGap;
-      const posLabel = pos || '—';
-      const posW = Math.max(90, 40 + posLabel.length * 20);
-      const teamLabels = [hasA ? '1ra A' : null, hasB ? '1ra B' : null].filter(Boolean);
-      const teamW = 100;
-      const totalBadgesW = posW + (teamLabels.length ? teamLabels.length * (teamW + 14) : 0);
-      let bx = cx - totalBadgesW / 2;
-      parts.push(`<rect x="${bx}" y="${ny}" width="${posW}" height="${badgesRowH}" rx="12" fill="${hexAlpha(posColor, 0.18)}" />`);
-      parts.push(`<text x="${bx + posW / 2}" y="${ny + 30}" font-family="${FONT}" font-size="24" font-weight="700" fill="${posColor}" text-anchor="middle">${escapeXml(posLabel)}</text>`);
-      bx += posW + 14;
+      ny += nameLines.length * nameLineH + gapNamePills;
+
+      // Pills: posición completa + equipo(s) — centrados como un solo bloque.
+      const posPillW = Math.max(140, 44 + posFull.length * 15.5);
+      const teamPillW = 118, pillsGap = 14;
+      const totalPillsW = posPillW + teamLabels.length * (teamPillW + pillsGap);
+      let px = cx - totalPillsW / 2;
+      parts.push(panelRect({ x: px, y: ny, w: posPillW, h: pillsRowH, rx: 14, fill: COLORS.slate950, stroke: COLORS.slate800 }));
+      parts.push(`<text x="${px + posPillW / 2}" y="${ny + pillsRowH / 2 + 8}" font-family="${FONT}" font-size="22" font-weight="700" fill="${COLORS.slate400}" text-anchor="middle">${escapeXml(posFull)}</text>`);
+      px += posPillW + pillsGap;
       teamLabels.forEach(label => {
-        parts.push(`<rect x="${bx}" y="${ny}" width="${teamW}" height="${badgesRowH}" rx="12" fill="rgba(255,255,255,0.08)" />`);
-        parts.push(`<text x="${bx + teamW / 2}" y="${ny + 30}" font-family="${FONT}" font-size="24" font-weight="700" fill="#cbd5e1" text-anchor="middle">${label}</text>`);
-        bx += teamW + 14;
+        parts.push(panelRect({ x: px, y: ny, w: teamPillW, h: pillsRowH, rx: 14, fill: hexAlpha(COLORS.emerald500, 0.1), stroke: hexAlpha(COLORS.emerald500, 0.3) }));
+        parts.push(`<text x="${px + teamPillW / 2}" y="${ny + pillsRowH / 2 + 8}" font-family="${FONT}" font-size="22" font-weight="900" fill="${COLORS.emerald400}" text-anchor="middle">${escapeXml(label)}</text>`);
+        px += teamPillW + pillsGap;
       });
-      return parts.join('\n');
-    },
-  });
+      ny += pillsRowH;
 
-  // ── 3. Logros TOP 5 (condicional) ───────────────────────────────────
-  if (logrosList.length) {
-    const rowH = 76, rowGap = 16;
-    blocks.push({
-      height: logrosList.length * rowH + (logrosList.length - 1) * rowGap,
-      render(y) {
-        const parts = [];
-        let ly = y;
+      // Hitos/logros TOP 5 — cada uno ya trae su color (ver
+      // _ppComputeTopLogros en index.html: dorado para récords históricos,
+      // esmeralda para logros de la temporada en curso, etc.)
+      if (logrosList.length) {
+        ny += 28;
         logrosList.forEach(l => {
-          parts.push(`<rect x="${PAD_X}" y="${ly}" width="${contentW}" height="${rowH}" rx="14" fill="${hexAlpha(l.color, 0.15)}" />`);
-          parts.push(`<text x="${PAD_X + 24}" y="${ly + 47}" font-family="${FONT}" font-size="26" font-weight="700" fill="${l.color}">${l.pos}° ${escapeXml(l.text)}</text>`);
-          ly += rowH + rowGap;
+          parts.push(panelRect({ x: PAD_X + PAD_INNER, y: ny, w: contentW - PAD_INNER * 2, h: logroRowH, rx: 16, fill: hexAlpha(l.color, 0.12), stroke: hexAlpha(l.color, 0.3) }));
+          parts.push(`<text x="${PAD_X + PAD_INNER + 26}" y="${ny + logroRowH / 2 + 8}" font-family="${FONT}" font-size="24" font-weight="700" fill="${l.color}">${l.pos}° ${escapeXml(l.text)}</text>`);
+          ny += logroRowH + logroGap;
         });
-        return parts.join('\n');
-      },
-    });
-  }
-
-  // ── 4. Récord con la camiseta (siempre) ─────────────────────────────
-  blocks.push({
-    height: 88,
-    render(y) {
-      const parts = [];
-      parts.push(`<rect x="${PAD_X}" y="${y}" width="${contentW}" height="88" rx="24" fill="rgba(239,159,39,0.08)" stroke="rgba(239,159,39,0.3)" stroke-width="1.5" />`);
-      const cx = W / 2;
-      // Ver coloredLineSvg() arriba: cada tspan lleva su x calculado a
-      // mano en vez de depender de que el motor SVG centre bien varios
-      // tspans de colores distintos bajo text-anchor="middle" (un motor de
-      // prueba usado durante el desarrollo perdía caracteres justo en ese
-      // escenario — sea o no un problema real de resvg, esto no depende de
-      // adivinarlo).
-      // Mismos colores que .pp-ved-v/.pp-ved-e/.pp-ved-d en index.html (el
-      // Récord de Resultados del perfil real) — antes eran variantes
-      // parecidas pero no exactas.
-      parts.push(coloredLineSvg({
-        cx, y: y + 55, fontSize: 30, fontWeight: 700,
-        segments: [
-          { text: String(pg), fill: '#22c55e' },
-          { text: ' PG — ', fill: '#4a5268' },
-          { text: String(pe), fill: '#eab308' },
-          { text: ' PE — ', fill: '#4a5268' },
-          { text: String(pp), fill: '#ef4444' },
-          { text: ' PP', fill: '#4a5268' },
-        ],
-      }));
+      }
       return parts.join('\n');
     },
   });
 
-  // ── 5. Stats principales (3 cards) ──────────────────────────────────
-  const mainH = 220;
-  const cardGap = 20, cardW = (contentW - cardGap * 2) / 3;
+  // ── 3. Récord de resultados (PG — PE — PP) ──────────────────────────
+  const RECORD_H = 110;
   blocks.push({
-    height: mainH,
+    height: RECORD_H,
     render(y) {
       const parts = [];
-      let mainStats;
-      if (isArquero) {
-        const promVallasVal = pj > 0 ? String(vallasProm.toFixed(2)).replace('.', ',') : '—';
-        mainStats = [
-          { val: pj, label: 'PJ' },
-          { val: vallas, label: 'Vallas Invictas', valColor: STAT_COLORS.vallas },
-          { val: promVallasVal, label: 'Prom. Vallas Invictas', valColor: STAT_COLORS.vallas },
-        ];
-      } else {
-        mainStats = [
-          { val: goles, label: 'Goles', valColor: STAT_COLORS.goles },
-          { val: asist, label: 'Asistencias', valColor: STAT_COLORS.asist },
-          { val: pj, label: 'PJ' },
-        ];
-      }
-      mainStats.forEach((st, i) => {
-        const x = PAD_X + i * (cardW + cardGap);
-        parts.push(statCard({ x, y, w: cardW, h: mainH, val: st.val, label: st.label, valColor: st.valColor, big: true }));
+      parts.push(panelRect({ x: PAD_X, y, w: contentW, h: RECORD_H, rx: 24, fill: COLORS.slate900, fillOpacity: 0.6, stroke: COLORS.slate800 }));
+      const groups = [
+        { val: pg, label: 'PG', color: COLORS.emerald400, bg: hexAlpha(COLORS.emerald500, 0.12) },
+        { val: pe, label: 'PE', color: COLORS.amber400, bg: hexAlpha(COLORS.amber500, 0.12) },
+        { val: pp, label: 'PP', color: COLORS.rose400, bg: hexAlpha(COLORS.rose500, 0.12) },
+      ];
+      const groupW = 150, dashW = 50, pillW = 62, pillH = 42;
+      const totalW = groups.length * groupW + (groups.length - 1) * dashW;
+      let gx = cx - totalW / 2;
+      const midY = y + RECORD_H / 2;
+      groups.forEach((g, i) => {
+        parts.push(panelRect({ x: gx, y: midY - pillH / 2, w: pillW, h: pillH, rx: 10, fill: g.bg }));
+        parts.push(`<text x="${gx + pillW / 2}" y="${midY + 8}" font-family="${FONT}" font-size="24" font-weight="900" fill="${g.color}" text-anchor="middle">${escapeXml(String(g.val))}</text>`);
+        parts.push(`<text x="${gx + pillW + 16}" y="${midY + 7}" font-family="${FONT}" font-size="20" font-weight="700" fill="${COLORS.slate400}">${g.label}</text>`);
+        gx += groupW;
+        if (i < groups.length - 1) {
+          parts.push(`<text x="${gx - dashW / 2}" y="${midY + 7}" font-family="${FONT}" font-size="24" font-weight="700" fill="${COLORS.slate700}" text-anchor="middle">—</text>`);
+        }
       });
       return parts.join('\n');
     },
   });
 
-  // ── 6. Stats secundarias (3 cards, no aplica a arqueros) ────────────
-  if (!isArquero) {
-    const secH = 165;
-    blocks.push({
-      height: secH,
-      render(y) {
-        const parts = [];
-        const promVallasVal = pj > 0 ? String(vallasProm.toFixed(2)).replace('.', ',') : '—';
-        // Prom. G+A = Prom. Goles + Prom. Asistencias (mismo pj en ambos
-        // términos, así que es exacto, sin necesitar otra división).
-        const promGmasVal = String((promGol + promAsist).toFixed(2)).replace('.', ',');
-        const stats = isDefensor
-          ? [
-              { val: promGmasVal, label: 'Prom. G+A', valColor: STAT_COLORS.ga },
-              { val: vallas, label: 'Vallas Invictas', valColor: STAT_COLORS.vallas },
-              { val: promVallasVal, label: 'Prom. Vallas Invictas', valColor: STAT_COLORS.vallas },
-            ]
-          : [
-              { val: gmas, label: 'G+A', valColor: STAT_COLORS.ga },
-              { val: String(promGol.toFixed(2)).replace('.', ','), label: 'Prom. Goles', valColor: STAT_COLORS.goles },
-              { val: String(promAsist.toFixed(2)).replace('.', ','), label: 'Prom. Asistencias', valColor: STAT_COLORS.asist },
-            ];
-        stats.forEach((st, i) => {
-          const x = PAD_X + i * (cardW + cardGap);
-          parts.push(statCard({ x, y, w: cardW, h: secH, val: st.val, label: st.label, valColor: st.valColor, big: false }));
+  // ── 4. Matriz de estadísticas (grilla 3xN "encasillada") ────────────
+  const cellH = 190, outerPad = 10;
+  const rows = isArquero
+    ? [[
+        { val: pj, label: 'PJ', color: COLORS.white },
+        { val: vallas, label: 'Vallas Invictas', color: STAT_COLORS.vallas },
+        { val: pj > 0 ? String(vallasProm.toFixed(2)).replace('.', ',') : '—', label: 'Prom. Vallas', color: STAT_COLORS.vallas },
+      ]]
+    : [
+        [
+          { val: goles, label: 'Goles', color: STAT_COLORS.goles },
+          { val: asist, label: 'Asistencias', color: STAT_COLORS.asist },
+          { val: pj, label: 'Partidos', color: COLORS.white },
+        ],
+        [
+          { val: gmas, label: 'G + A', color: STAT_COLORS.ga },
+          { val: String(promGol.toFixed(2)).replace('.', ','), label: 'Prom. Gol', color: STAT_COLORS.goles },
+          { val: String(promAsist.toFixed(2)).replace('.', ','), label: 'Prom. Asist.', color: STAT_COLORS.asist },
+        ],
+      ];
+  const gridOuterH = rows.length * cellH + outerPad * 2;
+  blocks.push({
+    height: gridOuterH,
+    render(y) {
+      const parts = [];
+      parts.push(panelRect({ x: PAD_X, y, w: contentW, h: gridOuterH, rx: 28, fill: COLORS.slate900, fillOpacity: 0.6, stroke: COLORS.slate800 }));
+      const innerX = PAD_X + outerPad, innerY = y + outerPad, innerW = contentW - outerPad * 2, innerH = gridOuterH - outerPad * 2;
+      parts.push(panelRect({ x: innerX, y: innerY, w: innerW, h: innerH, rx: 20, fill: COLORS.slate950 }));
+      const cellW = innerW / 3;
+      // Líneas divisorias (divide-x/divide-y de la referencia).
+      for (let c = 1; c < 3; c++) {
+        parts.push(`<line x1="${innerX + c * cellW}" y1="${innerY}" x2="${innerX + c * cellW}" y2="${innerY + innerH}" stroke="${hexAlpha(COLORS.slate800, 0.8)}" stroke-width="1.5"/>`);
+      }
+      for (let r = 1; r < rows.length; r++) {
+        parts.push(`<line x1="${innerX}" y1="${innerY + r * cellH}" x2="${innerX + innerW}" y2="${innerY + r * cellH}" stroke="${hexAlpha(COLORS.slate800, 0.8)}" stroke-width="1.5"/>`);
+      }
+      rows.forEach((row, r) => {
+        row.forEach((st, c) => {
+          const ccx = innerX + c * cellW + cellW / 2, ccy = innerY + r * cellH + cellH / 2;
+          parts.push(`<text x="${ccx}" y="${ccy - 6}" font-family="${FONT}" font-size="44" font-weight="900" letter-spacing="-1" fill="${st.color}" text-anchor="middle">${escapeXml(String(st.val))}</text>`);
+          parts.push(`<text x="${ccx}" y="${ccy + 34}" font-family="${FONT}" font-size="16" font-weight="800" letter-spacing="1.5" fill="${COLORS.slate400}" text-anchor="middle">${escapeXml(st.label.toUpperCase())}</text>`);
         });
-        return parts.join('\n');
-      },
-    });
-  }
+      });
+      return parts.join('\n');
+    },
+  });
+
+  // ── 5. Footer discreto ───────────────────────────────────────────────
+  blocks.push({
+    height: 36,
+    render(y) {
+      return `<text x="${cx}" y="${y + 20}" font-family="${FONT}" font-size="17" font-weight="700" letter-spacing="2" fill="${COLORS.slate500}" text-anchor="middle">CLUB SANTA BÁRBARA</text>`;
+    },
+  });
 
   // ── Distribución tipo "space-between": reparte el espacio sobrante en
   // partes iguales entre bloques, para llenar el lienzo sin aire al final.
@@ -325,14 +358,18 @@ function buildShareCardSvg({ nombre, pos, posColor, goles, asist, pj, gmas, titu
     cursor += b.height + gap;
   });
 
+  // Fondo slate-950 + 2 glows esmeralda difuminados (esquina superior-
+  // derecha e inferior-izquierda) — mismo efecto que los
+  // "absolute ... blur-3xl" decorativos de la referencia Tailwind.
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0d1a12" />
-      <stop offset="60%" stop-color="#0b1220" />
-    </linearGradient>
+    <filter id="cardGlowBlur" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="70"/>
+    </filter>
   </defs>
-  <rect x="0" y="0" width="${W}" height="${H}" fill="url(#bg)" />
+  <rect x="0" y="0" width="${W}" height="${H}" fill="${COLORS.slate950}"/>
+  <circle cx="${W - 60}" cy="60" r="200" fill="${COLORS.emerald500}" opacity="0.10" filter="url(#cardGlowBlur)"/>
+  <circle cx="40" cy="${H - 60}" r="200" fill="${COLORS.emerald500}" opacity="0.06" filter="url(#cardGlowBlur)"/>
 ${rendered.map(p => '  ' + p).join('\n')}
 </svg>`;
 }
