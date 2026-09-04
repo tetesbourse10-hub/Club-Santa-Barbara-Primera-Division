@@ -7106,7 +7106,19 @@ function _tryRestoreRouteFromHash() {
       const torneoKey = rest[i0 + 1];
       showHistoricoTorneo(torneoKey);
       let j = i0 + 2;
-      if (rest[j] === 'subtab' && rest[j + 1] && rest[j + 1].startsWith('rc-')) {
+      // Copas históricas genéricas (Recopa/Supercopa 2021-2025, Primera A) +
+      // Supercopa AIFA B 2025 + Recopa AIFA B 2024 — las 3 usan
+      // renderCopaHistorico (chSwitchTab/chSelectFase, tabs "plantel"/
+      // "fases" sin prefijo) en vez de ghSwitchTab/ghSelectFecha. Mismos
+      // 3 casos que showHistoricoTorneo distingue por key.
+      const isChStyle = torneoKey.startsWith('copa-') || torneoKey === 'supercopa-2025b' || torneoKey === 'recopa-2024b';
+      if (isChStyle && rest[j] === 'subtab' && rest[j + 1]) {
+        if (window.chSwitchTab) window.chSwitchTab(rest[j + 1]);
+        j += 2;
+        if (rest[j] === 'idx' && rest[j + 1] != null && window.chSelectFase) {
+          window.chSelectFase(parseInt(rest[j + 1], 10));
+        }
+      } else if (rest[j] === 'subtab' && rest[j + 1] && rest[j + 1].startsWith('rc-')) {
         // Caso Recopa AIFA B 2026 archivada: reusa rcSwitchTab/selectFaseCopa
         // (no ghSwitchTab/ghSelectFecha) pese a vivir bajo Torneos Antiguos —
         // ver el branch 'recopa-2026' de showHistoricoTorneo (renderRecopa()
@@ -8797,6 +8809,7 @@ function renderCopaHistorico(matches, name, jugadoresOverride) {
     </div>`;
 
   window.chSwitchTab = function(tab) {
+    _routeSetPrefix([..._routeTorneoBase, 'subtab', tab]);
     document.querySelectorAll(`#${CONTAINER} .ap-tab-panel`).forEach(p => p.classList.toggle('active', p.id === 'ch-tab-' + tab));
     document.querySelectorAll(`#${CONTAINER} .ap-tab-btn`).forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
     _syncPlantelBadge(tab, ['plantel']);
@@ -8804,6 +8817,12 @@ function renderCopaHistorico(matches, name, jugadoresOverride) {
   _syncPlantelBadge('plantel', ['plantel']);
 
   window.chSelectFase = function(i) {
+    // chSwitchTab('fases')/el auto-select de más abajo disparan esto aunque
+    // "Fase por Fase" no sea la sub-pestaña visible todavía — mismo
+    // criterio que selectFecha/ghSelectFecha/selectFaseCopa.
+    if (document.querySelector(`#${CONTAINER} #ch-tab-fases`)?.classList.contains('active')) {
+      _routeSetPrefix([..._routeTorneoBase, 'subtab', 'fases', 'idx', i]);
+    }
     document.querySelectorAll(`#${CONTAINER} .ap-fecha-btn`).forEach(b => b.classList.toggle('active', b.dataset.idx === String(i)));
     const m = sorted[i];
     renderFechaDetail(m, m, 'ch-fase-detail');
