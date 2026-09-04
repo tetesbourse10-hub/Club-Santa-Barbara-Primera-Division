@@ -7040,6 +7040,15 @@ function _tryOpenPartidoFromHash() {
 // las va llamando en cascada para reconstruir una vista de varios niveles.
 let _routeTorneoBase = [];
 let _routePrefix = [];
+// Prefijo "hasta la sub-pestaña" (sección/tab/torneo/subtab/<nombre>), sin
+// nada más específico encima (fecha/orden/filtro) — lo fijan apSwitchTab/
+// ghSwitchTab/rcSwitchTab/chSwitchTab (ver _routeSetSubtab). Los filtros que
+// viven DENTRO de una sub-pestaña de Plantel (_plantelMobilePosSelect/
+// _plantelMobileSortSelect, compartidos por varias vistas) appendean sobre
+// ESTE prefijo estable en vez de sobre _routePrefix — que va mutando con
+// cada selección y se iría acumulando (pos, luego sort, luego pos de
+// nuevo…) si se le appendeara encima repetidas veces.
+let _routeSubtabBase = [];
 let _routeRestoring = false;
 function _routeSet(parts) {
   if (_routeRestoring) return;
@@ -7047,7 +7056,8 @@ function _routeSet(parts) {
   if (location.hash === hash) return;
   history.replaceState(null, '', hash);
 }
-function _routeSetTorneoBase(parts) { _routeTorneoBase = parts; _routePrefix = parts; _routeSet(parts); }
+function _routeSetTorneoBase(parts) { _routeTorneoBase = parts; _routePrefix = parts; _routeSubtabBase = parts; _routeSet(parts); }
+function _routeSetSubtab(tab) { _routeSubtabBase = [..._routeTorneoBase, 'subtab', tab]; _routeSetPrefix(_routeSubtabBase); }
 function _routeSetPrefix(parts) { _routePrefix = parts; _routeSet(parts); }
 
 const _ROUTE_MAIN_TABS = ['resumen', 'posiciones', 'jugadores', 'historial', 'graficos'];
@@ -7184,6 +7194,20 @@ function _tryRestoreRouteFromHash() {
       } else if (rest[i0] === 'sort' && rest[i0 + 1] != null && rest[i0 + 2] != null && window.histSort) {
         window.histSort(rest[i0 + 1], rest[i0 + 2] === 'asc');
       }
+    }
+    // Filtro de Pos/Orden del Plantel mobile (_plantelMobilePosSelect/
+    // _plantelMobileSortSelect) — compartido por varias vistas (Torneos
+    // Actuales, Antiguos, Copas), así que se busca de forma genérica en vez
+    // de repetir esto en cada branch de arriba. Claves únicas ("pfpos"/
+    // "pfsort", ver _plantelMobileUpdateRoute) para no chocar con "sort" de
+    // Historial vs Clubes u otras vistas.
+    const pfPosIdx = rest.indexOf('pfpos');
+    if (pfPosIdx !== -1 && rest[pfPosIdx + 1] != null && window._plantelMobilePosSelect) {
+      window._plantelMobilePosSelect(rest[pfPosIdx + 1]);
+    }
+    const pfSortIdx = rest.indexOf('pfsort');
+    if (pfSortIdx !== -1 && rest[pfSortIdx + 1] != null && window._plantelMobileSortSelect) {
+      window._plantelMobileSortSelect(rest[pfSortIdx + 1]);
     }
     return true;
   } finally {
@@ -8759,7 +8783,7 @@ function renderRecopa() {
     </div>`;
 
   window.rcSwitchTab = function(tab) {
-    _routeSetPrefix([..._routeTorneoBase, 'subtab', tab]);
+    _routeSetSubtab(tab);
     document.querySelectorAll('#torneo-recopa-content .ap-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
     document.querySelectorAll('#torneo-recopa-content .ap-tab-panel').forEach(p => p.classList.toggle('active', p.id === 'rc-tab-' + tab));
     if (tab === 'rc-fases' && !selectedFaseCopa && sortedCopa.length) {
@@ -8849,7 +8873,7 @@ function renderCopaHistorico(matches, name, jugadoresOverride) {
     </div>`;
 
   window.chSwitchTab = function(tab) {
-    _routeSetPrefix([..._routeTorneoBase, 'subtab', tab]);
+    _routeSetSubtab(tab);
     document.querySelectorAll(`#${CONTAINER} .ap-tab-panel`).forEach(p => p.classList.toggle('active', p.id === 'ch-tab-' + tab));
     document.querySelectorAll(`#${CONTAINER} .ap-tab-btn`).forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
     _syncPlantelBadge(tab, ['plantel']);
@@ -9075,13 +9099,22 @@ window._plantelMobileSearch = function(q) {
 };
 window._plantelMobilePosToggle = function() { _plantelMobilePosOpen = !_plantelMobilePosOpen; _plantelMobileSortOpen = false; _plantelMobileRerenderFilterBar(); };
 window._plantelMobileSortToggle = function() { _plantelMobileSortOpen = !_plantelMobileSortOpen; _plantelMobilePosOpen = false; _plantelMobileRerenderFilterBar(); };
+// "pfpos"/"pfsort" (no "pos"/"sort" a secas) para no colisionar con las
+// claves de otras vistas que appendean sobre su propio route (ej. "sort"
+// de Historial vs Clubes) al buscarlas de forma genérica en
+// _tryRestoreRouteFromHash.
+function _plantelMobileUpdateRoute() {
+  _routeSetPrefix([..._routeSubtabBase, 'pfpos', _plantelMobilePos, 'pfsort', _plantelMobileSort]);
+}
 window._plantelMobilePosSelect = function(p) {
   _plantelMobilePos = p; _plantelMobilePosOpen = false;
   _plantelMobileRerenderFilterBar(); _plantelMobileRerenderList();
+  _plantelMobileUpdateRoute();
 };
 window._plantelMobileSortSelect = function(s) {
   _plantelMobileSort = s; _plantelMobileSortOpen = false;
   _plantelMobileRerenderFilterBar(); _plantelMobileRerenderList();
+  _plantelMobileUpdateRoute();
 };
 function _plantelMobileRerenderFilterBar() {
   const el = document.getElementById('pmf-bar');
@@ -9610,7 +9643,7 @@ function renderTorneoApertura() {
   if (autoFecha !== null) selectFecha(autoFecha);
 
   window.apSwitchTab = function(tab) {
-    _routeSetPrefix([..._routeTorneoBase, 'subtab', tab]);
+    _routeSetSubtab(tab);
     document.querySelectorAll('.ap-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
     document.querySelectorAll('.ap-tab-panel').forEach(p => p.classList.toggle('active', p.id === 'ap-tab-' + tab));
     if (tab === 'fechas' && autoFecha !== null) selectFecha(autoFecha);
@@ -10204,7 +10237,7 @@ function renderTorneoHistoricoGeneric(d, name, fechaLabels) {
   const autoFecha = last ? last.fecha : (allFechas.length ? allFechas[0].n : null);
 
   window.ghSwitchTab = function(tab) {
-    _routeSetPrefix([..._routeTorneoBase, 'subtab', tab]);
+    _routeSetSubtab(tab);
     document.querySelectorAll(`#${CONTAINER} .ap-tab-panel`).forEach(p => {
       p.classList.toggle('active', p.id === 'gh-tab-' + tab);
     });
