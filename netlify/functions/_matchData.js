@@ -23,7 +23,20 @@ function _loadEngine() {
     _enginePromise = (async () => {
       const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
       const scripts = [...html.matchAll(/<script(?![^>]*src)[^>]*>([\s\S]*?)<\/script>/g)].map(m => m[1]);
-      const combinedScript = scripts.join('\n;\n');
+      // BUG REAL encontrado ("Cannot read properties of undefined (reading
+      // 'A_MAIN')"): un `const`/`let` de nivel superior en index.html (GS,
+      // RIVAL_CREST_URLS, AP_BAND_Y, AP_BAND_OF...) NO queda como propiedad
+      // de `window` — a diferencia de `function`/`var`, que sí (misma
+      // semántica que en cualquier navegador real, no un tema de jsdom).
+      // scripts/generate-og.js nunca pisó esto porque todo lo que usa ahí
+      // son funciones (`window.loadLiveData`, `window._collectPlayerStats`,
+      // etc.), nunca un objeto `const` a secas. Confirmado a mano que un
+      // SEGUNDO `window.eval(...)` separado NO ve esos bindings (jsdom no
+      // los comparte entre llamadas a eval) — la única forma que funciona es
+      // agregar el `window.X = X` DENTRO del mismo string evaluado, así
+      // comparte el scope léxico real donde se declararon.
+      const exposeConsts = "\n;window.GS=GS;window.RIVAL_CREST_URLS=RIVAL_CREST_URLS;window.AP_BAND_Y=AP_BAND_Y;window.AP_BAND_OF=AP_BAND_OF;\n";
+      const combinedScript = scripts.join('\n;\n') + exposeConsts;
       const htmlNoScripts = html.replace(/<script(?![^>]*src)[^>]*>[\s\S]*?<\/script>/g, '');
       const dom = new JSDOM(htmlNoScripts, { url: SITE_URL + '/', runScripts: 'outside-only', pretendToBeVisual: true });
       const { window } = dom;
