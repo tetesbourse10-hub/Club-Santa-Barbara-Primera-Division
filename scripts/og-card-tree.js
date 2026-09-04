@@ -99,6 +99,43 @@ const POS_NOMBRE = {
   DEL: 'Delantero', AT: 'Delantero',
 };
 
+// Paleta dinámica por LÍNEA de posición (pedida explícitamente): arquero
+// violeta, defensores celeste, mediocampistas esmeralda, delanteros dorado —
+// se usa en el avatar, sus bordes y los glows de fondo de la tarjeta. Es
+// deliberadamente DISTINTA de _plantelPosColor (index.html), que pinta cada
+// código de posición individual con un color propio para las tablas del
+// sitio — acá se agrupa por línea, no por posición puntual.
+const POS_GROUP = {
+  ARQ: 'arq',
+  DFC: 'def', DFI: 'def', DFD: 'def', LI: 'def', LD: 'def', DEF: 'def',
+  MC: 'med', MCO: 'med', MCE: 'med', MI: 'med', MD: 'med',
+  DC: 'del', ED: 'del', EI: 'del', DEL: 'del', AT: 'del',
+};
+const GROUP_COLORS = {
+  arq: { solid: '#a855f7', light: '#c084fc' }, // purple-500/400
+  def: { solid: '#0ea5e9', light: '#38bdf8' }, // sky-500/400
+  med: { solid: '#10b981', light: '#34d399' }, // emerald-500/400
+  del: { solid: '#f59e0b', light: '#fbbf24' }, // amber-500/400
+};
+function posGroupColor(pos) {
+  const group = POS_GROUP[String(pos || '').toUpperCase()] || 'med';
+  return GROUP_COLORS[group];
+}
+
+// Ícono de trofeo sin depender de ningún glifo de fuente (Inter no tiene
+// emoji 🏆) — copa + 2 asas + base, armado con primitivas SVG.
+function trophyIconSvg(cx, cy, s, color) {
+  const bodyW = s, bodyH = s * 0.55, topY = cy - s * 0.5;
+  const handleR = s * 0.16, handleSw = s * 0.09;
+  return [
+    `<path d="M ${cx - bodyW / 2} ${topY} h ${bodyW} v ${bodyH * 0.45} a ${bodyW / 2} ${bodyH * 0.75} 0 0 1 ${-bodyW} 0 z" fill="${color}"/>`,
+    `<circle cx="${cx - bodyW / 2 - s * 0.14}" cy="${topY + bodyH * 0.18}" r="${handleR}" fill="none" stroke="${color}" stroke-width="${handleSw}"/>`,
+    `<circle cx="${cx + bodyW / 2 + s * 0.14}" cy="${topY + bodyH * 0.18}" r="${handleR}" fill="none" stroke="${color}" stroke-width="${handleSw}"/>`,
+    `<rect x="${cx - s * 0.06}" y="${topY + bodyH * 0.5}" width="${s * 0.12}" height="${s * 0.3}" fill="${color}"/>`,
+    `<rect x="${cx - s * 0.3}" y="${topY + bodyH * 0.5 + s * 0.3}" width="${s * 0.6}" height="${s * 0.12}" rx="${s * 0.04}" fill="${color}"/>`,
+  ].join('');
+}
+
 // Ancho aproximado de un carácter en Inter Bold/Black, como fracción del
 // font-size — no es exacto (no hay métricas reales de la fuente acá), pero
 // alcanza para centrar una línea corta con varios <tspan> de colores
@@ -159,7 +196,7 @@ function panelRect({ x, y, w, h, rx = 28, fill, fillOpacity, stroke, strokeWidth
   return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${fill}"${fo}${st}/>`;
 }
 
-function buildShareCardSvg({ nombre, pos, posColor, goles, asist, pj, gmas, titulos, promGol, promAsist, vallas, vallasProm, pg, pe, pp, hasA, hasB, logros, logoDataUri }) {
+function buildShareCardSvg({ nombre, pos, posColor, goles, asist, pj, gmas, titulos, titulosList, promGol, promAsist, vallas, vallasProm, pg, pe, pp, hasA, hasB, logros, logoDataUri }) {
   const W = 1080, H = 1350;
   const PAD_X = 64, PAD_TOP = 48, PAD_BOTTOM = 48;
   const bodyTop = PAD_TOP, bodyBottom = H - PAD_BOTTOM, bodyHeight = bodyBottom - bodyTop;
@@ -172,6 +209,11 @@ function buildShareCardSvg({ nombre, pos, posColor, goles, asist, pj, gmas, titu
   const nameLines = splitName(nombre);
   const posFull = POS_NOMBRE[pos] || pos || '—';
   const teamLabels = [hasA ? '1ra A' : null, hasB ? '1ra B' : null].filter(Boolean);
+  // Paleta dinámica según la línea de la posición (arquero/defensor/
+  // mediocampista/delantero) — pisa el `posColor` puntual que manda
+  // generate-og.js (ver _plantelPosColor), que es más granular pero no es
+  // el agrupamiento que se pidió acá.
+  const pc = posGroupColor(pos);
 
   const blocks = []; // { height, render(y) }
 
@@ -216,13 +258,13 @@ function buildShareCardSvg({ nombre, pos, posColor, goles, asist, pj, gmas, titu
 
       const avatarCy = y + PAD_INNER + AVATAR_R;
       parts.push(`<defs><linearGradient id="avatarGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="${COLORS.slate800}"/><stop offset="100%" stop-color="${COLORS.slate900}"/></linearGradient></defs>`);
-      parts.push(`<circle cx="${cx}" cy="${avatarCy}" r="${AVATAR_R}" fill="url(#avatarGrad)" stroke="${hexAlpha(COLORS.emerald500, 0.5)}" stroke-width="4"/>`);
-      parts.push(`<text x="${cx}" y="${avatarCy + 20}" font-family="${FONT}" font-size="56" font-weight="900" fill="${COLORS.emerald400}" text-anchor="middle">${escapeXml(initials)}</text>`);
+      parts.push(`<circle cx="${cx}" cy="${avatarCy}" r="${AVATAR_R}" fill="url(#avatarGrad)" stroke="${hexAlpha(pc.solid, 0.5)}" stroke-width="4"/>`);
+      parts.push(`<text x="${cx}" y="${avatarCy + 20}" font-family="${FONT}" font-size="56" font-weight="900" fill="${pc.light}" text-anchor="middle">${escapeXml(initials)}</text>`);
       // Badge de posición superpuesto (abajo-derecha del avatar).
       const posBadgeLabel = pos || '—';
       const posBadgeW = Math.max(74, 34 + posBadgeLabel.length * 22), posBadgeH = 46;
       const pbCx = cx + AVATAR_R * 0.62, pbCy = avatarCy + AVATAR_R * 0.62;
-      parts.push(panelRect({ x: pbCx - posBadgeW / 2, y: pbCy - posBadgeH / 2, w: posBadgeW, h: posBadgeH, rx: 14, fill: COLORS.emerald500, stroke: COLORS.slate950, strokeWidth: 3 }));
+      parts.push(panelRect({ x: pbCx - posBadgeW / 2, y: pbCy - posBadgeH / 2, w: posBadgeW, h: posBadgeH, rx: 14, fill: pc.solid, stroke: COLORS.slate950, strokeWidth: 3 }));
       parts.push(`<text x="${pbCx}" y="${pbCy + 8}" font-family="${FONT}" font-size="22" font-weight="900" fill="${COLORS.slate950}" text-anchor="middle">${escapeXml(posBadgeLabel)}</text>`);
 
       let ny = y + PAD_INNER + AVATAR_D + gapAvatarName;
@@ -289,6 +331,58 @@ function buildShareCardSvg({ nombre, pos, posColor, goles, asist, pj, gmas, titu
       return parts.join('\n');
     },
   });
+
+  // ── 3b. Títulos obtenidos (lista real, no solo el contador) ─────────
+  // titulosList viene de _collectPlayerTitulos (index.html): los títulos
+  // reales del jugador (torneo + año), no solo el total acumulado.
+  const titulosArr = titulosList || [];
+  const TIT_SHOWN_MAX = 6;
+  const titulosShown = titulosArr.slice(0, TIT_SHOWN_MAX);
+  const titulosExtra = titulosArr.length - titulosShown.length;
+  if (titulos > 0 && titulosShown.length) {
+    const TIT_PAD = 28;
+    const TIT_HEADER_H = 44, TIT_HEADER_GAP = 18;
+    const TIT_ROW_H = 56, TIT_ROW_GAP = 12, TIT_COL_GAP = 12;
+    const titRows = Math.ceil(titulosShown.length / 2);
+    const titGridH = titRows * TIT_ROW_H + (titRows - 1) * TIT_ROW_GAP;
+    const titExtraH = titulosExtra > 0 ? 32 + 10 : 0;
+    const titInnerH = TIT_HEADER_H + TIT_HEADER_GAP + titGridH + titExtraH;
+    const titPanelH = TIT_PAD * 2 + titInnerH;
+    blocks.push({
+      height: titPanelH,
+      render(y) {
+        const parts = [];
+        parts.push(panelRect({ x: PAD_X, y, w: contentW, h: titPanelH, rx: 28, fill: COLORS.slate900, fillOpacity: 0.6, stroke: COLORS.slate800 }));
+        const innerX = PAD_X + TIT_PAD, innerW = contentW - TIT_PAD * 2;
+        // Header: ícono trofeo + "TÍTULOS OBTENIDOS" a la izquierda, conteo a la derecha.
+        const iconCx = innerX + 12, iconCy = y + TIT_PAD + 12;
+        parts.push(trophyIconSvg(iconCx, iconCy, 22, COLORS.amber400));
+        parts.push(`<text x="${iconCx + 22}" y="${iconCy + 7}" font-family="${FONT}" font-size="19" font-weight="900" letter-spacing="1" fill="${COLORS.slate400}">TÍTULOS OBTENIDOS</text>`);
+        const campLabel = `${titulos} Campeonato${titulos === 1 ? '' : 's'}`;
+        parts.push(`<text x="${innerX + innerW}" y="${iconCy + 7}" font-family="${FONT}" font-size="19" font-weight="900" fill="${COLORS.amber400}" text-anchor="end">${escapeXml(campLabel)}</text>`);
+        const headerBottomY = y + TIT_PAD + TIT_HEADER_H - 8;
+        parts.push(`<line x1="${innerX}" y1="${headerBottomY}" x2="${innerX + innerW}" y2="${headerBottomY}" stroke="${hexAlpha(COLORS.slate800, 0.8)}" stroke-width="1.5"/>`);
+
+        const gridTop = y + TIT_PAD + TIT_HEADER_H + TIT_HEADER_GAP;
+        const colW = (innerW - TIT_COL_GAP) / 2;
+        titulosShown.forEach((t, i) => {
+          const r = Math.floor(i / 2), c = i % 2;
+          const bx = innerX + c * (colW + TIT_COL_GAP), by = gridTop + r * (TIT_ROW_H + TIT_ROW_GAP);
+          parts.push(panelRect({ x: bx, y: by, w: colW, h: TIT_ROW_H, rx: 12, fill: COLORS.slate950, stroke: hexAlpha(COLORS.amber500, 0.3) }));
+          const label = t.torneo || 'Título';
+          const maxChars = 20;
+          const shortLabel = label.length > maxChars ? label.slice(0, maxChars - 1) + '…' : label;
+          parts.push(`<text x="${bx + 20}" y="${by + TIT_ROW_H / 2 + 7}" font-family="${FONT}" font-size="20" font-weight="700" fill="${COLORS.white}">${escapeXml(shortLabel)}</text>`);
+          parts.push(`<text x="${bx + colW - 18}" y="${by + TIT_ROW_H / 2 + 7}" font-family="${FONT}" font-size="20" font-weight="900" fill="${COLORS.amber400}" text-anchor="end">${escapeXml(String(t.anio || ''))}</text>`);
+        });
+        if (titulosExtra > 0) {
+          const extraY = gridTop + titGridH + 10 + 22;
+          parts.push(`<text x="${innerX + innerW / 2}" y="${extraY}" font-family="${FONT}" font-size="18" font-weight="700" fill="${COLORS.slate400}" text-anchor="middle">+${titulosExtra} más</text>`);
+        }
+        return parts.join('\n');
+      },
+    });
+  }
 
   // ── 4. Matriz de estadísticas (grilla 3xN "encasillada") ────────────
   const cellH = 190, outerPad = 10;
@@ -368,8 +462,8 @@ function buildShareCardSvg({ nombre, pos, posColor, goles, asist, pj, gmas, titu
     </filter>
   </defs>
   <rect x="0" y="0" width="${W}" height="${H}" fill="${COLORS.slate950}"/>
-  <circle cx="${W - 60}" cy="60" r="200" fill="${COLORS.emerald500}" opacity="0.10" filter="url(#cardGlowBlur)"/>
-  <circle cx="40" cy="${H - 60}" r="200" fill="${COLORS.emerald500}" opacity="0.06" filter="url(#cardGlowBlur)"/>
+  <circle cx="${W - 60}" cy="60" r="200" fill="${pc.solid}" opacity="0.10" filter="url(#cardGlowBlur)"/>
+  <circle cx="40" cy="${H - 60}" r="200" fill="${pc.solid}" opacity="0.06" filter="url(#cardGlowBlur)"/>
 ${rendered.map(p => '  ' + p).join('\n')}
 </svg>`;
 }

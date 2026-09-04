@@ -355,7 +355,7 @@ async function main() {
       const svg = buildShareCardSvg({
         nombre: s.nombre, pos: s.pos, posColor,
         goles: s.goles, asist: s.asist, pj: s.pj,
-        gmas: s.goles + s.asist, titulos: s.titulos,
+        gmas: s.goles + s.asist, titulos: s.titulos, titulosList: s.titulosList,
         promGol: s.promGol, promAsist: s.promAsist,
         vallas: s.vallas, vallasProm: s.vallasProm,
         pg: ved.v, pe: ved.e, pp: ved.d,
