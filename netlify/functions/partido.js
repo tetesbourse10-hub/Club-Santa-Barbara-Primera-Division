@@ -21,12 +21,43 @@ function redirectPage(target) {
 }
 
 exports.handler = async (event) => {
-  const { torneo, fecha } = event.queryStringParameters || {};
+  const { torneo, fecha, debug } = event.queryStringParameters || {};
   const cfg = TORNEO_CFG[torneo];
   if (!cfg) return redirectPage(`${SITE_URL}/`);
 
-  const data = await getMatchData(torneo, fecha).catch(e => { console.error('partido.js:', e); return null; });
+  // BUG REAL encontrado (reportado: el link siempre termina en la home):
+  // antes, un fetch real fallando (Apps Script caído, timeout, lo que sea)
+  // y una fecha genuinamente inexistente terminaban en la MISMA rama — el
+  // catch(() => null) de abajo tapaba cualquier excepción real detrás del
+  // mismo "no encontrado" silencioso. Ahora se distinguen: una excepción
+  // real se ve (y con ?debug=1 se puede inspeccionar el mensaje tal cual),
+  // "no encontrado" solo cuando getMatchData resolvió bien pero de verdad
+  // no hay ese partido todavía.
+  let data, fetchError = null;
+  try {
+    data = await getMatchData(torneo, fecha);
+  } catch (e) {
+    fetchError = e;
+    console.error('partido.js — getMatchData tiró una excepción:', e);
+  }
+  if (fetchError) {
+    if (debug) {
+      return {
+        statusCode: 500,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+        body: `getMatchData('${torneo}', '${fecha}') tiró una excepción:\n\n${fetchError.stack || fetchError.message || fetchError}`,
+      };
+    }
+    return redirectPage(`${SITE_URL}/#${torneo === 'b' ? 'b' : 'a'}`);
+  }
   if (!data) {
+    if (debug) {
+      return {
+        statusCode: 404,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+        body: `getMatchData('${torneo}', '${fecha}') resolvió sin encontrar ese partido (sin excepción) — ¿la fecha existe en el sheet?`,
+      };
+    }
     // Fecha inexistente (todavía no llegó, o número inválido) — a la vista
     // general del torneo en vez de una página rota.
     return redirectPage(`${SITE_URL}/#${torneo === 'b' ? 'b' : 'a'}`);
