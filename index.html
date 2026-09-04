@@ -28,6 +28,9 @@
   <meta property="og:description" content="Estadísticas, resultados y jugadores de Club Santa Bárbara — Primera A y Primera B." />
   <meta property="og:image" content="/logo-csb.webp" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- Solo para "Compartir" en Fecha a Fecha (ver shareFechaCard): renderiza
+       la tarjeta de cancha+destacados a PNG en el navegador del usuario. -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <!-- Utilidades Tailwind pre-compiladas (tailwindcss v3 CLI, preflight
        desactivado para no pisar el CSS a medida de más abajo) — usadas solo
        por el rediseño desktop de Inicio/Resumen del Plantel (ver
@@ -2757,6 +2760,49 @@
     .ap-change .cout::before { content:'▼'; font-size:0.72rem; }
     .ap-change .cmet { font-size:0.65rem; color:var(--gris-texto); padding:0 2px; }
     .ap-ms-obs { font-size:0.78rem; color:var(--gris-texto); margin-top:8px; font-style:italic; grid-column:1/-1; }
+    /* ── Botón "Compartir" (ver shareFechaCard) ── */
+    .ap-fd-share-row { display:flex; justify-content:flex-end; margin-bottom:10px; }
+    .ap-fd-share-btn {
+      background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:var(--blanco);
+      font-size:0.78rem; font-weight:700; padding:7px 14px; border-radius:20px; cursor:pointer;
+      transition:background .15s, border-color .15s;
+    }
+    .ap-fd-share-btn:hover { background:rgba(255,255,255,0.1); border-color:rgba(255,255,255,0.2); }
+    .ap-fd-share-btn:disabled { opacity:0.6; cursor:default; }
+    /* ── Tarjeta para compartir (fuera de pantalla, capturada por html2canvas
+       en shareFechaCard) — ancho fijo 1080px, estilos 100% inline/propios,
+       sin depender de ningún media query ni de la cadena de layout del resto
+       del sitio, porque siempre se renderiza a ese ancho sin importar la
+       pantalla de quien comparte. ── */
+    .fd-share-card { width:1080px; background:#0B0E14; padding:56px 64px 64px; font-family:inherit; box-sizing:border-box; }
+    .fd-share-header { display:flex; align-items:center; gap:18px; margin-bottom:36px; }
+    .fd-share-logo { width:64px; height:64px; object-fit:contain; }
+    .fd-share-club { font-size:1.7rem; font-weight:900; color:#fff; line-height:1.15; }
+    .fd-share-torneo { font-size:1rem; font-weight:700; color:var(--dorado); margin-top:2px; }
+    .fd-share-score { display:flex; align-items:center; justify-content:center; gap:48px; margin-bottom:20px; }
+    .fd-share-team { display:flex; flex-direction:column; align-items:center; gap:12px; width:220px; }
+    .fd-share-crest { width:88px; height:88px; border-radius:50%; object-fit:contain; }
+    .fd-share-crest:not(.fd-share-crest-img) { display:flex; align-items:center; justify-content:center; border:2px solid; font-size:1.6rem; font-weight:900; background:#fff; }
+    .fd-share-teamname { font-size:1.15rem; font-weight:800; color:#fff; text-align:center; line-height:1.2; }
+    .fd-share-scoreval { font-size:2.6rem; font-weight:900; color:#fff; line-height:1; white-space:nowrap; }
+    .fd-share-scoreval small { font-size:0.4em; opacity:0.75; }
+    .fd-share-meta { text-align:center; font-size:1rem; color:var(--gris-texto); font-weight:600; margin-bottom:32px; }
+    .fd-share-pitch-wrap { width:100%; max-width:520px; margin:0 auto 36px; }
+    /* La cancha vertical/horizontal (.ap-pitch-portrait/-landscape) alterna
+       según el viewport de quien la mira (ver @media min-width:769px más
+       abajo) — pero acá el contenedor siempre mide 1080px fijo sin importar
+       la pantalla real de quien comparte, así que se fuerza siempre la
+       vertical (portrait), la que tiene sentido en una tarjeta más alta que
+       ancha, sin depender de qué viewport tenga quien tocó "Compartir". */
+    .fd-share-card .ap-pitch-landscape { display:none !important; }
+    .fd-share-card .ap-pitch-portrait { display:block !important; }
+    .fd-share-destacados { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:22px 26px; }
+    .fd-share-destacados-title { font-size:1.05rem; font-weight:800; color:#fff; margin-bottom:14px; }
+    .fd-share-inc-group { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-bottom:10px; }
+    .fd-share-inc-group:last-child { margin-bottom:0; }
+    .fd-share-inc-lbl { font-size:0.85rem; font-weight:800; color:var(--gris-texto); min-width:150px; }
+    .fd-share-inc-item { font-size:0.92rem; font-weight:700; color:#fff; background:rgba(255,255,255,0.07); padding:4px 12px; border-radius:20px; }
+    .fd-share-footer { text-align:center; font-size:0.9rem; font-weight:700; color:var(--gris-texto); margin-top:40px; letter-spacing:0.03em; }
     /* ── Fecha detail redesigned header ── */
     .ap-fd-card { background:var(--azul-card); border:1px solid rgba(255,255,255,0.06); border-radius:14px; padding:20px 24px; margin-bottom:16px; }
     .ap-fd-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; padding-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.07); }
@@ -7986,8 +8032,97 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
       </div>
     </div>`;
 
-  return summary + pitchSection;
+  // "Compartir" (ver shareFechaCard más abajo): arma acá mismo, con todas las
+  // variables ya calculadas para esta fecha, la tarjeta vertical (cancha +
+  // destacados) que se exporta a PNG — evita recalcular rival/resultado/
+  // titulares/etc. en una función aparte. Los escudos de RIVAL_CREST_URLS son
+  // imágenes externas hotlinkeadas sin cabeceras CORS garantizadas — usarlas
+  // en el <canvas> de html2canvas puede "tiznarlo" y bloquear la exportación
+  // entera, así que la tarjeta usa el mismo círculo de iniciales de color que
+  // ya se ve como fallback en el resto del sitio en vez de arriesgar el
+  // escudo real; el propio logo (same-origin) sí se usa tal cual.
+  const shareInitialsAvatar = nombre => {
+    const c = _rivalAvatarColor(nombre);
+    return `<div class="fd-share-crest" style="background:${c.bg};border-color:${c.color}59;color:${c.color}">${_rivalInitials(nombre)}</div>`;
+  };
+  const shareLeftCrest  = csbIsLeft ? `<img src="logo-csb.webp" class="fd-share-crest fd-share-crest-img" alt="">` : shareInitialsAvatar(rival);
+  const shareRightCrest = csbIsLeft ? shareInitialsAvatar(rival) : `<img src="logo-csb.webp" class="fd-share-crest fd-share-crest-img" alt="">`;
+  const shareMetaLine = [
+    fecha !== '—' ? (isRoundName(fecha) ? `🏆 ${fecha}` : `📅 Fecha ${fecha}`) : '',
+    dia !== '—' ? `🗓️ ${dia}` : '',
+    lugarVal !== '—' ? `📍 ${lugarVal}` : '',
+  ].filter(Boolean).join('  ·  ');
+  const shareDestacados = [
+    goalScorers.length ? `<div class="fd-share-inc-group"><span class="fd-share-inc-lbl">⚽ Goles</span>${goalScorers.map(j=>`<span class="fd-share-inc-item">${j.nombre}${j.goles>1?' ×'+j.goles:''}</span>`).join('')}</div>` : '',
+    assisters.length ? `<div class="fd-share-inc-group"><span class="fd-share-inc-lbl">🎯 Asistencias</span>${assisters.map(j=>`<span class="fd-share-inc-item">${j.nombre}${j.asist>1?' ×'+j.asist:''}</span>`).join('')}</div>` : '',
+    redCards.length ? `<div class="fd-share-inc-group"><span class="fd-share-inc-lbl">🟥 Rojas</span>${redCards.map(j=>`<span class="fd-share-inc-item">${j.nombre}</span>`).join('')}</div>` : '',
+  ].filter(Boolean).join('');
+  window._fdShareHtml = `
+    <div class="fd-share-card">
+      <div class="fd-share-header">
+        <img src="logo-csb.webp" class="fd-share-logo" alt="">
+        <div class="fd-share-headtext">
+          <div class="fd-share-club">Club Santa Bárbara</div>
+          <div class="fd-share-torneo">${(currentData && currentData.badge) || ''}</div>
+        </div>
+      </div>
+      <div class="fd-share-score">
+        <div class="fd-share-team">${shareLeftCrest}<div class="fd-share-teamname">${leftName}</div></div>
+        <div class="fd-share-scoreval" style="${played ? `color:${resColor}` : ''}">${played ? `${resultado}${penales ? ` <small>(pen. ${penales})</small>` : ''}` : 'vs'}</div>
+        <div class="fd-share-team">${shareRightCrest}<div class="fd-share-teamname">${rightName}</div></div>
+      </div>
+      ${shareMetaLine ? `<div class="fd-share-meta">${shareMetaLine}</div>` : ''}
+      <div class="fd-share-pitch-wrap">${buildPitch(titulares.length > 0 ? titulares : null)}</div>
+      ${shareDestacados ? `<div class="fd-share-destacados"><div class="fd-share-destacados-title">📋 Destacados del Partido</div>${shareDestacados}</div>` : ''}
+      <div class="fd-share-footer">🟢⚪ Club Santa Bárbara</div>
+    </div>`;
+
+  const shareBtnHtml = `<div class="ap-fd-share-row"><button class="ap-fd-share-btn" onclick="shareFechaCard()">📤 Compartir</button></div>`;
+
+  return shareBtnHtml + summary + pitchSection;
 }
+// Genera la tarjeta armada en buildFechaDetailHTML (window._fdShareHtml) a
+// PNG en el navegador (html2canvas) y la comparte/descarga. La tarjeta se
+// arma off-screen (fuera de la vista, no display:none — html2canvas necesita
+// que el elemento tenga layout real) con un ancho fijo de 1080px para que la
+// imagen resultante tenga buena resolución sin importar el tamaño de
+// pantalla de quien comparte.
+window.shareFechaCard = async function() {
+  const html = window._fdShareHtml;
+  const btn = document.querySelector('.ap-fd-share-btn');
+  if (!html || typeof html2canvas === 'undefined') return;
+  const prevLabel = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Generando…'; }
+  const holder = document.createElement('div');
+  holder.style.cssText = 'position:fixed;left:-99999px;top:0;width:1080px;';
+  holder.innerHTML = html;
+  document.body.appendChild(holder);
+  try {
+    // Deja un frame para que el layout (fuentes/imagen del escudo) asiente
+    // antes de capturar — sin esto, el logo-csb.webp a veces se capturaba
+    // en blanco por no haber terminado de decodificar todavía.
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const canvas = await html2canvas(holder.firstElementChild, { backgroundColor: '#0B0E14', scale: 2 });
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    if (!blob) throw new Error('toBlob devolvió null');
+    const file = new File([blob], 'partido-santa-barbara.png', { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: 'Club Santa Bárbara' });
+    } else {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'partido-santa-barbara.png';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    }
+  } catch (e) {
+    // AbortError = el usuario canceló el share sheet — no es un error real.
+    if (e?.name !== 'AbortError') console.warn('shareFechaCard:', e);
+  } finally {
+    holder.remove();
+    if (btn) { btn.disabled = false; btn.textContent = prevLabel; }
+  }
+};
 window._apSquadTabD = function(btn, idx) {
   const wrap = btn.closest('.ap-squad-tabs-d');
   if (!wrap) return;
