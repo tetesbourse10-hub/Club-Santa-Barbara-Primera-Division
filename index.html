@@ -17053,33 +17053,28 @@ async function loadLiveData() {
   }
   _fillCopasPorPosicion(DATA_A.tabla, COPAS_POR_POSICION_A);
 
-  // Partidos puntuales de Clausura AIFA A 2026 cargados a mano, club-
-  // confirmados, porque el fetch en vivo no trae bien Rival/Fecha/Día/Hora/
-  // Lugar para esas filas específicas. Dos causas distintas confirmadas:
-  // (1) en el detalle de Fecha a Fecha, la columna Fecha se reutiliza como
-  // "Citado" y Lugar como "Titular" en las filas de jugador de la MISMA
-  // hoja, y esa mezcla confunde la inferencia de tipo por columna de la API
-  // de Google usada acá (bug del lado de Google); (2) BUG REAL encontrado
-  // (La Plata seguía apareciendo duplicada en Fecha 4 y 5 pese a que el
-  // parser ya no la detectaba dos veces): el selector de fechas ("Fecha 1,
-  // 2, 3...") lee el rival de cada pill desde la tabla BÁSICA (d.partidos,
-  // ver allFechas en renderTorneoApertura), no desde el detalle — ese fix
-  // anterior nunca tocaba el campo `rival` ahí, solo lugar/hora/local, así
-  // que si esa fila básica tiene el rival mal (dato real del sheet, no algo
-  // que el parser pueda inferir) seguía mostrando "vs LA PLATA" en la
-  // fecha 5. Ahora se fuerza también `rival` en la tabla básica, no solo
-  // en el detalle. Cada uno se pisa/agrega sin tocar el resto de la
-  // temporada; sumar un caso nuevo es solo agregar una entrada acá.
+  // Partidos puntuales de Clausura AIFA A 2026 — este parche es un FALLBACK,
+  // no una verdad fija: nació para cuando el fetch en vivo no traía bien
+  // Rival/Fecha/Día/Hora/Lugar de estas filas puntuales (bug real
+  // de gviz: en el detalle de Fecha a Fecha, la columna Fecha se reutiliza
+  // como "Citado" y Lugar como "Titular" en las filas de jugador de la MISMA
+  // hoja, confundiendo la inferencia de tipo por columna de la API de
+  // Google). BUG REAL encontrado después: al forzar SIEMPRE estos valores
+  // (sin chequear si el dato real ya venía bien), cuando el club corrigió/
+  // actualizó el sheet a mano (ej. cambió el rival real de la Fecha 5) el
+  // parche seguía pisando el dato correcto con el rival viejo hardcodeado
+  // acá. Ahora solo rellena lo que venga vacío/faltante — si el fetch en
+  // vivo ya trae un rival real, se respeta ese en vez del hardcodeado.
   [
     { rival: 'LA PLATA', fecha: '4', dia: '5/9',  hora: '15hs', lugar: 'Universidad de La Plata', local: 'VISITANTE' },
     { rival: 'NORDELTA', fecha: '5', dia: '12/9', hora: '',     lugar: '',                          local: 'LOCAL' },
   ].forEach(fix => {
     let m = (DATA_A.apertura || []).find(mm => String(mm.fecha) === fix.fecha);
     if (m) {
-      m.rival = fix.rival;
-      if (fix.dia)   m.dia   = fix.dia;
-      if (fix.hora)  m.hora  = fix.hora;
-      if (fix.lugar) m.lugar = fix.lugar;
+      if (!m.rival) m.rival = fix.rival;
+      if (!m.dia && fix.dia)     m.dia   = fix.dia;
+      if (!m.hora && fix.hora)   m.hora  = fix.hora;
+      if (!m.lugar && fix.lugar) m.lugar = fix.lugar;
     } else {
       DATA_A.apertura = [...(DATA_A.apertura || []), {
         ...fix, formacionCSB: '', formacionRival: '',
@@ -17088,10 +17083,10 @@ async function loadLiveData() {
     }
     let p = (DATA_A.partidos || []).find(pp => String(pp.fecha) === fix.fecha);
     if (p) {
-      p.rival = fix.rival;
+      if (!p.rival) p.rival = fix.rival;
       if (fix.lugar) p.estadio = p.estadio || fix.lugar;
       if (fix.hora)  p.horario = p.horario || fix.hora;
-      if (fix.local) p.local   = fix.local;
+      if (!p.local && fix.local) p.local = fix.local;
     }
   });
   // BUG REAL encontrado (Fecha 5 aparecía duplicada dos veces como "vs
