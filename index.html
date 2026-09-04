@@ -7188,6 +7188,11 @@ function _tryRestoreRouteFromHash() {
           if (typeof _jugTotalBuild === 'function') _jugTotalBuild();
         }
       }
+      if (subKey === 'anuales' && rest[i0 + 2] === 'year' && rest[i0 + 3] != null) {
+        const isB = currentData === DATA_B;
+        if (isB && typeof renderJugAnualesYearB === 'function') renderJugAnualesYearB(rest[i0 + 3]);
+        else if (typeof renderJugAnualesYear === 'function') renderJugAnualesYear(rest[i0 + 3]);
+      }
     } else if (tabName === 'historial') {
       if (rest[i0] === 'rival' && rest[i0 + 1] != null && window.histDrilldown) {
         window.histDrilldown(rest[i0 + 1]);
@@ -7208,6 +7213,17 @@ function _tryRestoreRouteFromHash() {
     const pfSortIdx = rest.indexOf('pfsort');
     if (pfSortIdx !== -1 && rest[pfSortIdx + 1] != null && window._plantelMobileSortSelect) {
       window._plantelMobileSortSelect(rest[pfSortIdx + 1]);
+    }
+    // Filtro de Pos/Orden del Plantel de Estadísticas Anuales (idPrefix
+    // 'a'/'b', ver _anuPlantelUpdateRoute) — mismo criterio genérico.
+    const idPrefix = currentData === DATA_B ? 'b' : 'a';
+    const aPosIdx = rest.indexOf('apos');
+    if (aPosIdx !== -1 && rest[aPosIdx + 1] != null && window._anuPlantelPosSelect) {
+      window._anuPlantelPosSelect(idPrefix, rest[aPosIdx + 1]);
+    }
+    const aSortIdx = rest.indexOf('asort');
+    if (aSortIdx !== -1 && rest[aSortIdx + 1] != null && window._anuPlantelSortSelect) {
+      window._anuPlantelSortSelect(idPrefix, rest[aSortIdx + 1]);
     }
     return true;
   } finally {
@@ -14446,15 +14462,23 @@ window._anuPlantelSortToggle = function(idPrefix) {
   st.sortOpen = !st.sortOpen; st.posOpen = false;
   _anuPlantelRerenderFilterBar(idPrefix);
 };
+// "apos"/"asort" (no "pos"/"sort" a secas) para no colisionar con otras
+// claves de route — mismo motivo que "pfpos"/"pfsort" del Plantel mobile.
+function _anuPlantelUpdateRoute(idPrefix) {
+  const st = _anuPlantelSt(idPrefix);
+  _routeSetPrefix([..._routeTorneoBase, 'apos', st.pos, 'asort', st.sort]);
+}
 window._anuPlantelPosSelect = function(idPrefix, pos) {
   const st = _anuPlantelSt(idPrefix);
   st.pos = pos; st.posOpen = false;
   _anuPlantelRerenderFilterBar(idPrefix); _anuPlantelRerenderList(idPrefix);
+  _anuPlantelUpdateRoute(idPrefix);
 };
 window._anuPlantelSortSelect = function(idPrefix, sort) {
   const st = _anuPlantelSt(idPrefix);
   st.sort = sort; st.sortOpen = false;
   _anuPlantelRerenderFilterBar(idPrefix); _anuPlantelRerenderList(idPrefix);
+  _anuPlantelUpdateRoute(idPrefix);
 };
 function _anuPlantelRerenderFilterBar(idPrefix) {
   const el = document.getElementById(`anu-plantel-bar-${idPrefix}`);
@@ -14607,6 +14631,11 @@ window._anualesMobileGoYear = function(year) {
 };
 
 function renderJugAnualesYear(year) {
+  // .slice(0,5): _routeTorneoBase ya viene fijado por showJugSub('anuales')
+  // a exactamente [sección,'tab','jugadores','sub','anuales'] — se trunca a
+  // eso antes de appendear el año, para no ir acumulando "year/2025/year/2024"
+  // si el usuario mira varias temporadas seguidas sin salir de Anuales.
+  _routeSetTorneoBase([..._routeTorneoBase.slice(0, 5), 'year', year]);
   _anualesYear = year;
   _anualesQuery = '';
   _anualesSortCol = 1;
@@ -14860,6 +14889,7 @@ window._anualesMobileGoYearB = function(year) {
 };
 
 function renderJugAnualesYearB(year) {
+  _routeSetTorneoBase([..._routeTorneoBase.slice(0, 5), 'year', year]);
   const yr = Number(year);
   const years = [...new Set(_anualesSourceB().map(t => t.anio))].sort((a, b) => b - a);
   const torneosYear = _anualesSourceB().filter(t => t.anio === yr);
