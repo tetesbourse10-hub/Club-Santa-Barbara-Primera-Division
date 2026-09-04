@@ -197,9 +197,17 @@ function panelRect({ x, y, w, h, rx = 28, fill, fillOpacity, stroke, strokeWidth
 }
 
 function buildShareCardSvg({ nombre, pos, posColor, goles, asist, pj, gmas, titulos, titulosList, promGol, promAsist, vallas, vallasProm, pg, pe, pp, hasA, hasB, logros, logoDataUri }) {
-  const W = 1080, H = 1350;
+  // W/H_BASE: el formato "de base" es 1080x1350 (4:5) — pero la altura NO
+  // es fija de verdad: cuántos bloques entran (logros, títulos, si es
+  // arquero o no…) varía por jugador, y con el bloque de Títulos Obtenidos
+  // sumado el contenido puede pesar más que esos 1350px. Antes el alto se
+  // quedaba fijo y lo que no entraba se dibujaba fuera del <svg> (recortado
+  // sin ningún error, "se corta la imagen" reportado) — ahora el alto real
+  // se recalcula MÁS ABAJO, después de saber cuánto miden todos los
+  // bloques, y el canvas crece si hace falta.
+  const W = 1080, H_BASE = 1350;
   const PAD_X = 64, PAD_TOP = 48, PAD_BOTTOM = 48;
-  const bodyTop = PAD_TOP, bodyBottom = H - PAD_BOTTOM, bodyHeight = bodyBottom - bodyTop;
+  const bodyTop = PAD_TOP;
   const contentW = W - PAD_X * 2;
   const cx = W / 2;
 
@@ -315,17 +323,24 @@ function buildShareCardSvg({ nombre, pos, posColor, goles, asist, pj, gmas, titu
         { val: pe, label: 'PE', color: COLORS.amber400, bg: hexAlpha(COLORS.amber500, 0.12) },
         { val: pp, label: 'PP', color: COLORS.rose400, bg: hexAlpha(COLORS.rose500, 0.12) },
       ];
-      const groupW = 150, dashW = 50, pillW = 62, pillH = 42;
-      const totalW = groups.length * groupW + (groups.length - 1) * dashW;
+      // Ancho REAL de cada grupo (pill + separación + ancho estimado del
+      // label), no un slot fijo — un slot fijo más ancho que el contenido
+      // real dejaba "aire muerto" al final de cada grupo y el conjunto
+      // terminaba viéndose corrido a la izquierda en vez de centrado
+      // (bug reportado: "no está centralizada").
+      const pillW = 62, pillH = 42, labelGap = 16, dashSlotW = 46;
+      const groupWidths = groups.map(g => pillW + labelGap + estimateTextWidth(g.label, 20));
+      const totalW = groupWidths.reduce((a, b) => a + b, 0) + (groups.length - 1) * dashSlotW;
       let gx = cx - totalW / 2;
       const midY = y + RECORD_H / 2;
       groups.forEach((g, i) => {
         parts.push(panelRect({ x: gx, y: midY - pillH / 2, w: pillW, h: pillH, rx: 10, fill: g.bg }));
         parts.push(`<text x="${gx + pillW / 2}" y="${midY + 8}" font-family="${FONT}" font-size="24" font-weight="900" fill="${g.color}" text-anchor="middle">${escapeXml(String(g.val))}</text>`);
-        parts.push(`<text x="${gx + pillW + 16}" y="${midY + 7}" font-family="${FONT}" font-size="20" font-weight="700" fill="${COLORS.slate400}">${g.label}</text>`);
-        gx += groupW;
+        parts.push(`<text x="${gx + pillW + labelGap}" y="${midY + 7}" font-family="${FONT}" font-size="20" font-weight="700" fill="${COLORS.slate400}">${g.label}</text>`);
+        gx += groupWidths[i];
         if (i < groups.length - 1) {
-          parts.push(`<text x="${gx - dashW / 2}" y="${midY + 7}" font-family="${FONT}" font-size="24" font-weight="700" fill="${COLORS.slate700}" text-anchor="middle">—</text>`);
+          parts.push(`<text x="${gx + dashSlotW / 2}" y="${midY + 7}" font-family="${FONT}" font-size="24" font-weight="700" fill="${COLORS.slate700}" text-anchor="middle">—</text>`);
+          gx += dashSlotW;
         }
       });
       return parts.join('\n');
@@ -365,15 +380,28 @@ function buildShareCardSvg({ nombre, pos, posColor, goles, asist, pj, gmas, titu
 
         const gridTop = y + TIT_PAD + TIT_HEADER_H + TIT_HEADER_GAP;
         const colW = (innerW - TIT_COL_GAP) / 2;
-        titulosShown.forEach((t, i) => {
-          const r = Math.floor(i / 2), c = i % 2;
-          const bx = innerX + c * (colW + TIT_COL_GAP), by = gridTop + r * (TIT_ROW_H + TIT_ROW_GAP);
-          parts.push(panelRect({ x: bx, y: by, w: colW, h: TIT_ROW_H, rx: 12, fill: COLORS.slate950, stroke: hexAlpha(COLORS.amber500, 0.3) }));
-          const label = t.torneo || 'Título';
-          const maxChars = 20;
-          const shortLabel = label.length > maxChars ? label.slice(0, maxChars - 1) + '…' : label;
-          parts.push(`<text x="${bx + 20}" y="${by + TIT_ROW_H / 2 + 7}" font-family="${FONT}" font-size="20" font-weight="700" fill="${COLORS.white}">${escapeXml(shortLabel)}</text>`);
-          parts.push(`<text x="${bx + colW - 18}" y="${by + TIT_ROW_H / 2 + 7}" font-family="${FONT}" font-size="20" font-weight="900" fill="${COLORS.amber400}" text-anchor="end">${escapeXml(String(t.anio || ''))}</text>`);
+        // Agrupar en filas de a 2 primero: así, si una fila queda con un
+        // solo título (el total es impar, o directamente hay uno solo), esa
+        // fila se centra a todo el ancho en vez de quedar pegada a la
+        // columna izquierda con medio panel vacío al lado (bug reportado).
+        const titRowsArr = [];
+        for (let i = 0; i < titulosShown.length; i += 2) titRowsArr.push(titulosShown.slice(i, i + 2));
+        titRowsArr.forEach((row, r) => {
+          const by = gridTop + r * (TIT_ROW_H + TIT_ROW_GAP);
+          const renderBox = (t, bx, bw) => {
+            parts.push(panelRect({ x: bx, y: by, w: bw, h: TIT_ROW_H, rx: 12, fill: COLORS.slate950, stroke: hexAlpha(COLORS.amber500, 0.3) }));
+            const label = t.torneo || 'Título';
+            const maxChars = row.length === 1 ? 34 : 20;
+            const shortLabel = label.length > maxChars ? label.slice(0, maxChars - 1) + '…' : label;
+            parts.push(`<text x="${bx + 20}" y="${by + TIT_ROW_H / 2 + 7}" font-family="${FONT}" font-size="20" font-weight="700" fill="${COLORS.white}">${escapeXml(shortLabel)}</text>`);
+            parts.push(`<text x="${bx + bw - 18}" y="${by + TIT_ROW_H / 2 + 7}" font-family="${FONT}" font-size="20" font-weight="900" fill="${COLORS.amber400}" text-anchor="end">${escapeXml(String(t.anio || ''))}</text>`);
+          };
+          if (row.length === 1) {
+            renderBox(row[0], innerX, innerW);
+          } else {
+            renderBox(row[0], innerX, colW);
+            renderBox(row[1], innerX + colW + TIT_COL_GAP, colW);
+          }
         });
         if (titulosExtra > 0) {
           const extraY = gridTop + titGridH + 10 + 22;
@@ -441,9 +469,19 @@ function buildShareCardSvg({ nombre, pos, posColor, goles, asist, pj, gmas, titu
 
   // ── Distribución tipo "space-between": reparte el espacio sobrante en
   // partes iguales entre bloques, para llenar el lienzo sin aire al final.
+  // El alto del canvas es el MAYOR entre el base (1350) y lo que realmente
+  // necesitan los bloques + un gap mínimo entre todos — así un jugador con
+  // muchos títulos/logros nunca queda con contenido recortado fuera del
+  // <svg> (bug real reportado: "se corta la imagen y la fila de abajo no
+  // se ve").
+  const MIN_GAP = 10;
   const totalFixed = blocks.reduce((sum, b) => sum + b.height, 0);
   const gapCount = Math.max(1, blocks.length - 1);
-  const gap = Math.max(10, (bodyHeight - totalFixed) / gapCount);
+  const minBodyHeight = H_BASE - PAD_TOP - PAD_BOTTOM;
+  const neededBodyHeight = totalFixed + gapCount * MIN_GAP;
+  const bodyHeight = Math.max(minBodyHeight, neededBodyHeight);
+  const gap = Math.max(MIN_GAP, (bodyHeight - totalFixed) / gapCount);
+  const H = PAD_TOP + bodyHeight + PAD_BOTTOM;
 
   const rendered = [];
   let cursor = bodyTop;
