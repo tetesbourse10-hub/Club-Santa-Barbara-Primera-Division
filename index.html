@@ -2786,23 +2786,39 @@
     .fd-share-teamname { font-size:1.15rem; font-weight:800; color:#fff; text-align:center; line-height:1.2; }
     .fd-share-scoreval { font-size:2.6rem; font-weight:900; color:#fff; line-height:1; white-space:nowrap; }
     .fd-share-scoreval small { font-size:0.4em; opacity:0.75; }
-    .fd-share-meta { text-align:center; font-size:1rem; color:var(--gris-texto); font-weight:600; margin-bottom:32px; }
-    .fd-share-pitch-wrap { width:100%; max-width:520px; margin:0 auto 36px; }
+    .fd-share-meta { text-align:center; font-size:1rem; color:var(--gris-texto); font-weight:600; margin-bottom:24px; }
+    .fd-share-pitch-label { text-align:center; font-size:0.85rem; text-transform:uppercase; letter-spacing:0.1em; color:var(--gris-texto); font-weight:700; margin-bottom:14px; }
+    .fd-share-pitch-wrap { width:100%; max-width:780px; margin:0 auto 32px; }
     /* La cancha vertical/horizontal (.ap-pitch-portrait/-landscape) alterna
        según el viewport de quien la mira (ver @media min-width:769px más
        abajo) — pero acá el contenedor siempre mide 1080px fijo sin importar
        la pantalla real de quien comparte, así que se fuerza siempre la
        vertical (portrait), la que tiene sentido en una tarjeta más alta que
-       ancha, sin depender de qué viewport tenga quien tocó "Compartir". */
-    .fd-share-card .ap-pitch-landscape { display:none !important; }
-    .fd-share-card .ap-pitch-portrait { display:block !important; }
+       ancha, sin depender de qué viewport tenga quien tocó "Compartir". Los
+       tamaños de círculo/nombre de jugador (.ap-pdot/.ap-pname/.ap-ppos) por
+       default se ACHICAN bajo el media query max-width:640px (pensado para
+       celulares reales) — pero ese query mira el VIEWPORT de quien comparte,
+       no el ancho de este contenedor (fijo en 1080px), así que en un celular
+       (viewport angosto) esa regla igual aplicaba acá y dejaba los nombres
+       ilegibles. Se fuerza siempre el tamaño grande, más grande incluso que
+       el desktop normal, pensado para leerse bien ya reducido en redes. */
+    .fd-share-card .ap-pitch { max-width:780px; }
+    .fd-share-card .ap-pdot { width:74px !important; height:74px !important; font-size:1.1rem !important; border-width:3px !important; }
+    .fd-share-card .ap-pdot-badge, .fd-share-card .ap-pdot-roja, .fd-share-card .ap-pdot-sub { font-size:1.15rem !important; }
+    .fd-share-card .ap-pdot-cap { width:24px !important; height:24px !important; font-size:0.85rem !important; }
+    .fd-share-card .ap-pname { font-size:0.98rem !important; padding:4px 10px !important; max-width:150px !important; border-radius:5px !important; }
+    .fd-share-card .ap-ppos { font-size:0.8rem !important; padding:2px 8px !important; }
+    .fd-share-banco { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07); border-radius:14px; padding:18px 22px; margin-bottom:20px; }
+    .fd-share-banco-title { font-size:0.95rem; font-weight:800; color:var(--gris-texto); margin-bottom:12px; }
+    .fd-share-banco-list { display:flex; flex-wrap:wrap; gap:8px 10px; }
+    .fd-share-banco-item { font-size:0.85rem; font-weight:700; color:#fff; background:rgba(255,255,255,0.06); padding:5px 10px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; }
     .fd-share-destacados { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:22px 26px; }
     .fd-share-destacados-title { font-size:1.05rem; font-weight:800; color:#fff; margin-bottom:14px; }
     .fd-share-inc-group { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-bottom:10px; }
     .fd-share-inc-group:last-child { margin-bottom:0; }
     .fd-share-inc-lbl { font-size:0.85rem; font-weight:800; color:var(--gris-texto); min-width:150px; }
     .fd-share-inc-item { font-size:0.92rem; font-weight:700; color:#fff; background:rgba(255,255,255,0.07); padding:4px 12px; border-radius:20px; }
-    .fd-share-footer { text-align:center; font-size:0.9rem; font-weight:700; color:var(--gris-texto); margin-top:40px; letter-spacing:0.03em; }
+    .fd-share-footer { text-align:center; font-size:0.9rem; font-weight:700; color:var(--gris-texto); margin-top:32px; letter-spacing:0.03em; }
     /* ── Fecha detail redesigned header ── */
     .ap-fd-card { background:var(--azul-card); border:1px solid rgba(255,255,255,0.06); border-radius:14px; padding:20px 24px; margin-bottom:16px; }
     .ap-fd-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; padding-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.07); }
@@ -8041,12 +8057,17 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
   // entera, así que la tarjeta usa el mismo círculo de iniciales de color que
   // ya se ve como fallback en el resto del sitio en vez de arriesgar el
   // escudo real; el propio logo (same-origin) sí se usa tal cual.
+  // El escudo real del rival se intenta cargar recién al tocar "Compartir"
+  // (ver shareFechaCard: fetch → data URL, con timeout, antes de capturar) —
+  // acá solo se deja el círculo de iniciales como contenido inicial/fallback
+  // con un id fijo, para reemplazarlo en el DOM si el fetch llega a tiempo.
   const shareInitialsAvatar = nombre => {
     const c = _rivalAvatarColor(nombre);
-    return `<div class="fd-share-crest" style="background:${c.bg};border-color:${c.color}59;color:${c.color}">${_rivalInitials(nombre)}</div>`;
+    return `<div class="fd-share-crest" id="fd-share-rival-crest" style="background:${c.bg};border-color:${c.color}59;color:${c.color}">${_rivalInitials(nombre)}</div>`;
   };
   const shareLeftCrest  = csbIsLeft ? `<img src="logo-csb.webp" class="fd-share-crest fd-share-crest-img" alt="">` : shareInitialsAvatar(rival);
   const shareRightCrest = csbIsLeft ? shareInitialsAvatar(rival) : `<img src="logo-csb.webp" class="fd-share-crest fd-share-crest-img" alt="">`;
+  window._fdShareRivalCrestUrl = RIVAL_CREST_URLS[String(rival || '').toUpperCase().trim()] || `escudos/${slugify(rival)}.webp`;
   const shareMetaLine = [
     fecha !== '—' ? (isRoundName(fecha) ? `🏆 ${fecha}` : `📅 Fecha ${fecha}`) : '',
     dia !== '—' ? `🗓️ ${dia}` : '',
@@ -8057,6 +8078,13 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
     assisters.length ? `<div class="fd-share-inc-group"><span class="fd-share-inc-lbl">🎯 Asistencias</span>${assisters.map(j=>`<span class="fd-share-inc-item">${j.nombre}${j.asist>1?' ×'+j.asist:''}</span>`).join('')}</div>` : '',
     redCards.length ? `<div class="fd-share-inc-group"><span class="fd-share-inc-lbl">🟥 Rojas</span>${redCards.map(j=>`<span class="fd-share-inc-item">${j.nombre}</span>`).join('')}</div>` : '',
   ].filter(Boolean).join('');
+  // Banco de Suplentes — mismo criterio que `banco` de arriba (citados que
+  // no fueron titulares), como una lista aparte debajo de la cancha.
+  const shareBanco = banco.length ? `
+    <div class="fd-share-banco">
+      <div class="fd-share-banco-title">🪑 Banco de Suplentes</div>
+      <div class="fd-share-banco-list">${banco.map(j => `<span class="fd-share-banco-item">${_squadPosBadge(j.pos || '–')}${j.nombre}${j.entro ? ' <span style="color:#4ade80">▲</span>' : ''}</span>`).join('')}</div>
+    </div>` : '';
   window._fdShareHtml = `
     <div class="fd-share-card">
       <div class="fd-share-header">
@@ -8072,7 +8100,9 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
         <div class="fd-share-team">${shareRightCrest}<div class="fd-share-teamname">${rightName}</div></div>
       </div>
       ${shareMetaLine ? `<div class="fd-share-meta">${shareMetaLine}</div>` : ''}
+      <div class="fd-share-pitch-label">Formación · ${formCSB !== '—' ? formCSB : '?'}</div>
       <div class="fd-share-pitch-wrap">${buildPitch(titulares.length > 0 ? titulares : null)}</div>
+      ${shareBanco}
       ${shareDestacados ? `<div class="fd-share-destacados"><div class="fd-share-destacados-title">📋 Destacados del Partido</div>${shareDestacados}</div>` : ''}
       <div class="fd-share-footer">🟢⚪ Club Santa Bárbara</div>
     </div>`;
@@ -8080,6 +8110,28 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
   const shareBtnHtml = `<div class="ap-fd-share-row"><button class="ap-fd-share-btn" onclick="shareFechaCard()">📤 Compartir</button></div>`;
 
   return shareBtnHtml + summary + pitchSection;
+}
+// Convierte una imagen externa a data URL (fetch + FileReader) para poder
+// usarla en la tarjeta de compartir sin arriesgar "tiznar" el <canvas> de
+// html2canvas — una vez inline como data:, deja de ser un recurso
+// cross-origin para el canvas. Si el host no permite CORS (fetch falla) o
+// tarda de más, devuelve null y la tarjeta se queda con el fallback de
+// iniciales — nunca bloquea la exportación completa por esto.
+async function _imgUrlToDataUrl(url, timeoutMs = 4000) {
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), timeoutMs);
+    const r = await fetch(url, { mode: 'cors', signal: ctrl.signal });
+    clearTimeout(t);
+    if (!r.ok) return null;
+    const blob = await r.blob();
+    return await new Promise(resolve => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(fr.result);
+      fr.onerror = () => resolve(null);
+      fr.readAsDataURL(blob);
+    });
+  } catch { return null; }
 }
 // Genera la tarjeta armada en buildFechaDetailHTML (window._fdShareHtml) a
 // PNG en el navegador (html2canvas) y la comparte/descarga. La tarjeta se
@@ -8098,11 +8150,22 @@ window.shareFechaCard = async function() {
   holder.innerHTML = html;
   document.body.appendChild(holder);
   try {
-    // Deja un frame para que el layout (fuentes/imagen del escudo) asiente
-    // antes de capturar — sin esto, el logo-csb.webp a veces se capturaba
-    // en blanco por no haber terminado de decodificar todavía.
+    // Intento best-effort de reemplazar el círculo de iniciales del rival por
+    // su escudo real (ver _imgUrlToDataUrl) — si el fetch falla o tarda,
+    // sigue con las iniciales tal cual, nunca bloquea la exportación.
+    const crestUrl = window._fdShareRivalCrestUrl;
+    if (crestUrl) {
+      const dataUrl = await _imgUrlToDataUrl(crestUrl);
+      if (dataUrl) {
+        const slot = holder.querySelector('#fd-share-rival-crest');
+        if (slot) slot.outerHTML = `<img src="${dataUrl}" class="fd-share-crest fd-share-crest-img" alt="">`;
+      }
+    }
+    // Deja un frame para que el layout (fuentes/imágenes) asiente antes de
+    // capturar — sin esto, alguna imagen a veces se capturaba en blanco por
+    // no haber terminado de decodificar todavía.
     await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-    const canvas = await html2canvas(holder.firstElementChild, { backgroundColor: '#0B0E14', scale: 2 });
+    const canvas = await html2canvas(holder.firstElementChild, { backgroundColor: '#0B0E14', scale: 2, useCORS: true });
     const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
     if (!blob) throw new Error('toBlob devolvió null');
     const file = new File([blob], 'partido-santa-barbara.png', { type: 'image/png' });
