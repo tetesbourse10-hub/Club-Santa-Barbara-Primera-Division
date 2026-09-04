@@ -6,6 +6,8 @@
 // falta que sea en vivo: el resultado/plantel citado de un partido de la
 // temporada en curso puede cambiar de un día para el otro, y este sitio no
 // se redeploya todo el tiempo.
+const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const sharp = require('sharp');
 const { Resvg } = require('@resvg/resvg-js');
@@ -23,6 +25,36 @@ let _fontsPromise = null;
 function loadFonts() {
   if (!_fontsPromise) _fontsPromise = fetchInterFonts();
   return _fontsPromise;
+}
+
+// BUG REAL encontrado (confirmado con ?debug=fonts: los 3 .ttf decodifican
+// bien y dicen "Inter"/"Inter Black", pero la imagen sale con TODO el texto
+// invisible — sin ninguna excepción): scripts/generate-og.js le pasa los
+// buffers a Resvg vía `font.fontBuffers`, y eso funciona en el build de
+// Netlify — pero en el entorno de Netlify Functions (un contenedor Lambda
+// mucho más acotado, sin fontconfig instalado) esa misma opción parece
+// fallar en silencio del lado de Rust/fontdb. `font.fontFiles` (leer los
+// .ttf de un path real en disco) es el camino "de toda la vida" de resvg y
+// mucho más probado — se escriben los 3 pesos una sola vez a /tmp (el único
+// directorio con permiso de escritura en Lambda) y se referencian por
+// archivo en vez de por buffer.
+let _fontFilesPromise = null;
+async function loadFontFiles() {
+  if (!_fontFilesPromise) {
+    _fontFilesPromise = (async () => {
+      const fonts = await loadFonts();
+      const dir = path.join(os.tmpdir(), 'inter-fonts');
+      fs.mkdirSync(dir, { recursive: true });
+      const files = {};
+      for (const [weight, buf] of Object.entries(fonts)) {
+        const p = path.join(dir, `inter-${weight}.ttf`);
+        if (!fs.existsSync(p)) fs.writeFileSync(p, buf);
+        files[weight] = p;
+      }
+      return files;
+    })();
+  }
+  return _fontFilesPromise;
 }
 let _logoPromise = null;
 function loadLogoDataUri() {
@@ -154,8 +186,12 @@ exports.handler = async (event) => {
       titulares, banco, destacados, helpers,
     });
 
+    const fontFiles = await loadFontFiles();
     const png = new Resvg(svg, {
-      font: { fontBuffers: [fonts.regular, fonts.bold, fonts.black], loadSystemFonts: false, defaultFontFamily: 'Inter' },
+      font: {
+        fontFiles: [fontFiles.regular, fontFiles.bold, fontFiles.black],
+        loadSystemFonts: false, defaultFontFamily: 'Inter',
+      },
     }).render().asPng();
 
     return {

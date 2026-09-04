@@ -179,7 +179,10 @@ function buildMatchCardSvg(data) {
       const col = i % perRow, row = Math.floor(i / perRow);
       const bx = PAD_X + 24 + col * ((W - PAD_X * 2 - 48) / perRow);
       const by = y + 66 + row * rowH;
-      bancoBlock += `<text x="${bx}" y="${by}" font-family="${FONT}" font-size="20" font-weight="700" fill="#ffffff">${escapeXml(j.pos || '')} ${escapeXml(j.nombre)}${j.entro ? ' ▲' : ''}</text>`;
+      // "▲" (símbolo, no letra) salía como una casilla vacía — Inter no
+      // tiene ese glifo cargado (mismo motivo por el que no se usan emoji
+      // en esta tarjeta, ver la nota arriba). Texto plano en su lugar.
+      bancoBlock += `<text x="${bx}" y="${by}" font-family="${FONT}" font-size="20" font-weight="700" fill="${j.entro ? '#4ade80' : '#ffffff'}">${escapeXml(j.pos || '')} ${escapeXml(j.nombre)}${j.entro ? ' (entró)' : ''}</text>`;
     });
     y += blockH + 28;
   }
