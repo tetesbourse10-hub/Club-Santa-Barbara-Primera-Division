@@ -12,6 +12,7 @@ const { Resvg } = require('@resvg/resvg-js');
 const { getMatchData, SITE_URL } = require('./_matchData');
 const { buildMatchCardSvg } = require('./_matchCardSvg');
 const { fetchInterFonts } = require('../../scripts/fetch-font');
+const { readTtfFamilyName } = require('../../scripts/ttf-family');
 
 const ROOT = path.join(__dirname, '..', '..');
 
@@ -70,12 +71,35 @@ function sumByStat(jugadores, key) {
 
 exports.handler = async (event) => {
   try {
-    const { torneo, fecha } = event.queryStringParameters || {};
+    const { torneo, fecha, debug } = event.queryStringParameters || {};
     const data = await getMatchData(torneo, fecha);
     if (!data) return { statusCode: 404, body: 'Partido no encontrado' };
     const { match, helpers } = data;
 
     const [fonts, clubLogoDataUri] = await Promise.all([loadFonts(), loadLogoDataUri()]);
+
+    // Chequeo explícito (mismo que scripts/generate-og.js hace en build):
+    // si la tabla 'name' del .ttf no dice "Inter", resvg nunca va a poder
+    // matchearlo contra font-family="Inter" del SVG — y eso puede pasar en
+    // silencio (texto invisible o con otra fuente) en vez de tirar una
+    // excepción. Con ?debug=1 se puede ver el resultado sin generar la
+    // imagen entera.
+    const fontCheck = {
+      regular: { bytes: fonts.regular.length, family: readTtfFamilyName(fonts.regular) },
+      bold: { bytes: fonts.bold.length, family: readTtfFamilyName(fonts.bold) },
+      black: { bytes: fonts.black.length, family: readTtfFamilyName(fonts.black) },
+    };
+    const fontsOk = Object.values(fontCheck).every(f => f.family && /inter/i.test(f.family));
+    if (debug === 'fonts') {
+      return {
+        statusCode: fontsOk ? 200 : 500,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+        body: `fontsOk=${fontsOk}\n${JSON.stringify(fontCheck, null, 2)}`,
+      };
+    }
+    if (!fontsOk) {
+      console.error('partido-og: la fuente Inter no se decodificó bien:', fontCheck);
+    }
 
     const rivalCrestPath = helpers.RIVAL_CREST_URLS[String(match.rival || '').toUpperCase().trim()]
       || `escudos/${helpers.slugify(match.rival)}.webp`;
