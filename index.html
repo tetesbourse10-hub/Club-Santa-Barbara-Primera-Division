@@ -7067,7 +7067,20 @@ function _tryRestoreRouteFromHash() {
   _routeRestoring = true;
   try {
     openSection(section);
-    if (section === 'nido' || rest[0] !== 'tab' || !rest[1]) return true;
+    if (section === 'nido') {
+      // team/pos/orden — ver _nidoUpdateRoute. window._nidoTeam/_nidoPosSelect
+      // ya vienen asignadas de forma síncrona dentro de renderNido() (se
+      // aplican igual que si el usuario las tocara apenas entra, sin esperar
+      // a que termine ningún fetch — mismo criterio que el resto del sitio).
+      if (rest[0] === 'team' && rest[1] != null && window._nidoTeam) window._nidoTeam(rest[1]);
+      if (rest[2] === 'pos' && rest[3] != null && window._nidoPosSelect) window._nidoPosSelect(rest[3]);
+      if (rest[4] === 'rank' && rest[5] != null && window._nidoRankMode) window._nidoRankMode(rest[5]);
+      else if (rest[4] === 'col' && rest[5] != null && rest[6] === 'dir' && rest[7] != null && window._nidoSort) {
+        window._nidoSort(rest[5], rest[7] === 'asc');
+      }
+      return true;
+    }
+    if (rest[0] !== 'tab' || !rest[1]) return true;
     const tabName = rest[1];
     const idx = _ROUTE_MAIN_TABS.indexOf(tabName);
     _navGoTab(tabName, idx >= 0 ? document.querySelectorAll('#main-nav button')[idx] : null);
@@ -18644,9 +18657,18 @@ async function loadLiveData() {
   // comentario en _nidoVEDCache más arriba.
   window._nidoInvalidateVEDCache = function() { _nidoVEDCache = {}; };
 
-  window._nidoTeam = function(t) { _nidoTeam = t; _nidoMobileVisible = 15; _renderNidoContent(); };
+  // Ver _tryRestoreRouteFromHash (sección "nido") — refleja team/pos/orden
+  // en la URL. La búsqueda de texto (_nidoQuery) queda afuera a propósito
+  // (cambia con cada tecla, no tiene sentido guardarla en el link).
+  function _nidoUpdateRoute() {
+    const parts = ['nido', 'team', _nidoTeam, 'pos', _nidoPos];
+    if (_nidoRank) parts.push('rank', _nidoRank);
+    else parts.push('col', _nidoSort.col, 'dir', _nidoSort.asc ? 'asc' : 'desc');
+    _routeSetTorneoBase(parts);
+  }
+  window._nidoTeam = function(t) { _nidoTeam = t; _nidoMobileVisible = 15; _renderNidoContent(); _nidoUpdateRoute(); };
   window._nidoPosToggle = function() { _nidoPosOpen = !_nidoPosOpen; _renderNidoContent(); };
-  window._nidoPosSelect = function(p) { _nidoPos = p; _nidoPosOpen = false; _nidoMobileVisible = 15; _renderNidoContent(); };
+  window._nidoPosSelect = function(p) { _nidoPos = p; _nidoPosOpen = false; _nidoMobileVisible = 15; _renderNidoContent(); _nidoUpdateRoute(); };
   // Only refresh the results table on each keystroke — never touch the input's
   // parent innerHTML, or the DOM node (and keyboard focus) would be destroyed.
   window._nidoSearch = function(q) {
@@ -18655,12 +18677,14 @@ async function loadLiveData() {
     const c = document.getElementById('nido-table-container');
     if (c) c.innerHTML = renderTable();
   };
-  window._nidoSort = function(col) {
+  window._nidoSort = function(col, forceAsc) {
     _nidoRank = null;
-    if (_nidoSort.col === col) _nidoSort.asc = !_nidoSort.asc;
+    if (forceAsc != null) _nidoSort = { col, asc: forceAsc };
+    else if (_nidoSort.col === col) _nidoSort.asc = !_nidoSort.asc;
     else { _nidoSort.col = col; _nidoSort.asc = false; }
     _nidoMobileVisible = 15;
     _renderNidoContent();
+    _nidoUpdateRoute();
   };
   window._nidoRankMode = function(m) {
     _nidoRank = m;
@@ -18668,6 +18692,7 @@ async function loadLiveData() {
     if (m === 'pj') _nidoPjSort = { col: 'pj', asc: false };
     _nidoMobileVisible = 15;
     _renderNidoContent();
+    _nidoUpdateRoute();
   };
   // Ordena dentro del filtro "Partidos Jugados" (PJ/PG/PE/PP/G/A/G+A) sin
   // salir del modo ranking — a diferencia de window._nidoSort, que resetea
