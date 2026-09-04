@@ -7008,6 +7008,21 @@ function _tryOpenPlayerFromHash() {
   return false;
 }
 
+// Deep link directo a un partido (ver netlify/functions/partido.js, el link
+// que arma shareFechaCard cuando el torneo está cubierto por esa función) —
+// mismo patrón que _tryOpenPlayerFromHash: entrar por /partido/:torneo/:fecha
+// redirige acá con el hash #partido/<torneo>/<fecha> ya puesto, y como
+// popstate no dispara en la carga inicial, hay que intentarlo a mano una vez
+// que loadLiveData() haya cargado la Fecha a Fecha real (ver el init de más
+// abajo). navKey ('a'/'b') es el mismo que ya usa goToMatchFecha para las
+// fechas de la temporada en curso.
+function _tryOpenPartidoFromHash() {
+  const m = location.hash.match(/^#partido\/(a|b)\/([^/]+)$/);
+  if (!m) return false;
+  goToMatchFecha(m[1], decodeURIComponent(m[2]));
+  return true;
+}
+
 window.addEventListener('popstate', () => {
   if (_tryOpenPlayerFromHash()) return;
   closePlayerProfile(true);
@@ -8062,6 +8077,22 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
   // entera, así que la tarjeta usa el mismo círculo de iniciales de color que
   // ya se ve como fallback en el resto del sitio en vez de arriesgar el
   // escudo real; el propio logo (same-origin) sí se usa tal cual.
+  // Si esta fecha es un partido REAL de la temporada en curso (Clausura AIFA
+  // A/B 2026, las dos únicas cubiertas por netlify/functions/partido.js por
+  // ahora), se puede compartir como LINK de verdad en vez de una imagen
+  // generada en el momento — mejor UX (preview instantáneo, sin esperar a
+  // html2canvas) y siempre actualizado aunque el sitio no se vuelva a
+  // deployar. Se detecta por referencia: `detail` es exactamente el mismo
+  // objeto que vive en DATA_A.apertura/DATA_B.apertura solo cuando viene de
+  // ahí — Torneos Antiguos/Copas leen de otros arrays (DATA_A_APERTURA2026,
+  // COPA_BLOCKS, etc.), así que ahí da null y se cae al share por imagen de
+  // siempre.
+  window._fdShareLink = detail && (DATA_A.apertura || []).includes(detail)
+    ? `${location.origin}/partido/a/${fecha}`
+    : detail && (DATA_B.apertura || []).includes(detail)
+      ? `${location.origin}/partido/b/${fecha}`
+      : null;
+
   // El escudo real del rival se intenta cargar recién al tocar "Compartir"
   // (ver shareFechaCard: fetch → data URL, con timeout, antes de capturar) —
   // acá solo se deja el círculo de iniciales como contenido inicial/fallback
@@ -8143,15 +8174,27 @@ async function _imgUrlToDataUrl(url, timeoutMs = 4000) {
     });
   } catch { return null; }
 }
-// Genera la tarjeta armada en buildFechaDetailHTML (window._fdShareHtml) a
-// PNG en el navegador (html2canvas) y la comparte/descarga. La tarjeta se
-// arma off-screen (fuera de la vista, no display:none — html2canvas necesita
-// que el elemento tenga layout real) con un ancho fijo de 1080px para que la
-// imagen resultante tenga buena resolución sin importar el tamaño de
-// pantalla de quien comparte.
+// Comparte el LINK al partido (no una imagen adjunta) cuando está cubierto
+// por netlify/functions/partido.js (ver window._fdShareLink en
+// buildFechaDetailHTML) — la preview con imagen la arma esa función en vivo
+// leyendo el sheet real, así el share es instantáneo y nunca queda
+// desactualizado. Mismo patrón que ya usa _ppShareCard para el perfil de
+// jugador (reusa su mismo fallback de copiar al portapapeles).
 window.shareFechaCard = async function() {
-  const html = window._fdShareHtml;
   const btn = document.querySelector('.ap-fd-share-btn');
+  if (window._fdShareLink) {
+    const shareData = { title: window._fdShareText || 'Club Santa Bárbara', text: window._fdShareText || '', url: window._fdShareLink };
+    if (navigator.share && (!navigator.canShare || navigator.canShare(shareData))) {
+      try { await navigator.share(shareData); return; }
+      catch (e) { if (e && e.name === 'AbortError') return; }
+    }
+    _ppCopyLinkFallback(window._fdShareLink, btn);
+    return;
+  }
+  // Partido no cubierto por la función serverless todavía (Torneos
+  // Antiguos/Copas) — se sigue generando la imagen en el navegador como
+  // hasta ahora.
+  const html = window._fdShareHtml;
   if (!html || typeof html2canvas === 'undefined') return;
   const prevLabel = btn ? btn.textContent : '';
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Generando…'; }
@@ -18537,7 +18580,7 @@ if (window.__OG_BUILD__) {
   // de nuevo al entrar al plantel no dispara un segundo fetch.
   _ensureJugTotalesA();
   _ensureJugTotalesB();
-  loadLiveData();
+  const _initialLoadLiveDataPromise = loadLiveData();
   if (location.hash) {
     // Deep link directo: alguien entra por /jugador/:slug, que redirige acá
     // con el hash ya puesto (ver scripts/generate-og.js). El listener de
@@ -18551,6 +18594,12 @@ if (window.__OG_BUILD__) {
     (window._nidoEnsureLoaded ? window._nidoEnsureLoaded() : Promise.resolve())
       .then(_tryOpenPlayerFromHash)
       .catch(_tryOpenPlayerFromHash);
+    // Mismo motivo para /partido/:torneo/:fecha (ver netlify/functions/
+    // partido.js) — acá alcanza con esperar a loadLiveData() (llena
+    // DATA_A/DATA_B.apertura), no hace falta El Nido.
+    if (/^#partido\//.test(location.hash)) {
+      _initialLoadLiveDataPromise.then(_tryOpenPartidoFromHash).catch(_tryOpenPartidoFromHash);
+    }
   }
   setInterval(loadLiveData, 60 * 1000); // auto-refresh every 60s
   document.addEventListener('visibilitychange', () => { if (!document.hidden) loadLiveData(); });
