@@ -17094,6 +17094,24 @@ async function loadLiveData() {
       if (fix.local) p.local   = fix.local;
     }
   });
+  // BUG REAL encontrado (club-confirmado contra el sheet): el parser le
+  // atribuye la formación y el plantel/convocatoria de la Fecha 4 (La
+  // Plata) al objeto de la Fecha 5 (Nordelta), y viceversa — quedan
+  // invertidos entre sí pese a que rival/fecha/día/hora/lugar de cada uno
+  // (forzados arriba) sí se ven bien. El sheet confirma que La Plata tiene
+  // formación 4-2-3-1 + convocatoria ya cargada, y Nordelta todavía no
+  // tiene nada — se hace un swap puntual de esos dos campos entre ambos
+  // objetos ya parseados, sin tocar el parser compartido por toda la
+  // temporada.
+  {
+    const m4 = (DATA_A.apertura || []).find(mm => String(mm.fecha) === '4');
+    const m5 = (DATA_A.apertura || []).find(mm => String(mm.fecha) === '5');
+    if (m4 && m5) {
+      [m4.jugadores, m5.jugadores] = [m5.jugadores, m4.jugadores];
+      [m4.formacionCSB, m5.formacionCSB] = [m5.formacionCSB, m4.formacionCSB];
+      [m4.formacionRival, m5.formacionRival] = [m5.formacionRival, m4.formacionRival];
+    }
+  }
   // BUG REAL encontrado (Fecha 5 aparecía duplicada dos veces como "vs
   // NORDELTA" en el selector): confirmado a mano (consola) que
   // DATA_A.partidos tenía DOS objetos distintos con fecha:'5' — el parser
