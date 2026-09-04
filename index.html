@@ -7023,8 +7023,85 @@ function _tryOpenPartidoFromHash() {
   return true;
 }
 
+// ── URL ROUTING (deep-linking de navegación) ────────────────────────────
+// Además de #jugador/slug y #partido/torneo/fecha (compartir explícito),
+// la navegación normal (sección → pestaña → torneo → fecha) también deja
+// su propio hash a medida que se navega — así copiar/pegar el link en
+// cualquier momento lleva a esa MISMA vista al abrirlo, en vez de siempre
+// la home. history.replaceState (no pushState) en cada paso: cambiar de
+// pestaña/torneo/fecha no debería apilar entradas de "Atrás" por cada
+// click, solo reflejar el estado actual en la URL.
+//
+// _routeTorneoBase guarda el prefijo "hasta el torneo" (sin fecha/subtab) —
+// showTorneo/showHistoricoTorneo lo fijan; selectFecha/ghSwitchTab/
+// ghSelectFecha le appendean encima sin tener que reconstruir todo el
+// contexto desde cero. _routeRestoring evita que las mismas funciones
+// pisen el hash TODAVÍA sin terminar de leer mientras _tryRestoreRouteFromHash
+// las va llamando en cascada para reconstruir una vista de varios niveles.
+let _routeTorneoBase = [];
+let _routePrefix = [];
+let _routeRestoring = false;
+function _routeSet(parts) {
+  if (_routeRestoring) return;
+  const hash = '#' + parts.map(encodeURIComponent).join('/');
+  if (location.hash === hash) return;
+  history.replaceState(null, '', hash);
+}
+function _routeSetTorneoBase(parts) { _routeTorneoBase = parts; _routePrefix = parts; _routeSet(parts); }
+function _routeSetPrefix(parts) { _routePrefix = parts; _routeSet(parts); }
+
+const _ROUTE_MAIN_TABS = ['resumen', 'posiciones', 'jugadores', 'historial', 'graficos'];
+
+// Reconstruye la vista a partir de #a/... o #b/... (sección + pestaña +
+// torneo + subtab + fecha, todo opcional/en cascada) — se intenta en la
+// carga inicial (si el hash no es #jugador/... ni #partido/...) y en cada
+// popstate (Atrás/Adelante del navegador). Devuelve true si reconoció el
+// formato y lo aplicó.
+function _tryRestoreRouteFromHash() {
+  const raw = location.hash.replace(/^#/, '');
+  if (!raw || /^jugador\//.test(raw) || /^partido\//.test(raw)) return false;
+  const parts = raw.split('/').filter(Boolean).map(decodeURIComponent);
+  const [section, ...rest] = parts;
+  if (section !== 'a' && section !== 'b' && section !== 'nido') return false;
+
+  _routeRestoring = true;
+  try {
+    openSection(section);
+    if (section === 'nido' || rest[0] !== 'tab' || !rest[1]) return true;
+    const tabName = rest[1];
+    const idx = _ROUTE_MAIN_TABS.indexOf(tabName);
+    _navGoTab(tabName, idx >= 0 ? document.querySelectorAll('#main-nav button')[idx] : null);
+
+    const i0 = 2;
+    if (tabName === 'posiciones' && rest[i0] === 'torneo' && rest[i0 + 1]) {
+      showTorneo(rest[i0 + 1]);
+      if (rest[i0 + 2] === 'fecha' && rest[i0 + 3] != null && typeof selectFecha === 'function') {
+        selectFecha(rest[i0 + 3]);
+      }
+    } else if (tabName === 'graficos' && rest[i0] === 'torneo' && rest[i0 + 1]) {
+      showHistoricoTorneo(rest[i0 + 1]);
+      if (rest[i0 + 2] === 'subtab' && rest[i0 + 3]) {
+        if (window.ghSwitchTab) window.ghSwitchTab(rest[i0 + 3]);
+        if (rest[i0 + 4] === 'fecha' && rest[i0 + 5] != null && window.ghSelectFecha) {
+          window.ghSelectFecha(rest[i0 + 5]);
+        }
+      } else if (rest[i0 + 2] === 'fecha' && rest[i0 + 3] != null && typeof selectFecha === 'function') {
+        // Caso Apertura AIFA 2026 archivada: usa selectFecha (no
+        // ghSelectFecha/subtab) pese a vivir bajo Torneos Antiguos — ver
+        // fromAntiguos dentro de selectFecha.
+        selectFecha(rest[i0 + 3]);
+      }
+    }
+    return true;
+  } finally {
+    _routeRestoring = false;
+  }
+}
+
 window.addEventListener('popstate', () => {
   if (_tryOpenPlayerFromHash()) return;
+  if (_tryOpenPartidoFromHash()) return;
+  if (_tryRestoreRouteFromHash()) return;
   closePlayerProfile(true);
 });
 
@@ -7056,6 +7133,7 @@ function openSection(section) {
     document.getElementById('section-badge').className = 'header-section-badge badge-green';
     currentData = null;
     renderNido();
+    _routeSetTorneoBase(['nido']);
     return;
   }
 
@@ -7201,6 +7279,7 @@ function _syncBottomNavFromMainNav() {
   document.querySelectorAll('#mobile-bottom-nav button').forEach((b, i) => b.classList.toggle('active', i === idx));
 }
 function showTab(name, btn) {
+  _routeSetTorneoBase([currentData === DATA_B ? 'b' : 'a', 'tab', name]);
   document.querySelectorAll('#main-nav button').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
   const bnavIdx = BOTTOM_NAV_TAB_INDEX[name];
@@ -7250,6 +7329,7 @@ function _syncPlantelBadge(tab, plantelTabKeys) {
 }
 
 function showTorneo(key) {
+  _routeSetTorneoBase([currentData === DATA_B ? 'b' : 'a', 'tab', 'posiciones', 'torneo', key]);
   document.querySelectorAll('#main-nav button').forEach((b, i) => {
     b.classList.toggle('active', i === 1);
   });
@@ -7261,6 +7341,7 @@ function showTorneo(key) {
 
 // Navigate to a historical tournament from Torneos Antiguos context
 function showHistoricoTorneo(key) {
+  _routeSetTorneoBase([currentData === DATA_B ? 'b' : 'a', 'tab', 'graficos', 'torneo', key]);
   document.querySelectorAll('#main-nav button').forEach((b, i) => {
     b.classList.toggle('active', i === 4); // "Torneos Antiguos"
   });
@@ -8273,6 +8354,7 @@ function _scrollActiveFechaIntoView() {
 }
 
 function selectFecha(n) {
+  _routeSetPrefix([..._routeTorneoBase, 'fecha', n]);
   selectedFecha = n;
   document.querySelectorAll('.ap-fecha-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.fecha === String(n));
@@ -10003,6 +10085,7 @@ function renderTorneoHistoricoGeneric(d, name, fechaLabels) {
   const autoFecha = last ? last.fecha : (allFechas.length ? allFechas[0].n : null);
 
   window.ghSwitchTab = function(tab) {
+    _routeSetPrefix([..._routeTorneoBase, 'subtab', tab]);
     document.querySelectorAll(`#${CONTAINER} .ap-tab-panel`).forEach(p => {
       p.classList.toggle('active', p.id === 'gh-tab-' + tab);
     });
@@ -10013,6 +10096,14 @@ function renderTorneoHistoricoGeneric(d, name, fechaLabels) {
   _syncPlantelBadge('datos', ['plantel']);
 
   window.ghSelectFecha = function(n) {
+    // ghSwitchTab('fechas') dispara esto de entrada para precargar el
+    // contenedor aunque esa subpestaña no sea la visible todavía (ver más
+    // arriba) — solo se refleja en la URL cuando "Fechas" es de verdad la
+    // subpestaña activa, para no pisar el route de "datos"/"detalladas" con
+    // uno de fecha que en realidad no se está mostrando.
+    if (document.querySelector(`#${CONTAINER} #gh-tab-fechas`)?.classList.contains('active')) {
+      _routeSetPrefix([..._routeTorneoBase, 'subtab', 'fechas', 'fecha', n]);
+    }
     document.querySelectorAll(`#${CONTAINER} .ap-fecha-btn`).forEach(b => {
       b.classList.toggle('active', b.dataset.fecha === String(n));
     });
@@ -18599,6 +18690,15 @@ if (window.__OG_BUILD__) {
     // DATA_A/DATA_B.apertura), no hace falta El Nido.
     if (/^#partido\//.test(location.hash)) {
       _initialLoadLiveDataPromise.then(_tryOpenPartidoFromHash).catch(_tryOpenPartidoFromHash);
+    } else if (!/^#jugador\//.test(location.hash)) {
+      // Mismo motivo, para el resto de la navegación (sección/pestaña/
+      // torneo/fecha — ver _tryRestoreRouteFromHash): entrar por un link
+      // tipo #a/tab/posiciones/torneo/apertura/fecha/4 (copiado mientras
+      // se navegaba, no un "Compartir" explícito) también depende de que
+      // loadLiveData() haya llenado DATA_A/DATA_B antes de reconstruir la
+      // vista, para no mostrar Fecha a Fecha vacío por una carrera de
+      // timing contra el primer fetch.
+      _initialLoadLiveDataPromise.then(_tryRestoreRouteFromHash).catch(_tryRestoreRouteFromHash);
     }
   }
   setInterval(loadLiveData, 60 * 1000); // auto-refresh every 60s
