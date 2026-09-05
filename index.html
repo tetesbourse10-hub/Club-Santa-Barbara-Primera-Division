@@ -17543,8 +17543,9 @@ async function loadLiveData() {
     //    de Primera B entera; solo esta lectura puntual es la que de verdad
     //    necesita esquivar el bug de gviz. ──
     fetchProxy('CLAUSURA 2026 AIFA B', 'A19:J561', GS.B_HIST),
-    // Club-confirmed layout: Plantel header at L3.
-    fetchGvizByGid(GS.B_HIST, 266944794, 'L2:X35'),
+    // Club-confirmed layout: Plantel header at L3 — se sumó un jugador más
+    // al plantel, corriendo el rango una fila hacia abajo (L3:X36).
+    fetchGvizByGid(GS.B_HIST, 266944794, 'L3:X36'),
     // Tabla de Posiciones: sheet dedicado GS.POSICIONES (ver ese comentario),
     // pestaña "Posiciones_B" (gid=1670392238), club-confirmed A1:K17 — ya NO
     // sale de B_HIST. parseTablaSheet detecta las columnas por el texto del
