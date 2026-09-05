@@ -23,7 +23,17 @@ const path = require('path');
 const { JSDOM } = require('jsdom');
 
 const ROOT = path.join(__dirname, '..');
-const SITE_URL = (process.env.URL || process.env.DEPLOY_PRIME_URL || 'https://clubsantabarbara.netlify.app').replace(/\/$/, '');
+// DEPLOY_PRIME_URL primero: `URL` es SIEMPRE el dominio canónico de
+// producción (constante en todos los contextos de deploy de Netlify),
+// mientras que DEPLOY_PRIME_URL es el del deploy ACTUAL — coincide con URL
+// en producción, pero en una Deploy Preview es el subdominio propio de esa
+// preview. Invertido (URL primero) fue un bug real: en cualquier Deploy
+// Preview, las URLs de imagen/página de partido terminaban apuntando a
+// producción (que todavía no tiene ese archivo) en vez de a la preview
+// donde sí existía — Facebook lo reportaba como "tipo de contenido de
+// imagen no válido" al pedir la imagen en el dominio equivocado. Mismo
+// criterio que ya usa correctamente scripts/generate-og.js.
+const SITE_URL = (process.env.DEPLOY_PRIME_URL || process.env.URL || 'https://clubsantabarbara.netlify.app').replace(/\/$/, '');
 
 // Memoizado a nivel de módulo: generate-partido-og.js pide los 2 torneos
 // (a/b) en la misma corrida — esto evita volver a parsear/evaluar las
