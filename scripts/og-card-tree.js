@@ -506,11 +506,23 @@ ${rendered.map(p => '  ' + p).join('\n')}
 </svg>`;
 }
 
+// Ancho/alto reales del SVG ya armado (ambas tarjetas tienen alto
+// DINÁMICO: se reparte/crece según cuántos bloques entran, ver la
+// distribución "space-between" de buildShareCardSvg). Facebook/WhatsApp
+// necesitan el og:image:width/height reales en el HTML para poder mostrar
+// la miniatura en la primera vez que ven una URL nueva — sin esos dos meta
+// tags, el Sharing Debugger reporta la imagen como "aún no disponible"
+// (se procesa async) y la primera persona que comparte el link no ve nada.
+function svgDims(svg) {
+  const m = /<svg[^>]*\bwidth="(\d+)"[^>]*\bheight="(\d+)"/.exec(svg);
+  return m ? { width: Number(m[1]), height: Number(m[2]) } : null;
+}
+
 // COLORS/FONT/posGroupColor/estimateTextWidth se re-exportan para que
 // scripts/_matchCardSvg.js (la Ficha de Partido) use exactamente
 // la misma paleta Dark Slate + Verde Esmeralda y el mismo criterio de color
 // por línea de posición, en vez de duplicar los valores a mano.
 module.exports = {
-  buildShareCardSvg, hexAlpha, escapeXml,
+  buildShareCardSvg, hexAlpha, escapeXml, svgDims,
   COLORS, FONT, posGroupColor, estimateTextWidth,
 };

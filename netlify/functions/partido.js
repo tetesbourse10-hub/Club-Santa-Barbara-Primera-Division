@@ -8,11 +8,56 @@
 // meta tags de acá mismo, sin ejecutar JS; los usuarios humanos son
 // redirigidos al SPA real (ver el <script> del final).
 const { getMatchData, SITE_URL, TORNEO_CFG } = require('../../scripts/_matchPartidoData');
+const { buildMatchCardSvg } = require('../../scripts/_matchCardSvg');
+const { svgDims } = require('../../scripts/og-card-tree');
 
 function escapeHtml(s) {
   return String(s || '').replace(/[&<>"']/g, c => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
   }[c]));
+}
+
+function sumByStat(jugadores, key) {
+  const map = new Map();
+  for (const j of jugadores) {
+    const n = j[key] || 0;
+    if (n <= 0) continue;
+    map.set(j.nombre, (map.get(j.nombre) || 0) + n);
+  }
+  return [...map.entries()].map(([nombre, count]) => ({ nombre, count }));
+}
+
+// Facebook/WhatsApp necesitan og:image:width/height reales en el HTML para
+// mostrar la miniatura la primera vez que ven una URL nueva (sin esto, el
+// Sharing Debugger reporta la imagen como "aún no disponible"). El alto de
+// la tarjeta es dinámico (crece según cuántos jugadores/destacados entran),
+// así que se arma el mismo SVG que va a rasterizar partido-og.js SOLO para
+// leerle el tamaño — no hace falta un escudo real ni tocar la red para
+// eso, cualquier placeholder da el mismo alto.
+function estimateImageDims(match, helpers) {
+  try {
+    const placeholderCrest = { initials: '?', bg: '#1e293b', border: '#334155', color: '#94a3b8' };
+    const jugadores = match.jugadores || [];
+    const svg = buildMatchCardSvg({
+      torneoBadge: match.torneoBadge,
+      leftName: 'Santa Bárbara', rightName: match.rival,
+      leftCrest: placeholderCrest, rightCrest: placeholderCrest,
+      scoreText: match.resultado || 'VS', scoreColor: '#ffffff', played: match.resultado !== null,
+      fechaLabel: `Fecha ${match.fecha}`, diaLabel: '', lugar: match.lugar || '—',
+      formacion: match.formacionCSB || '?',
+      titulares: jugadores.filter(j => j.titular),
+      banco: jugadores.filter(j => !j.titular && j.citado),
+      destacados: {
+        goles: sumByStat(jugadores, 'goles'),
+        asist: sumByStat(jugadores, 'asist'),
+        rojas: jugadores.filter(j => j.rojas > 0).map(j => ({ nombre: j.nombre, count: 1 })),
+      },
+      helpers,
+    });
+    return svgDims(svg) || { width: 1080, height: 1350 };
+  } catch {
+    return { width: 1080, height: 1350 };
+  }
 }
 
 function redirectPage(target) {
@@ -71,6 +116,7 @@ exports.handler = async (event) => {
   const imageUrl = `${SITE_URL}/.netlify/functions/partido-og?torneo=${encodeURIComponent(torneo)}&fecha=${encodeURIComponent(fecha)}`;
   const pageUrl = `${SITE_URL}/partido/${torneo}/${fecha}`;
   const redirectTarget = `${SITE_URL}/#partido/${torneo}/${encodeURIComponent(fecha)}`;
+  const dims = estimateImageDims(match, data.helpers);
 
   const html = `<!DOCTYPE html>
 <html lang="es">
@@ -83,6 +129,9 @@ exports.handler = async (event) => {
   <meta property="og:title" content="${escapeHtml(title)}" />
   <meta property="og:description" content="${escapeHtml(description)}" />
   <meta property="og:image" content="${escapeHtml(imageUrl)}" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="${dims.width}" />
+  <meta property="og:image:height" content="${dims.height}" />
   <meta property="og:url" content="${escapeHtml(pageUrl)}" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${escapeHtml(title)}" />

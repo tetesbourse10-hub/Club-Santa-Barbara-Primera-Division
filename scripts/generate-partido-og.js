@@ -22,6 +22,7 @@ const sharp = require('sharp');
 const { Resvg } = require('@resvg/resvg-js');
 const { getAllMatchesFromWindow, SITE_URL, TORNEO_CFG } = require('./_matchPartidoData');
 const { buildMatchCardSvg } = require('./_matchCardSvg');
+const { svgDims } = require('./og-card-tree');
 
 const ROOT = path.join(__dirname, '..');
 
@@ -31,7 +32,7 @@ function escapeHtml(s) {
   }[c]));
 }
 
-function buildMatchPageHtml({ title, description, image, url, redirectTarget }) {
+function buildMatchPageHtml({ title, description, image, imageWidth, imageHeight, url, redirectTarget }) {
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -43,6 +44,9 @@ function buildMatchPageHtml({ title, description, image, url, redirectTarget }) 
   <meta property="og:title" content="${escapeHtml(title)}" />
   <meta property="og:description" content="${escapeHtml(description)}" />
   <meta property="og:image" content="${escapeHtml(image)}" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="${imageWidth}" />
+  <meta property="og:image:height" content="${imageHeight}" />
   <meta property="og:url" content="${escapeHtml(url)}" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${escapeHtml(title)}" />
@@ -160,7 +164,12 @@ async function generateOne({ match, helpers, fontFiles, clubLogoDataUri, ogDir, 
   const imageUrl = `${SITE_URL}/og/partido/${torneo}-${match.fecha}.png`;
   const pageUrl = `${SITE_URL}/partido/${torneo}/${match.fecha}`;
   const redirectTarget = `${SITE_URL}/#partido/${torneo}/${encodeURIComponent(match.fecha)}`;
-  const html = buildMatchPageHtml({ title, description, image: imageUrl, url: pageUrl, redirectTarget });
+  const dims = svgDims(svg) || { width: 1080, height: 1350 };
+  const html = buildMatchPageHtml({
+    title, description, image: imageUrl,
+    imageWidth: dims.width, imageHeight: dims.height,
+    url: pageUrl, redirectTarget,
+  });
 
   const outDir = path.join(partidoDir, torneo, String(match.fecha));
   fs.mkdirSync(outDir, { recursive: true });

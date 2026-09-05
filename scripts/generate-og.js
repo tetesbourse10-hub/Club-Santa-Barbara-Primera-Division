@@ -80,7 +80,7 @@ const path = require('path');
 const { JSDOM } = require('jsdom');
 const { Resvg } = require('@resvg/resvg-js');
 const sharp = require('sharp');
-const { buildShareCardSvg } = require('./og-card-tree');
+const { buildShareCardSvg, svgDims } = require('./og-card-tree');
 const { fetchInterFonts } = require('./fetch-font');
 const { readTtfFamilyName } = require('./ttf-family');
 
@@ -96,7 +96,7 @@ function escapeHtml(s) {
   }[c]));
 }
 
-function buildPlayerPageHtml({ title, description, image, url, redirectTarget }) {
+function buildPlayerPageHtml({ title, description, image, imageWidth, imageHeight, url, redirectTarget }) {
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -108,6 +108,9 @@ function buildPlayerPageHtml({ title, description, image, url, redirectTarget })
   <meta property="og:title" content="${escapeHtml(title)}" />
   <meta property="og:description" content="${escapeHtml(description)}" />
   <meta property="og:image" content="${escapeHtml(image)}" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="${imageWidth}" />
+  <meta property="og:image:height" content="${imageHeight}" />
   <meta property="og:url" content="${escapeHtml(url)}" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${escapeHtml(title)}" />
@@ -394,11 +397,12 @@ async function main() {
         logoDataUri,
       });
 
-      // El SVG ya nace a 1080x1350 (formato 4:5) — se renderiza 1:1, sin
-      // reescalar. loadSystemFonts:false fuerza a resvg a usar SOLO estos
-      // buffers (nunca lo que tenga instalado la máquina de build) — así
-      // el resultado es siempre Inter, determinístico, sin depender de qué
-      // fuentes tenga ese runner en particular.
+      // El SVG nace a 1080 de ancho fijo, pero el alto es DINÁMICO (crece
+      // según cuántos bloques entran — títulos, logros, etc.) — se
+      // renderiza 1:1, sin reescalar. loadSystemFonts:false fuerza a resvg
+      // a usar SOLO estos buffers (nunca lo que tenga instalado la máquina
+      // de build) — así el resultado es siempre Inter, determinístico, sin
+      // depender de qué fuentes tenga ese runner en particular.
       const png = new Resvg(svg, {
         font: {
           fontFiles: [fontFiles.regular, fontFiles.bold, fontFiles.black],
@@ -412,8 +416,10 @@ async function main() {
       const description = `${s.pos || 'Jugador'} · ${s.goles} goles · ${s.asist} asistencias · ${s.pj} PJ — Club Santa Bárbara`;
       const playerDir = path.join(jugadorDir, slug);
       fs.mkdirSync(playerDir, { recursive: true });
+      const dims = svgDims(svg) || { width: 1080, height: 1350 };
       fs.writeFileSync(path.join(playerDir, 'index.html'), buildPlayerPageHtml({
         title, description,
+        imageWidth: dims.width, imageHeight: dims.height,
         image: `${SITE_URL}/og/${slug}.png`,
         url: `${SITE_URL}/jugador/${slug}`,
         redirectTarget: `${SITE_URL}/#jugador/${slug}`,
