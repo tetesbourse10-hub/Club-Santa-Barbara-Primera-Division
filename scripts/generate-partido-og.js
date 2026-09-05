@@ -176,6 +176,28 @@ async function generateOne({ match, helpers, fontFiles, clubLogoDataUri, ogDir, 
   fs.writeFileSync(path.join(outDir, 'index.html'), html);
 }
 
+// BUG REAL de build (Netlify: "Error: 404" en fetchProxy, build entero
+// abortado): getAllMatchesFromWindow no tenía ningún reintento — un solo
+// fallo transitorio del proxy de Apps Script (cold-start, rate limit, un
+// 404/503 pasajero — el mismo tipo de falla que ya se documentó y toleró
+// para Torneos Antiguos en generate-og.js) tiraba abajo el build COMPLETO,
+// incluidas las 106 fichas de jugador que ya habían generado bien. Reintenta
+// unas pocas veces con backoff antes de darse por vencido; si el torneo
+// sigue fallando después de eso, se salta SOLO ESE torneo (con un warning
+// bien visible) en vez de abortar todo lo demás.
+async function loadTorneoWithRetry(window, torneo, maxAttempts = 3) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await getAllMatchesFromWindow(window, torneo);
+    } catch (e) {
+      if (attempt === maxAttempts) throw e;
+      const backoffMs = 2000 * attempt;
+      console.warn(`  ⚠ ${TORNEO_CFG[torneo].badge}: fetch falló (intento ${attempt}/${maxAttempts}): ${e.message} — reintento en ${backoffMs}ms…`);
+      await new Promise(r => setTimeout(r, backoffMs));
+    }
+  }
+}
+
 // `window` ya tiene index.html evaluado (con GS/RIVAL_CREST_URLS/etc.
 // expuestos en window, ver la nota de _matchPartidoData.js); `fontFiles` son
 // los 3 .ttf de Inter YA escritos a disco (paths); `clubLogoDataUri` es el
@@ -189,7 +211,13 @@ async function run({ window, fontFiles, clubLogoDataUri }) {
   let ok = 0, failed = 0;
   for (const torneo of Object.keys(TORNEO_CFG)) {
     console.log(`Cargando partidos de ${TORNEO_CFG[torneo].badge}…`);
-    const data = await getAllMatchesFromWindow(window, torneo);
+    let data;
+    try {
+      data = await loadTorneoWithRetry(window, torneo);
+    } catch (e) {
+      console.error(`  ✗ ${TORNEO_CFG[torneo].badge}: no se pudo cargar después de reintentar — se saltan sus fichas de partido. Causa: ${e.message}`);
+      continue;
+    }
     const { matches, helpers } = data;
     // Solo tiene sentido compartir una fecha que ya tenga el 11 titular
     // cargado — una fecha futura sin nada cargado no tiene nada que mostrar.
