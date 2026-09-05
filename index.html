@@ -7024,6 +7024,106 @@ function _tryOpenPartidoFromHash() {
   return true;
 }
 
+// ── iOS: banner de "instalar/abrir en la app" para links compartidos ────
+// Safari en iPhone/iPad NO redirige un link normal a la PWA agregada a la
+// pantalla de inicio — no existe ninguna API pública para eso (a diferencia
+// de Android, donde el navegador sí puede ofrecer "abrir con..."). Por el
+// mismo motivo tampoco hay forma de saber desde JS si el usuario YA la
+// tiene instalada mientras mira la página en Safari: solo se puede leer el
+// modo de visualización ACTUAL (standalone vs. navegador), nunca si existe
+// otra instalación en otro lado. Lo más honesto que se puede hacer acá es
+// mostrar instrucciones la primera vez, y si el usuario confirma que la
+// instaló (queda guardado en localStorage), mostrarle después un
+// recordatorio más corto para que la abra desde el ícono en vez de Safari.
+function isPWA() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+function isIOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent)
+    // iPadOS 13+ se reporta como "MacIntel" en el user-agent — se distingue
+    // de una Mac de verdad por tener soporte táctil.
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+const IOS_BANNER_DISMISS_KEY = 'csbIosBannerDismissedAt';
+const IOS_BANNER_INSTALLED_KEY = 'csbIosPwaInstalled';
+const IOS_BANNER_DISMISS_MS = 24 * 60 * 60 * 1000;
+
+function _iosBannerDismissed() {
+  let t = 0;
+  try { t = Number(localStorage.getItem(IOS_BANNER_DISMISS_KEY) || 0); } catch { return false; }
+  return t > 0 && (Date.now() - t) < IOS_BANNER_DISMISS_MS;
+}
+function _iosBannerDismiss() {
+  try { localStorage.setItem(IOS_BANNER_DISMISS_KEY, String(Date.now())); } catch {}
+  const el = document.getElementById('iosShareBanner');
+  if (el) el.remove();
+}
+
+// Ícono de "Compartir" de iOS (cuadrado con flecha hacia arriba) — vectorial
+// a mano, no un emoji: nada garantiza que ⬆️/📤 se vea igual (o se vea del
+// todo) en todos los navegadores, mismo criterio que ya se usa en las
+// fichas compartibles (ver scripts/og-card-tree.js).
+const IOS_SHARE_ICON_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><path d="M12 16V4M8 8l4-4 4 4"/><path d="M4 14v5a2 2 0 002 2h12a2 2 0 002-2v-5"/></svg>';
+
+function _showIosShareBanner() {
+  if (document.getElementById('iosShareBanner')) return;
+  if (!document.getElementById('iosBannerKeyframes')) {
+    const style = document.createElement('style');
+    style.id = 'iosBannerKeyframes';
+    style.textContent = '@keyframes iosBannerIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}';
+    document.head.appendChild(style);
+  }
+  const yaInstalada = (() => { try { return localStorage.getItem(IOS_BANNER_INSTALLED_KEY) === '1'; } catch { return false; } })();
+  const el = document.createElement('div');
+  el.id = 'iosShareBanner';
+  el.setAttribute('role', 'dialog');
+  el.setAttribute('aria-label', 'Instalar Club Santa Bárbara');
+  el.style.cssText = 'position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:9999;background:#0f172a;border:1px solid rgba(52,211,153,.35);border-radius:16px;padding:14px 16px;box-shadow:0 12px 32px -8px rgba(0,0,0,.6);color:#e2e8f0;font-family:inherit;animation:iosBannerIn .25s ease-out;';
+  el.innerHTML = yaInstalada
+    ? `<div style="display:flex;align-items:center;gap:10px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:800;font-size:.9rem;color:#fff;">Abrí esto desde la app</div>
+          <div style="font-size:.78rem;color:#94a3b8;margin-top:2px;">Ya la tenés instalada — buscá el ícono de Santa Bárbara en tu pantalla de inicio para la mejor experiencia.</div>
+        </div>
+        <button id="iosBannerCloseBtn" aria-label="Cerrar" style="flex-shrink:0;background:transparent;border:none;color:#64748b;font-size:1.3rem;line-height:1;padding:4px 6px;cursor:pointer;">&times;</button>
+      </div>`
+    : `<div style="display:flex;align-items:flex-start;gap:10px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:800;font-size:.9rem;color:#fff;">Instalá la app para mejor experiencia</div>
+          <div id="iosBannerSteps" style="font-size:.78rem;color:#94a3b8;margin-top:6px;display:none;line-height:1.6;">
+            1. Tocá ${IOS_SHARE_ICON_SVG} <strong style="color:#e2e8f0;">Compartir</strong> abajo en Safari.<br/>
+            2. Elegí <strong style="color:#e2e8f0;">"Agregar a inicio"</strong>.
+          </div>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <button id="iosBannerInstallBtn" style="background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.4);color:#34d399;font-weight:800;font-size:.78rem;border-radius:8px;padding:7px 12px;cursor:pointer;">Instalar App</button>
+            <button id="iosBannerDoneBtn" style="background:transparent;border:1px solid #334155;color:#94a3b8;font-weight:700;font-size:.78rem;border-radius:8px;padding:7px 12px;cursor:pointer;">Ya la instalé</button>
+          </div>
+        </div>
+        <button id="iosBannerCloseBtn" aria-label="Cerrar" style="flex-shrink:0;background:transparent;border:none;color:#64748b;font-size:1.3rem;line-height:1;padding:4px 6px;cursor:pointer;">&times;</button>
+      </div>`;
+  document.body.appendChild(el);
+  document.getElementById('iosBannerCloseBtn').addEventListener('click', _iosBannerDismiss);
+  if (!yaInstalada) {
+    document.getElementById('iosBannerInstallBtn').addEventListener('click', () => {
+      const steps = document.getElementById('iosBannerSteps');
+      if (steps) steps.style.display = steps.style.display === 'none' ? 'block' : 'none';
+    });
+    document.getElementById('iosBannerDoneBtn').addEventListener('click', () => {
+      try { localStorage.setItem(IOS_BANNER_INSTALLED_KEY, '1'); } catch {}
+      _iosBannerDismiss();
+    });
+  }
+}
+
+// Se llama solo al entrar por un link COMPARTIDO (ficha de jugador o de
+// partido) — no en cualquier navegación normal dentro del sitio, para no
+// ser invasivo con quien ya lo tiene abierto hace rato.
+function _maybeShowIosShareBanner() {
+  if (!isIOS() || isPWA() || _iosBannerDismissed()) return;
+  if (/^#(jugador|partido)\//.test(location.hash)) _showIosShareBanner();
+}
+
 // ── URL ROUTING (deep-linking de navegación) ────────────────────────────
 // Además de #jugador/slug y #partido/torneo/fecha (compartir explícito),
 // la navegación normal (sección → pestaña → torneo → fecha) también deja
@@ -18878,6 +18978,7 @@ if (window.__OG_BUILD__) {
   _ensureJugTotalesA();
   _ensureJugTotalesB();
   const _initialLoadLiveDataPromise = loadLiveData();
+  _maybeShowIosShareBanner();
   if (location.hash) {
     // Deep link directo: alguien entra por /jugador/:slug, que redirige acá
     // con el hash ya puesto (ver scripts/generate-og.js). El listener de
