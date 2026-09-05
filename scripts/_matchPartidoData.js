@@ -97,13 +97,16 @@ function buildHelpers(window) {
   return _helpersCache.get(window);
 }
 
-// Devuelve TODOS los partidos de un torneo (no uno solo) + los helpers —
-// generate-partido-og.js recorre esta lista entera y genera una imagen por
-// cada fecha que ya tenga el 11 titular cargado.
-async function getAllMatches(torneo) {
+// Núcleo real: todos los partidos de un torneo + los helpers, a partir de
+// un `window` YA bootstrapeado (jsdom + index.html evaluado). Separado de
+// getAllMatches de abajo para que scripts/generate-og.js pueda reusar el
+// MISMO window que ya bootstrapeó para las fichas de jugador, en vez de
+// levantar un segundo jsdom completo (build real: agregar un segundo boot
+// —parsear/evaluar las ~18.000 líneas de index.html otra vez— fue lo que
+// hizo que el build se pasara del límite de tiempo de Netlify).
+async function getAllMatchesFromWindow(window, torneo) {
   const cfg = TORNEO_CFG[torneo];
   if (!cfg) return null;
-  const window = await _loadEngine();
   const sheetId = window.GS[cfg.sheetKey];
 
   const [detRows, basicRows] = await Promise.all([
@@ -128,6 +131,16 @@ async function getAllMatches(torneo) {
   return { matches, helpers: buildHelpers(window) };
 }
 
+// Standalone: bootstrapea su PROPIO window (levanta un jsdom nuevo la
+// primera vez que se llama). La usa el fallback en vivo
+// (netlify/functions/partido.js/partido-og.js, por request — ahí SÍ hace
+// falta su propio jsdom, no hay ningún build corriendo para reusar) y
+// cualquier otro consumidor que no tenga ya un window bootstrapeado a mano.
+async function getAllMatches(torneo) {
+  const window = await _loadEngine();
+  return getAllMatchesFromWindow(window, torneo);
+}
+
 // Un solo partido por torneo+fecha — lo usa el fallback en vivo
 // (netlify/functions/partido.js/partido-og.js). Internamente pide la MISMA
 // lista completa que getAllMatches (mismos 2 fetches, no hay un tercer
@@ -141,4 +154,4 @@ async function getMatchData(torneo, fecha) {
   return { match, helpers: data.helpers };
 }
 
-module.exports = { getAllMatches, getMatchData, SITE_URL, TORNEO_CFG };
+module.exports = { getAllMatches, getAllMatchesFromWindow, getMatchData, SITE_URL, TORNEO_CFG };

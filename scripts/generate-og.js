@@ -130,7 +130,14 @@ function buildPlayerPageHtml({ title, description, image, url, redirectTarget })
 async function main() {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   const scripts = [...html.matchAll(/<script(?![^>]*src)[^>]*>([\s\S]*?)<\/script>/g)].map(m => m[1]);
-  const combinedScript = scripts.join('\n;\n');
+  // window.X=X para GS/RIVAL_CREST_URLS/AP_BAND_Y/AP_BAND_OF: los usa
+  // generate-partido-og.js (llamado al final de este mismo main(), ver más
+  // abajo) — son `const` de nivel superior en index.html, que NO quedan
+  // como propiedad de `window` a menos que se expongan DENTRO del mismo
+  // string evaluado (mismo bug real ya documentado en
+  // scripts/_matchPartidoData.js).
+  const exposeConsts = "\n;window.GS=GS;window.RIVAL_CREST_URLS=RIVAL_CREST_URLS;window.AP_BAND_Y=AP_BAND_Y;window.AP_BAND_OF=AP_BAND_OF;\n";
+  const combinedScript = scripts.join('\n;\n') + exposeConsts;
   const htmlNoScripts = html.replace(/<script(?![^>]*src)[^>]*>[\s\S]*?<\/script>/g, '');
 
   console.log('Iniciando jsdom y cargando el motor de datos del sitio…');
@@ -441,6 +448,15 @@ async function main() {
 
   fs.writeFileSync(path.join(ROOT, 'data', 'records.json'), JSON.stringify({ generatedAt, records: recordsIndex }));
   console.log(`Listo: ${ok} jugadores generados, ${failed} con error, ${vedMismatches} con PG+PE+PP ≠ PJ (ver advertencias arriba).`);
+
+  // Fichas de partido: reusa el MISMO window/fontFiles/logoDataUri de
+  // arriba en vez de que scripts/generate-partido-og.js levante un segundo
+  // jsdom y vuelva a descargar la fuente/convertir el logo por su cuenta
+  // (esa duplicación fue lo que hizo que el build se pasara del límite de
+  // tiempo de Netlify — ver la nota completa en ese archivo).
+  console.log('\nGenerando fichas de partido…');
+  await require('./generate-partido-og').run({ window, fontFiles, clubLogoDataUri: logoDataUri });
+
   window.close();
   if (ok === 0 && failed > 0) process.exit(1);
 }

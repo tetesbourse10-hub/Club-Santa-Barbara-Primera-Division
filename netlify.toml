@@ -2,10 +2,13 @@
   publish = "."
   # Genera og/<slug>.png + jugador/<slug>/index.html para cada jugador, y
   # og/partido/<torneo>-<fecha>.png + partido/<torneo>/<fecha>/index.html
-  # para cada partido con el 11 titular cargado, antes de publicar — ver
-  # scripts/generate-og.js y scripts/generate-partido-og.js. Nada de esto
-  # corre en runtime por visita: es un paso más del build, como cualquier
-  # otro.
+  # para cada partido con el 11 titular cargado, antes de publicar — todo
+  # en una sola corrida de scripts/generate-og.js (que al final llama a
+  # scripts/generate-partido-og.js reusando el mismo jsdom/fuente/logo, en
+  # vez de un segundo script aparte que repetía ese trabajo — eso último
+  # fue justo lo que hizo que el build se pasara del límite de tiempo de
+  # Netlify). Nada de esto corre en runtime por visita: es un paso más del
+  # build, como cualquier otro.
   command = "npm install && npm run build"
 
 [functions]

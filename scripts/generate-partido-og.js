@@ -1,30 +1,27 @@
 #!/usr/bin/env node
-// Genera, como parte del build (npm run build), la Ficha de Partido
-// compartible de cada fecha que ya tenga el 11 titular cargado:
+// Genera, como parte del build, la Ficha de Partido compartible de cada
+// fecha que ya tenga el 11 titular cargado:
 //   og/partido/<torneo>-<fecha>.png     — imagen de preview (og:image)
 //   partido/<torneo>/<fecha>/index.html — página con meta og: reales
 //
-// Antes esto corría EN VIVO por cada visita (netlify/functions/partido.js +
-// partido-og.js), pensando que el partido cambia semana a semana como los
-// jugadores — pero un partido puntual en realidad solo cambia DOS veces
-// (cuando se carga el 11 titular, y cuando termina y se cargan los
-// incidentes). No hacía falta que fuera en vivo, y esa arquitectura terminó
-// siendo la causa real de que la imagen a veces no se generara: jsdom
-// completo + fetch en vivo a Sheets + descarga del escudo + resvg, todo
-// adentro del límite de 10s de una Netlify Function en el plan actual — el
-// mismo motivo (más simple: nunca falla porque no corre en runtime) por el
-// que la ficha de jugador SÍ generaba bien. Ahora se hornea acá, como la de
-// jugador, con el mismo trade-off ya aceptado: "actualizada a partir del
-// último deploy", no verdaderamente en vivo.
+// BUG REAL de build (Netlify: "Command did not finish within the time
+// limit", ~18 min): esto vivía como un script totalmente aparte que
+// levantaba SU PROPIO jsdom (parseaba/evaluaba las ~18.000 líneas de
+// index.html una SEGUNDA vez, además de la que ya hace scripts/generate-
+// og.js para los jugadores) y volvía a descargar la fuente Inter + convertir
+// el logo por su cuenta — trabajo duplicado que, sumado, empujó el build
+// entero por encima del límite de tiempo de Netlify. Por eso `run()` de acá
+// abajo NO bootstrapea nada: recibe el `window` (ya con index.html
+// evaluado), los fontFiles y el logoDataUri YA armados por quien la llama.
+// scripts/generate-og.js la llama al final de su propio main(), reusando
+// exactamente ese mismo trabajo — un solo jsdom, una sola descarga de
+// fuente, una sola conversión de logo por build entero, no dos.
 const fs = require('fs');
-const os = require('os');
 const path = require('path');
 const sharp = require('sharp');
 const { Resvg } = require('@resvg/resvg-js');
-const { getAllMatches, SITE_URL, TORNEO_CFG } = require('./_matchPartidoData');
+const { getAllMatchesFromWindow, SITE_URL, TORNEO_CFG } = require('./_matchPartidoData');
 const { buildMatchCardSvg } = require('./_matchCardSvg');
-const { fetchInterFonts } = require('./fetch-font');
-const { readTtfFamilyName } = require('./ttf-family');
 
 const ROOT = path.join(__dirname, '..');
 
@@ -52,11 +49,7 @@ function buildMatchPageHtml({ title, description, image, url, redirectTarget }) 
   <meta name="twitter:description" content="${escapeHtml(description)}" />
   <meta name="twitter:image" content="${escapeHtml(image)}" />
   <!-- Sin meta http-equiv="refresh" a propósito — ver el mismo comentario en
-       scripts/generate-og.js (buildPlayerPageHtml): los bots de preview SÍ
-       siguen ese redirect, y como el destino real es un hash (#partido/...,
-       que el servidor nunca ve) terminarían leyendo estos mismos meta og:
-       genéricos en vez de nada — el redirect real para humanos queda solo
-       en el script de abajo. -->
+       scripts/generate-og.js (buildPlayerPageHtml). -->
   <script>location.replace(${JSON.stringify(redirectTarget)});</script>
 </head>
 <body>
@@ -65,10 +58,14 @@ function buildMatchPageHtml({ title, description, image, url, redirectTarget }) 
 </html>`;
 }
 
-// Baja el escudo del rival y lo convierte a PNG en memoria (resvg no soporta
-// bien WEBP/JPG). best-effort con timeout corto: si falla o tarda, se sigue
-// con el círculo de iniciales de siempre en vez de romper todo el build.
-async function fetchCrestDataUri(url, timeoutMs = 5000) {
+// Baja el escudo del rival y lo convierte a PNG en memoria (resvg no
+// soporta bien WEBP/JPG). best-effort con timeout corto: si falla o tarda,
+// se sigue con el círculo de iniciales de siempre en vez de romper el
+// build. Se llama en paralelo entre partidos (Promise.all en run()), no
+// serializada una espera de hasta N segundos por cada uno de los N
+// partidos — eso solo (20 partidos × hasta 5s c/u si fallaban) ya sumaba
+// hasta 100s reales al build.
+async function fetchCrestDataUri(url, timeoutMs = 4000) {
   try {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -96,132 +93,116 @@ function sumByStat(jugadores, key) {
   return [...map.entries()].map(([nombre, count]) => ({ nombre, count }));
 }
 
-async function main() {
-  console.log('Descargando la fuente Inter (Regular + Bold + Black)…');
-  const fonts = await fetchInterFonts();
-  for (const [label, buf] of [['Regular', fonts.regular], ['Bold', fonts.bold], ['Black', fonts.black]]) {
-    const familyName = readTtfFamilyName(buf);
-    if (!familyName || !/inter/i.test(familyName)) {
-      throw new Error(`El .ttf de Inter ${label} no dice "Inter" en su tabla 'name' (dice "${familyName || '(nada)'}"). Build abortado.`);
-    }
-  }
-  // font.fontBuffers puede fallar en silencio (ver la misma nota, ya
-  // corregida, en scripts/generate-og.js) — font.fontFiles (leer el .ttf de
-  // un path real en disco) es el camino confiable.
-  const fontsDir = path.join(os.tmpdir(), 'csb-og-inter-fonts');
-  fs.mkdirSync(fontsDir, { recursive: true });
-  const fontFiles = {};
-  for (const [weight, buf] of Object.entries(fonts)) {
-    const fp = path.join(fontsDir, `inter-${weight}.ttf`);
-    fs.writeFileSync(fp, buf);
-    fontFiles[weight] = fp;
+async function generateOne({ match, helpers, fontFiles, clubLogoDataUri, ogDir, partidoDir }) {
+  const rivalCrestPath = helpers.RIVAL_CREST_URLS[String(match.rival || '').toUpperCase().trim()]
+    || `escudos/${helpers.slugify(match.rival)}.webp`;
+  const rivalCrestUrl = /^https?:\/\//i.test(rivalCrestPath) ? rivalCrestPath : `${SITE_URL}/${rivalCrestPath}`;
+  const rivalCrestDataUri = await fetchCrestDataUri(rivalCrestUrl);
+  const c = helpers.rivalAvatarColor(match.rival);
+  const rivalCrest = rivalCrestDataUri
+    ? { dataUri: rivalCrestDataUri }
+    : { initials: helpers.rivalInitials(match.rival), bg: c.bg, border: c.color, color: c.color };
+  const csbCrest = { dataUri: clubLogoDataUri };
+
+  const isVisitante = /visit/i.test(match.local || '');
+  const leftName = isVisitante ? match.rival : 'Santa Bárbara';
+  const rightName = isVisitante ? 'Santa Bárbara' : match.rival;
+  const leftCrest = isVisitante ? rivalCrest : csbCrest;
+  const rightCrest = isVisitante ? csbCrest : rivalCrest;
+
+  const dia = helpers.formatISODia(match.dia || '—');
+  const hora = helpers.formatISOHora(match.hora || '—');
+  const played = match.resultado !== null;
+  const scoreText = played
+    ? `${match.resultado}${match.penales ? ` (pen. ${match.penales})` : ''}`
+    : (hora !== '—' ? `${hora} HS` : 'VS');
+  let scoreColor = played ? '#ffffff' : '#cbd5e1';
+  if (played && match.gf != null && match.gc != null) {
+    const csbGoles = isVisitante ? match.gc : match.gf;
+    const rivalGoles = isVisitante ? match.gf : match.gc;
+    scoreColor = csbGoles > rivalGoles ? '#22c55e' : csbGoles < rivalGoles ? '#ef4444' : '#fbbf24';
   }
 
-  console.log('Convirtiendo el logo del club (webp → png)…');
-  const logoPngBuffer = await sharp(path.join(ROOT, 'logo-csb.webp')).png().toBuffer();
-  const clubLogoDataUri = `data:image/png;base64,${logoPngBuffer.toString('base64')}`;
+  const jugadores = match.jugadores || [];
+  const titulares = jugadores.filter(j => j.titular);
+  const banco = jugadores.filter(j => !j.titular && j.citado);
+  const destacados = {
+    goles: sumByStat(jugadores, 'goles'),
+    asist: sumByStat(jugadores, 'asist'),
+    rojas: jugadores.filter(j => j.rojas > 0).map(j => ({ nombre: j.nombre, count: 1 })),
+  };
 
+  const svg = buildMatchCardSvg({
+    clubLogoDataUri, torneoBadge: match.torneoBadge,
+    leftName, rightName, leftCrest, rightCrest,
+    scoreText, scoreColor, played,
+    fechaLabel: `Fecha ${match.fecha}`,
+    diaLabel: dia !== '—' ? dia : '',
+    lugar: match.lugar || '—',
+    formacion: match.formacionCSB || '?',
+    titulares, banco, destacados, helpers,
+  });
+
+  const png = new Resvg(svg, {
+    font: {
+      fontFiles: [fontFiles.regular, fontFiles.bold, fontFiles.black],
+      loadSystemFonts: false, defaultFontFamily: 'Inter',
+    },
+  }).render().asPng();
+
+  const torneo = Object.keys(TORNEO_CFG).find(k => TORNEO_CFG[k].badge === match.torneoBadge) || 'a';
+  fs.writeFileSync(path.join(ogDir, `${torneo}-${match.fecha}.png`), png);
+
+  const title = `Santa Bárbara vs ${match.rival} — Fecha ${match.fecha} · Club Santa Bárbara`;
+  const description = played
+    ? `Santa Bárbara ${match.resultado}${match.penales ? ` (pen. ${match.penales})` : ''} — Fecha ${match.fecha}, ${match.torneoBadge}`
+    : `Fecha ${match.fecha}, ${match.torneoBadge} — a jugarse`;
+  const imageUrl = `${SITE_URL}/og/partido/${torneo}-${match.fecha}.png`;
+  const pageUrl = `${SITE_URL}/partido/${torneo}/${match.fecha}`;
+  const redirectTarget = `${SITE_URL}/#partido/${torneo}/${encodeURIComponent(match.fecha)}`;
+  const html = buildMatchPageHtml({ title, description, image: imageUrl, url: pageUrl, redirectTarget });
+
+  const outDir = path.join(partidoDir, torneo, String(match.fecha));
+  fs.mkdirSync(outDir, { recursive: true });
+  fs.writeFileSync(path.join(outDir, 'index.html'), html);
+}
+
+// `window` ya tiene index.html evaluado (con GS/RIVAL_CREST_URLS/etc.
+// expuestos en window, ver la nota de _matchPartidoData.js); `fontFiles` son
+// los 3 .ttf de Inter YA escritos a disco (paths); `clubLogoDataUri` es el
+// logo YA convertido a PNG/base64 — todo reusado del build de jugadores,
+// nada de esto se vuelve a descargar/convertir acá.
+async function run({ window, fontFiles, clubLogoDataUri }) {
   const ogDir = path.join(ROOT, 'og', 'partido');
   const partidoDir = path.join(ROOT, 'partido');
   fs.mkdirSync(ogDir, { recursive: true });
 
   let ok = 0, failed = 0;
   for (const torneo of Object.keys(TORNEO_CFG)) {
-    console.log(`\nCargando partidos de ${TORNEO_CFG[torneo].badge}…`);
-    const data = await getAllMatches(torneo);
+    console.log(`Cargando partidos de ${TORNEO_CFG[torneo].badge}…`);
+    const data = await getAllMatchesFromWindow(window, torneo);
     const { matches, helpers } = data;
     // Solo tiene sentido compartir una fecha que ya tenga el 11 titular
     // cargado — una fecha futura sin nada cargado no tiene nada que mostrar.
     const shareable = matches.filter(m => m.jugadores && m.jugadores.length);
     console.log(`  ${matches.length} fechas encontradas, ${shareable.length} con plantel cargado (se generan esas).`);
 
-    for (const match of shareable) {
-      try {
-        const rivalCrestPath = helpers.RIVAL_CREST_URLS[String(match.rival || '').toUpperCase().trim()]
-          || `escudos/${helpers.slugify(match.rival)}.webp`;
-        const rivalCrestUrl = /^https?:\/\//i.test(rivalCrestPath) ? rivalCrestPath : `${SITE_URL}/${rivalCrestPath}`;
-        const rivalCrestDataUri = await fetchCrestDataUri(rivalCrestUrl);
-        const c = helpers.rivalAvatarColor(match.rival);
-        const rivalCrest = rivalCrestDataUri
-          ? { dataUri: rivalCrestDataUri }
-          : { initials: helpers.rivalInitials(match.rival), bg: c.bg, border: c.color, color: c.color };
-        const csbCrest = { dataUri: clubLogoDataUri };
-
-        const isVisitante = /visit/i.test(match.local || '');
-        const leftName = isVisitante ? match.rival : 'Santa Bárbara';
-        const rightName = isVisitante ? 'Santa Bárbara' : match.rival;
-        const leftCrest = isVisitante ? rivalCrest : csbCrest;
-        const rightCrest = isVisitante ? csbCrest : rivalCrest;
-
-        const dia = helpers.formatISODia(match.dia || '—');
-        const hora = helpers.formatISOHora(match.hora || '—');
-        const played = match.resultado !== null;
-        const scoreText = played
-          ? `${match.resultado}${match.penales ? ` (pen. ${match.penales})` : ''}`
-          : (hora !== '—' ? `${hora} HS` : 'VS');
-        let scoreColor = played ? '#ffffff' : '#cbd5e1';
-        if (played && match.gf != null && match.gc != null) {
-          const csbGoles = isVisitante ? match.gc : match.gf;
-          const rivalGoles = isVisitante ? match.gf : match.gc;
-          scoreColor = csbGoles > rivalGoles ? '#22c55e' : csbGoles < rivalGoles ? '#ef4444' : '#fbbf24';
-        }
-
-        const jugadores = match.jugadores || [];
-        const titulares = jugadores.filter(j => j.titular);
-        const banco = jugadores.filter(j => !j.titular && j.citado);
-        const destacados = {
-          goles: sumByStat(jugadores, 'goles'),
-          asist: sumByStat(jugadores, 'asist'),
-          rojas: jugadores.filter(j => j.rojas > 0).map(j => ({ nombre: j.nombre, count: 1 })),
-        };
-
-        const svg = buildMatchCardSvg({
-          clubLogoDataUri, torneoBadge: match.torneoBadge,
-          leftName, rightName, leftCrest, rightCrest,
-          scoreText, scoreColor, played,
-          fechaLabel: `Fecha ${match.fecha}`,
-          diaLabel: dia !== '—' ? dia : '',
-          lugar: match.lugar || '—',
-          formacion: match.formacionCSB || '?',
-          titulares, banco, destacados, helpers,
-        });
-
-        const png = new Resvg(svg, {
-          font: {
-            fontFiles: [fontFiles.regular, fontFiles.bold, fontFiles.black],
-            loadSystemFonts: false, defaultFontFamily: 'Inter',
-          },
-        }).render().asPng();
-        fs.writeFileSync(path.join(ogDir, `${torneo}-${match.fecha}.png`), png);
-
-        const title = `Santa Bárbara vs ${match.rival} — Fecha ${match.fecha} · Club Santa Bárbara`;
-        const description = played
-          ? `Santa Bárbara ${match.resultado}${match.penales ? ` (pen. ${match.penales})` : ''} — Fecha ${match.fecha}, ${match.torneoBadge}`
-          : `Fecha ${match.fecha}, ${match.torneoBadge} — a jugarse`;
-        const imageUrl = `${SITE_URL}/og/partido/${torneo}-${match.fecha}.png`;
-        const pageUrl = `${SITE_URL}/partido/${torneo}/${match.fecha}`;
-        const redirectTarget = `${SITE_URL}/#partido/${torneo}/${encodeURIComponent(match.fecha)}`;
-        const html = buildMatchPageHtml({ title, description, image: imageUrl, url: pageUrl, redirectTarget });
-
-        const outDir = path.join(partidoDir, torneo, String(match.fecha));
-        fs.mkdirSync(outDir, { recursive: true });
-        fs.writeFileSync(path.join(outDir, 'index.html'), html);
-
-        ok++;
-      } catch (e) {
-        failed++;
-        console.error(`  ✗ Fecha ${match.fecha} (${torneo}): ${e.message}`);
-      }
-    }
+    // En paralelo entre partidos (antes: un for...of con await secuencial —
+    // 20 partidos esperando uno detrás del otro el fetch del escudo rival,
+    // hasta 4s cada uno si fallaba, sumaba minutos reales al build).
+    const results = await Promise.allSettled(
+      shareable.map(match => generateOne({ match, helpers, fontFiles, clubLogoDataUri, ogDir, partidoDir }))
+    );
+    results.forEach((r, i) => {
+      if (r.status === 'fulfilled') { ok++; }
+      else { failed++; console.error(`  ✗ Fecha ${shareable[i].fecha} (${torneo}): ${r.reason && r.reason.message}`); }
+    });
   }
 
-  console.log(`\nListo: ${ok} fichas de partido generadas, ${failed} fallidas.`);
+  console.log(`Listo: ${ok} fichas de partido generadas, ${failed} fallidas.`);
   if (failed > 0) {
     throw new Error(`${failed} ficha(s) de partido fallaron — ver el detalle arriba.`);
   }
 }
 
-main().catch(e => {
-  console.error('generate-partido-og.js falló:', e);
-  process.exit(1);
-});
+module.exports = { run };
