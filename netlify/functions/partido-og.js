@@ -149,25 +149,22 @@ exports.handler = async (event) => {
     const leftCrest = isVisitante ? rivalCrest : csbCrest;
     const rightCrest = isVisitante ? csbCrest : rivalCrest;
 
+    const dia = helpers.formatISODia(match.dia || '—');
+    const hora = helpers.formatISOHora(match.hora || '—');
+
     const played = match.resultado !== null;
+    // Marcador central: resultado si el partido ya se jugó; si es pendiente,
+    // la hora (ej. "17:00 HS") en vez de un genérico "vs" — solo cae a "VS"
+    // si ni siquiera hay hora cargada.
     const scoreText = played
       ? `${match.resultado}${match.penales ? ` (pen. ${match.penales})` : ''}`
-      : 'vs';
-    let scoreColor = '#ffffff';
+      : (hora !== '—' ? `${hora} HS` : 'VS');
+    let scoreColor = played ? '#ffffff' : '#cbd5e1';
     if (played && match.gf != null && match.gc != null) {
       const csbGoles = isVisitante ? match.gc : match.gf;
       const rivalGoles = isVisitante ? match.gf : match.gc;
       scoreColor = csbGoles > rivalGoles ? '#22c55e' : csbGoles < rivalGoles ? '#ef4444' : '#fbbf24';
     }
-
-    const dia = helpers.formatISODia(match.dia || '—');
-    const hora = helpers.formatISOHora(match.hora || '—');
-    const metaLine = [
-      `Fecha ${match.fecha}`,
-      dia !== '—' ? dia : '',
-      hora !== '—' ? hora : '',
-      match.lugar || '',
-    ].filter(Boolean).join('   ·   ');
 
     const jugadores = match.jugadores || [];
     const titulares = jugadores.filter(j => j.titular);
@@ -181,7 +178,10 @@ exports.handler = async (event) => {
     const svg = buildMatchCardSvg({
       clubLogoDataUri, torneoBadge: match.torneoBadge,
       leftName, rightName, leftCrest, rightCrest,
-      scoreText, scoreColor, metaLine,
+      scoreText, scoreColor, played,
+      fechaLabel: `Fecha ${match.fecha}`,
+      diaLabel: dia !== '—' ? dia : '',
+      lugar: match.lugar || '—',
       formacion: match.formacionCSB || '?',
       titulares, banco, destacados, helpers,
     });

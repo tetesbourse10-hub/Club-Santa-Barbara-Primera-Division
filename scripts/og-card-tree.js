@@ -506,4 +506,11 @@ ${rendered.map(p => '  ' + p).join('\n')}
 </svg>`;
 }
 
-module.exports = { buildShareCardSvg, hexAlpha, escapeXml };
+// COLORS/FONT/posGroupColor/estimateTextWidth se re-exportan para que
+// netlify/functions/_matchCardSvg.js (la Ficha de Partido) use exactamente
+// la misma paleta Dark Slate + Verde Esmeralda y el mismo criterio de color
+// por línea de posición, en vez de duplicar los valores a mano.
+module.exports = {
+  buildShareCardSvg, hexAlpha, escapeXml,
+  COLORS, FONT, posGroupColor, estimateTextWidth,
+};
