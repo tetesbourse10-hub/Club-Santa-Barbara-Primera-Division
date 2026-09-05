@@ -6,13 +6,18 @@
 // para el jugador) — se piden solo los 2 fetches puntuales (detalle +
 // resumen básico) que hacen falta para el torneo actual y sus fechas.
 //
-// Antes esto vivía en netlify/functions/ y corría EN VIVO por cada visita
-// (una Netlify Function). Se migró a build time (scripts/generate-partido-og.js)
-// porque un partido en sí solo cambia dos veces (carga del 11 titular, carga
-// de los incidentes al terminar) — no hacía falta que fuera en vivo, y esa
-// arquitectura resultó ser justo la causa de que a veces la imagen no se
-// generara (jsdom completo + fetch en vivo a Sheets + resvg, todo dentro del
-// límite de 10s de una Netlify Function en el plan actual).
+// Esquema híbrido: la ficha se hornea en build time (scripts/generate-
+// partido-og.js, ver getAllMatches) para no depender de una Netlify Function
+// en vivo para el caso común — pero cargar el 11/los incidentes de un
+// partido no amerita gastar uno de los minutos de build limitados (300/mes)
+// solo para que el link comparta datos frescos. netlify/functions/partido.js
+// y partido-og.js usan getMatchData (acá abajo) como FALLBACK en vivo: la
+// regla de netlify.toml solo los invoca cuando el archivo horneado para esa
+// fecha todavía no existe (Netlify sirve un archivo estático real antes que
+// aplicar cualquier redirect, así que esto es automático, no hace falta
+// chequearlo a mano). Ese camino en vivo es deliberadamente LIVIANO (jsdom +
+// 2 fetches puntuales, no loadLiveData() completo) para entrar cómodo en el
+// límite de 10s de una Function.
 const fs = require('fs');
 const path = require('path');
 const { JSDOM } = require('jsdom');
@@ -123,4 +128,17 @@ async function getAllMatches(torneo) {
   return { matches, helpers: buildHelpers(window) };
 }
 
-module.exports = { getAllMatches, SITE_URL, TORNEO_CFG };
+// Un solo partido por torneo+fecha — lo usa el fallback en vivo
+// (netlify/functions/partido.js/partido-og.js). Internamente pide la MISMA
+// lista completa que getAllMatches (mismos 2 fetches, no hay un tercer
+// camino a mantener sincronizado) y busca la fecha pedida.
+async function getMatchData(torneo, fecha) {
+  if (!fecha) return null;
+  const data = await getAllMatches(torneo);
+  if (!data) return null;
+  const match = data.matches.find(m => String(m.fecha) === String(fecha));
+  if (!match) return null;
+  return { match, helpers: data.helpers };
+}
+
+module.exports = { getAllMatches, getMatchData, SITE_URL, TORNEO_CFG };
