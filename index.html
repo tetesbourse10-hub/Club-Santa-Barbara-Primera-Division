@@ -3501,10 +3501,16 @@
       }
       .pp-hero-card .pp-header { margin-bottom: 0; }
       .pp-hero-mobile-ranks {
-        display: flex; gap: 4px; padding-top: 6px; overflow-x: auto;
-        scrollbar-width: none; -webkit-overflow-scrolling: touch;
+        /* Antes: overflow-x:auto (scroll horizontal) — un jugador con un
+           puesto de 3 dígitos (ej. "#102 Asistidor") empujaba el ancho total
+           de las 3 pills más allá del borde de la tarjeta, y sin ninguna
+           señal visual de "deslizá para ver más" quedaba con la última pill
+           directamente cortada por el borde de la pantalla (bug reportado:
+           "el texto se sobrepone a la casilla"). flex-wrap: wrap elimina el
+           corte del todo — si no entran las 3 en una fila, la que sobra baja
+           a una segunda línea completa, en vez de quedar a medio cortar. */
+        display: flex; flex-wrap: wrap; gap: 4px; padding-top: 6px;
       }
-      .pp-hero-mobile-ranks::-webkit-scrollbar { display: none; }
       .pp-hero-rank-pill {
         flex: 0 0 auto; font-size: 0.68rem; font-weight: 800; white-space: nowrap;
         padding: 3px 9px; border-radius: 999px; background: rgba(255,255,255,0.05);
@@ -5831,8 +5837,10 @@ function _ppRankGroup(rankSet, groupLabel, accent) {
 // desglose completo por A/Primera B que ya muestra .pp-rank-layout debajo.
 // Pills de una sola línea ("#2 Asistidor", "#9 Goles", "#10 Presencias")
 // justo debajo del nombre/puesto en el Hero mobile — reemplaza la grilla de
-// 3 columnas anterior. Ordenadas de mejor a peor puesto y con scroll
-// horizontal si no entran las 3 (ver .pp-hero-mobile-ranks).
+// 3 columnas anterior. Ordenadas de mejor a peor puesto; si no entran las 3
+// en una fila (puesto de 3 dígitos, ej. "#102 Asistidor") bajan a una
+// segunda línea en vez de cortarse contra el borde de la tarjeta (ver
+// flex-wrap en .pp-hero-mobile-ranks).
 function _ppHeroMiniRanksHtml(s) {
   const rankSet = s.rankGen || s.rankA || s.rankB;
   if (!rankSet) return '';
