@@ -7,20 +7,58 @@
 //
 // Rediseño pedido a partir de una referencia HTML+Tailwind (Dark Slate +
 // Verde Esmeralda + acentos Dorado/Celeste, mismo lenguaje visual que ya se
-// usa en scripts/og-card-tree.js para la ficha de jugador) — paleta, helpers
-// de texto (hexAlpha/escapeXml/estimateTextWidth) y la lógica de color por
-// línea de posición (posGroupColor) se REUSAN de ahí en vez de duplicarse.
+// usa en scripts/og-card-tree.js para la ficha de jugador) — helpers de
+// texto (hexAlpha/escapeXml/estimateTextWidth) y algunos colores de acento
+// (emerald/sky/rose/white/slate) se REUSAN de ahí en vez de duplicarse.
+//
+// OJO: el mapeo de color POR POSICIÓN de esta tarjeta es DISTINTO al de la
+// ficha de jugador (posGroupColor en og-card-tree.js) — ahí pidieron
+// Mediocampista=esmeralda/Delantero=dorado, acá pidieron explícitamente
+// Mediocampista=amarillo/dorado y Delantero=rojo. Son dos pedidos de paleta
+// diferentes para dos componentes distintos, así que este archivo define su
+// PROPIO mapeo (MATCH_POS_COLOR) en vez de reusar posGroupColor.
 //
 // Sin emoji: Inter (la única fuente que resvg tiene cargada, ver
 // scripts/fetch-font.js) no trae glifos de emoji — cualquier ⚽/🎯/👑 saldría
 // como una casilla vacía. Se usan badges de color + texto/vectores en vez de
 // íconos de fuente.
-const { hexAlpha, escapeXml, COLORS, FONT, posGroupColor, estimateTextWidth } = require('../../scripts/og-card-tree');
+const { hexAlpha, escapeXml, COLORS, FONT, estimateTextWidth } = require('../../scripts/og-card-tree');
 
 const W = 1080;
 const PAD_X = 64;
 const contentW = W - PAD_X * 2;
 const cx = W / 2;
+
+// Fondos exactos pedidos para ESTE componente (literales, no los slate950/
+// slate900 "genéricos" de og-card-tree.js) — ver la plantilla Tailwind de
+// referencia: bg-[#0b0f19] (tarjeta), #111827 (paneles), #0f172a (marco de
+// la cancha), #15803d (pasto).
+const CARD_BG = '#0b0f19';
+const PANEL_BG = '#111827';
+const PITCH_FRAME_BG = '#0f172a';
+const PITCH_GREEN = '#15803d';
+
+// Mapeo de color por LÍNEA de posición pedido para la Ficha de Partido:
+// Arquero=violeta, Defensor=celeste, Mediocampista=amarillo/dorado,
+// Delantero=rojo. `ring` es el borde del avatar y del badge de posición;
+// `badgeBg`/`badgeText` son el fondo muy oscuro y el texto claro del badge
+// de posición bajo el nombre.
+const MATCH_POS_GROUP = {
+  ARQ: 'arq',
+  DFC: 'def', DFI: 'def', DFD: 'def', LI: 'def', LD: 'def', DEF: 'def',
+  MC: 'med', MCO: 'med', MCE: 'med', MI: 'med', MD: 'med', MED: 'med',
+  DC: 'del', ED: 'del', EI: 'del', DEL: 'del', AT: 'del',
+};
+const MATCH_POS_COLOR = {
+  arq: { ring: '#c084fc', badgeBg: '#3b0764', badgeBorder: '#a855f7', badgeText: '#d8b4fe', label: 'ARQ' },
+  def: { ring: '#38bdf8', badgeBg: '#0c4a6e', badgeBorder: '#0ea5e9', badgeText: '#7dd3fc', label: 'DEF' },
+  med: { ring: '#fbbf24', badgeBg: '#451a03', badgeBorder: '#f59e0b', badgeText: '#fcd34d', label: 'MED' },
+  del: { ring: '#f43f5e', badgeBg: '#4c0519', badgeBorder: '#e11d48', badgeText: '#fda4af', label: 'DEL' },
+};
+function matchPosColor(pos) {
+  const group = MATCH_POS_GROUP[String(pos || '').toUpperCase()] || 'med';
+  return MATCH_POS_COLOR[group];
+}
 
 function panelRect({ x, y, w, h, rx = 28, fill, fillOpacity, stroke, strokeWidth = 1.5 }) {
   const fo = fillOpacity != null ? ` fill-opacity="${fillOpacity}"` : '';
@@ -59,7 +97,7 @@ function crestSvg({ cx: ccx, cy, r, dataUri, initials, bg, border, color }) {
     const clipId = `clip-${Math.round(ccx)}-${Math.round(cy)}`;
     return `<g>
       <defs><clipPath id="${clipId}"><circle cx="${ccx}" cy="${cy}" r="${r - 4}"/></clipPath></defs>
-      <circle cx="${ccx}" cy="${cy}" r="${r}" fill="${COLORS.slate950}" stroke="${border}" stroke-width="3"/>
+      <circle cx="${ccx}" cy="${cy}" r="${r}" fill="${CARD_BG}" stroke="${border}" stroke-width="3"/>
       <circle cx="${ccx}" cy="${cy}" r="${r - 4}" fill="#ffffff"/>
       <image x="${ccx - r + 4}" y="${cy - r + 4}" width="${(r - 4) * 2}" height="${(r - 4) * 2}" href="${dataUri}" clip-path="url(#${clipId})" preserveAspectRatio="xMidYMid meet"/>
     </g>`;
@@ -70,12 +108,11 @@ function crestSvg({ cx: ccx, cy, r, dataUri, initials, bg, border, color }) {
   </g>`;
 }
 
-// Marcas de cancha (vertical, se ataca hacia arriba) — trazo fino esmeralda
-// translúcido sobre el panel-gradiente de fondo (ya NO hay un rect verde
-// "césped" sólido detrás, ver buildMatchCardSvg: el panel en sí ya es
-// oscuro/degradado, esto es solo la traza táctica encima).
+// Marcas de cancha (vertical, se ataca hacia arriba) — líneas blancas
+// translúcidas sobre el pasto verde sólido (PITCH_GREEN), como pide la
+// referencia (antes eran esmeralda sobre un panel degradado).
 function pitchMarkingsSvg(px, py, pw, ph) {
-  const L = hexAlpha(COLORS.emerald500, 0.35);
+  const L = 'rgba(255,255,255,0.4)';
   const line = (x1, y1, x2, y2) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${L}" stroke-width="2"/>`;
   const rect = (x, y, w, h) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="none" stroke="${L}" stroke-width="2"/>`;
   const circle = (ccx, ccy, r) => `<circle cx="${ccx}" cy="${ccy}" r="${r}" fill="none" stroke="${L}" stroke-width="2"/>`;
@@ -92,11 +129,12 @@ function pitchMarkingsSvg(px, py, pw, ph) {
   `;
 }
 
-// Un jugador en la cancha: círculo + iniciales + nombre + posición.
-// El color del anillo/insignia sigue el evento más relevante del jugador en
-// ESE partido (rojo > gol > asistencia > sin evento) — más consistente que
-// pintar solo a los goleadores, y usa la misma paleta esmeralda/celeste/rosa
-// que el resto del rediseño en vez de un celeste genérico fijo.
+// Un jugador en la cancha: círculo + iniciales + nombre + posición. El
+// anillo del avatar y el badge de posición SIEMPRE siguen el color de la
+// línea de posición (matchPosColor) — los eventos del partido (gol/
+// asistencia/roja) se marcan solo con los badges superpuestos, no cambian
+// el color base del jugador (así se puede identificar la línea táctica de
+// un vistazo, sin que un gol "tape" a qué posición juega).
 function playerMarkerSvg({ x, y, jug }) {
   const R = 37;
   const isCap = /\(c\)/i.test(jug.nombre || '');
@@ -104,12 +142,7 @@ function playerMarkerSvg({ x, y, jug }) {
   const initials = parts.length > 1 ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() : (parts[0] || '?').substring(0, 2).toUpperCase();
   const displayName = parts.length > 1 ? `${parts[0][0]}. ${parts[parts.length - 1]}` : (parts[0] || '');
   const goles = jug.goles || 0, asist = jug.asist || 0, rojas = jug.rojas || 0;
-
-  const tier = rojas > 0 ? 'rojas' : goles > 0 ? 'goles' : asist > 0 ? 'asist' : null;
-  const tierColor = { rojas: COLORS.rose400, goles: COLORS.emerald400, asist: COLORS.sky400 }[tier] || COLORS.slate700;
-  const ringWidth = tier ? 4 : 2;
-  const nameColor = tier ? tierColor : COLORS.slate300;
-  const nameBorder = tier ? hexAlpha(tierColor, 0.4) : COLORS.slate800;
+  const pc = matchPosColor(jug.pos);
 
   let badges = '';
   let bi = 0;
@@ -129,14 +162,17 @@ function playerMarkerSvg({ x, y, jug }) {
     : '';
 
   const nameW = Math.max(76, estimateTextWidth(displayName, 20) + 28);
+  const posLabel = jug.pos || pc.label;
+  const posBadgeW = Math.max(48, estimateTextWidth(posLabel, 15) + 22);
   return `<g>
-    <circle cx="${x}" cy="${y}" r="${R}" fill="${COLORS.slate950}" stroke="${tierColor}" stroke-width="${ringWidth}"/>
+    <circle cx="${x}" cy="${y}" r="${R}" fill="${CARD_BG}" stroke="${pc.ring}" stroke-width="3"/>
     ${textAt(x, y + 9, initials, { size: 24, weight: 900, fill: COLORS.white, anchor: 'middle' })}
     ${badges}
     ${capBadge}
-    ${panelRect({ x: x - nameW / 2, y: y + R + 8, w: nameW, h: 36, rx: 8, fill: COLORS.slate950, stroke: nameBorder })}
-    ${textAt(x, y + R + 32, displayName, { size: 20, weight: tier ? 900 : 700, fill: nameColor, anchor: 'middle' })}
-    ${jug.pos ? `${panelRect({ x: x - 28, y: y + R + 48, w: 56, h: 24, rx: 6, fill: hexAlpha(COLORS.slate800, 0.7) })}${textAt(x, y + R + 65, jug.pos, { size: 15, weight: 700, fill: COLORS.slate400, anchor: 'middle' })}` : ''}
+    ${panelRect({ x: x - nameW / 2, y: y + R + 8, w: nameW, h: 36, rx: 8, fill: COLORS.slate950, stroke: COLORS.slate700 })}
+    ${textAt(x, y + R + 32, displayName, { size: 20, weight: 800, fill: COLORS.white, anchor: 'middle' })}
+    ${panelRect({ x: x - posBadgeW / 2, y: y + R + 48, w: posBadgeW, h: 26, rx: 6, fill: pc.badgeBg, stroke: hexAlpha(pc.badgeBorder, 0.5) })}
+    ${textAt(x, y + R + 66, posLabel, { size: 15, weight: 900, fill: pc.badgeText, anchor: 'middle' })}
   </g>`;
 }
 
@@ -164,19 +200,6 @@ function pitchSvg({ px, py, pw, ph, titulares, helpers }) {
   return `${pitchMarkingsSvg(px, py, pw, ph)}${markers}`;
 }
 
-const POS_GROUP_LABEL = { arq: 'ARQ', def: 'DEF', med: 'MED', del: 'DEL' };
-function posGroupLabel(pos) {
-  // posGroupColor no expone el nombre del grupo, solo el color — se
-  // recalcula acá con el mismo criterio (ver POS_GROUP en og-card-tree.js)
-  // para el badge de posición del banco de suplentes.
-  const p = String(pos || '').toUpperCase();
-  if (p === 'ARQ') return 'ARQ';
-  if (['DFC', 'DFI', 'DFD', 'LI', 'LD', 'DEF'].includes(p)) return 'DEF';
-  if (['MC', 'MCO', 'MCE', 'MI', 'MD'].includes(p)) return 'MED';
-  if (['DC', 'ED', 'EI', 'DEL', 'AT'].includes(p)) return 'DEL';
-  return p || '—';
-}
-
 // data: { clubLogoDataUri, torneoBadge, leftName, rightName,
 //   leftCrest: {dataUri?, initials, bg, border, color}, rightCrest: {...},
 //   scoreText, scoreColor, played, fechaLabel, diaLabel, lugar, formacion,
@@ -196,10 +219,10 @@ function buildMatchCardSvg(data) {
   const topRowH = 30, gap1 = 20, crestRowH = 200, gap2 = 24, locRowH = 64;
   const headerInnerH = topRowH + gap1 + crestRowH + gap2 + locRowH;
   const headerH = HEADER_PAD * 2 + headerInnerH;
-  parts.push(panelRect({ x: PAD_X, y, w: contentW, h: headerH, rx: 28, fill: COLORS.slate900, fillOpacity: 0.7, stroke: COLORS.slate800 }));
+  parts.push(panelRect({ x: PAD_X, y, w: contentW, h: headerH, rx: 28, fill: PANEL_BG, stroke: hexAlpha(COLORS.slate800, 0.8) }));
 
   let iy = y + HEADER_PAD;
-  parts.push(textAt(PAD_X + HEADER_PAD, iy + 20, torneoBadge || '', { size: 21, weight: 900, fill: COLORS.emerald400 }));
+  parts.push(textAt(PAD_X + HEADER_PAD, iy + 20, torneoBadge || '', { size: 21, weight: 900, fill: COLORS.amber400, letterSpacing: 0.5 }));
   const fechaText = [fechaLabel, diaLabel].filter(Boolean).join('  •  ');
   parts.push(textAt(W - PAD_X - HEADER_PAD, iy + 20, fechaText, { size: 18, weight: 800, fill: COLORS.slate400, anchor: 'end' }));
   parts.push(`<line x1="${PAD_X + HEADER_PAD}" y1="${iy + topRowH + 6}" x2="${W - PAD_X - HEADER_PAD}" y2="${iy + topRowH + 6}" stroke="${COLORS.slate800}" stroke-width="1.5"/>`);
@@ -223,12 +246,12 @@ function buildMatchCardSvg(data) {
 
   // Marcador central: resultado si ya se jugó, hora/"VS" si es pendiente.
   const scoreW = Math.max(160, estimateTextWidth(scoreText, 44) + 56), scoreH = 92;
-  parts.push(panelRect({ x: cx - scoreW / 2, y: crestCy - scoreH / 2, w: scoreW, h: scoreH, rx: 18, fill: COLORS.slate950, stroke: hexAlpha(COLORS.emerald500, 0.5) }));
+  parts.push(panelRect({ x: cx - scoreW / 2, y: crestCy - scoreH / 2, w: scoreW, h: scoreH, rx: 18, fill: CARD_BG, stroke: hexAlpha(COLORS.emerald500, 0.4) }));
   parts.push(textAt(cx, crestCy + 14, scoreText, { size: played === false ? 26 : 44, weight: 900, fill: scoreColor, anchor: 'middle', letterSpacing: played === false ? 1 : 0 }));
   iy = crestCy + crestR + 54 + gap2;
 
   // Ubicación + formación, en su propio panel anidado.
-  parts.push(panelRect({ x: PAD_X + HEADER_PAD, y: iy, w: contentW - HEADER_PAD * 2, h: locRowH, rx: 16, fill: COLORS.slate950, stroke: COLORS.slate800 }));
+  parts.push(panelRect({ x: PAD_X + HEADER_PAD, y: iy, w: contentW - HEADER_PAD * 2, h: locRowH, rx: 16, fill: CARD_BG, stroke: COLORS.slate800 }));
   const locCy = iy + locRowH / 2;
   parts.push(locationIconSvg(PAD_X + HEADER_PAD + 26, locCy, 22, COLORS.emerald400));
   parts.push(textAt(PAD_X + HEADER_PAD + 46, locCy + 7, 'Cancha:', { size: 20, weight: 700, fill: COLORS.slate300 }));
@@ -241,15 +264,18 @@ function buildMatchCardSvg(data) {
   y += headerH + 32;
 
   // ── 2. Cancha táctica ────────────────────────────────────────────────
-  const pw = contentW, ph = Math.round(pw * 340 / 400);
-  const pitchPad = 24;
-  const pitchOuterH = ph + pitchPad * 2;
-  parts.push(`<defs><linearGradient id="pitchGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-    <stop offset="0%" stop-color="${hexAlpha(COLORS.emerald500, 0.16)}"/>
-    <stop offset="100%" stop-color="${COLORS.slate900}"/>
-  </linearGradient></defs>`);
-  parts.push(panelRect({ x: PAD_X, y, w: contentW, h: pitchOuterH, rx: 28, fill: 'url(#pitchGrad)', stroke: hexAlpha(COLORS.emerald500, 0.3) }));
-  parts.push(pitchSvg({ px: PAD_X + pitchPad, py: y + pitchPad, pw, ph, titulares, helpers }));
+  // Marco oscuro (PITCH_FRAME_BG) conteniendo el pasto sólido (PITCH_GREEN)
+  // con líneas blancas — reemplaza el panel con gradiente esmeralda de la
+  // versión anterior, para que se lea como una cancha de verdad.
+  const framePad = 16, pitchPad = 24;
+  const greenW = contentW - framePad * 2;
+  const pw = greenW - pitchPad * 2, ph = Math.round(pw * 340 / 400);
+  const pitchInnerH = ph + pitchPad * 2;
+  const pitchOuterH = pitchInnerH + framePad * 2;
+  parts.push(panelRect({ x: PAD_X, y, w: contentW, h: pitchOuterH, rx: 28, fill: PITCH_FRAME_BG, stroke: COLORS.slate800 }));
+  const pitchX = PAD_X + framePad, pitchY = y + framePad;
+  parts.push(panelRect({ x: pitchX, y: pitchY, w: greenW, h: pitchInnerH, rx: 18, fill: PITCH_GREEN, stroke: hexAlpha(COLORS.emerald500, 0.5) }));
+  parts.push(pitchSvg({ px: pitchX + pitchPad, py: pitchY + pitchPad, pw, ph, titulares, helpers }));
   y += pitchOuterH + 32;
 
   // ── 3. Sección inferior dinámica: Destacados o Banco de Suplentes ───
@@ -268,7 +294,7 @@ function buildMatchCardSvg(data) {
     const PAD = 28, headerH2 = 44, headerGap = 18, cellH = 150;
     const innerH = headerH2 + headerGap + cellH;
     const blockH = PAD * 2 + innerH;
-    parts.push(panelRect({ x: PAD_X, y, w: contentW, h: blockH, rx: 28, fill: COLORS.slate900, fillOpacity: 0.7, stroke: COLORS.slate800 }));
+    parts.push(panelRect({ x: PAD_X, y, w: contentW, h: blockH, rx: 28, fill: PANEL_BG, stroke: hexAlpha(COLORS.slate800, 0.8) }));
     parts.push(textAt(PAD_X + PAD, y + PAD + 18, 'DESTACADOS DEL MATCH', { size: 19, weight: 900, fill: COLORS.slate300, letterSpacing: 1 }));
     parts.push(`<line x1="${PAD_X + PAD}" y1="${y + PAD + headerH2 - 8}" x2="${W - PAD_X - PAD}" y2="${y + PAD + headerH2 - 8}" stroke="${hexAlpha(COLORS.slate800, 0.8)}" stroke-width="1.5"/>`);
 
@@ -276,7 +302,7 @@ function buildMatchCardSvg(data) {
     const colGap = 16, colW = (contentW - PAD * 2 - colGap * 2) / 3;
     destGroups.forEach(([label, color, list], i) => {
       const bx = PAD_X + PAD + i * (colW + colGap);
-      parts.push(panelRect({ x: bx, y: gridTop, w: colW, h: cellH, rx: 16, fill: COLORS.slate950, stroke: hexAlpha(color, 0.3) }));
+      parts.push(panelRect({ x: bx, y: gridTop, w: colW, h: cellH, rx: 16, fill: CARD_BG, stroke: hexAlpha(color, 0.3) }));
       parts.push(textAt(bx + 16, gridTop + 28, label, { size: 15, weight: 900, fill: color, letterSpacing: 0.5 }));
       const shown = list.slice(0, 3);
       shown.forEach((j, li) => {
@@ -294,7 +320,7 @@ function buildMatchCardSvg(data) {
     const rows = Math.ceil(banco.length / cols);
     const gridH = rows * rowH + (rows - 1) * rowGap;
     const blockH = PAD * 2 + headerH2 + headerGap + gridH;
-    parts.push(panelRect({ x: PAD_X, y, w: contentW, h: blockH, rx: 28, fill: COLORS.slate900, fillOpacity: 0.7, stroke: COLORS.slate800 }));
+    parts.push(panelRect({ x: PAD_X, y, w: contentW, h: blockH, rx: 28, fill: PANEL_BG, stroke: hexAlpha(COLORS.slate800, 0.8) }));
     const iconCx = PAD_X + PAD + 11, iconCy = y + PAD + 12;
     parts.push(swapIconSvg(iconCx, iconCy, 20, COLORS.emerald400));
     parts.push(textAt(iconCx + 20, iconCy + 7, 'BANCO DE SUPLENTES', { size: 19, weight: 900, fill: COLORS.slate300, letterSpacing: 1 }));
@@ -306,14 +332,13 @@ function buildMatchCardSvg(data) {
     banco.forEach((j, i) => {
       const r = Math.floor(i / cols), c = i % cols;
       const bx = PAD_X + PAD + c * (colW + colGap), by = gridTop + r * (rowH + rowGap);
-      const posGrp = posGroupLabel(j.pos);
-      const grpColor = posGroupColor(j.pos).light;
-      parts.push(panelRect({ x: bx, y: by, w: colW, h: rowH, rx: 12, fill: COLORS.slate950, stroke: j.entro ? hexAlpha(COLORS.emerald500, 0.4) : COLORS.slate800 }));
+      const pc = matchPosColor(j.pos);
+      parts.push(panelRect({ x: bx, y: by, w: colW, h: rowH, rx: 12, fill: CARD_BG, stroke: j.entro ? hexAlpha(COLORS.emerald500, 0.4) : COLORS.slate800 }));
       const name = (j.nombre || '').length > 14 ? j.nombre.slice(0, 13) + '…' : (j.nombre || '');
       parts.push(textAt(bx + 14, by + rowH / 2 + 6, name, { size: 16, weight: 700, fill: j.entro ? COLORS.emerald300 : COLORS.slate200 }));
       const badgeW = 46, badgeH = 24;
-      parts.push(panelRect({ x: bx + colW - badgeW - 10, y: by + rowH / 2 - badgeH / 2, w: badgeW, h: badgeH, rx: 6, fill: hexAlpha(grpColor, 0.12) }));
-      parts.push(textAt(bx + colW - badgeW / 2 - 10, by + rowH / 2 + 5, posGrp, { size: 13, weight: 900, fill: grpColor, anchor: 'middle' }));
+      parts.push(panelRect({ x: bx + colW - badgeW - 10, y: by + rowH / 2 - badgeH / 2, w: badgeW, h: badgeH, rx: 6, fill: pc.badgeBg, stroke: hexAlpha(pc.badgeBorder, 0.5) }));
+      parts.push(textAt(bx + colW - badgeW / 2 - 10, by + rowH / 2 + 5, j.pos || pc.label, { size: 13, weight: 900, fill: pc.badgeText, anchor: 'middle' }));
     });
     y += blockH + 32;
   }
@@ -324,7 +349,7 @@ function buildMatchCardSvg(data) {
 
   const H = y;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
-  <rect x="0" y="0" width="${W}" height="${H}" fill="${COLORS.slate950}"/>
+  <rect x="0" y="0" width="${W}" height="${H}" fill="${CARD_BG}"/>
 ${parts.map(p => '  ' + p).join('\n')}
 </svg>`;
 }
