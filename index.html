@@ -16032,6 +16032,12 @@ const GS = {
   // devolvía 503 el 100% de las veces (nunca podía disparar de verdad, solo
   // generaba un request roto reintentado en loop). Ver el comentario en
   // loadLiveData(), sección "PRIMERA B — Clausura AIFA B 2026".
+  // Sheet dedicado SOLO a las Tablas de Posiciones de los torneos en vivo
+  // (Clausura AIFA A/B 2026) — reemplaza los rangos "Tabla" que antes se
+  // leían de A_MAIN/B_HIST mismos (ver fetchGvizByGid(GS.POSICIONES, ...)
+  // en loadLiveData()). El resto de cada torneo (Fecha a Fecha, plantel/
+  // stats de jugadores) sigue viniendo de A_MAIN/B_HIST, sin cambios.
+  POSICIONES: '1UfhnUILuCUyWuQ8i2JYYd_jly26ioYW2XOzfm46QNXk',
 };
 
 const PROXY_URL = 'https://script.google.com/macros/s/AKfycbzDmI2fgAZEONfC7gwuwazmR-GVPd4ISVTQiBBEU7324Sn8Pp6YGxnZwsrwe5J8ghE8/exec';
@@ -17537,19 +17543,14 @@ async function loadLiveData() {
     //    de Primera B entera; solo esta lectura puntual es la que de verdad
     //    necesita esquivar el bug de gviz. ──
     fetchProxy('CLAUSURA 2026 AIFA B', 'A19:J561', GS.B_HIST),
-    // Club-confirmed layout: Plantel header at L3, Tabla header at L39
-    // (screenshot-verified — Banco Ciudad's own "Equipo" cell is exactly
-    // M40). The Tabla range is fetched with a generous buffer above the real
-    // header (L35 instead of L39) — the "Tabla Parcial" merged banner sits
-    // immediately above the header at rows 37-38, and console diagnostics
-    // (with just a 1-row buffer) showed gviz's CSV export for this exact
-    // range dropping the header row entirely, with Banco Ciudad's own row
-    // then getting misread as the header instead. Whatever the precise
-    // mechanism, a wider buffer plus parseTablaSheet's header search (now
-    // scanning more rows, see the call site) makes this robust without
-    // needing to fully pin down gviz's exact behavior around that merge.
+    // Club-confirmed layout: Plantel header at L3.
     fetchGvizByGid(GS.B_HIST, 266944794, 'L2:X35'),
-    fetchGvizByGid(GS.B_HIST, 266944794, 'L34:V56'),
+    // Tabla de Posiciones: sheet dedicado GS.POSICIONES (ver ese comentario),
+    // pestaña "Posiciones_B" (gid=1670392238), club-confirmed A1:K17 — ya NO
+    // sale de B_HIST. parseTablaSheet detecta las columnas por el texto del
+    // header (Equipo/PTS/PJ/...) en vez de por posición fija, así que el
+    // rango arrancando en A en vez de L no requiere ningún cambio ahí.
+    fetchGvizByGid(GS.POSICIONES, 1670392238, 'A1:K17'),
     // Short "resumen"/Centro de Datos table (club-confirmed A1:J16) — carries
     // Observaciones/Parciales/Posición/Local missing from the detailed Fecha
     // a Fecha block above, same enrichment pattern as Clausura AIFA A 2026.
@@ -17565,9 +17566,13 @@ async function loadLiveData() {
     //    Fecha detallado (tab "Clausura 2026") va por fetchProxy — ver
     //    comentario en el equivalente de B. ──
     fetchProxy('Clausura 2026', 'A22:I532', GS.A_MAIN),
-    // Club-confirmed updated ranges (plantel grew, tabla row shifted down).
+    // Club-confirmed updated range (plantel grew).
     fetchGvizByGid(GS.A_MAIN, 618783090, 'L3:X31'),
-    fetchGvizByGid(GS.A_MAIN, 618783090, 'L35:V51'),
+    // Tabla de Posiciones: sheet dedicado GS.POSICIONES (ver ese comentario),
+    // pestaña "Posiciones_A" (gid=22569147), club-confirmed A1:K17 — ya NO
+    // sale de A_MAIN. Mismo motivo que en B: parseTablaSheet detecta las
+    // columnas por el header, no por posición fija.
+    fetchGvizByGid(GS.POSICIONES, 22569147, 'A1:K17'),
     // Short "resumen"/Centro de Datos table (club-confirmed A1:J18) — carries
     // Observaciones/Parciales/Posición/Local missing from the detailed Fecha
     // a Fecha block above, same enrichment pattern as Apertura AIFA A 2026.
