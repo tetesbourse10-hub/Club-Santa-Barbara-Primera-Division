@@ -1,7 +1,7 @@
 // Lee la tabla 'name' de un .ttf y devuelve el Font Family Name (nameID 1)
 // — parser mínimo a mano (sin dependencias) del formato sfnt/TrueType.
 // Usado como diagnóstico (build de scripts/generate-og.js y la función
-// netlify/functions/partido-og.js): si el nombre real embebido en el
+// scripts/generate-partido-og.js): si el nombre real embebido en el
 // archivo no dice "Inter", resvg nunca va a poder matchearlo contra
 // font-family="Inter" del SVG — y eso puede pasar en silencio, sin tirar
 // ninguna excepción (el texto sale con otra fuente, o directamente

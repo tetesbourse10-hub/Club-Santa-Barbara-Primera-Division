@@ -1,30 +1,10 @@
 [build]
   publish = "."
-  # Genera og/<slug>.png + jugador/<slug>/index.html para cada jugador antes
-  # de publicar — ver scripts/generate-og.js. Nada de esto corre en runtime
-  # por visita: es un paso más del build, como cualquier otro.
+  # Genera og/<slug>.png + jugador/<slug>/index.html para cada jugador, y
+  # og/partido/<torneo>-<fecha>.png + partido/<torneo>/<fecha>/index.html
+  # para cada partido con el 11 titular cargado, antes de publicar — ver
+  # scripts/generate-og.js y scripts/generate-partido-og.js. Nada de esto
+  # corre en runtime por visita: es un paso más del build, como cualquier
+  # otro (ambas rutas se sirven como archivos estáticos comunes, Netlify las
+  # encuentra solo — no hace falta ningún redirect ni Netlify Function).
   command = "npm install && npm run build"
-
-[functions]
-  directory = "netlify/functions"
-  # partido.js/partido-og.js necesitan estos 2 paquetes en runtime (no solo en
-  # build): resvg-js (rasteriza el SVG a PNG) y los .woff2 reales de Inter que
-  # lee scripts/fetch-font.js — sin esto el bundler de Functions puede no
-  # detectar estos archivos no-JS dentro de node_modules y quedarían afuera
-  # del paquete desplegado.
-  included_files = [
-    "node_modules/@fontsource/inter/files/inter-latin-400-normal.woff2",
-    "node_modules/@fontsource/inter/files/inter-latin-700-normal.woff2",
-    "node_modules/@fontsource/inter/files/inter-latin-900-normal.woff2",
-    "logo-csb.webp",
-  ]
-
-# /partido/:torneo/:fecha (ej. /partido/a/4) → netlify/functions/partido.js,
-# que arma la página con meta og: reales (ver ese archivo) y a su vez pide la
-# imagen a partido-og.js. Both corren EN VIVO por cada visita (a diferencia
-# de /jugador/:slug, horneado en build) porque el resultado/plantel de un
-# partido de la temporada en curso puede cambiar de un día para el otro.
-[[redirects]]
-  from = "/partido/:torneo/:fecha"
-  to = "/.netlify/functions/partido?torneo=:torneo&fecha=:fecha"
-  status = 200

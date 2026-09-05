@@ -87,7 +87,7 @@ const STAT_COLORS = {
 // mismo mapeo que POS_NOMBRE en index.html, duplicado a mano acá (en vez de
 // leerlo vía window.POS_NOMBRE) porque ese objeto es un `const` de nivel
 // superior: no queda expuesto en window dentro del jsdom de generate-og.js
-// (mismo motivo, real, documentado en netlify/functions/_matchData.js para
+// (mismo motivo, real, documentado en scripts/_matchPartidoData.js para
 // GS/RIVAL_CREST_URLS) — como es un mapa chico y estático que casi nunca
 // cambia, duplicarlo acá es más simple y confiable que resolver ese problema
 // para un solo uso.
@@ -507,7 +507,7 @@ ${rendered.map(p => '  ' + p).join('\n')}
 }
 
 // COLORS/FONT/posGroupColor/estimateTextWidth se re-exportan para que
-// netlify/functions/_matchCardSvg.js (la Ficha de Partido) use exactamente
+// scripts/_matchCardSvg.js (la Ficha de Partido) use exactamente
 // la misma paleta Dark Slate + Verde Esmeralda y el mismo criterio de color
 // por línea de posición, en vez de duplicar los valores a mano.
 module.exports = {

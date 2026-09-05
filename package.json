@@ -3,7 +3,7 @@
   "private": true,
   "description": "Sitio estático de Club Santa Bárbara. scripts/generate-og.js genera, en build time, un PNG + página estática de preview (og:image) por jugador para /jugador/:slug — ver ese archivo para el detalle.",
   "scripts": {
-    "build": "node scripts/generate-og.js"
+    "build": "node scripts/generate-og.js && node scripts/generate-partido-og.js"
   },
   "dependencies": {
     "@fontsource/inter": "^5.1.0",

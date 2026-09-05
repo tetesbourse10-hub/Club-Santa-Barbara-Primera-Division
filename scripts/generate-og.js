@@ -291,7 +291,7 @@ async function main() {
   // producción: el texto salía en una fuente monoespaciada genérica, no en
   // Inter, sin que el build tirara ningún error): `font.fontBuffers` es el
   // camino "en memoria" de resvg, pero tanto acá (Netlify Build) como en
-  // Netlify Functions (ver netlify/functions/partido-og.js, mismo bug ya
+  // Netlify Functions (ver scripts/generate-partido-og.js, mismo bug ya
   // encontrado y corregido ahí) el matching contra font-family="Inter" del
   // SVG puede fallar en silencio del lado de Rust/fontdb — resvg cae a su
   // fallback interno en vez de tirar una excepción. `font.fontFiles` (leer

@@ -1,5 +1,7 @@
 node_modules/
-# Generados por scripts/generate-og.js en cada build — no se versionan.
+# Generados por scripts/generate-og.js / scripts/generate-partido-og.js en
+# cada build — no se versionan.
 /og/
 /jugador/
+/partido/
 /data/

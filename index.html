@@ -7008,9 +7008,10 @@ function _tryOpenPlayerFromHash() {
   return false;
 }
 
-// Deep link directo a un partido (ver netlify/functions/partido.js, el link
-// que arma shareFechaCard cuando el torneo está cubierto por esa función) —
-// mismo patrón que _tryOpenPlayerFromHash: entrar por /partido/:torneo/:fecha
+// Deep link directo a un partido (ver scripts/generate-partido-og.js, el
+// link que arma shareFechaCard cuando el torneo está cubierto por ese
+// script de build) — mismo patrón que _tryOpenPlayerFromHash: entrar por
+// /partido/:torneo/:fecha
 // redirige acá con el hash #partido/<torneo>/<fecha> ya puesto, y como
 // popstate no dispara en la carga inicial, hay que intentarlo a mano una vez
 // que loadLiveData() haya cargado la Fecha a Fecha real (ver el init de más
@@ -8293,11 +8294,15 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
   // ya se ve como fallback en el resto del sitio en vez de arriesgar el
   // escudo real; el propio logo (same-origin) sí se usa tal cual.
   // Si esta fecha es un partido REAL de la temporada en curso (Clausura AIFA
-  // A/B 2026, las dos únicas cubiertas por netlify/functions/partido.js por
-  // ahora), se puede compartir como LINK de verdad en vez de una imagen
+  // A/B 2026, las dos únicas cubiertas por scripts/generate-partido-og.js
+  // por ahora), se puede compartir como LINK de verdad en vez de una imagen
   // generada en el momento — mejor UX (preview instantáneo, sin esperar a
-  // html2canvas) y siempre actualizado aunque el sitio no se vuelva a
-  // deployar. Se detecta por referencia: `detail` es exactamente el mismo
+  // html2canvas). La ficha se hornea en build time (mismo criterio que la de
+  // jugador): queda "actualizada a partir del último deploy", no en vivo —
+  // ver la nota completa en scripts/generate-partido-og.js sobre por qué NO
+  // hace falta que sea en vivo (un partido puntual solo cambia dos veces: al
+  // cargar el 11 y al cargar los incidentes al terminar). Se detecta por
+  // referencia: `detail` es exactamente el mismo
   // objeto que vive en DATA_A.apertura/DATA_B.apertura solo cuando viene de
   // ahí — Torneos Antiguos/Copas leen de otros arrays (DATA_A_APERTURA2026,
   // COPA_BLOCKS, etc.), así que ahí da null y se cae al share por imagen de
@@ -8390,11 +8395,11 @@ async function _imgUrlToDataUrl(url, timeoutMs = 4000) {
   } catch { return null; }
 }
 // Comparte el LINK al partido (no una imagen adjunta) cuando está cubierto
-// por netlify/functions/partido.js (ver window._fdShareLink en
-// buildFechaDetailHTML) — la preview con imagen la arma esa función en vivo
-// leyendo el sheet real, así el share es instantáneo y nunca queda
-// desactualizado. Mismo patrón que ya usa _ppShareCard para el perfil de
-// jugador (reusa su mismo fallback de copiar al portapapeles).
+// por scripts/generate-partido-og.js (ver window._fdShareLink en
+// buildFechaDetailHTML) — la preview con imagen ya está horneada de
+// antemano (build time, no en vivo), así el share es instantáneo. Mismo
+// patrón que ya usa _ppShareCard para el perfil de jugador (reusa su mismo
+// fallback de copiar al portapapeles).
 window.shareFechaCard = async function() {
   const btn = document.querySelector('.ap-fd-share-btn');
   if (window._fdShareLink) {

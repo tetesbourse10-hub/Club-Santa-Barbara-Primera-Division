@@ -1,9 +1,13 @@
 // Arma el SVG de la tarjeta de preview de un partido (Fecha a Fecha),
 // paralelo al diseño de .fd-share-card (ver index.html, shareFechaCard) pero
-// dibujado a mano en SVG para poder rasterizarlo server-side con resvg — así
-// el texto sale siempre nítido (sin las limitaciones de html2canvas) y el
-// escudo real del rival se puede embeber sin ningún riesgo de CORS (acá no
-// hay <canvas> de navegador: es Node bajando la imagen por HTTP directo).
+// dibujado a mano en SVG para poder rasterizarlo con resvg — así el texto
+// sale siempre nítido (sin las limitaciones de html2canvas) y el escudo real
+// del rival se puede embeber sin ningún riesgo de CORS (acá no hay <canvas>
+// de navegador: es Node bajando la imagen por HTTP directo).
+//
+// Se genera EN BUILD TIME (scripts/generate-partido-og.js), no por request:
+// ver ese archivo para el porqué (antes vivía como Netlify Function en
+// netlify/functions/, antes de migrar).
 //
 // Rediseño pedido a partir de una referencia HTML+Tailwind (Dark Slate +
 // Verde Esmeralda + acentos Dorado/Celeste, mismo lenguaje visual que ya se
@@ -22,7 +26,7 @@
 // scripts/fetch-font.js) no trae glifos de emoji — cualquier ⚽/🎯/👑 saldría
 // como una casilla vacía. Se usan badges de color + texto/vectores en vez de
 // íconos de fuente.
-const { hexAlpha, escapeXml, COLORS, FONT, estimateTextWidth } = require('../../scripts/og-card-tree');
+const { hexAlpha, escapeXml, COLORS, FONT, estimateTextWidth } = require('./og-card-tree');
 
 const W = 1080;
 const PAD_X = 64;

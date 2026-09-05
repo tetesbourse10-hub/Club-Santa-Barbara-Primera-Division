@@ -1,22 +1,28 @@
-// Motor de datos compartido por partido.js (página HTML con meta og:) y
-// partido-og.js (la imagen PNG en sí) — carga el motor REAL del sitio
-// (index.html) dentro de jsdom, la misma técnica que ya usa
-// scripts/generate-og.js en build time, para no duplicar (y arriesgar
-// desincronizar) la lógica de fetch/parseo de Fecha a Fecha en una segunda
-// copia a mano. A diferencia del build, acá NO se llama loadLiveData()
-// completo (dispara ~30 fetches en paralelo, pensado para correr una vez por
-// deploy, no por cada visita) — se piden solo los 2 fetches puntuales
-// (detalle + resumen básico) que hacen falta para ESTE partido.
+// Motor de datos de partidos para la Ficha de Partido compartible — carga el
+// motor REAL del sitio (index.html) dentro de jsdom, la misma técnica que ya
+// usa scripts/generate-og.js, para no duplicar (y arriesgar desincronizar)
+// la lógica de fetch/parseo de Fecha a Fecha en una segunda copia a mano. No
+// se llama loadLiveData() completo (dispara ~30 fetches en paralelo, pensado
+// para el jugador) — se piden solo los 2 fetches puntuales (detalle +
+// resumen básico) que hacen falta para el torneo actual y sus fechas.
+//
+// Antes esto vivía en netlify/functions/ y corría EN VIVO por cada visita
+// (una Netlify Function). Se migró a build time (scripts/generate-partido-og.js)
+// porque un partido en sí solo cambia dos veces (carga del 11 titular, carga
+// de los incidentes al terminar) — no hacía falta que fuera en vivo, y esa
+// arquitectura resultó ser justo la causa de que a veces la imagen no se
+// generara (jsdom completo + fetch en vivo a Sheets + resvg, todo dentro del
+// límite de 10s de una Netlify Function en el plan actual).
 const fs = require('fs');
 const path = require('path');
 const { JSDOM } = require('jsdom');
 
-const ROOT = path.join(__dirname, '..', '..');
+const ROOT = path.join(__dirname, '..');
 const SITE_URL = (process.env.URL || process.env.DEPLOY_PRIME_URL || 'https://clubsantabarbara.netlify.app').replace(/\/$/, '');
 
-// Memoizado a nivel de módulo: en una instancia "tibia" (warm) de la función,
-// invocaciones sucesivas reusan el mismo jsdom en vez de volver a parsear/
-// evaluar las ~18.000 líneas de index.html en cada request.
+// Memoizado a nivel de módulo: generate-partido-og.js pide los 2 torneos
+// (a/b) en la misma corrida — esto evita volver a parsear/evaluar las
+// ~18.000 líneas de index.html una segunda vez.
 let _enginePromise = null;
 function _loadEngine() {
   if (!_enginePromise) {
@@ -67,40 +73,10 @@ const TORNEO_CFG = {
   },
 };
 
-// Devuelve { match, helpers } o null si el torneo/fecha no existe (todavía,
-// o nunca). `helpers` expone las mismas funciones puras que ya usa el
-// cliente (RIVAL_CREST_URLS, slugify, _rivalInitials, _rivalAvatarColor,
-// _plantelPosColor, apBand/AP_BAND_Y/AP_BAND_OF para la cancha) sin
-// duplicarlas a mano.
-async function getMatchData(torneo, fecha) {
-  const cfg = TORNEO_CFG[torneo];
-  if (!cfg || !fecha) return null;
-  const window = await _loadEngine();
-  const sheetId = window.GS[cfg.sheetKey];
-
-  const [detRows, basicRows] = await Promise.all([
-    window.fetchProxy(cfg.tab, cfg.detRange, sheetId),
-    window.fetchProxy(cfg.tab, cfg.basicRange, sheetId),
-  ]);
-  const detailed = window.parseDetailedMatches(detRows, true);
-  const m = detailed.find(mm => String(mm.fecha) === String(fecha));
-  if (!m) return null;
-
-  let local = null;
-  try {
-    const basicMatches = window.parseMatches(basicRows);
-    const b = basicMatches.find(bb => String(bb.fecha) === String(fecha));
-    local = b ? b.local : null;
-  } catch (e) { /* la tabla resumen es un enriquecimiento, no algo crítico */ }
-
-  return {
-    match: {
-      rival: m.rival, fecha: m.fecha, dia: m.dia, hora: m.hora, lugar: m.lugar,
-      formacionCSB: m.formacionCSB, formacionRival: m.formacionRival,
-      resultado: m.resultado, gf: m.gf, gc: m.gc, penales: m.penales,
-      jugadores: m.jugadores || [], local, torneoBadge: cfg.badge, torneoColor: cfg.color,
-    },
-    helpers: {
+const _helpersCache = new WeakMap();
+function buildHelpers(window) {
+  if (!_helpersCache.has(window)) {
+    _helpersCache.set(window, {
       slugify: window.slugify,
       RIVAL_CREST_URLS: window.RIVAL_CREST_URLS,
       rivalInitials: window._rivalInitials,
@@ -111,8 +87,40 @@ async function getMatchData(torneo, fecha) {
       AP_BAND_OF: window.AP_BAND_OF,
       formatISODia: window.formatISODia,
       formatISOHora: window.formatISOHora,
-    },
-  };
+    });
+  }
+  return _helpersCache.get(window);
 }
 
-module.exports = { getMatchData, SITE_URL, TORNEO_CFG };
+// Devuelve TODOS los partidos de un torneo (no uno solo) + los helpers —
+// generate-partido-og.js recorre esta lista entera y genera una imagen por
+// cada fecha que ya tenga el 11 titular cargado.
+async function getAllMatches(torneo) {
+  const cfg = TORNEO_CFG[torneo];
+  if (!cfg) return null;
+  const window = await _loadEngine();
+  const sheetId = window.GS[cfg.sheetKey];
+
+  const [detRows, basicRows] = await Promise.all([
+    window.fetchProxy(cfg.tab, cfg.detRange, sheetId),
+    window.fetchProxy(cfg.tab, cfg.basicRange, sheetId),
+  ]);
+  const detailed = window.parseDetailedMatches(detRows, true);
+  let basicByFecha = new Map();
+  try {
+    const basicMatches = window.parseMatches(basicRows);
+    basicByFecha = new Map(basicMatches.map(b => [String(b.fecha), b.local]));
+  } catch (e) { /* la tabla resumen es un enriquecimiento, no algo crítico */ }
+
+  const matches = detailed.map(m => ({
+    rival: m.rival, fecha: m.fecha, dia: m.dia, hora: m.hora, lugar: m.lugar,
+    formacionCSB: m.formacionCSB, formacionRival: m.formacionRival,
+    resultado: m.resultado, gf: m.gf, gc: m.gc, penales: m.penales,
+    jugadores: m.jugadores || [], local: basicByFecha.get(String(m.fecha)) || null,
+    torneoBadge: cfg.badge, torneoColor: cfg.color,
+  }));
+
+  return { matches, helpers: buildHelpers(window) };
+}
+
+module.exports = { getAllMatches, SITE_URL, TORNEO_CFG };
