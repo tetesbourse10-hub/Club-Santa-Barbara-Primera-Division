@@ -60,8 +60,10 @@
 // resvg (el motor que rasteriza a PNG) no hereda nada del sitio ni tiene
 // fuentes de sistema garantizadas en la máquina de build — así que
 // scripts/fetch-font.js baja el .ttf real de Inter (Regular + Bold +
-// Black) desde Google Fonts acá abajo, y se lo pasamos a resvg como buffer
-// explícito (con loadSystemFonts:false) antes de renderizar cada imagen.
+// Black) desde Google Fonts acá abajo, y se lo pasamos a resvg vía
+// font.fontFiles (un path real en disco, no un buffer en memoria — ver la
+// nota del bug real más abajo) con loadSystemFonts:false antes de
+// renderizar cada imagen.
 //
 // Por el mismo motivo (loadSystemFonts:false, sin fuentes de sistema)
 // cualquier emoji (🛡️, 👕) sale como una casilla vacía — Inter no tiene
@@ -73,6 +75,7 @@
 // convierte a PNG en memoria con `sharp` antes de embeberlo en base64.
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const { JSDOM } = require('jsdom');
 const { Resvg } = require('@resvg/resvg-js');
@@ -284,6 +287,27 @@ async function main() {
     }
   }
 
+  // BUG REAL confirmado (reportado con una imagen real del build de
+  // producción: el texto salía en una fuente monoespaciada genérica, no en
+  // Inter, sin que el build tirara ningún error): `font.fontBuffers` es el
+  // camino "en memoria" de resvg, pero tanto acá (Netlify Build) como en
+  // Netlify Functions (ver netlify/functions/partido-og.js, mismo bug ya
+  // encontrado y corregido ahí) el matching contra font-family="Inter" del
+  // SVG puede fallar en silencio del lado de Rust/fontdb — resvg cae a su
+  // fallback interno en vez de tirar una excepción. `font.fontFiles` (leer
+  // el .ttf de un path real en disco) es el camino de toda la vida de resvg
+  // y mucho más confiable — se escriben los 3 pesos una sola vez a un
+  // directorio temporal y se referencian por archivo en vez de por buffer.
+  console.log('Escribiendo los .ttf de Inter a disco (font.fontFiles en vez de fontBuffers — ver nota del bug real)…');
+  const fontsDir = path.join(os.tmpdir(), 'csb-og-inter-fonts');
+  fs.mkdirSync(fontsDir, { recursive: true });
+  const fontFiles = {};
+  for (const [weight, buf] of Object.entries(fonts)) {
+    const fp = path.join(fontsDir, `inter-${weight}.ttf`);
+    fs.writeFileSync(fp, buf);
+    fontFiles[weight] = fp;
+  }
+
   console.log('Convirtiendo el logo del club (webp → png) para embeberlo en la imagen…');
   const logoPngBuffer = await sharp(path.join(ROOT, 'logo-csb.webp')).png().toBuffer();
   const logoDataUri = `data:image/png;base64,${logoPngBuffer.toString('base64')}`;
@@ -370,7 +394,7 @@ async function main() {
       // fuentes tenga ese runner en particular.
       const png = new Resvg(svg, {
         font: {
-          fontBuffers: [fonts.regular, fonts.bold, fonts.black],
+          fontFiles: [fontFiles.regular, fontFiles.bold, fontFiles.black],
           loadSystemFonts: false,
           defaultFontFamily: 'Inter',
         },

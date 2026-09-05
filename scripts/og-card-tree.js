@@ -451,8 +451,8 @@ function buildShareCardSvg({ nombre, pos, posColor, goles, asist, pj, gmas, titu
       rows.forEach((row, r) => {
         row.forEach((st, c) => {
           const ccx = innerX + c * cellW + cellW / 2, ccy = innerY + r * cellH + cellH / 2;
-          parts.push(`<text x="${ccx}" y="${ccy - 6}" font-family="${FONT}" font-size="44" font-weight="900" letter-spacing="-1" fill="${st.color}" text-anchor="middle">${escapeXml(String(st.val))}</text>`);
-          parts.push(`<text x="${ccx}" y="${ccy + 34}" font-family="${FONT}" font-size="16" font-weight="800" letter-spacing="1.5" fill="${COLORS.slate400}" text-anchor="middle">${escapeXml(st.label.toUpperCase())}</text>`);
+          parts.push(`<text x="${ccx}" y="${ccy - 8}" font-family="${FONT}" font-size="56" font-weight="900" letter-spacing="-1" fill="${st.color}" text-anchor="middle">${escapeXml(String(st.val))}</text>`);
+          parts.push(`<text x="${ccx}" y="${ccy + 38}" font-family="${FONT}" font-size="20" font-weight="800" letter-spacing="1.5" fill="${COLORS.slate400}" text-anchor="middle">${escapeXml(st.label.toUpperCase())}</text>`);
         });
       });
       return parts.join('\n');
