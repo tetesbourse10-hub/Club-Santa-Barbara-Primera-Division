@@ -176,6 +176,17 @@ function playerMarkerSvg({ x, y, jug }) {
   </g>`;
 }
 
+// AP_BAND_Y (helpers, ver index.html) usa el rango ~20%-87% — deja bastante
+// aire libre arriba de los delanteros (0-20%) y abajo del arquero (87-100%)
+// sin usar. Achicar ese aire y separar más las líneas entre sí queda
+// LOCAL a esta tarjeta (no se toca AP_BAND_Y: ese valor lo comparte la
+// cancha táctica en vivo de index.html, y tocarlo movería también esa
+// visualización, que no es lo que se pidió acá).
+function remapBandY(yFrac) {
+  const IN_MIN = 20, IN_MAX = 87, OUT_MIN = 6, OUT_MAX = 94;
+  return OUT_MIN + ((yFrac - IN_MIN) / (IN_MAX - IN_MIN)) * (OUT_MAX - OUT_MIN);
+}
+
 function pitchSvg({ px, py, pw, ph, titulares, helpers }) {
   const { apBand, AP_BAND_Y, AP_BAND_OF } = helpers;
   const bands = [[], [], [], [], []];
@@ -189,7 +200,7 @@ function pitchSvg({ px, py, pw, ph, titulares, helpers }) {
     const group = bands[bi];
     const n = group.length;
     if (!n) continue;
-    const yFrac = AP_BAND_Y[bi];
+    const yFrac = remapBandY(AP_BAND_Y[bi]);
     group.forEach((jug, i) => {
       const xFrac = n === 1 ? 50 : (100 * (2 * i + 1)) / (2 * n);
       const x = px + (xFrac / 100) * pw;
@@ -269,7 +280,11 @@ function buildMatchCardSvg(data) {
   // versión anterior, para que se lea como una cancha de verdad.
   const framePad = 16, pitchPad = 24;
   const greenW = contentW - framePad * 2;
-  const pw = greenW - pitchPad * 2, ph = Math.round(pw * 340 / 400);
+  // Antes ph = pw*0.85 (más ancha que alta) — muy poco alto para 5 líneas
+  // de jugadores con nombre+posición debajo sin sentirse apretadas. Con
+  // ph = pw*1.05 crece la cancha en altura (el ancho de la tarjeta no
+  // cambia) y sobra más aire vertical entre líneas.
+  const pw = greenW - pitchPad * 2, ph = Math.round(pw * 1.05);
   const pitchInnerH = ph + pitchPad * 2;
   const pitchOuterH = pitchInnerH + framePad * 2;
   parts.push(panelRect({ x: PAD_X, y, w: contentW, h: pitchOuterH, rx: 28, fill: PITCH_FRAME_BG, stroke: COLORS.slate800 }));
