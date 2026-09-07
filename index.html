@@ -3161,8 +3161,13 @@
       padding-right:14px; border-right:1px solid #1e293b;
     }
     .pp-particip-vallas-col {
+      /* padding simétrico (no solo padding-left) — con un solo lado, el
+         área de contenido quedaba corrida de más hacia la derecha dentro
+         de su propia mitad (el padding-left le resta ancho SOLO del lado
+         izquierdo, así que "centrado" adentro de esa caja ya no caía en
+         el centro real de la mitad de la card). */
       flex:1 1 0; min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
-      text-align:center; gap:4px; padding-left:14px; border-radius:10px;
+      text-align:center; gap:4px; padding:0 14px; border-radius:10px;
     }
     /* El banner "Rival Más Cerrado" ya se ve repetido abajo del todo en
        mobile (ver .pp-metrics-fav-mobile, que muestra el mismo dato cuando
@@ -3330,6 +3335,15 @@
     .pp-kpi-tab:hover { background:rgba(255,255,255,0.04); }
     .pp-kpi-tab:active { background:rgba(255,255,255,0.08); }
     .pp-kpi-active { border-color:rgba(245,158,11,.4); background:rgba(245,158,11,.08); }
+    /* Partidos/Goles/Asistencias/G+A viven dentro de .pp-metrics-grid, que
+       les pone su propio fondo/borde (.pp-metrics-grid .hist-kpi, 2
+       clases de specificity) — eso le gana al fondo/borde de arriba (1
+       sola clase) pase lo que pase el orden en la hoja, por eso el
+       resaltado de "seleccionado" ahí casi no se notaba (a diferencia de
+       Vallas Invictas, que no tiene fondo propio compitiendo). Repetir acá
+       con la misma specificity que le gana a .pp-metrics-grid .hist-kpi. */
+    .pp-metrics-grid .hist-kpi.pp-kpi-tab:hover { background:rgba(255,255,255,0.06); }
+    .pp-metrics-grid .hist-kpi.pp-kpi-active { border-color:rgba(245,158,11,.4); background:rgba(245,158,11,.12); }
     /* En mobile no hay :hover — sin esto, nada avisaba que estas tarjetas
        (Partidos/Goles/Asistencias/G+A) se pueden tocar para abrir el
        detalle. Un chevron fijo en la esquina (visible siempre, no solo al
