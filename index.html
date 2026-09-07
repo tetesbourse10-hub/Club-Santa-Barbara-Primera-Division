@@ -3152,8 +3152,13 @@
     .pp-particip-card.pp-particip-split { flex-direction: row; gap: 14px; }
     .pp-particip-main { display:flex; flex-direction:column; gap:10px; flex:1 1 0; min-width:0; }
     .pp-particip-vallas-col {
-      flex:0 0 34%; display:flex; flex-direction:column; align-items:center; justify-content:center;
-      text-align:center; gap:4px; border-left:1px solid #1e293b; padding-left:14px;
+      flex:1 1 0; min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+      text-align:center; gap:4px; padding-left:14px; border-radius:10px;
+      /* box-shadow en vez de border-left: .pp-kpi-tab/.pp-kpi-active (clickeable,
+         ver más abajo) ya usan la propiedad "border" en shorthand — compartir
+         "border-left" con esas reglas terminaba en un pisado de una contra la
+         otra según orden de cascada. box-shadow inset no choca con "border". */
+      box-shadow: -1px 0 0 #1e293b inset;
     }
     .pp-particip-vallas-icon { font-size:1.1rem; opacity:.8; }
     .pp-particip-vallas-val { font-size:1.3rem; font-weight:900; color:#fff; line-height:1; transition:opacity .15s; }
@@ -5247,6 +5252,7 @@ function ppFilterMetrics(cat, btn) {
     ['pp-fav-pj', '⚔️', 'Rival Favorito', fav.partidos, 'PJ'],
     ['pp-fav-goles', '🎯', 'Víctima Favorita', fav.goles, 'Goles'],
     ['pp-fav-asist', '🅰️', 'Asistencia Favorita', fav.asist, 'Asist.'],
+    ['pp-fav-vallas', '🧤', 'Rival Más Cerrado', fav.vallas, 'Vallas'],
   ];
   favFields.forEach(([id, icon, label, favVal, unit]) => {
     const el = document.getElementById(id);
@@ -5600,6 +5606,12 @@ function _ppDeriveDetailListsFromPartidos(partidos) {
     asist: partidos.filter(p => p.asist > 0),
     ga: partidos.filter(p => p.goles > 0 || p.asist > 0),
     rojas: partidos.filter(p => p.rojas > 0),
+    // Valla invicta: el EQUIPO no recibió goles en ese partido (mismo
+    // criterio V/E/D que ya usa _csbGoles en el resto del perfil) — no es
+    // un dato propio del jugador (no existe "valla invicta personal" fuera
+    // del arquero), pero mostrar en qué partidos pasó mientras jugaba tiene
+    // sentido igual para arqueros y defensores.
+    vallas: partidos.filter(p => _csbGoles(p).riv === 0),
   };
 }
 
@@ -5975,7 +5987,9 @@ function _ppStatRowHtml(kind, p) {
   const torneoClass = torneoTipo === 'apertura' ? 'pp-match-torneo-apertura'
     : torneoTipo === 'clausura' ? 'pp-match-torneo-clausura'
     : torneoTipo === 'copas' ? 'pp-match-torneo-copas' : '';
-  const icons = (kind === 'partidos' || kind === 'ga') ? _ppImpactIconsHtml(p) : (statVal != null ? `<span class="pp-match-stat">${statIco}${statVal > 1 ? ' ×' + statVal : ''}</span>` : '');
+  const icons = (kind === 'partidos' || kind === 'ga') ? _ppImpactIconsHtml(p)
+    : statVal != null ? `<span class="pp-match-stat">${statIco}${statVal > 1 ? ' ×' + statVal : ''}</span>`
+    : kind === 'vallas' ? `<span class="pp-match-stat">🧤</span>` : '';
   const resultado = _ppResultadoPillHtml(p);
   const arrowHtml = clickable ? '<span class="pp-match-arrow">›</span>' : '';
   const rivalLine = `${label ? label + ' - ' : ''}${p.rival}${localIco ? ' ' + localIco : ''}`;
@@ -6006,13 +6020,13 @@ function _ppStatRowHtml(kind, p) {
   </div>`;
 }
 
-const PP_DETAIL_LABELS = { goles: '⚽ Goles', asist: '🎯 Asistencias', rojas: '🟥 Rojas', titulos: '🏆 Títulos', partidos: '📋 Partidos', ga: '🔥 G+A' };
+const PP_DETAIL_LABELS = { goles: '⚽ Goles', asist: '🎯 Asistencias', rojas: '🟥 Rojas', titulos: '🏆 Títulos', partidos: '📋 Partidos', ga: '🔥 G+A', vallas: '🧤 Vallas Invictas' };
 const PP_CAT_LABEL = { a: 'Primera A', b: 'Primera B' };
 // Kinds that get the horizontal year-chip filter (Partidos/Goles/Asistencias/
 // Rojas) — each also gets a "Resumen" chip appended after the years (see
-// _ppDetailPanelBodyHtml) with the per-rival breakdown for that stat.
-const PP_YEAR_CHIP_KINDS = new Set(['partidos', 'goles', 'asist', 'rojas', 'ga']);
-const PP_RESUMEN_UNIT = { partidos: 'PJ', goles: 'Goles', asist: 'Asist.', rojas: 'Rojas', ga: 'G+A' };
+// _ppDetailPanelBodyHtml) con el desglose por rival de esa métrica.
+const PP_YEAR_CHIP_KINDS = new Set(['partidos', 'goles', 'asist', 'rojas', 'ga', 'vallas']);
+const PP_RESUMEN_UNIT = { partidos: 'PJ', goles: 'Goles', asist: 'Asist.', rojas: 'Rojas', ga: 'G+A', vallas: 'Vallas' };
 
 // Filters a detail list down to the currently-selected Totales/Primera A/
 // Primera B métricas tab, so switching category also hides stats/rows that
@@ -6226,6 +6240,9 @@ function _ppComputeFavoritos() {
     asist: _ppFavoritoRival(list.filter(p => p.asist > 0), 'asist'),
     ga:    _ppRivalGaBreakdown(list)[0] || null,
     rojas: _ppFavoritoRival(list.filter(p => p.rojas > 0), 'rojas'),
+    // Rival contra el que más vallas invictas mantuvo el equipo mientras
+    // este jugador jugaba (arqueros/defensores, ver pp-particip-vallas-col).
+    vallas: _ppFavoritoRival(list.filter(p => _csbGoles(p).riv === 0), 'vallas'),
   };
 }
 function _ppFavoritoBannerInner(icon, label, fav, unit) {
@@ -6252,6 +6269,7 @@ const PP_DATO_CURIOSO_META = {
   asist:    { icon: '🏹', label: 'Socio Favorito',        unit: 'Asist.' },
   ga:       { icon: '🔥', label: 'Rival Más Castigado',   unit: 'Participaciones' },
   rojas:    { icon: '🟥', label: 'Rival Más Picado',      unit: 'Rojas' },
+  vallas:   { icon: '🧤', label: 'Rival Más Cerrado',     unit: 'Vallas' },
 };
 function _ppDatoCuriosoHtml(kind, fav) {
   const meta = PP_DATO_CURIOSO_META[kind] || PP_DATO_CURIOSO_META.partidos;
@@ -6749,7 +6767,8 @@ function renderPlayerProfile(nombre) {
   // panel below without a full re-render (same pattern as _ppMetricsData).
   window._ppDetailLists = _ppStaticRecord
     ? _ppDeriveDetailListsFromPartidos(_ppPartidosSource)
-    : { goles: s.golesList, asist: s.asistList, ga: s.gaList, rojas: s.rojasList, titulos: s.titulosList, partidos: s.partidos };
+    : { goles: s.golesList, asist: s.asistList, ga: s.gaList, rojas: s.rojasList, titulos: s.titulosList, partidos: s.partidos,
+        vallas: s.partidos.filter(p => _csbGoles(p).riv === 0) };
   if (_ppStaticRecord) window._ppDetailLists.titulos = s.titulosList; // no depende de partidos, se mantiene igual
   // Reset here (not just in the block below) so a fresh render always
   // computes the micro-banners as "Totales" — otherwise a leftover
@@ -6857,11 +6876,12 @@ function renderPlayerProfile(nombre) {
   // el % de partidos con valla invicta. El resto de posiciones sigue
   // viendo la card completa, sin este sector extra.
   const vallasCol = showVallasSector ? `
-      <div class="pp-particip-vallas-col">
+      <div class="pp-particip-vallas-col pp-kpi-tab" id="pp-kpi-vallas" onclick="ppShowDetail('vallas')">
         <div class="pp-particip-vallas-icon">🧤</div>
         <div class="pp-particip-vallas-val" id="pp-particip-vallas-val">${s.vallas}</div>
         <div class="pp-particip-vallas-label">Vallas Invictas</div>
         <div class="pp-particip-vallas-pct" id="pp-particip-vallas-pct">${pctVallas.toFixed(0)}% de los partidos</div>
+        ${favBanner('pp-fav-vallas', '🧤', 'Rival Más Cerrado', _favInit.vallas, 'Vallas')}
       </div>` : '';
   const participacionCard = `
     <div class="card pp-bento-card pp-bento-span-2 pp-particip-card${showVallasSector ? ' pp-particip-split' : ''}">
