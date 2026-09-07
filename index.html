@@ -1488,6 +1488,15 @@
     .inf-kpi-bar-fill { height: 100%; border-radius: 999px; }
     .inf-kpi-grad-amber   { background: linear-gradient(145deg, rgba(245,158,11,0.1), #131825 65%); }
     .inf-kpi-grad-emerald { background: linear-gradient(145deg, rgba(16,185,129,0.1), #131825 65%); }
+    /* En mobile la grilla pasa a 2 columnas (ver .inf-kpis arriba) y la
+       card se angosta mucho — el badge ("Mayoría"/"Aporte Gol"), que está
+       posicionado absoluto arriba a la derecha, termina superpuesto con el
+       ícono/emoji centrado. El dato ya se entiende por el ícono + valor +
+       label de abajo, así que en mobile se oculta el badge en vez de
+       reacomodar todo el layout. */
+    @media (max-width: 640px) {
+      .inf-kpi-badge { display: none; }
+    }
 
     /* Premium horizontal row cards — one per categoría, full width */
     .inf-rows { display: flex; flex-direction: column; gap: 12px; width: 100%; }
