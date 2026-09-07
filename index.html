@@ -15686,11 +15686,16 @@ const INFERIORES_KPIS_FALLBACK = { jugadores: 40, pctJugadores: '77%', goles: 28
 
 // Live sheet mirrors the same A-H columns as INFERIORES_DATA (Categoria,
 // Aportes a Aifa A, PJ, Primer Debut, Primer Gol, Observaciones, Jugadores
-// — comma-separated in one cell —, Goles aportados), plus two summary rows
-// below the categorías (matched by label in column A, not fixed row index,
-// since blank future categorías like 2009-2011 shift nothing but keep this
-// robust regardless): "Jugadores de inferiores en la A" (B=count, H=goles)
-// and "% de jugadores" (B=% jugadores, H=% goles).
+// — comma-separated en una celda —, Goles aportados). Los 2 banners de
+// resumen NO viven en esas filas de categoría: son celdas sueltas
+// confirmadas por el club en filas fijas de la hoja "Inferiores Aportes"
+// (gid 1345339506) — B17/H17 = "Jugadores de inferiores en la A" (count/
+// goles), B18/H18 = "% de jugadores"/"% de goles". Antes se buscaban por
+// texto de la columna A (match por regex), pero ese texto no coincidía
+// con el de la hoja real y los banners se quedaban siempre en el
+// fallback — ahora se leen directo por posición, como pidió el club.
+const INFERIORES_KPI_ROW_JUGADORES = 17; // fila de la hoja (1-indexed)
+const INFERIORES_KPI_ROW_PCT = 18;
 function parseInferioresSheet(rows) {
   if (!rows || rows.length < 2) return null;
   const categorias = [];
@@ -15712,13 +15717,17 @@ function parseInferioresSheet(rows) {
         jugadores: String(row[6] ?? '').split(',').map(s => s.trim()).filter(Boolean),
         goles: parseInt(row[7]) || 0,
       });
-    } else if (/jugadores de inferiores/i.test(c0)) {
-      kpis.jugadores = parseInt(row[1]) || 0;
-      kpis.goles = parseInt(row[7]) || 0;
-    } else if (/%\s*de\s*jugadores/i.test(c0)) {
-      kpis.pctJugadores = _inferioresPct(row[1]);
-      kpis.pctGoles = _inferioresPct(row[7]);
     }
+  }
+  const rowJugadores = rows[INFERIORES_KPI_ROW_JUGADORES - 1];
+  const rowPct = rows[INFERIORES_KPI_ROW_PCT - 1];
+  if (rowJugadores) {
+    kpis.jugadores = parseInt(rowJugadores[1]) || 0;
+    kpis.goles = parseInt(rowJugadores[7]) || 0;
+  }
+  if (rowPct) {
+    kpis.pctJugadores = _inferioresPct(rowPct[1]);
+    kpis.pctGoles = _inferioresPct(rowPct[7]);
   }
   if (!categorias.length) return null;
   return { categorias, kpis };
