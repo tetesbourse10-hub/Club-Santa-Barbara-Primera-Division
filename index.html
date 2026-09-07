@@ -3144,6 +3144,22 @@
     /* Micro-leyenda atenuada al pie — rellena el espacio vacío que quedaba
        debajo de la leyenda de colores. */
     .pp-particip-caption { font-size:0.625rem; color:#64748b; margin-top:2px; }
+    /* Arqueros/Defensores: la card de Participación en Goles se divide en 2
+       sectores — izquierda mantiene la barra de siempre, derecha suma
+       Vallas Invictas (métrica que para esas posiciones importa tanto o
+       más que el aporte de gol). El resto de posiciones sigue viendo la
+       card completa a ancho total, sin este sector. */
+    .pp-particip-card.pp-particip-split { flex-direction: row; gap: 14px; }
+    .pp-particip-main { display:flex; flex-direction:column; gap:10px; flex:1 1 0; min-width:0; }
+    .pp-particip-vallas-col {
+      flex:0 0 34%; display:flex; flex-direction:column; align-items:center; justify-content:center;
+      text-align:center; gap:4px; border-left:1px solid #1e293b; padding-left:14px;
+    }
+    .pp-particip-vallas-icon { font-size:1.1rem; opacity:.8; }
+    .pp-particip-vallas-val { font-size:1.3rem; font-weight:900; color:#fff; line-height:1; transition:opacity .15s; }
+    .pp-particip-vallas-label { font-size:0.625rem; color:rgba(255,255,255,0.55); text-transform:uppercase; letter-spacing:.06em; font-weight:600; }
+    .pp-particip-vallas-pct { font-size:0.72rem; color:#85b7eb; font-weight:700; transition:opacity .15s; }
+    .pp-particip-vallas-val.pp-fading, .pp-particip-vallas-pct.pp-fading { opacity:0; }
 
     /* Títulos + Rojas — una sola card dividida por una línea horizontal en
        vez de 2 tarjetas del grid de 8 (ambas comparten poco espacio en
@@ -5259,13 +5275,14 @@ function ppFilterMetrics(cat, btn) {
     }, 150);
   }
   // Texto secundario (Promedios/Efectividad) de las 4 tarjetas principales —
-  // ver kpi(..., secMobile) en renderPlayerProfile.
-  const isArqueroFilter = window._ppIsArquero;
+  // ver kpi(..., secMobile) en renderPlayerProfile. Siempre Efectividad acá
+  // (Vallas Invictas se movió al sector derecho de Participación en Goles,
+  // ver más abajo pp-particip-vallas-val/pct).
   const secFields = [
     ['pp-m-pj-sec', `${c.titular} TIT · ${c.sup} SUP`],
     ['pp-m-goles-sec', `Prom. ${c.promGol.toFixed(2).replace('.', ',')}/PJ`],
     ['pp-m-asist-sec', `Prom. ${c.promAsist.toFixed(2).replace('.', ',')}/PJ`],
-    ['pp-m-ga-sec', isArqueroFilter ? `🧤 ${c.vallas} Vallas Invictas` : `Efectividad ${c.efectividadGA.toFixed(0)}%`],
+    ['pp-m-ga-sec', `Efectividad ${c.efectividadGA.toFixed(0)}%`],
   ];
   secFields.forEach(([id, val]) => {
     const el = document.getElementById(id);
@@ -5301,6 +5318,23 @@ function ppFilterMetrics(cat, btn) {
     el.classList.add('pp-fading');
     setTimeout(() => { el.textContent = text; el.classList.remove('pp-fading'); }, 150);
   });
+
+  // Sector de Vallas Invictas (arqueros/defensores, ver pp-particip-split
+  // en renderPlayerProfile) — solo existe en el DOM para esas posiciones,
+  // así que los getElementById de acá ya salen null para el resto.
+  const vallasValEl = document.getElementById('pp-particip-vallas-val');
+  const vallasPctEl = document.getElementById('pp-particip-vallas-pct');
+  if (vallasValEl || vallasPctEl) {
+    const pctVallasNew = c.pj > 0 ? (c.vallas / c.pj * 100) : 0;
+    [
+      [vallasValEl, String(c.vallas)],
+      [vallasPctEl, pctVallasNew.toFixed(0) + '% de los partidos'],
+    ].forEach(([el, text]) => {
+      if (!el) return;
+      el.classList.add('pp-fading');
+      setTimeout(() => { el.textContent = text; el.classList.remove('pp-fading'); }, 150);
+    });
+  }
 
   // Récord V-E-D + Cliente Favorito — se recalculan sobre la misma categoría
   // recién seleccionada (window._ppActiveCat ya quedó actualizado arriba).
@@ -6767,6 +6801,12 @@ function renderPlayerProfile(nombre) {
   // suele convertir goles.
   const isArquero = s.pos === 'ARQ';
   window._ppIsArquero = isArquero;
+  // Defensores (mismo agrupamiento que ya usa POS_COLOR/POS_COLOR_B para
+  // pintarlos, ver más abajo) — junto con los arqueros, son las posiciones
+  // para las que Vallas Invictas importa mostrar en el dashboard superior,
+  // separado de Participación en Goles (ver participacionCard).
+  const isDefensor = ['LI', 'LD', 'DFI', 'DFD', 'DEF', 'DFC'].includes(s.pos);
+  const showVallasSector = isArquero || isDefensor;
 
   const metricsTabs = `
     <div class="pp-metric-tabs" id="pp-metric-tabs">
@@ -6795,7 +6835,10 @@ function renderPlayerProfile(nombre) {
         `Prom. ${s.promAsist.toFixed(2).replace('.', ',')}/PJ`)}
       ${kpi('pp-m-ga',      '🔥', s.goles + s.asist, 'G+A Total', '#a855f7', 'ga',
         `<div class="pp-favorito-banner" id="pp-fav-ga">${_ppFavoritoGaBannerInner('🔥', 'Mayor Impacto', _favInit.ga)}</div>`,
-        isArquero ? `🧤 ${s.vallas} Vallas Invictas` : `Efectividad ${s.efectividadGA.toFixed(0)}%`)}
+        // Vallas Invictas se movió al sector derecho de Participación en
+        // Goles (ver participacionCard) para arqueros/defensores — acá
+        // queda Efectividad para todas las posiciones por igual.
+        `Efectividad ${s.efectividadGA.toFixed(0)}%`)}
     </div>
     <div class="pp-metrics-fav-mobile" id="pp-fav-mobile">${_ppDatoCuriosoHtml(_ppKindToOpen, _favInit[_ppKindToOpen])}</div>
     ${!s.nidoReady ? `<div class="pp-nido-loading">⏳ Sincronizando con El Nido…</div>` : ''}`;
@@ -6807,23 +6850,39 @@ function renderPlayerProfile(nombre) {
   // "goles-o-asist por partido ×100") y suman exacto el total que antes se
   // mostraba solo (efectividadGA = promGol + promAsist).
   const pctGol = s.promGol * 100, pctAsist = s.promAsist * 100;
+  const pctVallas = s.pj > 0 ? (s.vallas / s.pj * 100) : 0;
+  // Arqueros/Defensores: la card se divide en 2 sectores (ver
+  // .pp-particip-split) — izquierda mantiene intacta la barra de
+  // Participación en Goles de siempre, derecha suma Vallas Invictas +
+  // el % de partidos con valla invicta. El resto de posiciones sigue
+  // viendo la card completa, sin este sector extra.
+  const vallasCol = showVallasSector ? `
+      <div class="pp-particip-vallas-col">
+        <div class="pp-particip-vallas-icon">🧤</div>
+        <div class="pp-particip-vallas-val" id="pp-particip-vallas-val">${s.vallas}</div>
+        <div class="pp-particip-vallas-label">Vallas Invictas</div>
+        <div class="pp-particip-vallas-pct" id="pp-particip-vallas-pct">${pctVallas.toFixed(0)}% de los partidos</div>
+      </div>` : '';
   const participacionCard = `
-    <div class="card pp-bento-card pp-bento-span-2 pp-particip-card">
-      <div class="pp-particip-header">
-        <div class="card-label">Participación en Goles</div>
-        <div class="pp-particip-total" id="pp-particip-total">${s.efectividadGA.toFixed(0)}%</div>
-      </div>
-      <div class="pp-particip-bar-wrap">
-        <div class="pp-particip-bar" title="${pctGol.toFixed(0)}% Gol / ${pctAsist.toFixed(0)}% Asist">
-          <div class="pp-particip-bar-gol" id="pp-particip-bar-gol" style="width:${Math.min(100, pctGol).toFixed(1)}%"></div>
-          <div class="pp-particip-bar-asist" id="pp-particip-bar-asist" style="width:${Math.min(100, pctAsist).toFixed(1)}%"></div>
+    <div class="card pp-bento-card pp-bento-span-2 pp-particip-card${showVallasSector ? ' pp-particip-split' : ''}">
+      <div class="pp-particip-main">
+        <div class="pp-particip-header">
+          <div class="card-label">Participación en Goles</div>
+          <div class="pp-particip-total" id="pp-particip-total">${s.efectividadGA.toFixed(0)}%</div>
         </div>
+        <div class="pp-particip-bar-wrap">
+          <div class="pp-particip-bar" title="${pctGol.toFixed(0)}% Gol / ${pctAsist.toFixed(0)}% Asist">
+            <div class="pp-particip-bar-gol" id="pp-particip-bar-gol" style="width:${Math.min(100, pctGol).toFixed(1)}%"></div>
+            <div class="pp-particip-bar-asist" id="pp-particip-bar-asist" style="width:${Math.min(100, pctAsist).toFixed(1)}%"></div>
+          </div>
+        </div>
+        <div class="pp-particip-legend">
+          <span class="pp-particip-legend-item"><span class="pp-particip-dot pp-particip-dot-gol"></span><span id="pp-particip-pct-gol">${pctGol.toFixed(0)}%</span> Gol</span>
+          <span class="pp-particip-legend-item"><span class="pp-particip-dot pp-particip-dot-asist"></span><span id="pp-particip-pct-asist">${pctAsist.toFixed(0)}%</span> Asist</span>
+        </div>
+        <div class="pp-particip-caption">Aporte directo en el marcador del equipo</div>
       </div>
-      <div class="pp-particip-legend">
-        <span class="pp-particip-legend-item"><span class="pp-particip-dot pp-particip-dot-gol"></span><span id="pp-particip-pct-gol">${pctGol.toFixed(0)}%</span> Gol</span>
-        <span class="pp-particip-legend-item"><span class="pp-particip-dot pp-particip-dot-asist"></span><span id="pp-particip-pct-asist">${pctAsist.toFixed(0)}%</span> Asist</span>
-      </div>
-      <div class="pp-particip-caption">Aporte directo en el marcador del equipo</div>
+      ${vallasCol}
     </div>`;
 
   // Títulos + Rojas: 2 botones lado a lado (sub-grilla de 2 columnas),
