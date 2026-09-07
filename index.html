@@ -18805,9 +18805,9 @@ async function loadLiveData() {
       return `<div onclick="window._nidoPosSelect('${p}')" style="padding:7px 14px;font-size:12px;font-weight:${active ? '700' : '500'};color:${active ? '#eab308' : '#d1d5db'};background:${active ? 'rgba(234,179,8,0.12)' : 'transparent'};cursor:pointer;white-space:nowrap;" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='${active ? 'rgba(234,179,8,0.12)' : 'transparent'}'">${lbl}</div>`;
     }).join('');
     const posDropdown = `
-      <div style="position:relative;display:inline-block;">
+      <div id="nido-pos-dropdown" style="position:relative;display:inline-block;">
         <button onclick="window._nidoPosToggle()" style="padding:6px 15px;border-radius:20px;background:${_nidoPos !== 'todas' ? 'rgba(234,179,8,0.2)' : 'rgba(255,255,255,0.05)'};color:${_nidoPos !== 'todas' ? '#eab308' : '#9ca3af'};border:1px solid ${_nidoPos !== 'todas' ? 'rgba(234,179,8,0.4)' : 'rgba(255,255,255,0.08)'};font-size:12px;font-weight:${_nidoPos !== 'todas' ? '700' : '500'};cursor:pointer;display:flex;align-items:center;gap:5px;">POS: ${posLabel} <span style="font-size:9px;opacity:.7;">▾</span></button>
-        ${posOpen ? `<div style="position:absolute;top:calc(100% + 4px);left:0;z-index:20;background:#1a1d29;border:1px solid rgba(255,255,255,0.1);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.4);overflow:hidden;min-width:110px;">${posMenu}</div>` : ''}
+        ${posOpen ? `<div style="position:absolute;top:calc(100% + 4px);left:0;z-index:20;background:#1a1d29;border:1px solid rgba(255,255,255,0.1);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.4);overflow-x:hidden;overflow-y:auto;max-height:280px;min-width:110px;">${posMenu}</div>` : ''}
       </div>`;
 
     const rankBtns = RANK_METRICS.map(m => {
@@ -18978,7 +18978,21 @@ async function loadLiveData() {
     _routeSetTorneoBase(parts);
   }
   window._nidoTeam = function(t) { _nidoTeam = t; _nidoMobileVisible = 15; _renderNidoContent(); _nidoUpdateRoute(); };
-  window._nidoPosToggle = function() { _nidoPosOpen = !_nidoPosOpen; _renderNidoContent(); };
+  // BUG REAL reportado (desktop): el desplegable de POS no tenía ninguna
+  // forma de cerrarse tocando afuera — solo se cerraba eligiendo una
+  // posición, así que se quedaba abierto tapando la tabla de jugadores de
+  // abajo hasta que el usuario elegía algo. El listener se agrega recién
+  // al ABRIR (no de entrada, para no acumular uno por cada render) y se
+  // saca solo — {once:true} — así nunca queda más de uno pisado.
+  function _nidoPosOutsideClick(e) {
+    if (e.target.closest('#nido-pos-dropdown')) return; // click adentro (ej. eligiendo una posición) ya lo maneja _nidoPosSelect
+    if (_nidoPosOpen) { _nidoPosOpen = false; _renderNidoContent(); }
+  }
+  window._nidoPosToggle = function() {
+    _nidoPosOpen = !_nidoPosOpen;
+    _renderNidoContent();
+    if (_nidoPosOpen) setTimeout(() => document.addEventListener('click', _nidoPosOutsideClick, { once: true }), 0);
+  };
   window._nidoPosSelect = function(p) { _nidoPos = p; _nidoPosOpen = false; _nidoMobileVisible = 15; _renderNidoContent(); _nidoUpdateRoute(); };
   // Only refresh the results table on each keystroke — never touch the input's
   // parent innerHTML, or the DOM node (and keyboard focus) would be destroyed.
