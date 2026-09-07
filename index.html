@@ -3149,16 +3149,27 @@
        Vallas Invictas (métrica que para esas posiciones importa tanto o
        más que el aporte de gol). El resto de posiciones sigue viendo la
        card completa a ancho total, sin este sector. */
-    .pp-particip-card.pp-particip-split { flex-direction: row; gap: 14px; }
-    .pp-particip-main { display:flex; flex-direction:column; gap:10px; flex:1 1 0; min-width:0; }
+    /* Sin gap acá: el divisor vive como border-right de .pp-particip-main
+       (nunca lleva .pp-kpi-tab, así que no hay ningún choque de "border" en
+       shorthand con .pp-kpi-tab/.pp-kpi-active que sí lo usan) — con el gap
+       de antes + el padding-left del sector derecho, la línea quedaba
+       demasiado lejos del contenido de los dos lados para leerse como un
+       divisor real entre ambos. */
+    .pp-particip-card.pp-particip-split { flex-direction: row; gap: 0; }
+    .pp-particip-main {
+      display:flex; flex-direction:column; gap:10px; flex:1 1 0; min-width:0;
+      padding-right:14px; border-right:1px solid #1e293b;
+    }
     .pp-particip-vallas-col {
       flex:1 1 0; min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
       text-align:center; gap:4px; padding-left:14px; border-radius:10px;
-      /* box-shadow en vez de border-left: .pp-kpi-tab/.pp-kpi-active (clickeable,
-         ver más abajo) ya usan la propiedad "border" en shorthand — compartir
-         "border-left" con esas reglas terminaba en un pisado de una contra la
-         otra según orden de cascada. box-shadow inset no choca con "border". */
-      box-shadow: -1px 0 0 #1e293b inset;
+    }
+    /* El banner "Rival Más Cerrado" ya se ve repetido abajo del todo en
+       mobile (ver .pp-metrics-fav-mobile, que muestra el mismo dato cuando
+       este sector está activo) — adentro del sector angosto quedaba
+       amontonado, así que en mobile se oculta y queda solo el de abajo. */
+    @media (max-width: 768px) {
+      .pp-particip-vallas-col .pp-favorito-banner { display: none; }
     }
     .pp-particip-vallas-icon { font-size:1.1rem; opacity:.8; }
     .pp-particip-vallas-val { font-size:1.3rem; font-weight:900; color:#fff; line-height:1; transition:opacity .15s; }
