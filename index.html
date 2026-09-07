@@ -18804,10 +18804,18 @@ async function loadLiveData() {
       const lbl = p === 'todas' ? 'TODAS' : p;
       return `<div onclick="window._nidoPosSelect('${p}')" style="padding:7px 14px;font-size:12px;font-weight:${active ? '700' : '500'};color:${active ? '#eab308' : '#d1d5db'};background:${active ? 'rgba(234,179,8,0.12)' : 'transparent'};cursor:pointer;white-space:nowrap;" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='${active ? 'rgba(234,179,8,0.12)' : 'transparent'}'">${lbl}</div>`;
     }).join('');
+    // BUG REAL reportado con captura (desktop): el header pegajoso de la
+    // tabla (más abajo, TH) usa position:sticky + z-index:20 — EXACTO el
+    // mismo z-index que este panel. Empatados, gana el que aparece DESPUÉS
+    // en el HTML (la tabla, que se arma después del filtro acá arriba), así
+    // que el header terminaba pintado ENCIMA del desplegable abierto,
+    // tapando la opción "DFC" que le tocaba quedar justo detrás. z-index
+    // más alto que el de la tabla lo resuelve sin tocar el header (que sí
+    // necesita ganarle a las filas normales de la tabla, z-index más bajo).
     const posDropdown = `
       <div id="nido-pos-dropdown" style="position:relative;display:inline-block;">
         <button onclick="window._nidoPosToggle()" style="padding:6px 15px;border-radius:20px;background:${_nidoPos !== 'todas' ? 'rgba(234,179,8,0.2)' : 'rgba(255,255,255,0.05)'};color:${_nidoPos !== 'todas' ? '#eab308' : '#9ca3af'};border:1px solid ${_nidoPos !== 'todas' ? 'rgba(234,179,8,0.4)' : 'rgba(255,255,255,0.08)'};font-size:12px;font-weight:${_nidoPos !== 'todas' ? '700' : '500'};cursor:pointer;display:flex;align-items:center;gap:5px;">POS: ${posLabel} <span style="font-size:9px;opacity:.7;">▾</span></button>
-        ${posOpen ? `<div style="position:absolute;top:calc(100% + 4px);left:0;z-index:20;background:#1a1d29;border:1px solid rgba(255,255,255,0.1);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.4);overflow-x:hidden;overflow-y:auto;max-height:280px;min-width:110px;">${posMenu}</div>` : ''}
+        ${posOpen ? `<div style="position:absolute;top:calc(100% + 4px);left:0;z-index:30;background:#1a1d29;border:1px solid rgba(255,255,255,0.1);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.4);overflow-x:hidden;overflow-y:auto;max-height:280px;min-width:110px;">${posMenu}</div>` : ''}
       </div>`;
 
     const rankBtns = RANK_METRICS.map(m => {
