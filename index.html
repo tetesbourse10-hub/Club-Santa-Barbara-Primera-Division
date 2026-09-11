@@ -894,6 +894,7 @@
         text-align: center; background: #1a2337; border-bottom: 1px solid rgba(255,255,255,0.08);
       }
       .nido-mtable-th-active { color: #f1f5f9; }
+      .nido-mtable-th { cursor: pointer; user-select: none; }
       /* 162px (era 175px, se probó 108px pero achicaba demasiado el nombre)
          — deja lugar para 4 columnas de stats visibles sin scrollear
          horizontal en mobile, sin sacrificar la legibilidad del nombre. */
@@ -18776,9 +18777,17 @@ async function loadLiveData() {
       if (activeIdx > 0) cols.unshift(cols.splice(activeIdx, 1)[0]);
     }
 
-    const theadCells = cols.map(c =>
-      `<th class="nido-mtable-th${activeColKey === c.key ? ' nido-mtable-th-active' : ''}">${c.label}</th>`
-    ).join('');
+    // Headers clickeables también en mobile (antes solo texto fijo — el
+    // único control de orden era el dropdown "RANKING POR", que siempre
+    // fuerza descendente y no deja invertir mayor↔menor dentro del mismo
+    // ranking). Mismo criterio que desktop: en modo "Partidos Jugados"
+    // (isPjRank) va por _nidoPjSortBy (mantiene ese sub-orden propio),
+    // el resto por window._nidoSort (que desde el fix de arriba ya
+    // mantiene prendido el pill de ranking activo si la columna tiene uno).
+    const theadCells = cols.map(c => {
+      const sortFn = isPjRank ? `window._nidoPjSortBy('${c.key}')` : `window._nidoSort('${c.key}')`;
+      return `<th class="nido-mtable-th${activeColKey === c.key ? ' nido-mtable-th-active' : ''}" onclick="${sortFn}">${c.label}</th>`;
+    }).join('');
 
     const rowsHtml = visible.map((p, i) => {
       const cellsHtml = cols.map(c => {
