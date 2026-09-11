@@ -58,8 +58,21 @@ function _loadEngine() {
       // comparte el scope léxico real donde se declararon.
       const exposeConsts = "\n;window.GS=GS;window.RIVAL_CREST_URLS=RIVAL_CREST_URLS;window.AP_BAND_Y=AP_BAND_Y;window.AP_BAND_OF=AP_BAND_OF;\n";
       const combinedScript = scripts.join('\n;\n') + exposeConsts;
-      const htmlNoScripts = html.replace(/<script(?![^>]*src)[^>]*>[\s\S]*?<\/script>/g, '');
-      const dom = new JSDOM(htmlNoScripts, { url: SITE_URL + '/', runScripts: 'outside-only', pretendToBeVisual: true });
+      // Antes se le pasaba a jsdom el HTML REAL completo (~18.000 líneas,
+      // menos los <script>) para que arme el documento — pero nada de lo
+      // que este fallback en vivo usa (parseDetailedMatches, formatISODia/
+      // Hora, slugify, rivalInitials, rivalAvatarColor, plantelPosColor,
+      // apBand, fetchProxy) lee un solo elemento del DOM: son funciones
+      // puras sobre arrays/strings. Parsear y montar ese árbol DOM entero
+      // solo para nunca leerlo era el costo más caro y más fácil de sacar
+      // del arranque en vivo (medido a mano: ~320ms con el HTML real
+      // contra ~20ms con un shell vacío). Cualquier código de index.html
+      // que SÍ toque el DOM al nivel superior (fuera de una función) ya
+      // tiene que estar gateado detrás de `if (window.__OG_BUILD__)` desde
+      // que se armó el build de fichas de jugador (ver generate-og.js) —
+      // ese mismo gate es lo que hace seguro no tener acá ni un solo
+      // elemento real.
+      const dom = new JSDOM('<!doctype html><html><head></head><body></body></html>', { url: SITE_URL + '/', runScripts: 'outside-only', pretendToBeVisual: true });
       const { window } = dom;
       window.fetch = (...args) => fetch(...args);
       window.__OG_BUILD__ = true;

@@ -7,8 +7,9 @@
   },
   "dependencies": {
     "@fontsource/inter": "^5.1.0",
-    "jsdom": "^24.1.1",
+    "@netlify/functions": "^2.8.2",
     "@resvg/resvg-js": "^2.6.2",
+    "jsdom": "^24.1.1",
     "sharp": "^0.33.5",
     "wawoff2": "^2.0.1"
   }

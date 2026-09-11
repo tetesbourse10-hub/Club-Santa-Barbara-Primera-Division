@@ -7,6 +7,16 @@
 // partido ya horneado. Los bots de preview (WhatsApp/Facebook/X) leen los
 // meta tags de acá mismo, sin ejecutar JS; los usuarios humanos son
 // redirigidos al SPA real (ver el <script> del final).
+//
+// On-Demand Builder (ver exports.handler al final): sin esto, CADA pedido a
+// esta URL (el usuario probando, un reenvío, WhatsApp/Facebook re-rastreando
+// el link) volvía a ejecutar todo de cero — jsdom + 2 fetches al sheet + SVG
+// — para siempre, hasta el próximo deploy real. Envuelto en `builder()`, la
+// PRIMERA respuesta para cada /partido/:torneo/:fecha queda cacheada en el
+// borde de Netlify: los pedidos siguientes a esa misma URL se sirven
+// directo desde ahí, sin volver a correr esta función — el costo lento se
+// paga una sola vez por partido, no gasta minutos de build para lograrlo.
+const { builder } = require('@netlify/functions');
 const { getMatchData, SITE_URL, TORNEO_CFG } = require('../../scripts/_matchPartidoData');
 const { buildMatchCardSvg } = require('../../scripts/_matchCardSvg');
 const { svgDims } = require('../../scripts/og-card-tree');
@@ -68,7 +78,7 @@ function redirectPage(target) {
   };
 }
 
-exports.handler = async (event) => {
+const handler = async (event) => {
   const { torneo, fecha, debug } = event.queryStringParameters || {};
   const cfg = TORNEO_CFG[torneo];
   if (!cfg) return redirectPage(`${SITE_URL}/`);
@@ -159,3 +169,5 @@ exports.handler = async (event) => {
     body: html,
   };
 };
+
+exports.handler = builder(handler);

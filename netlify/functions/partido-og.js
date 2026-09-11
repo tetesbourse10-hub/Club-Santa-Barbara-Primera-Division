@@ -9,6 +9,12 @@
 // límite de 10s de una Netlify Function del plan actual, y así no depender
 // de gastar uno de los minutos de build (limitados, 300/mes) solo para
 // que un resultado recién cargado se vea fresco en el link compartido.
+// On-Demand Builder (ver exports.handler al final) — mismo criterio que
+// partido.js: la PRIMERA imagen generada para cada torneo+fecha queda
+// cacheada en el borde de Netlify, así que WhatsApp/Facebook re-pidiendo la
+// misma preview (o un segundo usuario abriendo el mismo link) no vuelve a
+// pagar el costo de armar el SVG/PNG de nuevo.
+const { builder } = require('@netlify/functions');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -98,7 +104,7 @@ function sumByStat(jugadores, key) {
   return [...map.entries()].map(([nombre, count]) => ({ nombre, count }));
 }
 
-exports.handler = async (event) => {
+const handler = async (event) => {
   try {
     const { torneo, fecha, debug } = event.queryStringParameters || {};
     const data = await getMatchData(torneo, fecha);
@@ -204,3 +210,5 @@ exports.handler = async (event) => {
     return { statusCode: 500, body: 'Error generando la imagen: ' + (e && e.message) };
   }
 };
+
+exports.handler = builder(handler);
