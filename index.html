@@ -18234,6 +18234,12 @@ async function loadLiveData() {
     { key: 'promGmas',   label: 'Prom. G+A',               isFloat: true  },
     { key: 'vallasProm', label: 'Promedio de Vallas Invictas', isFloat: true  },
   ];
+  // Columnas que tienen su propio pill de ranking arriba de la tabla — usado
+  // por window._nidoSort para decidir si clickear ese header de tabla debe
+  // MANTENER el modo ranking (solo invertir mayor/menor) en vez de salir de
+  // él. 'pj' queda afuera de este set: tiene su propio sub-orden por V/E/D
+  // (ver _nidoPjSortBy/_nidoPjSort), un caso ya resuelto aparte.
+  const _NIDO_RANK_KEYS = new Set(RANK_METRICS.map(m => m.key).filter(k => k !== 'pj'));
 
   function normA(row) {
     const n = String(row[JUG_COL.nombre] || '').trim();
@@ -18427,7 +18433,11 @@ async function loadLiveData() {
       });
     }
     const col = _nidoRank || _nidoSort.col;
-    const asc  = _nidoRank ? false : _nidoSort.asc;
+    // Antes acá "modo ranking" forzaba siempre descendente (mejor a peor),
+    // sin ninguna forma de invertirlo — ahora window._nidoSort mantiene
+    // _nidoSort.col sincronizado con _nidoRank (ver más abajo), así que
+    // usar _nidoSort.asc en los dos casos ya refleja el toggle real.
+    const asc = _nidoSort.asc;
     return [...data].sort((a, b) => {
       let va = a[col], vb = b[col];
       if (NUMERIC_COLS.includes(col)) { va = va || 0; vb = vb || 0; }
@@ -18453,7 +18463,7 @@ async function loadLiveData() {
     const isPjRank = _nidoRank === 'pj';
     const activeCol = isPjRank ? _nidoPjSort.col : (_nidoRank || _nidoSort.col);
     if (activeCol !== col) return `<span style="opacity:0.25;font-size:9px;margin-left:3px;">⇅</span>`;
-    const isAsc = isPjRank ? _nidoPjSort.asc : (_nidoRank ? false : _nidoSort.asc);
+    const isAsc = isPjRank ? _nidoPjSort.asc : _nidoSort.asc;
     return `<span style="font-size:9px;margin-left:3px;color:#eab308;">${isAsc ? '▲' : '▼'}</span>`;
   }
 
@@ -19043,6 +19053,24 @@ async function loadLiveData() {
     if (c) c.innerHTML = renderTable();
   };
   window._nidoSort = function(col, forceAsc) {
+    // Si la columna clickeada tiene su propio pill de ranking (Goleadores,
+    // Asistidores, G+A, Vallas, Promedios...), clickear ese header de tabla
+    // ya NO saca del modo ranking — antes cualquier click acá reseteaba
+    // _nidoRank a null, así que invertir mayor/menor en la MISMA columna que
+    // el pill activo (o pasar a otra que también tiene pill) perdía el
+    // resaltado del filtro elegido. Ahora se mantiene el pill prendido y
+    // solo cambia col/dirección — 'pj' sigue afuera, tiene su propio
+    // sub-orden (_nidoPjSortBy).
+    if (_NIDO_RANK_KEYS.has(col)) {
+      if (forceAsc != null) _nidoSort = { col, asc: forceAsc };
+      else if (_nidoRank === col) _nidoSort.asc = !_nidoSort.asc;
+      else _nidoSort = { col, asc: false };
+      _nidoRank = col;
+      _nidoMobileVisible = 15;
+      _renderNidoContent();
+      _nidoUpdateRoute();
+      return;
+    }
     _nidoRank = null;
     if (forceAsc != null) _nidoSort = { col, asc: forceAsc };
     else if (_nidoSort.col === col) _nidoSort.asc = !_nidoSort.asc;
