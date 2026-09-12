@@ -33,9 +33,36 @@
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <script>
     window.OneSignalDeferred = window.OneSignalDeferred || [];
-    OneSignalDeferred.push(function (OneSignal) {
-      OneSignal.init({ appId: "313bdf7f-d8ce-4ef4-868d-bfbe78d0ccee" });
+    OneSignalDeferred.push(async function (OneSignal) {
+      await OneSignal.init({ appId: "313bdf7f-d8ce-4ef4-868d-bfbe78d0ccee" });
+      // Sin promptOptions, el SDK no muestra ningún cartel de permiso por su
+      // cuenta — a propósito: en vez de un popup "sorpresa" al cargar (cada
+      // vez más bloqueado/ignorado por los navegadores si no viene de un
+      // click real), el pedido de permiso lo dispara el botón 🔔 del header
+      // (ver window._togglePush más abajo). Acá solo se sincroniza el ícono
+      // del botón con el estado real de permiso, al cargar y ante cualquier
+      // cambio (por si lo cambia desde la configuración del navegador).
+      const btn = document.getElementById('header-notif-btn');
+      const syncNotifBtn = () => {
+        if (!btn) return;
+        const on = OneSignal.Notifications.permission;
+        btn.textContent = on ? '🔔' : '🔕';
+        btn.title = on ? 'Notificaciones activadas' : 'Activar notificaciones';
+        btn.classList.toggle('header-notif-on', on);
+      };
+      syncNotifBtn();
+      OneSignal.Notifications.addEventListener('permissionChange', syncNotifBtn);
     });
+    window._togglePush = function () {
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(async function (OneSignal) {
+        if (OneSignal.Notifications.permission) {
+          alert('Ya tenés las notificaciones activadas para este sitio.');
+          return;
+        }
+        await OneSignal.Notifications.requestPermission();
+      });
+    };
   </script>
   <!-- Meta OG por defecto (home / fallback). Las páginas /jugador/:slug las
        sobreescriben server-side — ver netlify/functions/jugador.js. -->
@@ -382,6 +409,16 @@
       line-height: 1;
     }
     .header-home:hover { color: var(--blanco); }
+    /* 🔕/🔔 — arranca "apagado" (permiso todavía no decidido/denegado); el
+       script de OneSignal en el <head> lo sincroniza con el estado real de
+       permiso apenas carga el SDK (ver syncNotifBtn). */
+    .header-notif-btn {
+      background: none; border: none; color: var(--gris-texto);
+      font-size: 1.05rem; cursor: pointer; padding: 6px; border-radius: 6px;
+      transition: color 0.2s; line-height: 1;
+    }
+    .header-notif-btn:hover { color: var(--blanco); }
+    .header-notif-btn.header-notif-on { color: var(--dorado); }
     header img { height: 36px; width: 36px; object-fit: contain; }
     header h1 { font-size: 1rem; font-weight: 700; color: var(--blanco); }
     header h1 span { color: var(--dorado); }
@@ -3811,6 +3848,7 @@
     <button class="header-home" onclick="goBack()" title="Ir al inicio">🏠</button>
     <img src="logo-csb.webp" alt="CSB" />
     <h1>Club <span>Santa Bárbara</span></h1>
+    <button class="header-notif-btn" id="header-notif-btn" onclick="window._togglePush()" title="Activar notificaciones">🔕</button>
     <span id="section-badge" class="header-section-badge badge-gold"></span>
   </header>
 
