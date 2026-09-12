@@ -93,13 +93,19 @@ const TORNEO_CFG = {
     tab: 'Clausura 2026', sheetKey: 'A_MAIN',
     detRange: 'A22:I532', basicRange: 'A1:J18',
     badge: 'Clausura AIFA A 2026', color: '#fbbf24',
+    // Tabla de Posiciones en vivo: mismo sheet dedicado (GS.POSICIONES) y
+    // pestaña ("Posiciones_A") que ya usa loadLiveData() — ver el
+    // comentario junto a GS.POSICIONES en index.html.
+    posicionesGid: 22569147,
   },
   b: {
     tab: 'CLAUSURA 2026 AIFA B', sheetKey: 'B_HIST',
     detRange: 'A19:J561', basicRange: 'A1:J16',
     badge: 'Clausura AIFA B 2026', color: '#3b82f6',
+    posicionesGid: 1670392238,
   },
 };
+const POSICIONES_RANGE = 'A1:K17';
 
 const _helpersCache = new WeakMap();
 function buildHelpers(window) {
@@ -115,6 +121,9 @@ function buildHelpers(window) {
       AP_BAND_OF: window.AP_BAND_OF,
       formatISODia: window.formatISODia,
       formatISOHora: window.formatISOHora,
+      parseTablaSheet: window.parseTablaSheet,
+      GS: window.GS,
+      fetchGvizByGid: window.fetchGvizByGid,
     });
   }
   return _helpersCache.get(window);
@@ -164,6 +173,21 @@ async function getAllMatches(torneo) {
   return getAllMatchesFromWindow(window, torneo);
 }
 
+// Tabla de Posiciones completa de un torneo — reusa parseTablaSheet/
+// fetchGvizByGid, las MISMAS funciones que ya usa loadLiveData() para esto
+// mismo en el sitio en vivo, en vez de reimplementar el parseo de la tabla
+// acá (columnas detectadas por header, no por posición fija — ver el
+// comentario de parseTablaSheet en index.html). Usada por
+// netlify/functions/push-scheduler.js para la regla de "subió/bajó/puntero"
+// y "próximo rival".
+async function getTabla(torneo) {
+  const cfg = TORNEO_CFG[torneo];
+  if (!cfg) return null;
+  const window = await _loadEngine();
+  const rows = await window.fetchGvizByGid(window.GS.POSICIONES, cfg.posicionesGid, POSICIONES_RANGE);
+  return window.parseTablaSheet(rows);
+}
+
 // Un solo partido por torneo+fecha — lo usa el fallback en vivo
 // (netlify/functions/partido.js/partido-og.js). Internamente pide la MISMA
 // lista completa que getAllMatches (mismos 2 fetches, no hay un tercer
@@ -177,4 +201,4 @@ async function getMatchData(torneo, fecha) {
   return { match, helpers: data.helpers };
 }
 
-module.exports = { getAllMatches, getAllMatchesFromWindow, getMatchData, SITE_URL, TORNEO_CFG };
+module.exports = { getAllMatches, getAllMatchesFromWindow, getMatchData, getTabla, SITE_URL, TORNEO_CFG };
