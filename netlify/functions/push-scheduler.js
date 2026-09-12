@@ -11,17 +11,24 @@
 // nueva que se agregue después es, en el fondo, "¿qué campo cambió", no una
 // arquitectura aparte por regla.
 //
-// Reglas ya implementadas (ver conversación por la lista completa de 9):
+// Reglas ya implementadas (de las 9 acordadas):
 //   1. Horario de partido confirmado
 //   2. Citación y 11 probable (plantel cargado)
 //   3. Final del partido (resultado cargado)
 //   4. Tabla de posiciones + Próximo rival (combinados, mismo trigger que 3)
 //   5. Racha en juego (invicto, al cruzar un hito redondo: 5/10/15/...)
-// El resto (Top 10 de El Nido, logros, recordatorio por reloj) se suman en
-// tandas siguientes, sobre esta misma base.
+//   6. Logros — Debut, Primer gol, Hat-trick (mismo trigger que 3)
+//   7. Entró al Top 10 de El Nido — General/Primera A/Primera B, por
+//      categoría (ver checkElNido más abajo)
+// Falta sumar: cifra redonda de goles en el club y racha propia de vallas
+// invictas de un jugador (ambos son la misma mecánica de "vistos"/
+// contadores persistidos que ya usan los Logros de arriba, solo con otro
+// campo a trackear) y el Recordatorio + Comienzo del partido (el único que
+// no depende de un cambio de dato: dispara por reloj contra la hora ya
+// cargada, no por diff de snapshot).
 const { schedule } = require('@netlify/functions');
 const { getStore } = require('@netlify/blobs');
-const { getAllMatches, getTabla, SITE_URL, TORNEO_CFG } = require('../../scripts/_matchPartidoData');
+const { getAllMatches, getTabla, getElNidoRankings, SITE_URL, TORNEO_CFG } = require('../../scripts/_matchPartidoData');
 
 const ONESIGNAL_APP_ID = '313bdf7f-d8ce-4ef4-868d-bfbe78d0ccee';
 // Secreta — nunca hardcodeada. Se configura como variable de entorno en
@@ -116,6 +123,27 @@ async function checkTorneo(store, torneo) {
   const nextMatches = {};
   let huboFinal = false;
 
+  // Logros (Debut/Primer gol/Hat-trick) — "vistos"/"conGol" son el
+  // histórico de jugadores que YA jugaron/YA convirtieron alguna vez,
+  // persistido en Blobs junto al resto del estado del torneo. Si esta
+  // regla nunca corrió antes (prev.jugadoresVistos no existe), se arma esa
+  // base UNA vez a partir de los partidos YA jugados sin avisar nada — si
+  // no, el primer cierre de fecha después de activar esto "descubriría"
+  // como debut/primer gol a jugadores con años de historia.
+  const esSeedInicial = !prev.jugadoresVistos;
+  const vistos = new Set(prev.jugadoresVistos || []);
+  const conGol = new Set(prev.jugadoresConGol || []);
+  if (esSeedInicial) {
+    for (const m of matches) {
+      if (m.resultado === null) continue;
+      for (const j of (m.jugadores || [])) {
+        if (!j.nombre) continue;
+        if (j.titular || j.entro) vistos.add(j.nombre);
+        if (j.goles > 0) conGol.add(j.nombre);
+      }
+    }
+  }
+
   for (const m of matches) {
     const fecha = String(m.fecha);
     const prevM = prev.matches[fecha] || null;
@@ -151,6 +179,27 @@ async function checkTorneo(store, torneo) {
         url
       );
       huboFinal = true;
+
+      // Logros de este partido. El hat-trick no depende de historial
+      // (solo mira ESTE partido), así que se avisa siempre; debut/primer
+      // gol si dependen de "vistos"/"conGol" — en la corrida de seed
+      // inicial esos sets recién se están armando, así que no se avisa
+      // nada ahí (pasarían como "debut" jugadores con años de historia).
+      for (const j of (m.jugadores || [])) {
+        if (!j.nombre) continue;
+        const jugo = j.titular || j.entro;
+        if (!esSeedInicial && jugo && !vistos.has(j.nombre)) {
+          await sendPush('🎓 Debut', `${j.nombre} debutó en Primera — vs ${m.rival}, Fecha ${fecha}`, url);
+        }
+        if (!esSeedInicial && j.goles > 0 && !conGol.has(j.nombre)) {
+          await sendPush('🎯 Primer gol', `${j.nombre} convirtió su primer gol — vs ${m.rival}, Fecha ${fecha}`, url);
+        }
+        if (!esSeedInicial && j.goles >= 3) {
+          await sendPush('🎩 Hat-trick', `${j.nombre} convirtió ${j.goles} goles — vs ${m.rival}, Fecha ${fecha}`, url);
+        }
+        if (jugo) vistos.add(j.nombre);
+        if (j.goles > 0) conGol.add(j.nombre);
+      }
     }
   }
 
@@ -191,7 +240,80 @@ async function checkTorneo(store, torneo) {
     }
   }
 
-  await store.setJSON(stateKey, { matches: nextMatches, tablaPos: nextTablaPos, racha: nextRacha });
+  await store.setJSON(stateKey, {
+    matches: nextMatches, tablaPos: nextTablaPos, racha: nextRacha,
+    jugadoresVistos: [...vistos], jugadoresConGol: [...conGol],
+  });
+}
+
+// Categorías de El Nido con pill de ranking propio — mismas keys que
+// RANK_METRICS en index.html (ver el comentario de getElNidoRankings en
+// _matchPartidoData.js). Se filtran los valores en 0 antes de armar el
+// Top 10: sin esto, una categoría donde casi nadie tiene nada (ej. Títulos
+// para la mayoría del plantel) "avisaría" de entradas al Top 10 con 0,
+// que no es un hito real.
+const EL_NIDO_CATEGORIAS = [
+  { key: 'pj', label: 'Partidos Jugados' },
+  { key: 'goles', label: 'Goleadores' },
+  { key: 'asist', label: 'Asistidores' },
+  { key: 'gmas', label: 'G+A' },
+  { key: 'titulos', label: 'Títulos' },
+  { key: 'vallas', label: 'Vallas Invictas' },
+  { key: 'promGol', label: 'Promedio de Goles' },
+  { key: 'promAsist', label: 'Promedio de Asistencias' },
+  { key: 'promGmas', label: 'Promedio de G+A' },
+  { key: 'vallasProm', label: 'Promedio de Vallas Invictas' },
+];
+const EL_NIDO_SCOPES = [
+  { key: 'general', label: 'General' },
+  { key: 'a', label: 'Primera A' },
+  { key: 'b', label: 'Primera B' },
+];
+
+function top10Nombres(list, key) {
+  return [...list]
+    .filter(p => (p[key] || 0) > 0)
+    .sort((a, b) => (b[key] || 0) - (a[key] || 0))
+    .slice(0, 10)
+    .map(p => p.nombre);
+}
+
+// Top 10 / Top 3 de El Nido — General, Primera A y Primera B, por cada
+// categoría. Corre independiente de checkTorneo (no depende de que se haya
+// cerrado una fecha: los rankings pueden cambiar por una corrección de
+// stats sin un partido nuevo de por medio).
+async function checkElNido(store) {
+  const rankings = await getElNidoRankings();
+  const stateKey = 'estado-elnido';
+  const prev = (await store.get(stateKey, { type: 'json' })) || {};
+  const next = {};
+
+  for (const scope of EL_NIDO_SCOPES) {
+    const list = rankings[scope.key] || [];
+    for (const cat of EL_NIDO_CATEGORIAS) {
+      const stateId = `${scope.key}-${cat.key}`;
+      const top10 = top10Nombres(list, cat.key);
+      next[stateId] = top10;
+
+      // Primera corrida de esta combinación scope+categoría: no hay "antes"
+      // con qué comparar — se guarda tal cual, sin avisar (si no, TODO el
+      // Top 10 ya existente "entraría" de golpe la primera vez que corre).
+      const prevTop10 = prev[stateId];
+      if (!prevTop10) continue;
+
+      const yaEstaban = new Set(prevTop10);
+      const nuevos = top10.filter(n => !yaEstaban.has(n));
+      for (const nombre of nuevos) {
+        await sendPush(
+          '🏆 Entró al Top 10 de El Nido',
+          `${nombre} entró al Top 10 de ${cat.label} — ${scope.label}`,
+          `${SITE_URL}/#nido`
+        );
+      }
+    }
+  }
+
+  await store.setJSON(stateKey, next);
 }
 
 async function handler() {
@@ -202,6 +324,11 @@ async function handler() {
     } catch (e) {
       console.error(`push-scheduler: falló el chequeo de ${torneo}:`, e);
     }
+  }
+  try {
+    await checkElNido(store);
+  } catch (e) {
+    console.error('push-scheduler: falló el chequeo de El Nido:', e);
   }
   return { statusCode: 200, body: 'ok' };
 }

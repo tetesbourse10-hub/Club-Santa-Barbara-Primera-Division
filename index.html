@@ -18380,6 +18380,14 @@ async function loadLiveData() {
     });
     return Array.from(map.values());
   }
+  // Expuestas para que netlify/functions/push-scheduler.js (regla de Top 10/
+  // Top 3 de El Nido) pueda reusar EXACTAMENTE el mismo cálculo de rankings
+  // que ya usa esta vista en vivo (mismo criterio que window.GS/etc. más
+  // abajo en el archivo) — sin esto quedarían atrapadas en el closure de
+  // este IIFE, invisibles desde afuera aunque sean funciones puras.
+  window.normA = normA;
+  window.normB = normB;
+  window.mergeAB = mergeAB;
 
   // Returns the dataset to display based on current team filter
   function activeDataset() {

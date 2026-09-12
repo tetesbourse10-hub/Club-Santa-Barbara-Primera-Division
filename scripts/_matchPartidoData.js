@@ -56,7 +56,7 @@ function _loadEngine() {
       // los comparte entre llamadas a eval) — la única forma que funciona es
       // agregar el `window.X = X` DENTRO del mismo string evaluado, así
       // comparte el scope léxico real donde se declararon.
-      const exposeConsts = "\n;window.GS=GS;window.RIVAL_CREST_URLS=RIVAL_CREST_URLS;window.AP_BAND_Y=AP_BAND_Y;window.AP_BAND_OF=AP_BAND_OF;\n";
+      const exposeConsts = "\n;window.GS=GS;window.RIVAL_CREST_URLS=RIVAL_CREST_URLS;window.AP_BAND_Y=AP_BAND_Y;window.AP_BAND_OF=AP_BAND_OF;window.JUG_COL=JUG_COL;window.JUG_COL_B=JUG_COL_B;\n";
       const combinedScript = scripts.join('\n;\n') + exposeConsts;
       // Antes se le pasaba a jsdom el HTML REAL completo (~18.000 líneas,
       // menos los <script>) para que arme el documento — pero nada de lo
@@ -188,6 +188,40 @@ async function getTabla(torneo) {
   return window.parseTablaSheet(rows);
 }
 
+// El Nido — mismo criterio de fetch+armado que usa _nidoLoad() en vivo
+// (index.html): tabla "Jugadores Estadisticas" de A_MAIN y B_HIST, cada fila
+// pasada por _mergeDuplicatePlayerRows (top-level, ya expuesta en window sin
+// hacer nada extra) y normA/normB (expuestas a propósito en window.normA/
+// normB dentro del IIFE de El Nido — ver ese comentario en index.html), y
+// combinadas con mergeAB (misma función real que arma el ranking "General").
+// Usada por netlify/functions/push-scheduler.js para la regla de "entró al
+// Top 10 de El Nido".
+const EL_NIDO_EXCLUIR = ['jugador', 'team totals', 'totales', 'total'];
+function _rowsToNidoObjects(rows, COL, normFn, window) {
+  if (!rows || rows.length < 2) return [];
+  const cols = rows[0].map(c => String(c).trim());
+  const parsed = rows.slice(1)
+    .filter(r => r.some(c => c !== '' && c !== null))
+    .map(r => cols.map((_, i) => String(r[i] ?? '').trim()))
+    .filter(r => !EL_NIDO_EXCLUIR.includes(String(r[COL.nombre] || '').toLowerCase().trim()));
+  const merged = window._mergeDuplicatePlayerRows(parsed, COL);
+  return merged.map(normFn).filter(Boolean);
+}
+async function getElNidoRankings() {
+  const window = await _loadEngine();
+  const [rowsA, rowsB] = await Promise.all([
+    window.fetchProxy('Jugadores Estadisticas', null, window.GS.A_MAIN),
+    // Primera B: el nombre de tab sin tilde a veces no existe en alguna
+    // temporada — mismo fallback con tilde que ya usa _ensureJugTotalesB.
+    window.fetchProxy('Jugadores Estadisticas', null, window.GS.B_HIST)
+      .catch(() => window.fetchProxy('Jugadores Estadísticas', null, window.GS.B_HIST)),
+  ]);
+  const a = _rowsToNidoObjects(rowsA, window.JUG_COL, window.normA, window);
+  const b = _rowsToNidoObjects(rowsB, window.JUG_COL_B, window.normB, window);
+  const general = window.mergeAB(a, b);
+  return { general, a, b };
+}
+
 // Un solo partido por torneo+fecha — lo usa el fallback en vivo
 // (netlify/functions/partido.js/partido-og.js). Internamente pide la MISMA
 // lista completa que getAllMatches (mismos 2 fetches, no hay un tercer
@@ -201,4 +235,4 @@ async function getMatchData(torneo, fecha) {
   return { match, helpers: data.helpers };
 }
 
-module.exports = { getAllMatches, getAllMatchesFromWindow, getMatchData, getTabla, SITE_URL, TORNEO_CFG };
+module.exports = { getAllMatches, getAllMatchesFromWindow, getMatchData, getTabla, getElNidoRankings, SITE_URL, TORNEO_CFG };
