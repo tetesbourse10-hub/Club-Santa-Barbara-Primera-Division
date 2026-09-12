@@ -9,17 +9,34 @@
        escudo del club como ícono (fondo sólido #0B0E14 igual que el resto
        del sitio, en vez del logo con fondo transparente, que en iOS/Android
        se recorta feo contra lo que haya detrás) y un nombre corto para que
-       la etiqueta debajo del ícono no se corte. Esto es solo un acceso
-       directo — no hay Service Worker/caché offline — así que abre la
-       página en vivo cada vez, igual que un bookmark común: cualquier
-       cambio que se despliegue se ve ahí también, sin tener que reinstalar
-       nada. -->
+       la etiqueta debajo del ícono no se corte. Sigue siendo solo un acceso
+       directo (no hay caché offline propia) — cualquier cambio que se
+       despliegue se ve ahí también, sin tener que reinstalar nada. El único
+       Service Worker que corre acá es el de OneSignal (ver más abajo),
+       que existe solo para poder recibir push, no para cachear nada. -->
   <link rel="manifest" href="/manifest.json" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <meta name="apple-mobile-web-app-title" content="Santa Bárbara" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#0B0E14" />
+  <!-- OneSignal Web Push — SDK vía CDN (nunca auto-hospedado: OneSignal lo
+       actualiza seguido, ver su propia recomendación) + OneSignalSDKWorker.js
+       en la raíz del sitio (obligatorio ahí, no en una subcarpeta, para que
+       cubra todo el scope "/"). Esto NO manda ninguna notificación por sí
+       solo — solo deja al visitante en condiciones de suscribirse (prompt
+       nativo del navegador) y a nuestra Netlify Scheduled Function en
+       condiciones de dispararle pushes después, vía la REST API de
+       OneSignal. iOS/Safari además exige 16.4+ y que el sitio ya esté
+       agregado a la pantalla de inicio (ver manifest.json arriba) para que
+       el permiso de push exista siquiera. -->
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script>
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(function (OneSignal) {
+      OneSignal.init({ appId: "313bdf7f-d8ce-4ef4-868d-bfbe78d0ccee" });
+    });
+  </script>
   <!-- Meta OG por defecto (home / fallback). Las páginas /jugador/:slug las
        sobreescriben server-side — ver netlify/functions/jugador.js. -->
   <meta property="og:type" content="website" />
