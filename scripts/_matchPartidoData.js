@@ -121,6 +121,10 @@ function buildHelpers(window) {
       AP_BAND_OF: window.AP_BAND_OF,
       formatISODia: window.formatISODia,
       formatISOHora: window.formatISOHora,
+      // Arma un Date real a partir de dia+hora del sheet ("21/9"+"17:00") —
+      // la usa netlify/functions/push-scheduler.js para el Recordatorio/
+      // Comienzo del partido (dispara por reloj, no por diff de snapshot).
+      parseFechaHora: window._parseFechaHora,
       parseTablaSheet: window.parseTablaSheet,
       GS: window.GS,
       fetchGvizByGid: window.fetchGvizByGid,

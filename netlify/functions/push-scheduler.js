@@ -11,21 +11,22 @@
 // nueva que se agregue después es, en el fondo, "¿qué campo cambió", no una
 // arquitectura aparte por regla.
 //
-// Reglas ya implementadas (de las 9 acordadas):
+// Las 9 reglas acordadas, todas implementadas:
 //   1. Horario de partido confirmado
 //   2. Citación y 11 probable (plantel cargado)
-//   3. Final del partido (resultado cargado)
-//   4. Tabla de posiciones + Próximo rival (combinados, mismo trigger que 3)
-//   5. Racha en juego (invicto, al cruzar un hito redondo: 5/10/15/...)
-//   6. Logros — Debut, Primer gol, Hat-trick (mismo trigger que 3)
-//   7. Entró al Top 10 de El Nido — General/Primera A/Primera B, por
+//   3. Recordatorio (2h antes) + Comienzo del partido — únicas 2 que
+//      disparan por RELOJ contra la hora ya cargada, no por diff de
+//      snapshot entre corridas
+//   4. Final del partido (resultado cargado)
+//   5. Tabla de posiciones + Próximo rival (combinados, mismo trigger que 4)
+//   6. Logros — Debut, Primer gol, Hat-trick, Cifra redonda de goles en el
+//      club (mismo trigger que 4, salvo Cifra redonda que vive en
+//      checkElNido junto al resto de El Nido)
+//   7. Racha en juego del equipo (invicto) + racha de vallas invictas de un
+//      arquero puntual — ambas al cruzar un hito redondo, no partido a
+//      partido
+//   8. Entró al Top 10 de El Nido — General/Primera A/Primera B, por
 //      categoría (ver checkElNido más abajo)
-// Falta sumar: cifra redonda de goles en el club y racha propia de vallas
-// invictas de un jugador (ambos son la misma mecánica de "vistos"/
-// contadores persistidos que ya usan los Logros de arriba, solo con otro
-// campo a trackear) y el Recordatorio + Comienzo del partido (el único que
-// no depende de un cambio de dato: dispara por reloj contra la hora ya
-// cargada, no por diff de snapshot).
 const { schedule } = require('@netlify/functions');
 const { getStore } = require('@netlify/blobs');
 const { getAllMatches, getTabla, getElNidoRankings, SITE_URL, TORNEO_CFG } = require('../../scripts/_matchPartidoData');
@@ -112,11 +113,50 @@ function calcRachaInvicto(matches) {
   return streak;
 }
 const RACHA_HITOS = [5, 10, 15, 20, 25, 30, 40, 50];
+// Racha de vallas invictas de UN arquero puntual (a diferencia de la racha
+// invicto del equipo, de arriba) — hitos más bajos porque es una racha
+// individual, no la del equipo completo.
+const VALLAS_JUGADOR_HITOS = [3, 5, 10, 15, 20];
+
+// Racha actual de vallas invictas de cada arquero que arrancó de titular —
+// solo cuenta los partidos donde ESE arquero fue titular (no rompe la racha
+// que otro haya jugado en el medio), cortando en el primer gol recibido con
+// él en el arco. Reusa csbGoles/el mismo `local` para saber cuántos goles
+// recibió el equipo en cada partido.
+function calcRachasVallasPorArquero(matches) {
+  const porArquero = new Map();
+  const jugados = matches
+    .filter(m => m.resultado !== null && /^\d+$/.test(String(m.fecha)))
+    .sort((a, b) => parseInt(a.fecha) - parseInt(b.fecha));
+  for (const m of jugados) {
+    const arq = (m.jugadores || []).find(j => j.titular && String(j.pos || '').toUpperCase() === 'ARQ');
+    const goles = csbGoles(m);
+    if (!arq || !arq.nombre || !goles) continue;
+    if (!porArquero.has(arq.nombre)) porArquero.set(arq.nombre, []);
+    porArquero.get(arq.nombre).push(goles.riv === 0);
+  }
+  const rachas = {};
+  for (const [nombre, vallas] of porArquero) {
+    let streak = 0;
+    for (let i = vallas.length - 1; i >= 0 && vallas[i]; i--) streak++;
+    rachas[nombre] = streak;
+  }
+  return rachas;
+}
+
+// Recordatorio (X horas antes) + Comienzo del partido — el único par de
+// reglas que dispara por RELOJ contra la hora ya cargada, no por un cambio
+// de dato entre corridas. Cada uno se manda una sola vez por fecha (flag
+// persistido en el propio snapshot de esa fecha).
+const RECORDATORIO_MS = 2 * 60 * 60 * 1000; // 2 horas antes del partido
+// Más que el intervalo del cron (30 min): si una corrida se atrasa o se
+// saltea, esta ventana sigue cubriendo el "recién arrancó" en la próxima.
+const COMIENZO_GRACE_MS = 40 * 60 * 1000;
 
 async function checkTorneo(store, torneo) {
   const data = await getAllMatches(torneo);
   if (!data) return;
-  const { matches } = data;
+  const { matches, helpers } = data;
   const badge = TORNEO_CFG[torneo].badge;
   const stateKey = `estado-${torneo}`;
   const prev = (await store.get(stateKey, { type: 'json' })) || { matches: {}, tablaPos: null, racha: 0 };
@@ -148,6 +188,34 @@ async function checkTorneo(store, torneo) {
     const fecha = String(m.fecha);
     const prevM = prev.matches[fecha] || null;
     const curr = snapshotOf(m);
+    const url = `${SITE_URL}/#partido/${torneo}/${encodeURIComponent(fecha)}`;
+
+    // Recordatorio/Comienzo — a propósito ANTES del "if (!prevM) continue"
+    // de acá abajo: a diferencia del resto de las reglas (que solo importan
+    // si YA había una corrida anterior con qué comparar), estas dos tienen
+    // que poder dispararse incluso la primera vez que se ve una fecha, si
+    // esa fecha ya viene con hora cargada y cae dentro de la ventana.
+    curr.recordatorioEnviado = !!(prevM && prevM.recordatorioEnviado);
+    curr.comienzoEnviado = !!(prevM && prevM.comienzoEnviado);
+    if (m.resultado === null && m.dia && m.hora) {
+      try {
+        const kickoff = helpers.parseFechaHora(m.dia, m.hora);
+        if (kickoff) {
+          const msFalta = kickoff.getTime() - Date.now();
+          if (!curr.recordatorioEnviado && msFalta > 0 && msFalta <= RECORDATORIO_MS) {
+            const horas = (msFalta / 3600000).toFixed(1);
+            await sendPush('⏰ Recordatorio', `Santa Bárbara vs ${m.rival} en ${horas}h — Fecha ${fecha} (${badge})`, url);
+            curr.recordatorioEnviado = true;
+          }
+          if (!curr.comienzoEnviado && msFalta <= 0 && -msFalta <= COMIENZO_GRACE_MS) {
+            await sendPush('🏟️ ¡Arrancó el partido!', `Santa Bárbara vs ${m.rival} — ${badge}`, url);
+            curr.comienzoEnviado = true;
+          }
+        }
+      } catch (e) {
+        console.error(`push-scheduler: no se pudo calcular kickoff (${torneo} Fecha ${fecha}):`, e);
+      }
+    }
     nextMatches[fecha] = curr;
 
     // Primera corrida de un partido nunca visto antes: no hay "antes" con
@@ -155,8 +223,6 @@ async function checkTorneo(store, torneo) {
     // no hiciéramos esto, el primer partido cargado en el sheet dispararía
     // sus 3 avisos de golpe en la primera corrida después del deploy.
     if (!prevM) continue;
-
-    const url = `${SITE_URL}/#partido/${torneo}/${encodeURIComponent(fecha)}`;
 
     if (curr.hora && !prevM.hora) {
       await sendPush(
@@ -207,6 +273,7 @@ async function checkTorneo(store, torneo) {
   // trigger: se cerró una fecha), en vez de 2 avisos separados por lo mismo.
   let nextTablaPos = prev.tablaPos;
   let nextRacha = prev.racha || 0;
+  let nextVallasRachaJugador = prev.vallasRachaJugador || {};
   if (huboFinal) {
     try {
       const tabla = await getTabla(torneo);
@@ -238,11 +305,29 @@ async function checkTorneo(store, torneo) {
         `${SITE_URL}/#posiciones`
       );
     }
+
+    // Racha de vallas invictas de UN arquero puntual — mismo criterio de
+    // "solo avisa al cruzar un hito", pero por jugador en vez de por
+    // equipo. Se recalcula desde matches completo (no incrementalmente),
+    // así que queda al día incluso para arqueros que no jugaron esta fecha.
+    nextVallasRachaJugador = calcRachasVallasPorArquero(matches);
+    const prevRachasArq = prev.vallasRachaJugador || {};
+    for (const [nombre, racha] of Object.entries(nextVallasRachaJugador)) {
+      const hitoArq = VALLAS_JUGADOR_HITOS.find(h => racha >= h && (prevRachasArq[nombre] || 0) < h);
+      if (hitoArq) {
+        await sendPush(
+          '🧤 Racha de vallas invictas',
+          `${nombre} lleva ${racha} partidos consecutivos sin recibir goles — ${badge}`,
+          `${SITE_URL}/#nido`
+        );
+      }
+    }
   }
 
   await store.setJSON(stateKey, {
     matches: nextMatches, tablaPos: nextTablaPos, racha: nextRacha,
     jugadoresVistos: [...vistos], jugadoresConGol: [...conGol],
+    vallasRachaJugador: nextVallasRachaJugador,
   });
 }
 
@@ -282,23 +367,30 @@ function top10Nombres(list, key) {
 // categoría. Corre independiente de checkTorneo (no depende de que se haya
 // cerrado una fecha: los rankings pueden cambiar por una corrección de
 // stats sin un partido nuevo de por medio).
+// Cifra redonda de goles en el club — usa el TOTAL acumulado que ya trae
+// rankings.general (career-wide, mismo campo "goles" que muestra El Nido),
+// no un contador aparte: alcanza con comparar ese total contra el de la
+// corrida anterior.
+const GOLES_CLUB_HITOS = [10, 25, 50, 75, 100, 150, 200, 250];
+
 async function checkElNido(store) {
   const rankings = await getElNidoRankings();
   const stateKey = 'estado-elnido';
-  const prev = (await store.get(stateKey, { type: 'json' })) || {};
-  const next = {};
+  const prev = (await store.get(stateKey, { type: 'json' })) || { top10: {}, goles: {} };
+  const nextTop10 = {};
+  const nextGoles = {};
 
   for (const scope of EL_NIDO_SCOPES) {
     const list = rankings[scope.key] || [];
     for (const cat of EL_NIDO_CATEGORIAS) {
       const stateId = `${scope.key}-${cat.key}`;
       const top10 = top10Nombres(list, cat.key);
-      next[stateId] = top10;
+      nextTop10[stateId] = top10;
 
       // Primera corrida de esta combinación scope+categoría: no hay "antes"
       // con qué comparar — se guarda tal cual, sin avisar (si no, TODO el
       // Top 10 ya existente "entraría" de golpe la primera vez que corre).
-      const prevTop10 = prev[stateId];
+      const prevTop10 = prev.top10[stateId];
       if (!prevTop10) continue;
 
       const yaEstaban = new Set(prevTop10);
@@ -313,7 +405,19 @@ async function checkElNido(store) {
     }
   }
 
-  await store.setJSON(stateKey, next);
+  for (const p of rankings.general) {
+    if (!p.nombre) continue;
+    nextGoles[p.nombre] = p.goles;
+    // Primera vez que se ve a este jugador: sin base para comparar, no avisar.
+    const prevGoles = prev.goles[p.nombre];
+    if (prevGoles == null) continue;
+    const hito = GOLES_CLUB_HITOS.find(h => p.goles >= h && prevGoles < h);
+    if (hito) {
+      await sendPush('🎯 Cifra redonda', `${p.nombre} llegó a ${p.goles} goles con el club`, `${SITE_URL}/#nido`);
+    }
+  }
+
+  await store.setJSON(stateKey, { top10: nextTop10, goles: nextGoles });
 }
 
 async function handler() {
