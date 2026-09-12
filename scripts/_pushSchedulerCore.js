@@ -1,8 +1,12 @@
-// Motor de notificaciones push automáticas — corre solo, cada 30 minutos
-// (Netlify Scheduled Function, ver `schedule(...)` al final), sin que nadie
-// tenga que apretar nada. Reusa el mismo getAllMatches() que ya usa la ficha
-// de partido (scripts/_matchPartidoData.js) para no duplicar la lógica de
-// fetch/parseo de Fecha a Fecha en una segunda copia a mano.
+// Motor de notificaciones push automáticas — la lógica real vive acá,
+// compartida por 2 Netlify Scheduled Functions con distinta frecuencia (ver
+// netlify/functions/push-scheduler-sabado.js y -semana.js): la mayoría de
+// los cambios en el sheet (cargar el horario de un partido, corregir un
+// dato) pasan entre semana y no son urgentes, pero el día del partido
+// (sábado) sí conviene revisar seguido para que Recordatorio/Comienzo/Final
+// del partido lleguen con sentido. Un solo cron no puede tener 2
+// frecuencias distintas, así que son 2 archivos de función separados que
+// llaman a este mismo `runOnce`.
 //
 // Cómo detecta "algo pasó": guarda en Netlify Blobs una foto del estado de
 // cada torneo (qué partidos tienen resultado, hora, plantel citado) en cada
@@ -27,9 +31,8 @@
 //      partido
 //   8. Entró al Top 10 de El Nido — General/Primera A/Primera B, por
 //      categoría (ver checkElNido más abajo)
-const { schedule } = require('@netlify/functions');
 const { getStore } = require('@netlify/blobs');
-const { getAllMatches, getTabla, getElNidoRankings, SITE_URL, TORNEO_CFG } = require('../../scripts/_matchPartidoData');
+const { getAllMatches, getTabla, getElNidoRankings, SITE_URL, TORNEO_CFG } = require('./_matchPartidoData');
 
 const ONESIGNAL_APP_ID = '313bdf7f-d8ce-4ef4-868d-bfbe78d0ccee';
 // Secreta — nunca hardcodeada. Se configura como variable de entorno en
@@ -149,9 +152,10 @@ function calcRachasVallasPorArquero(matches) {
 // de dato entre corridas. Cada uno se manda una sola vez por fecha (flag
 // persistido en el propio snapshot de esa fecha).
 const RECORDATORIO_MS = 2 * 60 * 60 * 1000; // 2 horas antes del partido
-// Más que el intervalo del cron (30 min): si una corrida se atrasa o se
-// saltea, esta ventana sigue cubriendo el "recién arrancó" en la próxima.
-const COMIENZO_GRACE_MS = 40 * 60 * 1000;
+// Más que el intervalo del cron más lento (push-scheduler-semana, cada 2h):
+// si una corrida se atrasa o se saltea, esta ventana sigue cubriendo el
+// "recién arrancó" en la próxima.
+const COMIENZO_GRACE_MS = 2 * 60 * 60 * 1000 + 10 * 60 * 1000;
 
 async function checkTorneo(store, torneo) {
   const data = await getAllMatches(torneo);
@@ -363,16 +367,16 @@ function top10Nombres(list, key) {
     .map(p => p.nombre);
 }
 
-// Top 10 / Top 3 de El Nido — General, Primera A y Primera B, por cada
-// categoría. Corre independiente de checkTorneo (no depende de que se haya
-// cerrado una fecha: los rankings pueden cambiar por una corrección de
-// stats sin un partido nuevo de por medio).
 // Cifra redonda de goles en el club — usa el TOTAL acumulado que ya trae
 // rankings.general (career-wide, mismo campo "goles" que muestra El Nido),
 // no un contador aparte: alcanza con comparar ese total contra el de la
 // corrida anterior.
 const GOLES_CLUB_HITOS = [10, 25, 50, 75, 100, 150, 200, 250];
 
+// Top 10 / Top 3 de El Nido — General, Primera A y Primera B, por cada
+// categoría. Corre independiente de checkTorneo (no depende de que se haya
+// cerrado una fecha: los rankings pueden cambiar por una corrección de
+// stats sin un partido nuevo de por medio).
 async function checkElNido(store) {
   const rankings = await getElNidoRankings();
   const stateKey = 'estado-elnido';
@@ -420,7 +424,7 @@ async function checkElNido(store) {
   await store.setJSON(stateKey, { top10: nextTop10, goles: nextGoles });
 }
 
-async function handler() {
+async function runOnce() {
   const store = getStore(STORE_NAME);
   for (const torneo of Object.keys(TORNEO_CFG)) {
     try {
@@ -437,7 +441,4 @@ async function handler() {
   return { statusCode: 200, body: 'ok' };
 }
 
-// Cada 30 min — suficientemente seguido para que un aviso llegue con
-// sentido (recién cargado el dato), sin ser tan frecuente como para pesar
-// en el cupo de créditos de Netlify.
-exports.handler = schedule('*/30 * * * *', handler);
+module.exports = { runOnce };
