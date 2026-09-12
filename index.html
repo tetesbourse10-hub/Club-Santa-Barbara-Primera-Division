@@ -38,17 +38,20 @@
       // Sin promptOptions, el SDK no muestra ningún cartel de permiso por su
       // cuenta — a propósito: en vez de un popup "sorpresa" al cargar (cada
       // vez más bloqueado/ignorado por los navegadores si no viene de un
-      // click real), el pedido de permiso lo dispara el botón 🔔 del header
-      // (ver window._togglePush más abajo). Acá solo se sincroniza el ícono
-      // del botón con el estado real de permiso, al cargar y ante cualquier
-      // cambio (por si lo cambia desde la configuración del navegador).
-      const btn = document.getElementById('header-notif-btn');
+      // click real), el pedido de permiso lo dispara el botón 🔔 (ver
+      // window._togglePush más abajo). Hay 3 instancias del mismo botón —
+      // header interno de #app, splash desktop y header mobile del landing
+      // (#landing no comparte DOM con #app, así que un solo botón no
+      // alcanzaba para cubrir la pantalla que la gente ve primero) — todas
+      // comparten la clase .header-notif-btn, así que se sincronizan todas
+      // juntas acá en vez de una por id.
       const syncNotifBtn = () => {
-        if (!btn) return;
         const on = OneSignal.Notifications.permission;
-        btn.textContent = on ? '🔔' : '🔕';
-        btn.title = on ? 'Notificaciones activadas' : 'Activar notificaciones';
-        btn.classList.toggle('header-notif-on', on);
+        document.querySelectorAll('.header-notif-btn').forEach(btn => {
+          btn.textContent = on ? '🔔' : '🔕';
+          btn.title = on ? 'Notificaciones activadas' : 'Activar notificaciones';
+          btn.classList.toggle('header-notif-on', on);
+        });
       };
       syncNotifBtn();
       OneSignal.Notifications.addEventListener('permissionChange', syncNotifBtn);
@@ -119,6 +122,7 @@
 
     /* ── LANDING ── */
     #landing {
+      position: relative; /* ancla el botón 🔔 de arriba a la derecha (ver .landing-notif-btn-desktop) */
       min-height: 100vh;
       display: flex;
       flex-direction: column;
@@ -136,6 +140,11 @@
       margin-bottom: 16px;
       filter: drop-shadow(0 0 24px rgba(245,158,11,0.4));
     }
+    /* Splash de desktop del landing — el header interno de #app (con su
+       propio botón 🔔, ver header-notif-btn) recién existe una vez que se
+       entra a una sección; acá, arriba a la derecha del splash, es lo más
+       parecido a "cerca del logo" en la pantalla que la gente ve primero. */
+    .landing-notif-btn-desktop { position: absolute; top: 20px; right: 24px; font-size: 1.3rem; }
 
     /* Header nativo mobile — oculto en desktop (el splash grande de arriba
        sigue siendo la bienvenida ahí). Ver @media max-width:768px para el
@@ -1117,8 +1126,9 @@
       }
       .lmh-logo { width: 26px; height: 26px; object-fit: contain; flex-shrink: 0; }
       .lmh-name { font-size: 0.92rem; font-weight: 700; color: #fff; }
+      .landing-mobile-header .header-notif-btn { margin-left: auto; }
       .lmh-name strong { color: var(--dorado); }
-      .landing-logo, .landing-title, .landing-sub { display: none; }
+      .landing-logo, .landing-title, .landing-sub, .landing-notif-btn-desktop { display: none; }
 
       /* Oculta el banner de escritorio, prende el carrusel */
       .next-match-row { display: none; }
@@ -3761,7 +3771,9 @@
   <div class="landing-mobile-header">
     <img src="logo-csb.webp" alt="CSB" class="lmh-logo" />
     <span class="lmh-name">Club <strong>Santa Bárbara</strong></span>
+    <button class="header-notif-btn" onclick="window._togglePush()" title="Activar notificaciones">🔕</button>
   </div>
+  <button class="header-notif-btn landing-notif-btn-desktop" onclick="window._togglePush()" title="Activar notificaciones">🔕</button>
   <img src="logo-csb.webp" class="landing-logo" alt="Club Santa Bárbara" />
   <div class="landing-title">Club <span>Santa Bárbara</span></div>
   <div class="landing-sub">Estadísticas Generales</div>
