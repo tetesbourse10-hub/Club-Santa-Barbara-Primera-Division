@@ -397,14 +397,26 @@ async function checkElNido(store) {
       const prevTop10 = prev.top10[stateId];
       if (!prevTop10) continue;
 
-      const yaEstaban = new Set(prevTop10);
-      const nuevos = top10.filter(n => !yaEstaban.has(n));
-      for (const nombre of nuevos) {
-        await sendPush(
-          '🏆 Entró al Top 10 de El Nido',
-          `${nombre} entró al Top 10 de ${cat.label} — ${scope.label}`,
-          `${SITE_URL}/#nido`
-        );
+      // Posición anterior de cada jugador (índice 0 = 1er puesto) — permite
+      // distinguir "entró al Top 10" de "ya estaba, pero subió de puesto".
+      const prevIdx = new Map(prevTop10.map((n, i) => [n, i]));
+      for (let i = 0; i < top10.length; i++) {
+        const nombre = top10[i];
+        if (!prevIdx.has(nombre)) {
+          await sendPush(
+            '🏆 Entró al Top 10 de El Nido',
+            `${nombre} entró al Top 10 de ${cat.label} — ${scope.label}`,
+            `${SITE_URL}/#nido`
+          );
+        } else if (prevIdx.get(nombre) > i) {
+          // Índice menor = mejor puesto (0 = 1°) — solo avisa si de verdad
+          // mejoró, no si bajó o se mantuvo igual.
+          await sendPush(
+            '📈 Subió en el Top 10',
+            `${nombre} subió al ${i + 1}° puesto de ${cat.label} — ${scope.label} (antes ${prevIdx.get(nombre) + 1}°)`,
+            `${SITE_URL}/#nido`
+          );
+        }
       }
     }
   }
