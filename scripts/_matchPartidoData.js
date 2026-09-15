@@ -91,7 +91,7 @@ function _loadEngine() {
 const TORNEO_CFG = {
   a: {
     tab: 'Clausura 2026', sheetKey: 'A_MAIN',
-    detRange: 'A22:I532', basicRange: 'A1:J18',
+    detRange: 'A22:J530', basicRange: 'A1:J18',
     badge: 'Clausura AIFA A 2026', color: '#fbbf24',
     // Tabla de Posiciones en vivo: mismo sheet dedicado (GS.POSICIONES) y
     // pestaña ("Posiciones_A") que ya usa loadLiveData() — ver el
