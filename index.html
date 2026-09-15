@@ -9643,6 +9643,12 @@ function renderTorneoApertura() {
   // sacaba sin ningún cambio real de fecha ni de pestaña de arriba.
   const _prevSquadBtns = [...document.querySelectorAll('#torneo-apertura-content .ap-squad-tabbtn-m')];
   const _prevSquadIdx = _prevSquadBtns.findIndex(b => b.classList.contains('active'));
+  // BUG REAL encontrado: la protección de arriba solo cubría la versión
+  // mobile (.ap-squad-tabbtn-m) — en desktop (.ap-squad-tabbtn-d) cada
+  // refresh de 60s volvía a "11 Titular" igual, aunque el usuario estuviera
+  // viendo Cambios o Banco de Suplentes, sin ningún cambio real de fecha.
+  const _prevSquadBtnsD = [...document.querySelectorAll('#torneo-apertura-content .ap-squad-tabbtn-d')];
+  const _prevSquadIdxD = _prevSquadBtnsD.findIndex(b => b.classList.contains('active'));
 
   const isA = currentData === DATA_A;
   // Both A and B's tracked current-season slot is now their respective
@@ -9977,6 +9983,11 @@ function renderTorneoApertura() {
   if (_prevTab === 'fechas' && _prevSquadIdx > 0) {
     const newSquadBtns = [...document.querySelectorAll('#torneo-apertura-content .ap-squad-tabbtn-m')];
     if (newSquadBtns[_prevSquadIdx]) window._apSquadTabM(newSquadBtns[_prevSquadIdx], _prevSquadIdx);
+  }
+  // Mismo restore que arriba, para la versión desktop (ver _prevSquadIdxD).
+  if (_prevTab === 'fechas' && _prevSquadIdxD > 0) {
+    const newSquadBtnsD = [...document.querySelectorAll('#torneo-apertura-content .ap-squad-tabbtn-d')];
+    if (newSquadBtnsD[_prevSquadIdxD]) window._apSquadTabD(newSquadBtnsD[_prevSquadIdxD], _prevSquadIdxD);
   }
 
   // Live AIFA standings scrape (background, only touches the on-screen table —
