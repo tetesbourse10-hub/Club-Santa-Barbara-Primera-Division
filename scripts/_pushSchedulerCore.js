@@ -46,14 +46,19 @@ const STORE_NAME = 'push-state';
 // inyecta automáticamente el siteID/token que Blobs necesita para las
 // Scheduled Functions — problema conocido de Netlify, no algo de este
 // código. Hay que pasárselos a mano: NETLIFY_SITE_ID ya viene solo en
-// cualquier Function; NETLIFY_BLOBS_TOKEN es un Personal Access Token que
+// cualquier Function; BLOBS_ACCESS_TOKEN es un Personal Access Token que
 // hay que crear a mano (User settings → Applications → New access token en
 // Netlify) y cargar como variable de entorno del sitio, igual que
-// ONESIGNAL_REST_API_KEY.
+// ONESIGNAL_REST_API_KEY. OJO: probamos primero con el nombre
+// "NETLIFY_BLOBS_TOKEN" y Netlify lo ignoraba en silencio (seguía tirando
+// MissingBlobsEnvironmentError con la variable ya cargada) — el prefijo
+// "NETLIFY_" está reservado para variables propias de la plataforma, así
+// que un nombre de usuario con ese prefijo puede no llegar nunca a
+// process.env. Por eso el nombre de acá NO empieza con "NETLIFY_".
 function _blobsStoreOptions() {
   const opts = { name: STORE_NAME };
   if (process.env.NETLIFY_SITE_ID) opts.siteID = process.env.NETLIFY_SITE_ID;
-  if (process.env.NETLIFY_BLOBS_TOKEN) opts.token = process.env.NETLIFY_BLOBS_TOKEN;
+  if (process.env.BLOBS_ACCESS_TOKEN) opts.token = process.env.BLOBS_ACCESS_TOKEN;
   return opts;
 }
 
@@ -452,8 +457,8 @@ async function checkElNido(store) {
 }
 
 async function runOnce() {
-  if (!process.env.NETLIFY_BLOBS_TOKEN) {
-    console.error('push-scheduler: falta NETLIFY_BLOBS_TOKEN — Netlify Blobs va a tirar MissingBlobsEnvironmentError y no se va a poder guardar/comparar estado.');
+  if (!process.env.BLOBS_ACCESS_TOKEN) {
+    console.error('push-scheduler: falta BLOBS_ACCESS_TOKEN — Netlify Blobs va a tirar MissingBlobsEnvironmentError y no se va a poder guardar/comparar estado.');
   }
   const store = getStore(_blobsStoreOptions());
   for (const torneo of Object.keys(TORNEO_CFG)) {
