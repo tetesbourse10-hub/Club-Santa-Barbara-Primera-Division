@@ -13630,7 +13630,20 @@ function _ensureJugTotalesA() {
         .filter(r => !EXCLUIR.includes(r[JUG_COL.nombre].toLowerCase().trim()));
       _jugTotalesData = _mergeDuplicatePlayerRows(parsed, JUG_COL);
     })
-    .catch(() => {});
+    .catch(e => {
+      console.error('[A Totales] fetch failed:', e);
+      // BUG REAL encontrado (mismo que ya se había arreglado del lado de
+      // B, ver _jugTotalesBLoadPromise más abajo, pero nunca se replicó
+      // acá): un fallo puntual de PROXY_URL (Apps Script) — cold-start,
+      // glitch de red — quedaba memoizado para siempre en
+      // _jugTotalesLoadPromise, así que El Nido/Estadísticas Totales A se
+      // quedaban mostrando el SEED (datos viejos, ni siquiera "0 de 0"
+      // como B, así que pasaba más desapercibido) por el resto de la
+      // sesión, sin volver a intentar nunca un fetch real. Liberando el
+      // promise memoizado acá, el próximo que lo pida dispara un fetch
+      // nuevo en vez de heredar este mismo fallo para siempre.
+      _jugTotalesLoadPromise = null;
+    });
   return _jugTotalesLoadPromise;
 }
 
