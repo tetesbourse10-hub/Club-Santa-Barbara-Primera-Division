@@ -41,6 +41,21 @@ const ONESIGNAL_APP_ID = '313bdf7f-d8ce-4ef4-868d-bfbe78d0ccee';
 const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
 
 const STORE_NAME = 'push-state';
+// BUG REAL encontrado (MissingBlobsEnvironmentError en producción): a
+// diferencia de una Function normal (invocada por request), acá Netlify NO
+// inyecta automáticamente el siteID/token que Blobs necesita para las
+// Scheduled Functions — problema conocido de Netlify, no algo de este
+// código. Hay que pasárselos a mano: NETLIFY_SITE_ID ya viene solo en
+// cualquier Function; NETLIFY_BLOBS_TOKEN es un Personal Access Token que
+// hay que crear a mano (User settings → Applications → New access token en
+// Netlify) y cargar como variable de entorno del sitio, igual que
+// ONESIGNAL_REST_API_KEY.
+function _blobsStoreOptions() {
+  const opts = { name: STORE_NAME };
+  if (process.env.NETLIFY_SITE_ID) opts.siteID = process.env.NETLIFY_SITE_ID;
+  if (process.env.NETLIFY_BLOBS_TOKEN) opts.token = process.env.NETLIFY_BLOBS_TOKEN;
+  return opts;
+}
 
 async function sendPush(title, message, url) {
   if (!ONESIGNAL_REST_API_KEY) {
@@ -437,7 +452,10 @@ async function checkElNido(store) {
 }
 
 async function runOnce() {
-  const store = getStore(STORE_NAME);
+  if (!process.env.NETLIFY_BLOBS_TOKEN) {
+    console.error('push-scheduler: falta NETLIFY_BLOBS_TOKEN — Netlify Blobs va a tirar MissingBlobsEnvironmentError y no se va a poder guardar/comparar estado.');
+  }
+  const store = getStore(_blobsStoreOptions());
   for (const torneo of Object.keys(TORNEO_CFG)) {
     try {
       await checkTorneo(store, torneo);
