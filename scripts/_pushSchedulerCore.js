@@ -221,6 +221,14 @@ async function checkTorneo(store, torneo) {
     // esa fecha ya viene con hora cargada y cae dentro de la ventana.
     curr.recordatorioEnviado = !!(prevM && prevM.recordatorioEnviado);
     curr.comienzoEnviado = !!(prevM && prevM.comienzoEnviado);
+    // Si la hora cambió (se reprograma el partido), los flags de "ya
+    // avisé" quedan obsoletos — corresponden al horario viejo. Sin este
+    // reset, reprogramar un partido que ya había tenido su Recordatorio
+    // dejaba a ESE partido sin nuevo Recordatorio/Comienzo para siempre.
+    if (prevM && prevM.hora && m.hora && prevM.hora !== m.hora) {
+      curr.recordatorioEnviado = false;
+      curr.comienzoEnviado = false;
+    }
     if (m.resultado === null && m.dia && m.hora) {
       try {
         const kickoff = helpers.parseFechaHora(m.dia, m.hora);
@@ -248,9 +256,14 @@ async function checkTorneo(store, torneo) {
     // sus 3 avisos de golpe en la primera corrida después del deploy.
     if (!prevM) continue;
 
-    if (curr.hora && !prevM.hora) {
+    if (curr.hora && curr.hora !== prevM.hora) {
+      // Antes solo avisaba si pasaba de vacío a con dato — una corrección
+      // real (cambiar 15:30 por 16:00) no disparaba nada porque "antes"
+      // también tenía hora. Ahora distingue el mensaje: primera carga vs.
+      // corrección de un horario ya confirmado.
+      const esCorreccion = !!prevM.hora;
       await sendPush(
-        '🗓️ Horario confirmado',
+        esCorreccion ? '🗓️ Horario corregido' : '🗓️ Horario confirmado',
         `Santa Bárbara vs ${m.rival} — Fecha ${fecha} (${badge}), ${m.hora}`,
         url
       );
