@@ -163,6 +163,11 @@ const RACHA_HITOS = [5, 10, 15, 20, 25, 30, 40, 50];
 // invicto del equipo, de arriba) — hitos más bajos porque es una racha
 // individual, no la del equipo completo.
 const VALLAS_JUGADOR_HITOS = [3, 5, 10, 15, 20];
+// Racha goleadora de UN jugador puntual: partidos JUGADOS consecutivos (no
+// partidos del equipo — si no jugó uno, no cuenta ni corta la racha)
+// convirtiendo al menos 1 gol. Mismos hitos que la racha de vallas
+// invictas, mismo criterio de "individual, no del equipo completo".
+const RACHA_GOL_JUGADOR_HITOS = [3, 5, 10, 15, 20];
 
 // Racha actual de vallas invictas de cada arquero que arrancó de titular —
 // solo cuenta los partidos donde ESE arquero fue titular (no rompe la racha
@@ -185,6 +190,31 @@ function calcRachasVallasPorArquero(matches) {
   for (const [nombre, vallas] of porArquero) {
     let streak = 0;
     for (let i = vallas.length - 1; i >= 0 && vallas[i]; i--) streak++;
+    rachas[nombre] = streak;
+  }
+  return rachas;
+}
+
+// Racha goleadora de cada jugador que jugó (titular o entró) — a
+// diferencia de la racha de vallas invictas (solo arqueros TITULARES), acá
+// cuenta cualquiera que haya pisado la cancha, sin importar si arrancó o
+// entró desde el banco.
+function calcRachasGolPorJugador(matches) {
+  const porJugador = new Map();
+  const jugados = matches
+    .filter(m => m.resultado !== null && /^\d+$/.test(String(m.fecha)))
+    .sort((a, b) => parseInt(a.fecha) - parseInt(b.fecha));
+  for (const m of jugados) {
+    for (const j of (m.jugadores || [])) {
+      if (!j.nombre || !(j.titular || j.entro)) continue;
+      if (!porJugador.has(j.nombre)) porJugador.set(j.nombre, []);
+      porJugador.get(j.nombre).push(j.goles > 0);
+    }
+  }
+  const rachas = {};
+  for (const [nombre, marco] of porJugador) {
+    let streak = 0;
+    for (let i = marco.length - 1; i >= 0 && marco[i]; i--) streak++;
     rachas[nombre] = streak;
   }
   return rachas;
@@ -307,16 +337,27 @@ async function checkTorneo(store, torneo) {
       );
     }
     if (curr.citado && !prevM.citado) {
+      // 11 probable: quiénes ya están marcados Titular al momento de
+      // confirmarse la citación (la formación puede seguir cargándose
+      // después de esto — es "probable", no necesariamente la definitiva).
+      const probables = (m.jugadores || []).filter(j => j.titular && j.nombre).map(j => j.nombre);
+      const eleven = probables.length ? `\n11 probable: ${probables.join(', ')}` : '';
       await sendPush(
         '📋 Citación confirmada',
-        `Ya está el plantel citado — Santa Bárbara vs ${m.rival}, Fecha ${fecha}`,
+        `Ya está el plantel citado — Santa Bárbara vs ${m.rival}, Fecha ${fecha}${eleven}`,
         url
       );
     }
     if (curr.resultado && !prevM.resultado) {
+      // Goleadores del partido — un jugador puede aparecer una sola vez con
+      // su total de goles en ESE partido (no una entrada por gol).
+      const goleadores = (m.jugadores || [])
+        .filter(j => j.nombre && j.goles > 0)
+        .map(j => j.goles > 1 ? `${j.nombre} (${j.goles})` : j.nombre);
+      const golesTxt = goleadores.length ? ` — Goles: ${goleadores.join(', ')}` : '';
       await sendPush(
         '⚽ Final del partido',
-        `Santa Bárbara ${curr.resultado}${m.penales ? ` (pen. ${m.penales})` : ''} vs ${m.rival}`,
+        `Santa Bárbara ${curr.resultado}${m.penales ? ` (pen. ${m.penales})` : ''} vs ${m.rival}${golesTxt}`,
         url
       );
       huboFinal = true;
@@ -349,6 +390,7 @@ async function checkTorneo(store, torneo) {
   let nextTablaPos = prev.tablaPos;
   let nextRacha = prev.racha || 0;
   let nextVallasRachaJugador = prev.vallasRachaJugador || {};
+  let nextRachaGolJugador = prev.rachaGolJugador || {};
   if (huboFinal) {
     try {
       const tabla = await getTabla(torneo);
@@ -397,12 +439,29 @@ async function checkTorneo(store, torneo) {
         );
       }
     }
+
+    // Racha goleadora de UN jugador puntual — mismo criterio que la de
+    // vallas invictas, pero contando partidos JUGADOS (titular o entró)
+    // con al menos 1 gol convertido.
+    nextRachaGolJugador = calcRachasGolPorJugador(matches);
+    const prevRachasGol = prev.rachaGolJugador || {};
+    for (const [nombre, racha] of Object.entries(nextRachaGolJugador)) {
+      const hitoGol = RACHA_GOL_JUGADOR_HITOS.find(h => racha >= h && (prevRachasGol[nombre] || 0) < h);
+      if (hitoGol) {
+        await sendPush(
+          '🔥 Racha goleadora',
+          `${nombre} convirtió en ${racha} partidos consecutivos — ${badge}`,
+          `${SITE_URL}/#nido`
+        );
+      }
+    }
   }
 
   await store.setJSON(stateKey, {
     matches: nextMatches, tablaPos: nextTablaPos, racha: nextRacha,
     jugadoresVistos: [...vistos], jugadoresConGol: [...conGol],
     vallasRachaJugador: nextVallasRachaJugador,
+    rachaGolJugador: nextRachaGolJugador,
   });
 }
 
