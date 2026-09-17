@@ -233,7 +233,22 @@ async function checkTorneo(store, torneo) {
 
   for (const m of matches) {
     const fecha = String(m.fecha);
-    const prevM = prev.matches[fecha] || null;
+    // BUG REAL encontrado ("Horario corregido" de un partido de Copa
+    // repitiéndose en TODAS las corridas, siempre con el mismo horario en
+    // el texto): partidos de Copa sin número de fecha propio en el sheet
+    // caen al fallback `String(seq)` en parseDetailedMatches — un contador
+    // secuencial que puede coincidir con el número de una fecha de LIGA
+    // real (ambos guardándose bajo la misma clave "fecha" acá). Cada
+    // corrida, el partido de liga y el de Copa se pisaban el snapshot
+    // guardado uno al otro bajo esa clave compartida, así que el de Copa
+    // nunca lograba "asentar" su propio horario como base de comparación —
+    // parecía "cambiar" en cada corrida aunque en el sheet no se tocó más.
+    // La clave de guardado/comparación ahora suma el rival (casi imposible
+    // que choque entre dos partidos reales), sin tocar `fecha` a secas —
+    // esa sigue siendo la que arma la URL de la ficha compartible
+    // (/#partido/:torneo/:fecha), un formato ya establecido en otros lados.
+    const matchKey = `${fecha}|${m.rival || ''}`;
+    const prevM = prev.matches[matchKey] || null;
     const curr = snapshotOf(m);
     const url = `${SITE_URL}/#partido/${torneo}/${encodeURIComponent(fecha)}`;
 
@@ -271,7 +286,7 @@ async function checkTorneo(store, torneo) {
         console.error(`push-scheduler: no se pudo calcular kickoff (${torneo} Fecha ${fecha}):`, e);
       }
     }
-    nextMatches[fecha] = curr;
+    nextMatches[matchKey] = curr;
 
     // Primera corrida de un partido nunca visto antes: no hay "antes" con
     // qué comparar — se guarda tal cual está ahora, sin disparar nada. Si
