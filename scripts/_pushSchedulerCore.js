@@ -1,8 +1,12 @@
-// Motor de notificaciones push automáticas — corre solo, cada 30 minutos
-// (Netlify Scheduled Function, ver `schedule(...)` al final), sin que nadie
-// tenga que apretar nada. Reusa el mismo getAllMatches() que ya usa la ficha
-// de partido (scripts/_matchPartidoData.js) para no duplicar la lógica de
-// fetch/parseo de Fecha a Fecha en una segunda copia a mano.
+// Motor de notificaciones push automáticas — la lógica real vive acá,
+// compartida por 2 Netlify Scheduled Functions con distinta frecuencia (ver
+// netlify/functions/push-scheduler-sabado.js y -semana.js): la mayoría de
+// los cambios en el sheet (cargar el horario de un partido, corregir un
+// dato) pasan entre semana y no son urgentes, pero el día del partido
+// (sábado) sí conviene revisar seguido para que Recordatorio/Comienzo/Final
+// del partido lleguen con sentido. Un solo cron no puede tener 2
+// frecuencias distintas, así que son 2 archivos de función separados que
+// llaman a este mismo `runOnce`.
 //
 // Cómo detecta "algo pasó": guarda en Netlify Blobs una foto del estado de
 // cada torneo (qué partidos tienen resultado, hora, plantel citado) en cada
@@ -27,9 +31,8 @@
 //      partido
 //   8. Entró al Top 10 de El Nido — General/Primera A/Primera B, por
 //      categoría (ver checkElNido más abajo)
-const { schedule } = require('@netlify/functions');
 const { getStore } = require('@netlify/blobs');
-const { getAllMatches, getTabla, getElNidoRankings, SITE_URL, TORNEO_CFG } = require('../../scripts/_matchPartidoData');
+const { getAllMatches, getTabla, getElNidoRankings, SITE_URL, TORNEO_CFG } = require('./_matchPartidoData');
 
 const ONESIGNAL_APP_ID = '313bdf7f-d8ce-4ef4-868d-bfbe78d0ccee';
 // Secreta — nunca hardcodeada. Se configura como variable de entorno en
@@ -38,6 +41,26 @@ const ONESIGNAL_APP_ID = '313bdf7f-d8ce-4ef4-868d-bfbe78d0ccee';
 const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
 
 const STORE_NAME = 'push-state';
+// BUG REAL encontrado (MissingBlobsEnvironmentError en producción): a
+// diferencia de una Function normal (invocada por request), acá Netlify NO
+// inyecta automáticamente el siteID/token que Blobs necesita para las
+// Scheduled Functions — problema conocido de Netlify, no algo de este
+// código. Hay que pasárselos a mano: SITE_ID (así, sin el prefijo
+// "NETLIFY_" — ese nombre no existe) ya viene solo en cualquier Function;
+// BLOBS_ACCESS_TOKEN es un Personal Access Token que hay que crear a mano
+// (User settings → Applications → New access token en Netlify) y cargar
+// como variable de entorno del sitio, igual que ONESIGNAL_REST_API_KEY.
+// OJO: probamos primero con el nombre "NETLIFY_BLOBS_TOKEN" para el token y
+// Netlify lo ignoraba en silencio — el prefijo "NETLIFY_" está reservado
+// para variables propias de la plataforma, así que un nombre de usuario
+// con ese prefijo puede no llegar nunca a process.env. Por eso ningún
+// nombre acá empieza con "NETLIFY_".
+function _blobsStoreOptions() {
+  const opts = { name: STORE_NAME };
+  if (process.env.SITE_ID) opts.siteID = process.env.SITE_ID;
+  if (process.env.BLOBS_ACCESS_TOKEN) opts.token = process.env.BLOBS_ACCESS_TOKEN;
+  return opts;
+}
 
 async function sendPush(title, message, url) {
   if (!ONESIGNAL_REST_API_KEY) {
@@ -45,11 +68,19 @@ async function sendPush(title, message, url) {
     return;
   }
   try {
-    const r = await fetch('https://onesignal.com/api/v1/notifications', {
+    // BUG REAL encontrado (401 "Access denied" en todas las corridas desde
+    // que se generó la API Key): OneSignal migró del endpoint legacy
+    // (onesignal.com/api/v1, claves "REST API Key" + `Authorization: Basic`)
+    // a uno nuevo (api.onesignal.com, claves con prefijo os_v2_app_ +
+    // `Authorization: Key`) — la clave que se generó desde Settings → Keys
+    // & IDs → API Keys → "Add key" (el flujo que usamos) es de este tipo
+    // nuevo, así que pegarle al endpoint/header viejo la rechazaba siempre,
+    // aunque la clave en sí fuera correcta.
+    const r = await fetch('https://api.onesignal.com/notifications', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json; charset=utf-8',
-        'Authorization': `Basic ${ONESIGNAL_REST_API_KEY}`,
+        'Authorization': `Key ${ONESIGNAL_REST_API_KEY}`,
       },
       body: JSON.stringify({
         app_id: ONESIGNAL_APP_ID,
@@ -149,9 +180,10 @@ function calcRachasVallasPorArquero(matches) {
 // de dato entre corridas. Cada uno se manda una sola vez por fecha (flag
 // persistido en el propio snapshot de esa fecha).
 const RECORDATORIO_MS = 2 * 60 * 60 * 1000; // 2 horas antes del partido
-// Más que el intervalo del cron (30 min): si una corrida se atrasa o se
-// saltea, esta ventana sigue cubriendo el "recién arrancó" en la próxima.
-const COMIENZO_GRACE_MS = 40 * 60 * 1000;
+// Más que el intervalo del cron más lento (push-scheduler-semana, cada 2h):
+// si una corrida se atrasa o se saltea, esta ventana sigue cubriendo el
+// "recién arrancó" en la próxima.
+const COMIENZO_GRACE_MS = 2 * 60 * 60 * 1000 + 10 * 60 * 1000;
 
 async function checkTorneo(store, torneo) {
   const data = await getAllMatches(torneo);
@@ -197,6 +229,14 @@ async function checkTorneo(store, torneo) {
     // esa fecha ya viene con hora cargada y cae dentro de la ventana.
     curr.recordatorioEnviado = !!(prevM && prevM.recordatorioEnviado);
     curr.comienzoEnviado = !!(prevM && prevM.comienzoEnviado);
+    // Si la hora cambió (se reprograma el partido), los flags de "ya
+    // avisé" quedan obsoletos — corresponden al horario viejo. Sin este
+    // reset, reprogramar un partido que ya había tenido su Recordatorio
+    // dejaba a ESE partido sin nuevo Recordatorio/Comienzo para siempre.
+    if (prevM && prevM.hora && m.hora && prevM.hora !== m.hora) {
+      curr.recordatorioEnviado = false;
+      curr.comienzoEnviado = false;
+    }
     if (m.resultado === null && m.dia && m.hora) {
       try {
         const kickoff = helpers.parseFechaHora(m.dia, m.hora);
@@ -224,9 +264,14 @@ async function checkTorneo(store, torneo) {
     // sus 3 avisos de golpe en la primera corrida después del deploy.
     if (!prevM) continue;
 
-    if (curr.hora && !prevM.hora) {
+    if (curr.hora && curr.hora !== prevM.hora) {
+      // Antes solo avisaba si pasaba de vacío a con dato — una corrección
+      // real (cambiar 15:30 por 16:00) no disparaba nada porque "antes"
+      // también tenía hora. Ahora distingue el mensaje: primera carga vs.
+      // corrección de un horario ya confirmado.
+      const esCorreccion = !!prevM.hora;
       await sendPush(
-        '🗓️ Horario confirmado',
+        esCorreccion ? '🗓️ Horario corregido' : '🗓️ Horario confirmado',
         `Santa Bárbara vs ${m.rival} — Fecha ${fecha} (${badge}), ${m.hora}`,
         url
       );
@@ -363,16 +408,16 @@ function top10Nombres(list, key) {
     .map(p => p.nombre);
 }
 
-// Top 10 / Top 3 de El Nido — General, Primera A y Primera B, por cada
-// categoría. Corre independiente de checkTorneo (no depende de que se haya
-// cerrado una fecha: los rankings pueden cambiar por una corrección de
-// stats sin un partido nuevo de por medio).
 // Cifra redonda de goles en el club — usa el TOTAL acumulado que ya trae
 // rankings.general (career-wide, mismo campo "goles" que muestra El Nido),
 // no un contador aparte: alcanza con comparar ese total contra el de la
 // corrida anterior.
 const GOLES_CLUB_HITOS = [10, 25, 50, 75, 100, 150, 200, 250];
 
+// Top 10 / Top 3 de El Nido — General, Primera A y Primera B, por cada
+// categoría. Corre independiente de checkTorneo (no depende de que se haya
+// cerrado una fecha: los rankings pueden cambiar por una corrección de
+// stats sin un partido nuevo de por medio).
 async function checkElNido(store) {
   const rankings = await getElNidoRankings();
   const stateKey = 'estado-elnido';
@@ -393,14 +438,26 @@ async function checkElNido(store) {
       const prevTop10 = prev.top10[stateId];
       if (!prevTop10) continue;
 
-      const yaEstaban = new Set(prevTop10);
-      const nuevos = top10.filter(n => !yaEstaban.has(n));
-      for (const nombre of nuevos) {
-        await sendPush(
-          '🏆 Entró al Top 10 de El Nido',
-          `${nombre} entró al Top 10 de ${cat.label} — ${scope.label}`,
-          `${SITE_URL}/#nido`
-        );
+      // Posición anterior de cada jugador (índice 0 = 1er puesto) — permite
+      // distinguir "entró al Top 10" de "ya estaba, pero subió de puesto".
+      const prevIdx = new Map(prevTop10.map((n, i) => [n, i]));
+      for (let i = 0; i < top10.length; i++) {
+        const nombre = top10[i];
+        if (!prevIdx.has(nombre)) {
+          await sendPush(
+            '🏆 Entró al Top 10 de El Nido',
+            `${nombre} entró al Top 10 de ${cat.label} — ${scope.label}`,
+            `${SITE_URL}/#nido`
+          );
+        } else if (prevIdx.get(nombre) > i) {
+          // Índice menor = mejor puesto (0 = 1°) — solo avisa si de verdad
+          // mejoró, no si bajó o se mantuvo igual.
+          await sendPush(
+            '📈 Subió en el Top 10',
+            `${nombre} subió al ${i + 1}° puesto de ${cat.label} — ${scope.label} (antes ${prevIdx.get(nombre) + 1}°)`,
+            `${SITE_URL}/#nido`
+          );
+        }
       }
     }
   }
@@ -420,8 +477,14 @@ async function checkElNido(store) {
   await store.setJSON(stateKey, { top10: nextTop10, goles: nextGoles });
 }
 
-async function handler() {
-  const store = getStore(STORE_NAME);
+async function runOnce() {
+  if (!process.env.BLOBS_ACCESS_TOKEN) {
+    console.error('push-scheduler: falta BLOBS_ACCESS_TOKEN — Netlify Blobs va a tirar MissingBlobsEnvironmentError y no se va a poder guardar/comparar estado.');
+  }
+  if (!process.env.SITE_ID) {
+    console.error('push-scheduler: process.env.SITE_ID no está disponible en esta Function — Netlify Blobs va a tirar MissingBlobsEnvironmentError igual.');
+  }
+  const store = getStore(_blobsStoreOptions());
   for (const torneo of Object.keys(TORNEO_CFG)) {
     try {
       await checkTorneo(store, torneo);
@@ -437,7 +500,4 @@ async function handler() {
   return { statusCode: 200, body: 'ok' };
 }
 
-// Cada 30 min — suficientemente seguido para que un aviso llegue con
-// sentido (recién cargado el dato), sin ser tan frecuente como para pesar
-// en el cupo de créditos de Netlify.
-exports.handler = schedule('*/30 * * * *', handler);
+module.exports = { runOnce };

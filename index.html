@@ -2421,6 +2421,51 @@
       display:flex; align-items:center; gap:10px;
     }
     .graf-section-title::after { content:''; flex:1; height:1px; background:linear-gradient(to right,#1e2a3a,transparent); }
+    /* Evolución Histórica + Resumen — 2 botones que despliegan cada uno su
+       propio panel (gráfico Chart.js / tabla comparativa), mutuamente
+       excluyentes (ver _toggleEvolucionHistorica/_toggleHistResumen dentro
+       de renderGraficos, que cierran el otro al abrir uno). */
+    .hist-evol-btnrow { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px; }
+    .hist-evol-btn {
+      display:inline-flex; align-items:center; gap:7px; padding:8px 16px;
+      border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.09);
+      color:#cbd5e1; font-size:.85rem; font-weight:700; cursor:pointer;
+      transition:background .15s, border-color .15s;
+    }
+    .hist-evol-btn:hover { background:rgba(255,255,255,0.09); border-color:rgba(255,255,255,0.16); }
+    .hist-evol-panel {
+      background:linear-gradient(160deg,#1a2236,#131825); border:1px solid #1e2a3a;
+      border-radius:14px; padding:16px; margin-bottom:24px;
+    }
+    .hist-evol-title { font-size:0.9rem; font-weight:700; color:#fff; margin-bottom:2px; }
+    .hist-evol-sub { font-size:0.68rem; color:#64748b; margin-bottom:14px; }
+    /* Con muchas temporadas cargadas, forzar el gráfico entero al ancho
+       angosto de un celular apretaba los puntos/etiquetas uno contra otro
+       (ilegible) — en vez de eso, el wrapper interno toma un ancho mínimo
+       calculado según la cantidad de temporadas (ver renderEvolucionChart)
+       y este contenedor scrollea horizontal si no entra, así cada punto
+       mantiene un espacio mínimo legible en vez de compactarse. */
+    .hist-evol-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    /* Resumen de Torneos — tabla comparativa (todos los torneos, liga y
+       copas). Ancho mínimo para que las columnas numéricas no se aplasten
+       en mobile; el scroll horizontal lo da .hist-evol-scroll que ya la
+       envuelve. */
+    .hist-resumen-table { width:100%; min-width:560px; border-collapse:collapse; font-size:0.78rem; }
+    .hist-resumen-table thead th {
+      text-align:center; padding:8px 10px; color:#64748b; font-size:0.65rem;
+      font-weight:800; text-transform:uppercase; letter-spacing:.04em;
+      border-bottom:1px solid #1e2a3a; white-space:nowrap;
+    }
+    .hist-resumen-table thead th:first-child { text-align:left; }
+    .hist-resumen-table tbody td {
+      text-align:center; padding:9px 10px; color:#cbd5e1; white-space:nowrap;
+      border-bottom:1px solid rgba(255,255,255,0.05);
+    }
+    .hist-resumen-table tbody tr:hover td { background:rgba(255,255,255,0.03); }
+    .hist-resumen-table tbody tr:last-child td { border-bottom:none; }
+    .hist-resumen-table td.hist-resumen-torneo {
+      text-align:left; font-weight:700; color:#e2e8f0; white-space:normal; min-width:150px;
+    }
     /* Detail view */
     .graf-detail-back { margin-bottom:16px; }
     .graf-detail-header { margin-bottom:20px; }
@@ -5315,6 +5360,16 @@ function ppFilterMetrics(cat, btn) {
 
   document.querySelectorAll('#pp-metric-tabs .pp-metric-tab').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
+
+  // Pills de ranking del Hero mobile (#102 Asistidor, etc.) — filtradas por
+  // la misma pestaña Totales/Primera A/Primera B que el resto del bloque de
+  // métricas, en vez de mostrar siempre el ranking General sin importar cuál
+  // esté activa (ver window._ppRankSets, armado junto a _ppMetricsData).
+  const ranksEl = document.getElementById('pp-hero-mobile-ranks');
+  if (ranksEl && window._ppRankSets) {
+    ranksEl.innerHTML = _ppMiniRanksHtmlFromSet(window._ppRankSets[cat]);
+  }
+
   // If a detail panel (Goles/Partidos/etc.) is open, refresh it so it only
   // shows rows from the newly-selected category — or a "sin registros"
   // message when the player has none there.
@@ -5994,8 +6049,10 @@ function _ppRankGroup(rankSet, groupLabel, accent) {
 // en una fila (puesto de 3 dígitos, ej. "#102 Asistidor") bajan a una
 // segunda línea en vez de cortarse contra el borde de la tarjeta (ver
 // flex-wrap en .pp-hero-mobile-ranks).
-function _ppHeroMiniRanksHtml(s) {
-  const rankSet = s.rankGen || s.rankA || s.rankB;
+// Separado de _ppHeroMiniRanksHtml para que ppFilterMetrics (el switch
+// Totales/Primera A/Primera B) pueda re-armar estas mismas pills con OTRO
+// rankSet sin duplicar el HTML — ver window._ppRankSets/ppFilterMetrics.
+function _ppMiniRanksHtmlFromSet(rankSet) {
   if (!rankSet) return '';
   const items = [
     { rank: rankSet.goles, label: 'Goles' },
@@ -6008,6 +6065,9 @@ function _ppHeroMiniRanksHtml(s) {
     const color = top ? (it.rank.pos === 1 ? '#FFD700' : it.rank.pos === 2 ? '#C0C0C0' : '#CD7F32') : '#fbbf24';
     return `<span class="pp-hero-rank-pill${top ? ' pp-hero-rank-top' : ''}" style="color:${color}">#${it.rank.pos} ${it.label}</span>`;
   }).join('');
+}
+function _ppHeroMiniRanksHtml(s) {
+  return _ppMiniRanksHtmlFromSet(s.rankGen || s.rankA || s.rankB);
 }
 
 // Colored global-score pill (win/draw/loss from the club's own gf/gc), used
@@ -6837,6 +6897,11 @@ function renderPlayerProfile(nombre) {
   // Stash per-category numbers so the Totales/Primera A/Primera B tabs can swap
   // the on-screen values instantly without re-rendering the whole profile.
   window._ppMetricsData = s.porCategoria;
+  // BUG REAL encontrado (mobile): las pills de ranking del Hero
+  // (#102 Asistidor, etc.) siempre mostraban rankGen (General), sin
+  // importar qué pestaña Totales/Primera A/Primera B estuviera activa —
+  // ver ppFilterMetrics, que ahora también las actualiza con esto.
+  window._ppRankSets = { total: s.rankGen || s.rankA || s.rankB, a: s.rankA, b: s.rankB };
 
   // Si ya se pidió (y llegó) el JSON precalculado de build time, ese JSON
   // trae SOLO el histórico cerrado (Torneos Antiguos + Apertura AIFA D 2024
@@ -7072,7 +7137,7 @@ function renderPlayerProfile(nombre) {
           <div>
             <div class="pp-name">${s.nombre}</div>
             <div class="pp-pos">${posLabel}</div>
-            <div class="pp-hero-mobile-ranks">${_ppHeroMiniRanksHtml(s)}</div>
+            <div class="pp-hero-mobile-ranks" id="pp-hero-mobile-ranks">${_ppHeroMiniRanksHtml(s)}</div>
           </div>
         </div>
         <div class="pp-hero-ranks">${rankings}</div>
@@ -9643,6 +9708,12 @@ function renderTorneoApertura() {
   // sacaba sin ningún cambio real de fecha ni de pestaña de arriba.
   const _prevSquadBtns = [...document.querySelectorAll('#torneo-apertura-content .ap-squad-tabbtn-m')];
   const _prevSquadIdx = _prevSquadBtns.findIndex(b => b.classList.contains('active'));
+  // BUG REAL encontrado: la protección de arriba solo cubría la versión
+  // mobile (.ap-squad-tabbtn-m) — en desktop (.ap-squad-tabbtn-d) cada
+  // refresh de 60s volvía a "11 Titular" igual, aunque el usuario estuviera
+  // viendo Cambios o Banco de Suplentes, sin ningún cambio real de fecha.
+  const _prevSquadBtnsD = [...document.querySelectorAll('#torneo-apertura-content .ap-squad-tabbtn-d')];
+  const _prevSquadIdxD = _prevSquadBtnsD.findIndex(b => b.classList.contains('active'));
 
   const isA = currentData === DATA_A;
   // Both A and B's tracked current-season slot is now their respective
@@ -9977,6 +10048,11 @@ function renderTorneoApertura() {
   if (_prevTab === 'fechas' && _prevSquadIdx > 0) {
     const newSquadBtns = [...document.querySelectorAll('#torneo-apertura-content .ap-squad-tabbtn-m')];
     if (newSquadBtns[_prevSquadIdx]) window._apSquadTabM(newSquadBtns[_prevSquadIdx], _prevSquadIdx);
+  }
+  // Mismo restore que arriba, para la versión desktop (ver _prevSquadIdxD).
+  if (_prevTab === 'fechas' && _prevSquadIdxD > 0) {
+    const newSquadBtnsD = [...document.querySelectorAll('#torneo-apertura-content .ap-squad-tabbtn-d')];
+    if (newSquadBtnsD[_prevSquadIdxD]) window._apSquadTabD(newSquadBtnsD[_prevSquadIdxD], _prevSquadIdxD);
   }
 
   // Live AIFA standings scrape (background, only touches the on-screen table —
@@ -13619,7 +13695,20 @@ function _ensureJugTotalesA() {
         .filter(r => !EXCLUIR.includes(r[JUG_COL.nombre].toLowerCase().trim()));
       _jugTotalesData = _mergeDuplicatePlayerRows(parsed, JUG_COL);
     })
-    .catch(() => {});
+    .catch(e => {
+      console.error('[A Totales] fetch failed:', e);
+      // BUG REAL encontrado (mismo que ya se había arreglado del lado de
+      // B, ver _jugTotalesBLoadPromise más abajo, pero nunca se replicó
+      // acá): un fallo puntual de PROXY_URL (Apps Script) — cold-start,
+      // glitch de red — quedaba memoizado para siempre en
+      // _jugTotalesLoadPromise, así que El Nido/Estadísticas Totales A se
+      // quedaban mostrando el SEED (datos viejos, ni siquiera "0 de 0"
+      // como B, así que pasaba más desapercibido) por el resto de la
+      // sesión, sin volver a intentar nunca un fetch real. Liberando el
+      // promise memoizado acá, el próximo que lo pida dispara un fetch
+      // nuevo en vez de heredar este mismo fallo para siempre.
+      _jugTotalesLoadPromise = null;
+    });
   return _jugTotalesLoadPromise;
 }
 
@@ -16057,7 +16146,24 @@ const TORNEO_NAV_MAP = {
 // every time instead of staying where the user was).
 let _grafYearState = { a: null, b: null };
 
+// Qué panel grande (Evolución Histórica / Resumen) está abierto por equipo,
+// para sobrevivir al mismo re-render "desde cero" descripto arriba — sin
+// esto, el refresh de 60s (o volver de un detalle) cerraba el panel que el
+// usuario tenía abierto.
+let _grafPanelState = { a: null, b: null };
+
+// Si "Torneos Antiguos" está mostrando el detalle de un torneo (grafDetalle)
+// en vez de la grilla de tarjetas. Igual que _histInDrilldown en Historial
+// vs Clubes: el refresh de 60s llamaba a renderGraficos() sin importar esto,
+// lo que pisaba el detalle abierto y te devolvía de golpe a la grilla — el
+// bug reportado como "la página salta y sale de la sección que estoy
+// mirando". Se resetea a false al entrar a renderGraficos() (arranca en la
+// grilla) y se prende en grafDetalle(); refreshCurrentView() ahora lo chequea
+// antes de re-renderizar, igual que ya hace con el drilldown de Historial.
+let _grafInDrilldown = false;
+
 function renderGraficos() {
+  _grafInDrilldown = false;
   const container = document.getElementById('graf-content');
 
   // Use B's live data (from sheet) or B seed; A uses SEED_GRAFICOS plus the just-finished
@@ -16117,7 +16223,7 @@ function renderGraficos() {
     if (isSubcampeon(t.pos)) return '🥈';
     if (isAscenso(t.pos))    return '⬆️';
     if (/recopa|copa/i.test(t.competencia)) return '🏅';
-    return '📋';
+    return '⚽';
   }
 
   // Persisted across calls (module scope) so navigating into a torneo card
@@ -16180,13 +16286,265 @@ function renderGraficos() {
       </div>`;
     }).join('');
 
+    const teamName = currentData === DATA_B ? 'Primera B' : 'Primera A';
     container.innerHTML = `
       <div class="graf-section-title">📅 Historial de Torneos</div>
+      <div class="hist-evol-btnrow">
+        <button class="hist-evol-btn" onclick="window._toggleEvolucionHistorica()">📈 Evolución Histórica</button>
+        <button class="hist-evol-btn" onclick="window._toggleHistResumen()">📋 Resumen</button>
+      </div>
+      <div class="hist-evol-panel" id="hist-evol-panel" style="display:none">
+        <div class="hist-evol-title">Evolución histórica — ${teamName}</div>
+        <div class="hist-evol-sub">Posición final por temporada (solo torneos de liga)</div>
+        <div class="hist-evol-scroll" id="hist-evol-scroll">
+          <div style="position:relative;height:220px;" id="hist-evol-canvas-wrap">
+            <canvas id="hist-evol-canvas"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="hist-evol-panel" id="hist-resumen-panel" style="display:none">
+        <div class="hist-evol-title">Resumen de Torneos — ${teamName}</div>
+        <div class="hist-evol-sub">Todos los torneos jugados (liga y copas), para comparar de un vistazo</div>
+        <div class="hist-evol-scroll">
+          <table class="hist-resumen-table">
+            <thead><tr>
+              <th>Torneo</th><th>Año</th><th>Posición</th><th>PJ</th><th>PG</th><th>PE</th><th>PP</th><th>GF</th><th>GC</th><th>DF</th><th>Pts</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
       <div class="hist-year-nav">${yearNav}</div>
       <div class="hist-year-cards">${cards || '<div style="color:#475569;padding:32px;text-align:center">Sin torneos registrados para este año.</div>'}</div>`;
+    // Reabrir el panel (Evolución/Resumen) que el usuario tenía abierto antes
+    // de este re-render — ver _grafPanelState arriba. Sin esto, cada 60s el
+    // panel abierto se cerraba solo (el container entero se reconstruye).
+    if (_grafPanelState[yearStateKey] === 'evol') {
+      document.getElementById('hist-evol-panel').style.display = 'block';
+      renderEvolucionChart();
+    } else if (_grafPanelState[yearStateKey] === 'resumen') {
+      document.getElementById('hist-resumen-panel').style.display = 'block';
+      renderHistResumenTable();
+    }
   }
 
+  // Evolución Histórica — un punto por temporada de LIGA jugada (Apertura/
+  // Clausura AIFA), en orden cronológico; copas (Recopa/Supercopa) quedan
+  // afuera a propósito, no tienen "posición en tabla" real. Años sin
+  // temporada jugada simplemente no generan punto (no hueco ni 0 engañoso),
+  // porque se arma directo de las entradas que existen en `source`, no de
+  // un rango fijo de años.
+  function parsePosNum(pos) {
+    if (!pos || pos === '?') return null;
+    if (isSubcampeon(pos)) return 2;
+    if (isCampeon(pos)) return 1;
+    const m = String(pos).match(/^(\d+)/);
+    return m ? parseInt(m[1], 10) : null;
+  }
+  // Etiqueta corta para el eje X — el nombre completo ("Apertura AIFA A
+  // 2019") entra bien en el tooltip, pero con 15-20 temporadas cargadas
+  // hacía que las etiquetas del eje se pisaran entre sí en cualquier
+  // pantalla angosta (el origen real del diseño "desprolijo" en mobile,
+  // junto con el ancho fijo del gráfico — ver el scroll horizontal en
+  // renderEvolucionChart). El tooltip sigue mostrando el nombre completo.
+  function shortLabel(competencia, anio) {
+    const abbr = /clausura/i.test(competencia) ? 'Cl.' : /apertura/i.test(competencia) ? 'Ap.' : competencia.slice(0, 3) + '.';
+    return `${abbr} '${String(anio).slice(-2)}`;
+  }
+  function buildEvolucionData() {
+    const ligaOnly = source.filter(t => !/recopa|copa|supercopa/i.test(t.competencia));
+    const sorted = [...ligaOnly].sort((a, b) => a.anio - b.anio || (a.competencia || '').localeCompare(b.competencia || ''));
+    return sorted
+      .map(t => ({
+        label: `${t.competencia} ${t.anio}`,
+        xLabel: shortLabel(t.competencia, t.anio),
+        // Mismo criterio EXACTO que ya usan las cards de arriba
+        // (esCamp/cardIcon): forceColor pisa el texto para la única entrada
+        // sintética (Apertura AIFA A 2026) que guarda "1°" sin la palabra
+        // "Campeón" — sin este mismo criterio acá, esa temporada quedaría
+        // sin trofeo en el gráfico aunque sí lo tenga en la card.
+        pos: parsePosNum(t.pos),
+        esCampeon: t.forceColor ? t.forceColor === 'oro' : isCampeon(t.pos),
+        // "N° y Ascenso" / "Campeón y Ascenso" — mismo isAscenso ya usado
+        // arriba para las cards (posClass 'ascenso-txt'). Un campeón que
+        // también ascendió sigue mostrando el trofeo (prioridad), no los
+        // dos íconos juntos — ver trophyPlugin.
+        esAscenso: isAscenso(t.pos),
+      }))
+      .filter(x => x.pos != null);
+  }
+
+  let _histEvolChart = null;
+  function renderEvolucionChart() {
+    const canvas = document.getElementById('hist-evol-canvas');
+    const wrap = document.getElementById('hist-evol-canvas-wrap');
+    if (!canvas || !wrap || typeof Chart === 'undefined') return;
+    if (_histEvolChart) { _histEvolChart.destroy(); _histEvolChart = null; }
+    const rows = buildEvolucionData();
+    // Ancho mínimo según cantidad de temporadas — con pocas, ocupa el 100%
+    // del panel (Chart.js responsive normal); con muchas, el wrapper crece
+    // y .hist-evol-scroll (ver CSS) lo deja scrollear horizontal en vez de
+    // apretar los puntos entre sí en una pantalla angosta.
+    wrap.style.minWidth = Math.max(rows.length * 52, 280) + 'px';
+    const isB = currentData === DATA_B;
+    // Primera A: ámbar (mismo criterio que el resto de "campeón" en dorado
+    // ya usado en esta sección). Primera B: celeste, para diferenciarse a
+    // simple vista de A sin mirar el título.
+    const mainColor  = isB ? '#85b7eb' : '#ef9f27';
+    const fillColor  = isB ? 'rgba(133,183,235,0.08)' : 'rgba(239,159,39,0.08)';
+    const ptColor    = isB ? '#bfe0ff' : '#fac775';
+    const ptBorder   = isB ? '#042c53' : '#0b1220';
+    const CAMPEON_COLOR = '#fbbf24';
+    // Ascenso (sin ser campeón — "2° y Ascenso", etc.) en verde, mismo tono
+    // que ya usa 'ascenso-txt' en las cards de arriba, para que a simple
+    // vista se lea igual en toda la sección.
+    const ASCENSO_COLOR = '#22c55e';
+    const ptFill = r => r.esCampeon ? CAMPEON_COLOR : (r.esAscenso ? ASCENSO_COLOR : ptColor);
+    // Trophy (campeón) / flecha (ascenso sin campeón) encima del punto —
+    // Chart.js no tiene un pointStyle "emoji" nativo, así que se dibuja a
+    // mano con un plugin chiquito en vez de una librería de íconos aparte.
+    // Un campeón que también ascendió muestra solo el trofeo (prioridad),
+    // no los dos íconos superpuestos.
+    const trophyPlugin = {
+      id: 'hist-evol-trophy',
+      afterDatasetsDraw(chart) {
+        const meta = chart.getDatasetMeta(0);
+        const { ctx } = chart;
+        meta.data.forEach((point, i) => {
+          const row = rows[i];
+          if (!row) return;
+          const icon = row.esCampeon ? '🏆' : row.esAscenso ? '⬆️' : null;
+          if (!icon) return;
+          ctx.save();
+          ctx.font = '13px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'bottom';
+          ctx.fillText(icon, point.x, point.y - 10);
+          ctx.restore();
+        });
+      },
+    };
+    _histEvolChart = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels: rows.map(r => r.xLabel),
+        datasets: [{
+          data: rows.map(r => r.pos),
+          borderColor: mainColor,
+          backgroundColor: fillColor,
+          fill: true,
+          pointBackgroundColor: rows.map(ptFill),
+          pointBorderColor: ptBorder,
+          pointBorderWidth: 2,
+          pointRadius: rows.map(r => (r.esCampeon || r.esAscenso) ? 7 : 6),
+          pointHoverRadius: rows.map(r => (r.esCampeon || r.esAscenso) ? 8 : 7),
+          tension: 0.25,
+        }],
+      },
+      plugins: [trophyPlugin],
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        // BUG REAL encontrado (el trofeo no se veía ni en desktop ni en
+        // mobile): la temporada campeón siempre cae en la posición 1°, el
+        // extremo superior del eje Y invertido — con solo 16px de padding
+        // arriba, el trofeo (dibujado TODAVÍA más arriba del punto, ver
+        // trophyPlugin) quedaba recortado contra el borde del canvas,
+        // siempre, para CUALQUIER temporada campeón. 30px deja margen real.
+        layout: { padding: { top: 30 } },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              title: ctx => rows[ctx[0].dataIndex]?.label || '',
+              label: ctx => {
+                const r = rows[ctx.dataIndex];
+                if (r?.esCampeon) return r.esAscenso ? '🏆 Campeón y Ascenso' : '🏆 Campeón';
+                if (r?.esAscenso) return `⬆️ ${ctx.parsed.y}° puesto — Ascenso`;
+                return `${ctx.parsed.y}° puesto`;
+              },
+            },
+          },
+        },
+        scales: {
+          y: {
+            reverse: true,
+            ticks: { color: '#8a94ab', stepSize: 1, precision: 0, callback: v => v + '°' },
+            grid: { color: 'rgba(255,255,255,0.06)' },
+          },
+          x: {
+            ticks: { color: '#8a94ab', font: { size: 10 } },
+            grid: { display: false },
+          },
+        },
+      },
+    });
+  }
+  window._toggleEvolucionHistorica = function () {
+    const panel = document.getElementById('hist-evol-panel');
+    if (!panel) return;
+    const abrir = panel.style.display === 'none';
+    // Mutuamente excluyente con Resumen — abrir uno cierra el otro, para no
+    // amontonar los dos paneles grandes juntos en la pantalla.
+    const otro = document.getElementById('hist-resumen-panel');
+    if (otro) otro.style.display = 'none';
+    panel.style.display = abrir ? 'block' : 'none';
+    _grafPanelState[yearStateKey] = abrir ? 'evol' : null;
+    if (abrir) renderEvolucionChart();
+  };
+
+  // Resumen de Torneos — TODOS los torneos (liga Y copas, a diferencia de
+  // Evolución Histórica que es solo liga) en una tabla comparable de un
+  // vistazo, mismo orden más-reciente-primero que las cards de arriba.
+  // Mismo criterio de orden que `sorted` arriba (para las cards): año
+  // descendente y, dentro del mismo año, competencia en orden alfabético
+  // DESCENDENTE — que casualmente coincide con el orden cronológico real
+  // (Clausura ocurre después que Apertura en el calendario), así que
+  // "Clausura" queda arriba de "Apertura" del mismo año. Con localeCompare
+  // ascendente (a antes que b) quedaba al revés, mostrando Apertura como si
+  // fuera más reciente que el Clausura del mismo año.
+  function buildResumenRows() {
+    return [...source].sort((a, b) => b.anio - a.anio || (b.competencia || '').localeCompare(a.competencia || ''));
+  }
+  function renderHistResumenTable() {
+    const tbody = document.querySelector('#hist-resumen-panel tbody');
+    if (!tbody) return;
+    const rows = buildResumenRows();
+    tbody.innerHTML = rows.map(t => {
+      const esCamp = t.forceColor ? t.forceColor === 'oro'   : isCampeon(t.pos);
+      const esSubc = t.forceColor ? t.forceColor === 'plata' : isSubcampeon(t.pos);
+      const esAsc  = !esCamp && !esSubc && !t.forceColor && isAscenso(t.pos);
+      const posClass = esCamp ? 'campeon-txt' : esSubc ? 'subcampeon-txt' : esAsc ? 'ascenso-txt' : '';
+      const df = (t.gf != null && t.gc != null) ? (t.gf - t.gc) : null;
+      const v = x => x != null ? x : '—';
+      return `<tr>
+        <td class="hist-resumen-torneo">${cardIcon(t)} ${t.competencia}</td>
+        <td>${t.anio}</td>
+        <td class="${posClass}">${posLabel(t.pos)}</td>
+        <td>${v(t.pj)}</td>
+        <td>${v(t.pg)}</td>
+        <td>${v(t.pe)}</td>
+        <td>${v(t.pp)}</td>
+        <td>${v(t.gf)}</td>
+        <td>${v(t.gc)}</td>
+        <td>${df != null ? (df >= 0 ? '+' : '') + df : '—'}</td>
+        <td>${v(t.pts)}</td>
+      </tr>`;
+    }).join('') || `<tr><td colspan="11" style="text-align:center;padding:24px;color:#475569">Sin torneos registrados.</td></tr>`;
+  }
+  window._toggleHistResumen = function () {
+    const panel = document.getElementById('hist-resumen-panel');
+    if (!panel) return;
+    const abrir = panel.style.display === 'none';
+    const otro = document.getElementById('hist-evol-panel');
+    if (otro) otro.style.display = 'none';
+    panel.style.display = abrir ? 'block' : 'none';
+    _grafPanelState[yearStateKey] = abrir ? 'resumen' : null;
+    if (abrir) renderHistResumenTable();
+  };
+
   function grafDetalle(t) {
+    _grafInDrilldown = true;
     const esCamp = t.forceColor ? t.forceColor === 'oro'   : isCampeon(t.pos);
     const esSubc = t.forceColor ? t.forceColor === 'plata' : isSubcampeon(t.pos);
     const esAscensoOnly = !esCamp && !esSubc && !t.forceColor && isAscenso(t.pos);
@@ -17581,6 +17939,9 @@ function refreshCurrentView() {
       // renderHistorial() overwrites #partidos-grid unconditionally, which
       // otherwise snapped the user back to the club list mid-read.
       if (id === 'tab-historial' && _histInDrilldown) break;
+      // Mismo problema, mismo arreglo, para el detalle de un torneo dentro de
+      // Torneos Antiguos (ver _grafInDrilldown).
+      if (id === 'tab-graficos' && _grafInDrilldown) break;
       // BUG REAL encontrado (reportado como "la página salta" cada vez que
       // se actualiza en vivo — molesto si estás leyendo algo hace rato):
       // fn() reconstruye TODO el innerHTML de la pestaña activa cada 60s
@@ -17769,7 +18130,7 @@ async function loadLiveData() {
     //    as Clausura AIFA B 2026 above. Igual que arriba: solo este Fecha a
     //    Fecha detallado (tab "Clausura 2026") va por fetchProxy — ver
     //    comentario en el equivalente de B. ──
-    fetchProxy('Clausura 2026', 'A22:I532', GS.A_MAIN),
+    fetchProxy('Clausura 2026', 'A22:J530', GS.A_MAIN),
     // Club-confirmed updated range (plantel grew).
     fetchGvizByGid(GS.A_MAIN, 618783090, 'L3:X31'),
     // Tabla de Posiciones: sheet dedicado GS.POSICIONES (ver ese comentario),
