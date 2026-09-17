@@ -304,11 +304,11 @@ async function checkTorneo(store, torneo) {
           const msFalta = kickoff.getTime() - Date.now();
           if (!curr.recordatorioEnviado && msFalta > 0 && msFalta <= RECORDATORIO_MS) {
             const horas = (msFalta / 3600000).toFixed(1);
-            await sendPush('⏰ Recordatorio', `Santa Bárbara vs ${m.rival} en ${horas}h — Fecha ${fecha} (${badge})`, url);
+            await sendPush('⏳ Recordatorio', `Santa Bárbara vs ${m.rival} en ${horas}h — Fecha ${fecha} (${badge})`, url);
             curr.recordatorioEnviado = true;
           }
           if (!curr.comienzoEnviado && msFalta <= 0 && -msFalta <= COMIENZO_GRACE_MS) {
-            await sendPush('🏟️ ¡Arrancó el partido!', `Santa Bárbara vs ${m.rival} — ${badge}`, url);
+            await sendPush('🚨 ¡Arrancó el partido!', `Santa Bárbara vs ${m.rival} — ${badge}`, url);
             curr.comienzoEnviado = true;
           }
         }
@@ -331,7 +331,7 @@ async function checkTorneo(store, torneo) {
       // corrección de un horario ya confirmado.
       const esCorreccion = !!prevM.hora;
       await sendPush(
-        esCorreccion ? '🗓️ Horario corregido' : '🗓️ Horario confirmado',
+        esCorreccion ? '🔄 Horario corregido' : '⏱️ Horario confirmado',
         `Santa Bárbara vs ${m.rival} — Fecha ${fecha} (${badge}), ${m.hora}`,
         url
       );
@@ -356,7 +356,7 @@ async function checkTorneo(store, torneo) {
         .map(j => j.goles > 1 ? `${j.nombre} (${j.goles})` : j.nombre);
       const golesTxt = goleadores.length ? ` — Goles: ${goleadores.join(', ')}` : '';
       await sendPush(
-        '⚽ Final del partido',
+        '🔚 Final del partido',
         `Santa Bárbara ${curr.resultado}${m.penales ? ` (pen. ${m.penales})` : ''} vs ${m.rival}${golesTxt}`,
         url
       );
@@ -371,13 +371,13 @@ async function checkTorneo(store, torneo) {
         if (!j.nombre) continue;
         const jugo = j.titular || j.entro;
         if (!esSeedInicial && jugo && !vistos.has(j.nombre)) {
-          await sendPush('🎓 Debut', `${j.nombre} debutó en Primera — vs ${m.rival}, Fecha ${fecha}`, url);
+          await sendPush('🆕 Debut', `${j.nombre} debutó en Primera — vs ${m.rival}, Fecha ${fecha}`, url);
         }
         if (!esSeedInicial && j.goles > 0 && !conGol.has(j.nombre)) {
-          await sendPush('🎯 Primer gol', `${j.nombre} convirtió su primer gol — vs ${m.rival}, Fecha ${fecha}`, url);
+          await sendPush('⚽️ Primer gol', `${j.nombre} convirtió su primer gol — vs ${m.rival}, Fecha ${fecha}`, url);
         }
         if (!esSeedInicial && j.goles >= 3) {
-          await sendPush('🎩 Hat-trick', `${j.nombre} convirtió ${j.goles} goles — vs ${m.rival}, Fecha ${fecha}`, url);
+          await sendPush('🪄 3️⃣ Hat-trick', `${j.nombre} convirtió ${j.goles} goles — vs ${m.rival}, Fecha ${fecha}`, url);
         }
         if (jugo) vistos.add(j.nombre);
         if (j.goles > 0) conGol.add(j.nombre);
@@ -534,7 +534,7 @@ async function checkElNido(store) {
         const nombre = top10[i];
         if (!prevIdx.has(nombre)) {
           await sendPush(
-            '🏆 Entró al Top 10 de El Nido',
+            '🔝 Entró al Top 10 de El Nido',
             `${nombre} entró al Top 10 de ${cat.label} — ${scope.label}`,
             `${SITE_URL}/#nido`
           );
@@ -559,7 +559,7 @@ async function checkElNido(store) {
     if (prevGoles == null) continue;
     const hito = GOLES_CLUB_HITOS.find(h => p.goles >= h && prevGoles < h);
     if (hito) {
-      await sendPush('🎯 Cifra redonda', `${p.nombre} llegó a ${p.goles} goles con el club`, `${SITE_URL}/#nido`);
+      await sendPush('⚽️ Cifra redonda', `${p.nombre} llegó a ${p.goles} goles con el club`, `${SITE_URL}/#nido`);
     }
   }
 
