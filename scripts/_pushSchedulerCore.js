@@ -84,7 +84,14 @@ async function sendPush(title, message, url) {
       },
       body: JSON.stringify({
         app_id: ONESIGNAL_APP_ID,
-        included_segments: ['Subscribed Users'],
+        // BUG REAL encontrado ("All included players are not subscribed",
+        // con status 200 — por eso nunca saltaba como error): "Subscribed
+        // Users" es el nombre del segmento por defecto de la API/dashboard
+        // VIEJOS de OneSignal. Esta app (creada con el dashboard nuevo) no
+        // tiene ningún segmento con ese nombre — el segmento por defecto que
+        // agrupa a todos los suscriptos ahora se llama "Total Subscriptions"
+        // (confirmado en Audience → Segments, marcado "Default").
+        included_segments: ['Total Subscriptions'],
         headings: { en: title },
         contents: { en: message },
         url,
@@ -93,13 +100,11 @@ async function sendPush(title, message, url) {
     if (!r.ok) {
       console.error('push-scheduler: OneSignal respondió', r.status, await r.text());
     } else {
-      // Log temporal de diagnóstico: un 200 OK de OneSignal NO garantiza que
-      // alguien lo haya recibido — el body trae `recipients` (cuántos
-      // dispositivos matchearon el segmento). Si esto muestra recipients:0
-      // con un dispositivo confirmado "Subscribed" en el dashboard, el
-      // problema está en el segmento apuntado (`included_segments`), no en
-      // el envío en sí.
-      console.log('push-scheduler: OneSignal OK ->', title, '| body:', await r.text());
+      const body = await r.text();
+      // Un 200 OK de OneSignal no garantiza que haya recipients > 0 — si esto
+      // vuelve a mostrar un array de "errors" pese al 200, el segmento sigue
+      // sin matchear a nadie.
+      console.log('push-scheduler: OneSignal OK ->', title, '| body:', body);
     }
   } catch (e) {
     console.error('push-scheduler: falló el POST a OneSignal:', e);
@@ -231,16 +236,6 @@ async function checkTorneo(store, torneo) {
     const prevM = prev.matches[fecha] || null;
     const curr = snapshotOf(m);
     const url = `${SITE_URL}/#partido/${torneo}/${encodeURIComponent(fecha)}`;
-
-    // Log temporal de diagnóstico ("no llega ninguna notificación pese a
-    // cambiar el horario, sin ningún error en el log"): esto confirma si el
-    // fetch está viendo el valor nuevo de `hora` y si hay snapshot previo
-    // con qué compararlo, sin tener que adivinar. Sacar una vez confirmado.
-    if (!prevM) {
-      console.log(`push-scheduler: DEBUG sin snapshot previo — torneo=${torneo} fecha=${fecha} hora="${curr.hora}"`);
-    } else if (curr.hora !== prevM.hora) {
-      console.log(`push-scheduler: DEBUG hora distinta — torneo=${torneo} fecha=${fecha} prev="${prevM.hora}" curr="${curr.hora}"`);
-    }
 
     // Recordatorio/Comienzo — a propósito ANTES del "if (!prevM) continue"
     // de acá abajo: a diferencia del resto de las reglas (que solo importan
