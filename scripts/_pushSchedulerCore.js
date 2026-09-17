@@ -90,7 +90,17 @@ async function sendPush(title, message, url) {
         url,
       }),
     });
-    if (!r.ok) console.error('push-scheduler: OneSignal respondió', r.status, await r.text());
+    if (!r.ok) {
+      console.error('push-scheduler: OneSignal respondió', r.status, await r.text());
+    } else {
+      // Log temporal de diagnóstico: un 200 OK de OneSignal NO garantiza que
+      // alguien lo haya recibido — el body trae `recipients` (cuántos
+      // dispositivos matchearon el segmento). Si esto muestra recipients:0
+      // con un dispositivo confirmado "Subscribed" en el dashboard, el
+      // problema está en el segmento apuntado (`included_segments`), no en
+      // el envío en sí.
+      console.log('push-scheduler: OneSignal OK ->', title, '| body:', await r.text());
+    }
   } catch (e) {
     console.error('push-scheduler: falló el POST a OneSignal:', e);
   }
@@ -221,6 +231,16 @@ async function checkTorneo(store, torneo) {
     const prevM = prev.matches[fecha] || null;
     const curr = snapshotOf(m);
     const url = `${SITE_URL}/#partido/${torneo}/${encodeURIComponent(fecha)}`;
+
+    // Log temporal de diagnóstico ("no llega ninguna notificación pese a
+    // cambiar el horario, sin ningún error en el log"): esto confirma si el
+    // fetch está viendo el valor nuevo de `hora` y si hay snapshot previo
+    // con qué compararlo, sin tener que adivinar. Sacar una vez confirmado.
+    if (!prevM) {
+      console.log(`push-scheduler: DEBUG sin snapshot previo — torneo=${torneo} fecha=${fecha} hora="${curr.hora}"`);
+    } else if (curr.hora !== prevM.hora) {
+      console.log(`push-scheduler: DEBUG hora distinta — torneo=${torneo} fecha=${fecha} prev="${prevM.hora}" curr="${curr.hora}"`);
+    }
 
     // Recordatorio/Comienzo — a propósito ANTES del "if (!prevM) continue"
     // de acá abajo: a diferencia del resto de las reglas (que solo importan
