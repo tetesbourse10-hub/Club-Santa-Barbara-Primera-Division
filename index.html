@@ -2421,11 +2421,13 @@
       display:flex; align-items:center; gap:10px;
     }
     .graf-section-title::after { content:''; flex:1; height:1px; background:linear-gradient(to right,#1e2a3a,transparent); }
-    /* Evolución Histórica — botón + panel con el gráfico Chart.js de
-       posición final por temporada (solo torneos de liga, ver
-       buildEvolucionData dentro de renderGraficos). */
+    /* Evolución Histórica + Resumen — 2 botones que despliegan cada uno su
+       propio panel (gráfico Chart.js / tabla comparativa), mutuamente
+       excluyentes (ver _toggleEvolucionHistorica/_toggleHistResumen dentro
+       de renderGraficos, que cierran el otro al abrir uno). */
+    .hist-evol-btnrow { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px; }
     .hist-evol-btn {
-      display:inline-flex; align-items:center; gap:7px; padding:8px 16px; margin-bottom:18px;
+      display:inline-flex; align-items:center; gap:7px; padding:8px 16px;
       border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.09);
       color:#cbd5e1; font-size:.85rem; font-weight:700; cursor:pointer;
       transition:background .15s, border-color .15s;
@@ -2444,6 +2446,26 @@
        y este contenedor scrollea horizontal si no entra, así cada punto
        mantiene un espacio mínimo legible en vez de compactarse. */
     .hist-evol-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    /* Resumen de Torneos — tabla comparativa (todos los torneos, liga y
+       copas). Ancho mínimo para que las columnas numéricas no se aplasten
+       en mobile; el scroll horizontal lo da .hist-evol-scroll que ya la
+       envuelve. */
+    .hist-resumen-table { width:100%; min-width:560px; border-collapse:collapse; font-size:0.78rem; }
+    .hist-resumen-table thead th {
+      text-align:center; padding:8px 10px; color:#64748b; font-size:0.65rem;
+      font-weight:800; text-transform:uppercase; letter-spacing:.04em;
+      border-bottom:1px solid #1e2a3a; white-space:nowrap;
+    }
+    .hist-resumen-table thead th:first-child { text-align:left; }
+    .hist-resumen-table tbody td {
+      text-align:center; padding:9px 10px; color:#cbd5e1; white-space:nowrap;
+      border-bottom:1px solid rgba(255,255,255,0.05);
+    }
+    .hist-resumen-table tbody tr:hover td { background:rgba(255,255,255,0.03); }
+    .hist-resumen-table tbody tr:last-child td { border-bottom:none; }
+    .hist-resumen-table td.hist-resumen-torneo {
+      text-align:left; font-weight:700; color:#e2e8f0; white-space:normal; min-width:150px;
+    }
     /* Detail view */
     .graf-detail-back { margin-bottom:16px; }
     .graf-detail-header { margin-bottom:20px; }
@@ -5338,6 +5360,16 @@ function ppFilterMetrics(cat, btn) {
 
   document.querySelectorAll('#pp-metric-tabs .pp-metric-tab').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
+
+  // Pills de ranking del Hero mobile (#102 Asistidor, etc.) — filtradas por
+  // la misma pestaña Totales/Primera A/Primera B que el resto del bloque de
+  // métricas, en vez de mostrar siempre el ranking General sin importar cuál
+  // esté activa (ver window._ppRankSets, armado junto a _ppMetricsData).
+  const ranksEl = document.getElementById('pp-hero-mobile-ranks');
+  if (ranksEl && window._ppRankSets) {
+    ranksEl.innerHTML = _ppMiniRanksHtmlFromSet(window._ppRankSets[cat]);
+  }
+
   // If a detail panel (Goles/Partidos/etc.) is open, refresh it so it only
   // shows rows from the newly-selected category — or a "sin registros"
   // message when the player has none there.
@@ -6017,8 +6049,10 @@ function _ppRankGroup(rankSet, groupLabel, accent) {
 // en una fila (puesto de 3 dígitos, ej. "#102 Asistidor") bajan a una
 // segunda línea en vez de cortarse contra el borde de la tarjeta (ver
 // flex-wrap en .pp-hero-mobile-ranks).
-function _ppHeroMiniRanksHtml(s) {
-  const rankSet = s.rankGen || s.rankA || s.rankB;
+// Separado de _ppHeroMiniRanksHtml para que ppFilterMetrics (el switch
+// Totales/Primera A/Primera B) pueda re-armar estas mismas pills con OTRO
+// rankSet sin duplicar el HTML — ver window._ppRankSets/ppFilterMetrics.
+function _ppMiniRanksHtmlFromSet(rankSet) {
   if (!rankSet) return '';
   const items = [
     { rank: rankSet.goles, label: 'Goles' },
@@ -6031,6 +6065,9 @@ function _ppHeroMiniRanksHtml(s) {
     const color = top ? (it.rank.pos === 1 ? '#FFD700' : it.rank.pos === 2 ? '#C0C0C0' : '#CD7F32') : '#fbbf24';
     return `<span class="pp-hero-rank-pill${top ? ' pp-hero-rank-top' : ''}" style="color:${color}">#${it.rank.pos} ${it.label}</span>`;
   }).join('');
+}
+function _ppHeroMiniRanksHtml(s) {
+  return _ppMiniRanksHtmlFromSet(s.rankGen || s.rankA || s.rankB);
 }
 
 // Colored global-score pill (win/draw/loss from the club's own gf/gc), used
@@ -6860,6 +6897,11 @@ function renderPlayerProfile(nombre) {
   // Stash per-category numbers so the Totales/Primera A/Primera B tabs can swap
   // the on-screen values instantly without re-rendering the whole profile.
   window._ppMetricsData = s.porCategoria;
+  // BUG REAL encontrado (mobile): las pills de ranking del Hero
+  // (#102 Asistidor, etc.) siempre mostraban rankGen (General), sin
+  // importar qué pestaña Totales/Primera A/Primera B estuviera activa —
+  // ver ppFilterMetrics, que ahora también las actualiza con esto.
+  window._ppRankSets = { total: s.rankGen || s.rankA || s.rankB, a: s.rankA, b: s.rankB };
 
   // Si ya se pidió (y llegó) el JSON precalculado de build time, ese JSON
   // trae SOLO el histórico cerrado (Torneos Antiguos + Apertura AIFA D 2024
@@ -7095,7 +7137,7 @@ function renderPlayerProfile(nombre) {
           <div>
             <div class="pp-name">${s.nombre}</div>
             <div class="pp-pos">${posLabel}</div>
-            <div class="pp-hero-mobile-ranks">${_ppHeroMiniRanksHtml(s)}</div>
+            <div class="pp-hero-mobile-ranks" id="pp-hero-mobile-ranks">${_ppHeroMiniRanksHtml(s)}</div>
           </div>
         </div>
         <div class="pp-hero-ranks">${rankings}</div>
@@ -16227,16 +16269,32 @@ function renderGraficos() {
       </div>`;
     }).join('');
 
+    const teamName = currentData === DATA_B ? 'Primera B' : 'Primera A';
     container.innerHTML = `
       <div class="graf-section-title">📅 Historial de Torneos</div>
-      <button class="hist-evol-btn" onclick="window._toggleEvolucionHistorica()">📈 Evolución Histórica</button>
+      <div class="hist-evol-btnrow">
+        <button class="hist-evol-btn" onclick="window._toggleEvolucionHistorica()">📈 Evolución Histórica</button>
+        <button class="hist-evol-btn" onclick="window._toggleHistResumen()">📋 Resumen</button>
+      </div>
       <div class="hist-evol-panel" id="hist-evol-panel" style="display:none">
-        <div class="hist-evol-title">Evolución histórica — ${currentData === DATA_B ? 'Primera B' : 'Primera A'}</div>
+        <div class="hist-evol-title">Evolución histórica — ${teamName}</div>
         <div class="hist-evol-sub">Posición final por temporada (solo torneos de liga)</div>
         <div class="hist-evol-scroll" id="hist-evol-scroll">
           <div style="position:relative;height:220px;" id="hist-evol-canvas-wrap">
             <canvas id="hist-evol-canvas"></canvas>
           </div>
+        </div>
+      </div>
+      <div class="hist-evol-panel" id="hist-resumen-panel" style="display:none">
+        <div class="hist-evol-title">Resumen de Torneos — ${teamName}</div>
+        <div class="hist-evol-sub">Todos los torneos jugados (liga y copas), para comparar de un vistazo</div>
+        <div class="hist-evol-scroll">
+          <table class="hist-resumen-table">
+            <thead><tr>
+              <th>Torneo</th><th>Año</th><th>Posición</th><th>PJ</th><th>PG</th><th>PE</th><th>PP</th><th>GF</th><th>GC</th><th>DF</th><th>Pts</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
         </div>
       </div>
       <div class="hist-year-nav">${yearNav}</div>
@@ -16280,6 +16338,11 @@ function renderGraficos() {
         // sin trofeo en el gráfico aunque sí lo tenga en la card.
         pos: parsePosNum(t.pos),
         esCampeon: t.forceColor ? t.forceColor === 'oro' : isCampeon(t.pos),
+        // "N° y Ascenso" / "Campeón y Ascenso" — mismo isAscenso ya usado
+        // arriba para las cards (posClass 'ascenso-txt'). Un campeón que
+        // también ascendió sigue mostrando el trofeo (prioridad), no los
+        // dos íconos juntos — ver trophyPlugin.
+        esAscenso: isAscenso(t.pos),
       }))
       .filter(x => x.pos != null);
   }
@@ -16305,21 +16368,31 @@ function renderGraficos() {
     const ptColor    = isB ? '#bfe0ff' : '#fac775';
     const ptBorder   = isB ? '#042c53' : '#0b1220';
     const CAMPEON_COLOR = '#fbbf24';
-    // Trophy encima de cada temporada campeón — Chart.js no tiene un
-    // pointStyle "emoji" nativo, así que se dibuja a mano con un plugin
-    // chiquito en vez de una librería de íconos aparte.
+    // Ascenso (sin ser campeón — "2° y Ascenso", etc.) en verde, mismo tono
+    // que ya usa 'ascenso-txt' en las cards de arriba, para que a simple
+    // vista se lea igual en toda la sección.
+    const ASCENSO_COLOR = '#22c55e';
+    const ptFill = r => r.esCampeon ? CAMPEON_COLOR : (r.esAscenso ? ASCENSO_COLOR : ptColor);
+    // Trophy (campeón) / flecha (ascenso sin campeón) encima del punto —
+    // Chart.js no tiene un pointStyle "emoji" nativo, así que se dibuja a
+    // mano con un plugin chiquito en vez de una librería de íconos aparte.
+    // Un campeón que también ascendió muestra solo el trofeo (prioridad),
+    // no los dos íconos superpuestos.
     const trophyPlugin = {
       id: 'hist-evol-trophy',
       afterDatasetsDraw(chart) {
         const meta = chart.getDatasetMeta(0);
         const { ctx } = chart;
         meta.data.forEach((point, i) => {
-          if (!rows[i]?.esCampeon) return;
+          const row = rows[i];
+          if (!row) return;
+          const icon = row.esCampeon ? '🏆' : row.esAscenso ? '⬆️' : null;
+          if (!icon) return;
           ctx.save();
           ctx.font = '13px sans-serif';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'bottom';
-          ctx.fillText('🏆', point.x, point.y - 10);
+          ctx.fillText(icon, point.x, point.y - 10);
           ctx.restore();
         });
       },
@@ -16333,11 +16406,11 @@ function renderGraficos() {
           borderColor: mainColor,
           backgroundColor: fillColor,
           fill: true,
-          pointBackgroundColor: rows.map(r => r.esCampeon ? CAMPEON_COLOR : ptColor),
+          pointBackgroundColor: rows.map(ptFill),
           pointBorderColor: ptBorder,
           pointBorderWidth: 2,
-          pointRadius: rows.map(r => r.esCampeon ? 7 : 6),
-          pointHoverRadius: rows.map(r => r.esCampeon ? 8 : 7),
+          pointRadius: rows.map(r => (r.esCampeon || r.esAscenso) ? 7 : 6),
+          pointHoverRadius: rows.map(r => (r.esCampeon || r.esAscenso) ? 8 : 7),
           tension: 0.25,
         }],
       },
@@ -16357,7 +16430,12 @@ function renderGraficos() {
           tooltip: {
             callbacks: {
               title: ctx => rows[ctx[0].dataIndex]?.label || '',
-              label: ctx => rows[ctx.dataIndex]?.esCampeon ? '🏆 Campeón' : `${ctx.parsed.y}° puesto`,
+              label: ctx => {
+                const r = rows[ctx.dataIndex];
+                if (r?.esCampeon) return r.esAscenso ? '🏆 Campeón y Ascenso' : '🏆 Campeón';
+                if (r?.esAscenso) return `⬆️ ${ctx.parsed.y}° puesto — Ascenso`;
+                return `${ctx.parsed.y}° puesto`;
+              },
             },
           },
         },
@@ -16379,8 +16457,54 @@ function renderGraficos() {
     const panel = document.getElementById('hist-evol-panel');
     if (!panel) return;
     const abrir = panel.style.display === 'none';
+    // Mutuamente excluyente con Resumen — abrir uno cierra el otro, para no
+    // amontonar los dos paneles grandes juntos en la pantalla.
+    const otro = document.getElementById('hist-resumen-panel');
+    if (otro) otro.style.display = 'none';
     panel.style.display = abrir ? 'block' : 'none';
     if (abrir) renderEvolucionChart();
+  };
+
+  // Resumen de Torneos — TODOS los torneos (liga Y copas, a diferencia de
+  // Evolución Histórica que es solo liga) en una tabla comparable de un
+  // vistazo, mismo orden más-reciente-primero que las cards de arriba.
+  function buildResumenRows() {
+    return [...source].sort((a, b) => b.anio - a.anio || (a.competencia || '').localeCompare(b.competencia || ''));
+  }
+  function renderHistResumenTable() {
+    const tbody = document.querySelector('#hist-resumen-panel tbody');
+    if (!tbody) return;
+    const rows = buildResumenRows();
+    tbody.innerHTML = rows.map(t => {
+      const esCamp = t.forceColor ? t.forceColor === 'oro'   : isCampeon(t.pos);
+      const esSubc = t.forceColor ? t.forceColor === 'plata' : isSubcampeon(t.pos);
+      const esAsc  = !esCamp && !esSubc && !t.forceColor && isAscenso(t.pos);
+      const posClass = esCamp ? 'campeon-txt' : esSubc ? 'subcampeon-txt' : esAsc ? 'ascenso-txt' : '';
+      const df = (t.gf != null && t.gc != null) ? (t.gf - t.gc) : null;
+      const v = x => x != null ? x : '—';
+      return `<tr>
+        <td class="hist-resumen-torneo">${cardIcon(t)} ${t.competencia}</td>
+        <td>${t.anio}</td>
+        <td class="${posClass}">${posLabel(t.pos)}</td>
+        <td>${v(t.pj)}</td>
+        <td>${v(t.pg)}</td>
+        <td>${v(t.pe)}</td>
+        <td>${v(t.pp)}</td>
+        <td>${v(t.gf)}</td>
+        <td>${v(t.gc)}</td>
+        <td>${df != null ? (df >= 0 ? '+' : '') + df : '—'}</td>
+        <td>${v(t.pts)}</td>
+      </tr>`;
+    }).join('') || `<tr><td colspan="11" style="text-align:center;padding:24px;color:#475569">Sin torneos registrados.</td></tr>`;
+  }
+  window._toggleHistResumen = function () {
+    const panel = document.getElementById('hist-resumen-panel');
+    if (!panel) return;
+    const abrir = panel.style.display === 'none';
+    const otro = document.getElementById('hist-evol-panel');
+    if (otro) otro.style.display = 'none';
+    panel.style.display = abrir ? 'block' : 'none';
+    if (abrir) renderHistResumenTable();
   };
 
   function grafDetalle(t) {
