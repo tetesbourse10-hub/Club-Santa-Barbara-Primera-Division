@@ -2437,6 +2437,13 @@
     }
     .hist-evol-title { font-size:0.9rem; font-weight:700; color:#fff; margin-bottom:2px; }
     .hist-evol-sub { font-size:0.68rem; color:#64748b; margin-bottom:14px; }
+    /* Con muchas temporadas cargadas, forzar el gráfico entero al ancho
+       angosto de un celular apretaba los puntos/etiquetas uno contra otro
+       (ilegible) — en vez de eso, el wrapper interno toma un ancho mínimo
+       calculado según la cantidad de temporadas (ver renderEvolucionChart)
+       y este contenedor scrollea horizontal si no entra, así cada punto
+       mantiene un espacio mínimo legible en vez de compactarse. */
+    .hist-evol-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
     /* Detail view */
     .graf-detail-back { margin-bottom:16px; }
     .graf-detail-header { margin-bottom:20px; }
@@ -16226,8 +16233,10 @@ function renderGraficos() {
       <div class="hist-evol-panel" id="hist-evol-panel" style="display:none">
         <div class="hist-evol-title">Evolución histórica — ${currentData === DATA_B ? 'Primera B' : 'Primera A'}</div>
         <div class="hist-evol-sub">Posición final por temporada (solo torneos de liga)</div>
-        <div style="position:relative;height:220px;">
-          <canvas id="hist-evol-canvas"></canvas>
+        <div class="hist-evol-scroll" id="hist-evol-scroll">
+          <div style="position:relative;height:220px;" id="hist-evol-canvas-wrap">
+            <canvas id="hist-evol-canvas"></canvas>
+          </div>
         </div>
       </div>
       <div class="hist-year-nav">${yearNav}</div>
@@ -16247,12 +16256,23 @@ function renderGraficos() {
     const m = String(pos).match(/^(\d+)/);
     return m ? parseInt(m[1], 10) : null;
   }
+  // Etiqueta corta para el eje X — el nombre completo ("Apertura AIFA A
+  // 2019") entra bien en el tooltip, pero con 15-20 temporadas cargadas
+  // hacía que las etiquetas del eje se pisaran entre sí en cualquier
+  // pantalla angosta (el origen real del diseño "desprolijo" en mobile,
+  // junto con el ancho fijo del gráfico — ver el scroll horizontal en
+  // renderEvolucionChart). El tooltip sigue mostrando el nombre completo.
+  function shortLabel(competencia, anio) {
+    const abbr = /clausura/i.test(competencia) ? 'Cl.' : /apertura/i.test(competencia) ? 'Ap.' : competencia.slice(0, 3) + '.';
+    return `${abbr} '${String(anio).slice(-2)}`;
+  }
   function buildEvolucionData() {
     const ligaOnly = source.filter(t => !/recopa|copa|supercopa/i.test(t.competencia));
     const sorted = [...ligaOnly].sort((a, b) => a.anio - b.anio || (a.competencia || '').localeCompare(b.competencia || ''));
     return sorted
       .map(t => ({
         label: `${t.competencia} ${t.anio}`,
+        xLabel: shortLabel(t.competencia, t.anio),
         // Mismo criterio EXACTO que ya usan las cards de arriba
         // (esCamp/cardIcon): forceColor pisa el texto para la única entrada
         // sintética (Apertura AIFA A 2026) que guarda "1°" sin la palabra
@@ -16267,9 +16287,15 @@ function renderGraficos() {
   let _histEvolChart = null;
   function renderEvolucionChart() {
     const canvas = document.getElementById('hist-evol-canvas');
-    if (!canvas || typeof Chart === 'undefined') return;
+    const wrap = document.getElementById('hist-evol-canvas-wrap');
+    if (!canvas || !wrap || typeof Chart === 'undefined') return;
     if (_histEvolChart) { _histEvolChart.destroy(); _histEvolChart = null; }
     const rows = buildEvolucionData();
+    // Ancho mínimo según cantidad de temporadas — con pocas, ocupa el 100%
+    // del panel (Chart.js responsive normal); con muchas, el wrapper crece
+    // y .hist-evol-scroll (ver CSS) lo deja scrollear horizontal en vez de
+    // apretar los puntos entre sí en una pantalla angosta.
+    wrap.style.minWidth = Math.max(rows.length * 52, 280) + 'px';
     const isB = currentData === DATA_B;
     // Primera A: ámbar (mismo criterio que el resto de "campeón" en dorado
     // ya usado en esta sección). Primera B: celeste, para diferenciarse a
@@ -16293,7 +16319,7 @@ function renderGraficos() {
           ctx.font = '13px sans-serif';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'bottom';
-          ctx.fillText('🏆', point.x, point.y - 12);
+          ctx.fillText('🏆', point.x, point.y - 10);
           ctx.restore();
         });
       },
@@ -16301,7 +16327,7 @@ function renderGraficos() {
     _histEvolChart = new Chart(canvas, {
       type: 'line',
       data: {
-        labels: rows.map(r => r.label),
+        labels: rows.map(r => r.xLabel),
         datasets: [{
           data: rows.map(r => r.pos),
           borderColor: mainColor,
@@ -16319,7 +16345,13 @@ function renderGraficos() {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        layout: { padding: { top: 16 } },
+        // BUG REAL encontrado (el trofeo no se veía ni en desktop ni en
+        // mobile): la temporada campeón siempre cae en la posición 1°, el
+        // extremo superior del eje Y invertido — con solo 16px de padding
+        // arriba, el trofeo (dibujado TODAVÍA más arriba del punto, ver
+        // trophyPlugin) quedaba recortado contra el borde del canvas,
+        // siempre, para CUALQUIER temporada campeón. 30px deja margen real.
+        layout: { padding: { top: 30 } },
         plugins: {
           legend: { display: false },
           tooltip: {
