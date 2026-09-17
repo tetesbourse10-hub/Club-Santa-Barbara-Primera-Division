@@ -16146,7 +16146,24 @@ const TORNEO_NAV_MAP = {
 // every time instead of staying where the user was).
 let _grafYearState = { a: null, b: null };
 
+// Qué panel grande (Evolución Histórica / Resumen) está abierto por equipo,
+// para sobrevivir al mismo re-render "desde cero" descripto arriba — sin
+// esto, el refresh de 60s (o volver de un detalle) cerraba el panel que el
+// usuario tenía abierto.
+let _grafPanelState = { a: null, b: null };
+
+// Si "Torneos Antiguos" está mostrando el detalle de un torneo (grafDetalle)
+// en vez de la grilla de tarjetas. Igual que _histInDrilldown en Historial
+// vs Clubes: el refresh de 60s llamaba a renderGraficos() sin importar esto,
+// lo que pisaba el detalle abierto y te devolvía de golpe a la grilla — el
+// bug reportado como "la página salta y sale de la sección que estoy
+// mirando". Se resetea a false al entrar a renderGraficos() (arranca en la
+// grilla) y se prende en grafDetalle(); refreshCurrentView() ahora lo chequea
+// antes de re-renderizar, igual que ya hace con el drilldown de Historial.
+let _grafInDrilldown = false;
+
 function renderGraficos() {
+  _grafInDrilldown = false;
   const container = document.getElementById('graf-content');
 
   // Use B's live data (from sheet) or B seed; A uses SEED_GRAFICOS plus the just-finished
@@ -16206,7 +16223,7 @@ function renderGraficos() {
     if (isSubcampeon(t.pos)) return '🥈';
     if (isAscenso(t.pos))    return '⬆️';
     if (/recopa|copa/i.test(t.competencia)) return '🏅';
-    return '📋';
+    return '⚽';
   }
 
   // Persisted across calls (module scope) so navigating into a torneo card
@@ -16299,6 +16316,16 @@ function renderGraficos() {
       </div>
       <div class="hist-year-nav">${yearNav}</div>
       <div class="hist-year-cards">${cards || '<div style="color:#475569;padding:32px;text-align:center">Sin torneos registrados para este año.</div>'}</div>`;
+    // Reabrir el panel (Evolución/Resumen) que el usuario tenía abierto antes
+    // de este re-render — ver _grafPanelState arriba. Sin esto, cada 60s el
+    // panel abierto se cerraba solo (el container entero se reconstruye).
+    if (_grafPanelState[yearStateKey] === 'evol') {
+      document.getElementById('hist-evol-panel').style.display = 'block';
+      renderEvolucionChart();
+    } else if (_grafPanelState[yearStateKey] === 'resumen') {
+      document.getElementById('hist-resumen-panel').style.display = 'block';
+      renderHistResumenTable();
+    }
   }
 
   // Evolución Histórica — un punto por temporada de LIGA jugada (Apertura/
@@ -16462,14 +16489,22 @@ function renderGraficos() {
     const otro = document.getElementById('hist-resumen-panel');
     if (otro) otro.style.display = 'none';
     panel.style.display = abrir ? 'block' : 'none';
+    _grafPanelState[yearStateKey] = abrir ? 'evol' : null;
     if (abrir) renderEvolucionChart();
   };
 
   // Resumen de Torneos — TODOS los torneos (liga Y copas, a diferencia de
   // Evolución Histórica que es solo liga) en una tabla comparable de un
   // vistazo, mismo orden más-reciente-primero que las cards de arriba.
+  // Mismo criterio de orden que `sorted` arriba (para las cards): año
+  // descendente y, dentro del mismo año, competencia en orden alfabético
+  // DESCENDENTE — que casualmente coincide con el orden cronológico real
+  // (Clausura ocurre después que Apertura en el calendario), así que
+  // "Clausura" queda arriba de "Apertura" del mismo año. Con localeCompare
+  // ascendente (a antes que b) quedaba al revés, mostrando Apertura como si
+  // fuera más reciente que el Clausura del mismo año.
   function buildResumenRows() {
-    return [...source].sort((a, b) => b.anio - a.anio || (a.competencia || '').localeCompare(b.competencia || ''));
+    return [...source].sort((a, b) => b.anio - a.anio || (b.competencia || '').localeCompare(a.competencia || ''));
   }
   function renderHistResumenTable() {
     const tbody = document.querySelector('#hist-resumen-panel tbody');
@@ -16504,10 +16539,12 @@ function renderGraficos() {
     const otro = document.getElementById('hist-evol-panel');
     if (otro) otro.style.display = 'none';
     panel.style.display = abrir ? 'block' : 'none';
+    _grafPanelState[yearStateKey] = abrir ? 'resumen' : null;
     if (abrir) renderHistResumenTable();
   };
 
   function grafDetalle(t) {
+    _grafInDrilldown = true;
     const esCamp = t.forceColor ? t.forceColor === 'oro'   : isCampeon(t.pos);
     const esSubc = t.forceColor ? t.forceColor === 'plata' : isSubcampeon(t.pos);
     const esAscensoOnly = !esCamp && !esSubc && !t.forceColor && isAscenso(t.pos);
@@ -17902,6 +17939,9 @@ function refreshCurrentView() {
       // renderHistorial() overwrites #partidos-grid unconditionally, which
       // otherwise snapped the user back to the club list mid-read.
       if (id === 'tab-historial' && _histInDrilldown) break;
+      // Mismo problema, mismo arreglo, para el detalle de un torneo dentro de
+      // Torneos Antiguos (ver _grafInDrilldown).
+      if (id === 'tab-graficos' && _grafInDrilldown) break;
       // BUG REAL encontrado (reportado como "la página salta" cada vez que
       // se actualiza en vivo — molesto si estás leyendo algo hace rato):
       // fn() reconstruye TODO el innerHTML de la pestaña activa cada 60s
