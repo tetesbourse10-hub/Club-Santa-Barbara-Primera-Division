@@ -2421,6 +2421,22 @@
       display:flex; align-items:center; gap:10px;
     }
     .graf-section-title::after { content:''; flex:1; height:1px; background:linear-gradient(to right,#1e2a3a,transparent); }
+    /* Evolución Histórica — botón + panel con el gráfico Chart.js de
+       posición final por temporada (solo torneos de liga, ver
+       buildEvolucionData dentro de renderGraficos). */
+    .hist-evol-btn {
+      display:inline-flex; align-items:center; gap:7px; padding:8px 16px; margin-bottom:18px;
+      border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.09);
+      color:#cbd5e1; font-size:.85rem; font-weight:700; cursor:pointer;
+      transition:background .15s, border-color .15s;
+    }
+    .hist-evol-btn:hover { background:rgba(255,255,255,0.09); border-color:rgba(255,255,255,0.16); }
+    .hist-evol-panel {
+      background:linear-gradient(160deg,#1a2236,#131825); border:1px solid #1e2a3a;
+      border-radius:14px; padding:16px; margin-bottom:24px;
+    }
+    .hist-evol-title { font-size:0.9rem; font-weight:700; color:#fff; margin-bottom:2px; }
+    .hist-evol-sub { font-size:0.68rem; color:#64748b; margin-bottom:14px; }
     /* Detail view */
     .graf-detail-back { margin-bottom:16px; }
     .graf-detail-header { margin-bottom:20px; }
@@ -16206,9 +16222,134 @@ function renderGraficos() {
 
     container.innerHTML = `
       <div class="graf-section-title">📅 Historial de Torneos</div>
+      <button class="hist-evol-btn" onclick="window._toggleEvolucionHistorica()">📈 Evolución Histórica</button>
+      <div class="hist-evol-panel" id="hist-evol-panel" style="display:none">
+        <div class="hist-evol-title">Evolución histórica — ${currentData === DATA_B ? 'Primera B' : 'Primera A'}</div>
+        <div class="hist-evol-sub">Posición final por temporada (solo torneos de liga)</div>
+        <div style="position:relative;height:220px;">
+          <canvas id="hist-evol-canvas"></canvas>
+        </div>
+      </div>
       <div class="hist-year-nav">${yearNav}</div>
       <div class="hist-year-cards">${cards || '<div style="color:#475569;padding:32px;text-align:center">Sin torneos registrados para este año.</div>'}</div>`;
   }
+
+  // Evolución Histórica — un punto por temporada de LIGA jugada (Apertura/
+  // Clausura AIFA), en orden cronológico; copas (Recopa/Supercopa) quedan
+  // afuera a propósito, no tienen "posición en tabla" real. Años sin
+  // temporada jugada simplemente no generan punto (no hueco ni 0 engañoso),
+  // porque se arma directo de las entradas que existen en `source`, no de
+  // un rango fijo de años.
+  function parsePosNum(pos) {
+    if (!pos || pos === '?') return null;
+    if (isSubcampeon(pos)) return 2;
+    if (isCampeon(pos)) return 1;
+    const m = String(pos).match(/^(\d+)/);
+    return m ? parseInt(m[1], 10) : null;
+  }
+  function buildEvolucionData() {
+    const ligaOnly = source.filter(t => !/recopa|copa|supercopa/i.test(t.competencia));
+    const sorted = [...ligaOnly].sort((a, b) => a.anio - b.anio || (a.competencia || '').localeCompare(b.competencia || ''));
+    return sorted
+      .map(t => ({
+        label: `${t.competencia} ${t.anio}`,
+        // Mismo criterio EXACTO que ya usan las cards de arriba
+        // (esCamp/cardIcon): forceColor pisa el texto para la única entrada
+        // sintética (Apertura AIFA A 2026) que guarda "1°" sin la palabra
+        // "Campeón" — sin este mismo criterio acá, esa temporada quedaría
+        // sin trofeo en el gráfico aunque sí lo tenga en la card.
+        pos: parsePosNum(t.pos),
+        esCampeon: t.forceColor ? t.forceColor === 'oro' : isCampeon(t.pos),
+      }))
+      .filter(x => x.pos != null);
+  }
+
+  let _histEvolChart = null;
+  function renderEvolucionChart() {
+    const canvas = document.getElementById('hist-evol-canvas');
+    if (!canvas || typeof Chart === 'undefined') return;
+    if (_histEvolChart) { _histEvolChart.destroy(); _histEvolChart = null; }
+    const rows = buildEvolucionData();
+    const isB = currentData === DATA_B;
+    // Primera A: ámbar (mismo criterio que el resto de "campeón" en dorado
+    // ya usado en esta sección). Primera B: celeste, para diferenciarse a
+    // simple vista de A sin mirar el título.
+    const mainColor  = isB ? '#85b7eb' : '#ef9f27';
+    const fillColor  = isB ? 'rgba(133,183,235,0.08)' : 'rgba(239,159,39,0.08)';
+    const ptColor    = isB ? '#bfe0ff' : '#fac775';
+    const ptBorder   = isB ? '#042c53' : '#0b1220';
+    const CAMPEON_COLOR = '#fbbf24';
+    // Trophy encima de cada temporada campeón — Chart.js no tiene un
+    // pointStyle "emoji" nativo, así que se dibuja a mano con un plugin
+    // chiquito en vez de una librería de íconos aparte.
+    const trophyPlugin = {
+      id: 'hist-evol-trophy',
+      afterDatasetsDraw(chart) {
+        const meta = chart.getDatasetMeta(0);
+        const { ctx } = chart;
+        meta.data.forEach((point, i) => {
+          if (!rows[i]?.esCampeon) return;
+          ctx.save();
+          ctx.font = '13px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'bottom';
+          ctx.fillText('🏆', point.x, point.y - 12);
+          ctx.restore();
+        });
+      },
+    };
+    _histEvolChart = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels: rows.map(r => r.label),
+        datasets: [{
+          data: rows.map(r => r.pos),
+          borderColor: mainColor,
+          backgroundColor: fillColor,
+          fill: true,
+          pointBackgroundColor: rows.map(r => r.esCampeon ? CAMPEON_COLOR : ptColor),
+          pointBorderColor: ptBorder,
+          pointBorderWidth: 2,
+          pointRadius: rows.map(r => r.esCampeon ? 7 : 6),
+          pointHoverRadius: rows.map(r => r.esCampeon ? 8 : 7),
+          tension: 0.25,
+        }],
+      },
+      plugins: [trophyPlugin],
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: { padding: { top: 16 } },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              title: ctx => rows[ctx[0].dataIndex]?.label || '',
+              label: ctx => rows[ctx.dataIndex]?.esCampeon ? '🏆 Campeón' : `${ctx.parsed.y}° puesto`,
+            },
+          },
+        },
+        scales: {
+          y: {
+            reverse: true,
+            ticks: { color: '#8a94ab', stepSize: 1, precision: 0, callback: v => v + '°' },
+            grid: { color: 'rgba(255,255,255,0.06)' },
+          },
+          x: {
+            ticks: { color: '#8a94ab', font: { size: 10 } },
+            grid: { display: false },
+          },
+        },
+      },
+    });
+  }
+  window._toggleEvolucionHistorica = function () {
+    const panel = document.getElementById('hist-evol-panel');
+    if (!panel) return;
+    const abrir = panel.style.display === 'none';
+    panel.style.display = abrir ? 'block' : 'none';
+    if (abrir) renderEvolucionChart();
+  };
 
   function grafDetalle(t) {
     const esCamp = t.forceColor ? t.forceColor === 'oro'   : isCampeon(t.pos);
