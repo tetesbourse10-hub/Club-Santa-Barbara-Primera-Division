@@ -68,11 +68,19 @@ async function sendPush(title, message, url) {
     return;
   }
   try {
-    const r = await fetch('https://onesignal.com/api/v1/notifications', {
+    // BUG REAL encontrado (401 "Access denied" en todas las corridas desde
+    // que se generó la API Key): OneSignal migró del endpoint legacy
+    // (onesignal.com/api/v1, claves "REST API Key" + `Authorization: Basic`)
+    // a uno nuevo (api.onesignal.com, claves con prefijo os_v2_app_ +
+    // `Authorization: Key`) — la clave que se generó desde Settings → Keys
+    // & IDs → API Keys → "Add key" (el flujo que usamos) es de este tipo
+    // nuevo, así que pegarle al endpoint/header viejo la rechazaba siempre,
+    // aunque la clave en sí fuera correcta.
+    const r = await fetch('https://api.onesignal.com/notifications', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json; charset=utf-8',
-        'Authorization': `Basic ${ONESIGNAL_REST_API_KEY}`,
+        'Authorization': `Key ${ONESIGNAL_REST_API_KEY}`,
       },
       body: JSON.stringify({
         app_id: ONESIGNAL_APP_ID,
