@@ -118,7 +118,16 @@ function snapshotOf(m) {
   return {
     resultado: m.resultado,
     hora: m.hora || '',
-    citado: (m.jugadores || []).length > 0,
+    // BUG REAL encontrado (probando a mano: tocar solo la columna Citado
+    // de 0 a 1, dejando Titular ya cargado, nunca disparaba "Citación
+    // confirmada"): antes esto era `(m.jugadores||[]).length > 0` — pero
+    // parseDetailedMatches mete una fila en `jugadores` apenas CUALQUIERA
+    // de Citado/Titular/Entró/Posición tiene algo, no solo Citado. Con
+    // Titular ya puesto, la lista nunca queda vacía, así que ese flag
+    // nunca pasaba de false a true por más que se tocara Citado solo.
+    // Ahora mira el flag `citado` real de cada jugador, no la presencia
+    // de la fila.
+    citado: (m.jugadores || []).some(j => j.citado),
   };
 }
 
