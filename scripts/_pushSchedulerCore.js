@@ -368,9 +368,15 @@ async function checkTorneo(store, torneo) {
       const imageUrl = probables.length
         ? `${SITE_URL}/.netlify/functions/partido-og?torneo=${torneo}&fecha=${encodeURIComponent(fecha)}`
         : null;
+      // Llamado a la acción explícito: en Chrome/Android ya se ve la ficha
+      // como imagen grande, pero en iPhone (sin soporte de imagen en push,
+      // ver el comentario de arriba) el toque para ver el 11 probable no
+      // era obvio sin este texto — la notificación entera sigue siendo
+      // clickeable (usa `url`, el link al partido) en todas las plataformas.
+      const cta = probables.length ? ' · Tocá para ver el 11 probable 👆' : '';
       await sendPush(
         '📋 Citación confirmada',
-        `Ya está el plantel citado — Santa Bárbara vs ${m.rival}, Fecha ${fecha}`,
+        `Ya está el plantel citado — Santa Bárbara vs ${m.rival}, Fecha ${fecha}${cta}`,
         url,
         imageUrl
       );
