@@ -471,6 +471,12 @@ async function checkTorneo(store, torneo) {
 // Top 10: sin esto, una categoría donde casi nadie tiene nada (ej. Títulos
 // para la mayoría del plantel) "avisaría" de entradas al Top 10 con 0,
 // que no es un hito real.
+// Las 4 categorías de "promedio" (promGol/promAsist/promGmas/vallasProm)
+// se sacaron a pedido — mueven de posición muy seguido con cualquier
+// cambio menor (un solo partido puede reordenar un promedio entero) y no
+// se las considera lo bastante importantes como para justificar un aviso
+// cada vez. Siguen existiendo en El Nido del sitio en vivo — esto solo
+// afecta qué categorías generan notificación de Top 10.
 const EL_NIDO_CATEGORIAS = [
   { key: 'pj', label: 'Partidos Jugados' },
   { key: 'goles', label: 'Goleadores' },
@@ -478,10 +484,6 @@ const EL_NIDO_CATEGORIAS = [
   { key: 'gmas', label: 'G+A' },
   { key: 'titulos', label: 'Títulos' },
   { key: 'vallas', label: 'Vallas Invictas' },
-  { key: 'promGol', label: 'Promedio de Goles' },
-  { key: 'promAsist', label: 'Promedio de Asistencias' },
-  { key: 'promGmas', label: 'Promedio de G+A' },
-  { key: 'vallasProm', label: 'Promedio de Vallas Invictas' },
 ];
 const EL_NIDO_SCOPES = [
   { key: 'general', label: 'General' },
