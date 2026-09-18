@@ -74,10 +74,24 @@
   <meta property="og:title" content="Club Santa Bárbara" />
   <meta property="og:description" content="Estadísticas, resultados y jugadores de Club Santa Bárbara — Primera A y Primera B." />
   <meta property="og:image" content="/logo-csb.webp" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- BUG REAL encontrado ("con los cambios de las últimas semanas está
+       tardando mucho en cargar [el celular]", 15-30s SOLO la primera vez —
+       consistente con algo pesado sin cachear todavía): estos 2 scripts de
+       CDN (~200KB cada uno) no tenían `defer`, así que bloqueaban el parseo
+       de TODA la página hasta terminar de descargarse y ejecutarse, en
+       cualquier visita — aunque ninguno de los dos hace falta para la
+       carga inicial (Chart.js solo se usa al abrir Evolución Histórica en
+       Torneos Antiguos; html2canvas solo al tocar "Compartir" en Fecha a
+       Fecha, ambos dentro de funciones que corren mucho después de cargar
+       la página, nunca durante el parseo). `defer` alcanza: siguen
+       disponibles como variables globales (Chart/html2canvas) antes de que
+       el usuario pueda llegar a usarlas, pero ya no frenan el primer
+       render — en mobile (CPU/latencia peor que desktop) esto se nota
+       mucho más. -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
   <!-- Solo para "Compartir" en Fecha a Fecha (ver shareFechaCard): renderiza
        la tarjeta de cancha+destacados a PNG en el navegador del usuario. -->
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
   <!-- Utilidades Tailwind pre-compiladas (tailwindcss v3 CLI, preflight
        desactivado para no pisar el CSS a medida de más abajo) — usadas solo
        por el rediseño desktop de Inicio/Resumen del Plantel (ver
