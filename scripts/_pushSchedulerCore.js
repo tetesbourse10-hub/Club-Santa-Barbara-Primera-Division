@@ -62,7 +62,7 @@ function _blobsStoreOptions() {
   return opts;
 }
 
-async function sendPush(title, message, url) {
+async function sendPush(title, message, url, imageUrl) {
   if (!ONESIGNAL_REST_API_KEY) {
     console.error('push-scheduler: falta ONESIGNAL_REST_API_KEY — no se puede enviar el push:', title);
     return;
@@ -95,6 +95,12 @@ async function sendPush(title, message, url) {
         headings: { en: title },
         contents: { en: message },
         url,
+        // Imagen grande opcional (ej. la ficha del partido con el 11
+        // titular) — `chrome_web_image` es el campo real que usa la API de
+        // Web Push de OneSignal para esto (cubre Chrome desktop/Android,
+        // la gran mayoría de los suscriptos reales; Safari/iOS todavía no
+        // soporta imagen grande en push web, con o sin este campo).
+        ...(imageUrl ? { chrome_web_image: imageUrl } : {}),
       }),
     });
     if (!r.ok) {
@@ -346,15 +352,27 @@ async function checkTorneo(store, torneo) {
       );
     }
     if (curr.citado && !prevM.citado) {
-      // 11 probable: quiénes ya están marcados Titular al momento de
-      // confirmarse la citación (la formación puede seguir cargándose
-      // después de esto — es "probable", no necesariamente la definitiva).
+      // BUG REAL encontrado (reportado: "me pareció mucho texto con todos
+      // los nombres de los jugadores"): listar los 11 nombres en el cuerpo
+      // del mensaje lo hacía larguísimo. En vez de texto, se reusa la
+      // MISMA ficha de partido (imagen con cancha + 11 titular) que ya usa
+      // "Compartir" — pegándole directo a la función `partido-og` (no al
+      // archivo estático /og/partido/<torneo>-<fecha>.png, que recién
+      // existe después del próximo build/deploy) para que la imagen esté
+      // disponible YA, sin depender de que el sitio se haya redesplegado
+      // desde que se cargó la citación. `partido-og` genera la imagen al
+      // vuelo y la cachea 5 min en el borde — es el mismo camino que ya usa
+      // el link compartible como fallback en vivo (ver netlify/functions/
+      // partido.js), probado en producción.
       const probables = (m.jugadores || []).filter(j => j.titular && j.nombre).map(j => j.nombre);
-      const eleven = probables.length ? `\n11 probable: ${probables.join(', ')}` : '';
+      const imageUrl = probables.length
+        ? `${SITE_URL}/.netlify/functions/partido-og?torneo=${torneo}&fecha=${encodeURIComponent(fecha)}`
+        : null;
       await sendPush(
         '📋 Citación confirmada',
-        `Ya está el plantel citado — Santa Bárbara vs ${m.rival}, Fecha ${fecha}${eleven}`,
-        url
+        `Ya está el plantel citado — Santa Bárbara vs ${m.rival}, Fecha ${fecha}`,
+        url,
+        imageUrl
       );
     }
     if (curr.resultado && !prevM.resultado) {
