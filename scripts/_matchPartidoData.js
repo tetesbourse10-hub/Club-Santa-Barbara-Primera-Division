@@ -145,9 +145,20 @@ async function getAllMatchesFromWindow(window, torneo) {
   if (!cfg) return null;
   const sheetId = window.GS[cfg.sheetKey];
 
+  // BUG REAL encontrado (404 de fetchProxy en producción, todas las
+  // corridas de un sábado entero — día con más tráfico real al proxy de
+  // Apps Script, justo cuando más hace falta que ande): a diferencia de
+  // loadLiveData() del lado del cliente (que ya usa fetchCSV — corre el
+  // export CSV directo de Google contra el proxy de Apps Script en
+  // paralelo, prefiriendo el directo y solo cayendo al proxy si hace
+  // falta), este código pegaba SIEMPRE directo a fetchProxy — el eslabón
+  // más frágil (arranque en frío, cuota, serialización de ejecuciones
+  // concurrentes del mismo script), sin ningún fallback. Usar fetchCSV acá
+  // también le da al scheduler la misma resiliencia que ya tiene el sitio
+  // en vivo, en vez de depender 100% del proxy más flaky de los dos.
   const [detRows, basicRows] = await Promise.all([
-    window.fetchProxy(cfg.tab, cfg.detRange, sheetId),
-    window.fetchProxy(cfg.tab, cfg.basicRange, sheetId),
+    window.fetchCSV(sheetId, cfg.tab, cfg.detRange),
+    window.fetchCSV(sheetId, cfg.tab, cfg.basicRange),
   ]);
   const detailed = window.parseDetailedMatches(detRows, true);
   let basicByFecha = new Map();
@@ -213,12 +224,14 @@ function _rowsToNidoObjects(rows, COL, normFn, window) {
 }
 async function getElNidoRankings() {
   const window = await _loadEngine();
+  // Mismo fix de resiliencia que getAllMatchesFromWindow: fetchCSV en vez
+  // de fetchProxy a secas (ver el comentario ahí arriba).
   const [rowsA, rowsB] = await Promise.all([
-    window.fetchProxy('Jugadores Estadisticas', null, window.GS.A_MAIN),
+    window.fetchCSV(window.GS.A_MAIN, 'Jugadores Estadisticas', null),
     // Primera B: el nombre de tab sin tilde a veces no existe en alguna
     // temporada — mismo fallback con tilde que ya usa _ensureJugTotalesB.
-    window.fetchProxy('Jugadores Estadisticas', null, window.GS.B_HIST)
-      .catch(() => window.fetchProxy('Jugadores Estadísticas', null, window.GS.B_HIST)),
+    window.fetchCSV(window.GS.B_HIST, 'Jugadores Estadisticas', null)
+      .catch(() => window.fetchCSV(window.GS.B_HIST, 'Jugadores Estadísticas', null)),
   ]);
   const a = _rowsToNidoObjects(rowsA, window.JUG_COL, window.normA, window);
   const b = _rowsToNidoObjects(rowsB, window.JUG_COL_B, window.normB, window);
