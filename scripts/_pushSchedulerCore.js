@@ -282,23 +282,39 @@ async function checkTorneo(store, torneo) {
   const nextMatches = {};
   let huboFinal = false;
 
-  // Logros (Debut/Primer gol/Hat-trick) — "vistos"/"conGol" son el
-  // histórico de jugadores que YA jugaron/YA convirtieron alguna vez,
-  // persistido en Blobs junto al resto del estado del torneo. Si esta
-  // regla nunca corrió antes (prev.jugadoresVistos no existe), se arma esa
-  // base UNA vez a partir de los partidos YA jugados sin avisar nada — si
-  // no, el primer cierre de fecha después de activar esto "descubriría"
-  // como debut/primer gol a jugadores con años de historia.
+  // BUG REAL encontrado (reportado: "los goles que se convierten por
+  // primera vez en el torneo no son primer gol en el club"): "Primer gol"
+  // comparaba contra `conGol`, un set armado SOLO a partir de los
+  // partidos de ESTE torneo en vivo (Clausura 2026 A/B) — un jugador con
+  // años de historia en el club que todavía no había convertido en ESTA
+  // temporada puntual disparaba "Primer gol" igual. El total de carrera
+  // real vive en El Nido (checkElNido, más abajo en este archivo), no acá
+  // — se lee el último estado guardado (`estado-elnido`, la misma foto
+  // que ya usa "Cifra redonda") para saber si el jugador tenía 0 goles de
+  // carrera ANTES de este partido.
+  const nidoState = (await store.get('estado-elnido', { type: 'json' })) || { goles: {} };
+  const golesCareraPrevios = nidoState.goles || {};
+  // Si El Nido todavía nunca guardó un estado propio (checkElNido no corrió
+  // ni una vez con éxito todavía), golesCareraPrevios estaría vacío para
+  // TODOS — eso haría que cualquier gol de cualquier jugador dispare
+  // "Primer gol" por error. Mismo criterio conservador que esSeedInicial:
+  // sin base real con qué comparar, no se avisa nada.
+  const nidoListo = Object.keys(golesCareraPrevios).length > 0;
+
+  // Logros (Debut/Hat-trick) — "vistos" es el histórico de jugadores que
+  // YA jugaron alguna vez, persistido en Blobs junto al resto del estado
+  // del torneo. Si esta regla nunca corrió antes (prev.jugadoresVistos no
+  // existe), se arma esa base UNA vez a partir de los partidos YA jugados
+  // sin avisar nada — si no, el primer cierre de fecha después de activar
+  // esto "descubriría" como debut a jugadores con años de historia.
   const esSeedInicial = !prev.jugadoresVistos;
   const vistos = new Set(prev.jugadoresVistos || []);
-  const conGol = new Set(prev.jugadoresConGol || []);
   if (esSeedInicial) {
     for (const m of matches) {
       if (m.resultado === null) continue;
       for (const j of (m.jugadores || [])) {
         if (!j.nombre) continue;
         if (j.titular || j.entro) vistos.add(j.nombre);
-        if (j.goles > 0) conGol.add(j.nombre);
       }
     }
   }
@@ -429,25 +445,25 @@ async function checkTorneo(store, torneo) {
       );
       huboFinal = true;
 
-      // Logros de este partido. El hat-trick no depende de historial
-      // (solo mira ESTE partido), así que se avisa siempre; debut/primer
-      // gol si dependen de "vistos"/"conGol" — en la corrida de seed
-      // inicial esos sets recién se están armando, así que no se avisa
-      // nada ahí (pasarían como "debut" jugadores con años de historia).
+      // Logros de este partido. El hat-trick no depende de historial (solo
+      // mira ESTE partido), así que se avisa siempre; debut depende de
+      // "vistos" — en la corrida de seed inicial ese set recién se está
+      // armando, así que no se avisa nada ahí (pasarían como "debut"
+      // jugadores con años de historia). Primer gol depende del total de
+      // carrera de El Nido (golesCareraPrevios), no de este set.
       for (const j of (m.jugadores || [])) {
         if (!j.nombre) continue;
         const jugo = j.titular || j.entro;
         if (!esSeedInicial && jugo && !vistos.has(j.nombre)) {
           await sendPush('🆕 Debut', `${j.nombre} debutó en Primera — vs ${m.rival}, Fecha ${fecha}`, url);
         }
-        if (!esSeedInicial && j.goles > 0 && !conGol.has(j.nombre)) {
+        if (nidoListo && j.goles > 0 && (golesCareraPrevios[j.nombre] || 0) === 0) {
           await sendPush('⚽️ Primer gol', `${j.nombre} convirtió su primer gol — vs ${m.rival}, Fecha ${fecha}`, url);
         }
         if (!esSeedInicial && j.goles >= 3) {
           await sendPush('🎩 Hat-trick', `${j.nombre} convirtió ${j.goles} goles — vs ${m.rival}, Fecha ${fecha}`, url);
         }
         if (jugo) vistos.add(j.nombre);
-        if (j.goles > 0) conGol.add(j.nombre);
       }
     }
   }
@@ -526,7 +542,7 @@ async function checkTorneo(store, torneo) {
 
   await store.setJSON(stateKey, {
     matches: nextMatches, tablaPos: nextTablaPos, racha: nextRacha,
-    jugadoresVistos: [...vistos], jugadoresConGol: [...conGol],
+    jugadoresVistos: [...vistos],
     vallasRachaJugador: nextVallasRachaJugador,
     rachaGolJugador: nextRachaGolJugador,
   });
