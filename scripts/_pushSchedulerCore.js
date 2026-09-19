@@ -245,6 +245,33 @@ const RECORDATORIO_MS = 2 * 60 * 60 * 1000; // 2 horas antes del partido
 // "recién arrancó" en la próxima.
 const COMIENZO_GRACE_MS = 2 * 60 * 60 * 1000 + 10 * 60 * 1000;
 
+// "Local"/"Visitante"/"Cancha neutral" para el texto del Recordatorio/
+// Comienzo — m.local ya viene en mayúsculas (LOCAL/VISITANTE/NEUTRAL,
+// ver parseMatches en index.html), acá solo se pasa a texto legible.
+function _condicionLabel(local) {
+  const l = String(local || '').toUpperCase();
+  if (l === 'VISITANTE') return 'Visitante';
+  if (l === 'NEUTRAL') return 'Cancha neutral';
+  return 'Local';
+}
+
+// Redondeado a un número entero, sin decimales — la regla dispara en
+// cualquier momento dentro de la ventana de 2hs (no siempre justo a las
+// 2hs, sobre todo entre semana con el cron cada 2h), así que un decimal
+// fijo tipo "2.0h" sugiere más precisión de la real. Debajo de 1h muestra
+// minutos en vez de "0 horas".
+function _formatTiempoFalta(ms) {
+  // El corte de unidad se decide con el valor SIN redondear (ms >= 1h
+  // real) — si se decidiera con el valor ya redondeado, algo como "30
+  // minutos" (0.5h) redondeaba hacia arriba a "1 hora", que es engañoso.
+  if (ms >= 3600000) {
+    const horas = Math.round(ms / 3600000);
+    return horas === 1 ? '1 hora' : `${horas} horas`;
+  }
+  const minutos = Math.max(1, Math.round(ms / 60000));
+  return minutos === 1 ? '1 minuto' : `${minutos} minutos`;
+}
+
 async function checkTorneo(store, torneo) {
   const data = await getAllMatches(torneo);
   if (!data) return;
@@ -318,12 +345,19 @@ async function checkTorneo(store, torneo) {
         if (kickoff) {
           const msFalta = kickoff.getTime() - Date.now();
           if (!curr.recordatorioEnviado && msFalta > 0 && msFalta <= RECORDATORIO_MS) {
-            const horas = (msFalta / 3600000).toFixed(1);
-            await sendPush('⏳ Recordatorio', `Santa Bárbara vs ${m.rival} en ${horas}h — Fecha ${fecha} (${badge})`, url);
+            await sendPush(
+              '⏳ Recordatorio',
+              `Santa Bárbara vs ${m.rival} (${_condicionLabel(m.local)}) en ${_formatTiempoFalta(msFalta)} — Fecha ${fecha} (${badge})`,
+              url
+            );
             curr.recordatorioEnviado = true;
           }
           if (!curr.comienzoEnviado && msFalta <= 0 && -msFalta <= COMIENZO_GRACE_MS) {
-            await sendPush('🚨 ¡Arrancó el partido!', `Santa Bárbara vs ${m.rival} — ${badge}`, url);
+            await sendPush(
+              '🚨 ¡Arrancó el partido!',
+              `Santa Bárbara vs ${m.rival} (${_condicionLabel(m.local)}) — ${badge}`,
+              url
+            );
             curr.comienzoEnviado = true;
           }
         }
