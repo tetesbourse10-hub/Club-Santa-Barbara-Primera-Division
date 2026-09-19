@@ -444,7 +444,7 @@ async function checkTorneo(store, torneo) {
           await sendPush('⚽️ Primer gol', `${j.nombre} convirtió su primer gol — vs ${m.rival}, Fecha ${fecha}`, url);
         }
         if (!esSeedInicial && j.goles >= 3) {
-          await sendPush('🪄 3️⃣ Hat-trick', `${j.nombre} convirtió ${j.goles} goles — vs ${m.rival}, Fecha ${fecha}`, url);
+          await sendPush('🎩 Hat-trick', `${j.nombre} convirtió ${j.goles} goles — vs ${m.rival}, Fecha ${fecha}`, url);
         }
         if (jugo) vistos.add(j.nombre);
         if (j.goles > 0) conGol.add(j.nombre);
