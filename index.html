@@ -17378,7 +17378,20 @@ function _parseFechaHora(diaStr, horaStr) {
   const hm = String(horaStr || '').match(/(\d{1,2})(?::(\d{2}))?/);
   const hour = hm ? parseInt(hm[1]) : 0;
   const min  = hm && hm[2] ? parseInt(hm[2]) : 0;
-  const dt = new Date(year, month - 1, day, hour, min);
+  // BUG REAL encontrado (push de "Recordatorio" llegando 3 horas antes de lo
+  // que debía — reportado: partido a las 14hs ART, notificación de "faltan
+  // 2.0h" llegada a las 9hs ART, cuando en realidad faltaban 5): el sheet
+  // siempre carga la hora en horario de Argentina (ART, UTC-3, sin horario
+  // de verano desde 2009 — offset fijo todo el año), pero
+  // `new Date(year, month-1, day, hour, min)` usa la zona horaria del
+  // ENTORNO donde corre el código, no la de Argentina. En el navegador de
+  // un visitante en Argentina eso coincide y nunca se notó — pero
+  // push-scheduler-*.js corre en un servidor de Netlify en UTC, así que ahí
+  // "14:00" se interpretaba como 14:00 UTC (= 11:00 ART), 3 horas antes de
+  // la hora real. Date.UTC con el offset sumado a mano da la MISMA marca de
+  // tiempo absoluta sin importar en qué zona horaria corra el proceso —
+  // cliente y servidor calculan exactamente lo mismo.
+  const dt = new Date(Date.UTC(year, month - 1, day, hour + 3, min));
   // No explicit year in the sheet and the assumed-current-year date already
   // passed by more than a few days → the match is really next year (season
   // crossing Dec→Jan), bump forward once.
