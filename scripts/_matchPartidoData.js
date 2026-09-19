@@ -145,20 +145,21 @@ async function getAllMatchesFromWindow(window, torneo) {
   if (!cfg) return null;
   const sheetId = window.GS[cfg.sheetKey];
 
-  // BUG REAL encontrado (404 de fetchProxy en producción, todas las
-  // corridas de un sábado entero — día con más tráfico real al proxy de
-  // Apps Script, justo cuando más hace falta que ande): a diferencia de
-  // loadLiveData() del lado del cliente (que ya usa fetchCSV — corre el
-  // export CSV directo de Google contra el proxy de Apps Script en
-  // paralelo, prefiriendo el directo y solo cayendo al proxy si hace
-  // falta), este código pegaba SIEMPRE directo a fetchProxy — el eslabón
-  // más frágil (arranque en frío, cuota, serialización de ejecuciones
-  // concurrentes del mismo script), sin ningún fallback. Usar fetchCSV acá
-  // también le da al scheduler la misma resiliencia que ya tiene el sitio
-  // en vivo, en vez de depender 100% del proxy más flaky de los dos.
+  // CORRECCIÓN de un fix anterior (este mismo comentario decía, de forma
+  // incorrecta, que loadLiveData() del sitio ya usaba fetchCSV acá — no es
+  // así). Esta lectura ("Fecha a Fecha detallado" de Clausura 2026 A/B,
+  // tanto detRange como basicRange, misma pestaña) NO puede pasar por gviz
+  // CSV directo (lo que hace fetchCSV como primer intento): esa API infiere
+  // el tipo de cada columna mirando la pestaña ENTERA, y la columna C
+  // significa cosas distintas según la fila (Lugar en filas de partido,
+  // Titular 0/1 en filas de jugador) — confirmado que eso invierte Rival/
+  // Formación/Plantel en algunas fechas. Por eso el sitio en vivo (ver
+  // fetchProxyConReintento en index.html) usa fetchProxy puro acá, nunca
+  // gviz. Mismo criterio + la misma resiliencia (reintento con backoff en
+  // vez de fallback a gviz) para que el scheduler tampoco corra ese riesgo.
   const [detRows, basicRows] = await Promise.all([
-    window.fetchCSV(sheetId, cfg.tab, cfg.detRange),
-    window.fetchCSV(sheetId, cfg.tab, cfg.basicRange),
+    window.fetchProxyConReintento(cfg.tab, cfg.detRange, sheetId),
+    window.fetchProxyConReintento(cfg.tab, cfg.basicRange, sheetId),
   ]);
   const detailed = window.parseDetailedMatches(detRows, true);
   let basicByFecha = new Map();
