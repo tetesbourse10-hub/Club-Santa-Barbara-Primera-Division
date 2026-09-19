@@ -485,6 +485,7 @@
     }
     #refresh-status { font-style: italic; }
     #refresh-status.loading { color: var(--dorado); }
+    #refresh-status.error { color: var(--rojo); }
     #refresh-time { opacity: 0.7; }
 
     .panel { display: none; padding: 24px 20px; width: 100%; }
@@ -18209,6 +18210,23 @@ async function loadLiveData() {
     fetchGvizByGid(GS.B_HIST, 222048409, 'A1:E2'),
   ]);
 
+  // BUG REAL encontrado (reportado: "estoy queriendo entrar a la página y
+  // no me carga" — spinner "Actualizando…" infinito, sin recuperarse
+  // nunca): Promise.allSettled de arriba SÍ tolera que fetches individuales
+  // fallen (nunca rechaza el batch entero), pero nada envolvía en try/catch
+  // las ~500 líneas de parseo/merge que vienen después — si alguna de esas
+  // fuentes fallidas (`ok(x) === null`) llegaba a una función que no
+  // esperaba `null` y tiraba una excepción sin capturar, TODO lo que sigue
+  // (incluido `_refreshing = false` y el chequeo `if (_refreshing) return`
+  // del principio de esta función) se saltaba para siempre — ni este
+  // refresh terminaba de mostrar nada, ni ningún refresh futuro (cron de
+  // 60s, recuperar el foco, "Actualizar" a mano) volvía a intentarlo,
+  // porque `_refreshing` se quedaba en `true` hasta recargar la página
+  // entera. Envolviendo el resto en try/catch/finally: un error puntual en
+  // el parseo de UNA fuente ya no deja la página entera trabada — como
+  // mínimo, el próximo refresh (60s después) vuelve a poder correr.
+  try {
+
   const ok = r => r.status === 'fulfilled' ? r.value : null;
 
   // Club-defined position → clasificación bands for each category's CURRENT
@@ -18643,6 +18661,23 @@ async function loadLiveData() {
     if (nidoVisible && !nidoSearchFocused && window.renderNido) window.renderNido();
     refreshCurrentView();
     renderLandingWidgets();
+  }
+  } catch (e) {
+    // Ver el comentario grande más arriba (justo después del
+    // Promise.allSettled): esto es lo que evita que un error de parseo
+    // puntual deje la página entera trabada en "Actualizando…" para
+    // siempre. No se re-lanza el error — ya se logueó, y dejar que
+    // burbujee no le sirve a nadie viendo la página en producción.
+    console.error('loadLiveData: falló el parseo/merge después de traer los datos —', e);
+    if (statusEl) { statusEl.textContent = 'Error al actualizar — reintentando en el próximo ciclo'; statusEl.className = 'error'; }
+  } finally {
+    // SIEMPRE se libera el guard de reentrada, haya salido bien o mal el
+    // try — sin esto, un error acá arriba dejaba `_refreshing` en `true`
+    // para siempre, y el guard del principio de la función
+    // (`if (_refreshing) return`) descartaba en silencio TODOS los
+    // refreshes futuros (el del cron de 60s incluido) hasta recargar la
+    // página entera a mano.
+    _refreshing = false;
   }
 }
 
