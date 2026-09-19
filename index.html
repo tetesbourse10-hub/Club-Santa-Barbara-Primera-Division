@@ -18067,6 +18067,53 @@ async function fetchWithRetryCap(key, fetchFn, maxAttempts = 3) {
   }
 }
 
+// Panel de diagnóstico de timing — se activa con ?debug=timing en la URL
+// (ej. https://clubsantabarbara.netlify.app/?debug=timing). Pensado para
+// diagnosticar cargas lentas en dispositivos donde no hay forma fácil de
+// inspeccionar la pestaña Network (iPhone sin Mac, por ejemplo): mide
+// cuánto tarda CADA una de las ~34 fuentes de loadLiveData() y lo muestra
+// directo en pantalla, para sacar una captura sin necesitar DevTools.
+// No mide nada ni agrega overhead si el flag no está — _timed() es un
+// passthrough transparente en ese caso.
+const _DEBUG_TIMING = /[?&]debug=timing\b/.test(location.search);
+function _timed(label, promise) {
+  if (!_DEBUG_TIMING) return promise;
+  const t0 = performance.now();
+  const record = (ok, extra) => {
+    window._debugTimings = window._debugTimings || [];
+    window._debugTimings.push({ label, ms: performance.now() - t0, ok, extra: extra || '' });
+  };
+  return promise.then(
+    v => { record(true, Array.isArray(v) ? `${v.length} filas` : ''); return v; },
+    e => { record(false, String(e && e.message || e)); throw e; }
+  );
+}
+function _renderDebugTimingPanel() {
+  if (!_DEBUG_TIMING) return;
+  const timings = (window._debugTimings || []).slice().sort((a, b) => b.ms - a.ms);
+  let panel = document.getElementById('debug-timing-panel');
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'debug-timing-panel';
+    panel.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0B0E14;color:#e2e8f0;'
+      + 'font:12px/1.4 monospace;overflow:auto;padding:16px;';
+    document.body.appendChild(panel);
+  }
+  const totalMs = timings.length ? Math.max(...timings.map(t => t.ms)) : 0;
+  const rows = timings.map(t => `
+    <div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid #1e2a3a;">
+      <div style="width:70px;flex-shrink:0;font-weight:700;color:${t.ok ? '#22c55e' : '#ef4444'}">${t.ms.toFixed(0)}ms</div>
+      <div style="flex:1;min-width:0;word-break:break-word;">${t.label}${t.extra ? ` <span style="color:#64748b">(${t.extra})</span>` : ''}</div>
+    </div>`).join('');
+  panel.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div style="font-size:14px;font-weight:900;">⏱️ Diagnóstico de carga — ${timings.length} fuentes, la más lenta: ${totalMs.toFixed(0)}ms</div>
+      <button onclick="document.getElementById('debug-timing-panel').remove()" style="background:#1e2a3a;color:#e2e8f0;border:none;padding:8px 12px;border-radius:8px;font:inherit;">Cerrar</button>
+    </div>
+    <div style="color:#64748b;margin-bottom:10px;">Ordenado de más lenta a más rápida. Verde = OK, rojo = falló.</div>
+    ${rows}`;
+}
+
 let _refreshing = false;
 async function loadLiveData() {
   if (_refreshing) return;
@@ -18074,12 +18121,18 @@ async function loadLiveData() {
   const statusEl = document.getElementById('refresh-status');
   if (statusEl) { statusEl.textContent = 'Actualizando…'; statusEl.className = 'loading'; }
 
+  // Mismo orden que la destructuración de abajo — usado solo por el panel
+  // de diagnóstico (_DEBUG_TIMING) para etiquetar cada request con el
+  // nombre de la variable a la que corresponde, sin tocar ninguna de las
+  // ~34 líneas de fetch de acá abajo (_timed() es un wrapper transparente
+  // sobre el array ya armado, ver más abajo).
+  const _fetchLabels = ['aSim', 'aBasic', 'aDet', 'bApBasic', 'bApDet', 'aHist', 'bHist', 'aGlobal', 'aTabla',
+    'a25Det', 'a25Global', 'a25Tabla', 'a25Basico', 'bApGlobal', 'bApTabla',
+    'bClDet', 'bClGlobal', 'bClTabla', 'bClBasic', 'aClDet', 'aClGlobal', 'aClTabla', 'aClBasic', 'copasSheet', 'copasBasicSheet', 'bRecopa26Det', 'bRecopa26Basico',
+    'bSupercopa25Det', 'bSupercopa25Plantel', 'bRecopa24Det', 'bRecopa24Plantel',
+    'bRecopa21Det', 'bRecopa21Plantel', 'bRecopa21Basico'];
   // Fetch each section as a targeted range so parsers receive exactly the right rows
-  const [aSim, aBasic, aDet, bApBasic, bApDet, aHist, bHist, aGlobal, aTabla,
-         a25Det, a25Global, a25Tabla, a25Basico, bApGlobal, bApTabla,
-         bClDet, bClGlobal, bClTabla, bClBasic, aClDet, aClGlobal, aClTabla, aClBasic, copasSheet, copasBasicSheet, bRecopa26Det, bRecopa26Basico,
-         bSupercopa25Det, bSupercopa25Plantel, bRecopa24Det, bRecopa24Plantel,
-         bRecopa21Det, bRecopa21Plantel, bRecopa21Basico] = await Promise.allSettled([
+  const _fetchPromises = [
     // Antes: fetchCSV(GS.A_SIM) — sin tab/range, csvUrl() arma la URL sin
     // &sheet= ni &gid=, pidiéndole a gviz "la hoja que corresponda" de forma
     // ambigua. Confirmado en Network que esa misma forma de URL sin
@@ -18221,7 +18274,18 @@ async function loadLiveData() {
     // has (its "Fecha" column doubles as the round name, no separate Local/
     // Visita or Parciales column there). See parseCopaResumenRow / merge below.
     fetchGvizByGid(GS.B_HIST, 222048409, 'A1:E2'),
-  ]);
+  ];
+  const _timedPromises = _DEBUG_TIMING ? _fetchPromises.map((p, i) => _timed(_fetchLabels[i], p)) : _fetchPromises;
+  const [aSim, aBasic, aDet, bApBasic, bApDet, aHist, bHist, aGlobal, aTabla,
+         a25Det, a25Global, a25Tabla, a25Basico, bApGlobal, bApTabla,
+         bClDet, bClGlobal, bClTabla, bClBasic, aClDet, aClGlobal, aClTabla, aClBasic, copasSheet, copasBasicSheet, bRecopa26Det, bRecopa26Basico,
+         bSupercopa25Det, bSupercopa25Plantel, bRecopa24Det, bRecopa24Plantel,
+         bRecopa21Det, bRecopa21Plantel, bRecopa21Basico] = await Promise.allSettled(_timedPromises);
+  // El panel se muestra ACÁ, antes del try/catch de abajo — así se ve
+  // aunque el parseo posterior tire una excepción (ver el comentario
+  // grande de ese try/catch), que es justo cuando más hace falta ver qué
+  // fuente tardó o falló.
+  _renderDebugTimingPanel();
 
   // BUG REAL encontrado (reportado: "estoy queriendo entrar a la página y
   // no me carga" — spinner "Actualizando…" infinito, sin recuperarse
