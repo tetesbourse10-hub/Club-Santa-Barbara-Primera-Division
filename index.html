@@ -16633,6 +16633,22 @@ async function fetchProxy(tab, range, sheetId) {
   return json.filter(row => row.some(c => c !== '' && c !== null));
 }
 
+// Reintento con backoff corto para llamadas a fetchProxy que NO pueden
+// caer a gviz CSV directo (ver el comentario junto a las 2 lecturas de
+// Fecha a Fecha detallado que usan esto — gviz infiere mal el tipo de
+// columna ahí y corrompe datos). El arranque en frío de Apps Script (o un
+// glitch puntual de red) suele resolverse solo con un segundo intento
+// pocos segundos después, sin necesitar el fallback a gviz.
+async function fetchProxyConReintento(tab, range, sheetId, intentos = 2, esperaMs = 1500) {
+  try {
+    return await fetchProxy(tab, range, sheetId);
+  } catch (e) {
+    if (intentos <= 0) throw e;
+    await new Promise(res => setTimeout(res, esperaMs));
+    return fetchProxyConReintento(tab, range, sheetId, intentos - 1, esperaMs);
+  }
+}
+
 function csvUrl(id, tab, range) {
   let u = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv`;
   if (tab)   u += `&sheet=${encodeURIComponent(tab)}`;
@@ -18120,7 +18136,7 @@ async function loadLiveData() {
     //    serializa ejecuciones concurrentes del mismo script) y borró datos
     //    de Primera B entera; solo esta lectura puntual es la que de verdad
     //    necesita esquivar el bug de gviz. ──
-    fetchProxy('CLAUSURA 2026 AIFA B', 'A19:J561', GS.B_HIST),
+    fetchProxyConReintento('CLAUSURA 2026 AIFA B', 'A19:J561', GS.B_HIST),
     // Club-confirmed layout: Plantel header at L3 — se sumó un jugador más
     // al plantel, corriendo el rango una fila hacia abajo (L3:X36).
     fetchGvizByGid(GS.B_HIST, 266944794, 'L3:X36'),
@@ -18144,7 +18160,7 @@ async function loadLiveData() {
     //    as Clausura AIFA B 2026 above. Igual que arriba: solo este Fecha a
     //    Fecha detallado (tab "Clausura 2026") va por fetchProxy — ver
     //    comentario en el equivalente de B. ──
-    fetchProxy('Clausura 2026', 'A22:J530', GS.A_MAIN),
+    fetchProxyConReintento('Clausura 2026', 'A22:J530', GS.A_MAIN),
     // Club-confirmed updated range (plantel grew).
     fetchGvizByGid(GS.A_MAIN, 618783090, 'L3:X31'),
     // Tabla de Posiciones: sheet dedicado GS.POSICIONES (ver ese comentario),
