@@ -12912,7 +12912,7 @@ function _parsePartidosPorTorneos(rows) {
 async function _loadPartidosCache() {
   if (_partidosCache) return _partidosCache;
   try {
-    const rows = await fetchProxy('Partidos Historial', null, GS.A_MAIN);
+    const rows = await fetchCSV(GS.A_MAIN, 'Partidos Historial', null);
     if (!rows || rows.length < 5) throw new Error('empty response: ' + (rows ? rows.length : 0));
     const parsed = _parsePartidosPorTorneos(rows);
     // The 2023 Recopa match vs Regatas (2-2) sits in the sheet without a
@@ -13699,7 +13699,7 @@ function _ensureJugTotalesA() {
     _jugTotalesData = _mergeDuplicatePlayerRows(SEED_JUG_ESTADISTICAS.slice(1).filter(r => !esExcluido(r)), JUG_COL);
     _jugTotalesSort = { col: JUG_COL.pj, asc: false };
   }
-  _jugTotalesLoadPromise = fetchProxy('Jugadores Estadisticas')
+  _jugTotalesLoadPromise = fetchCSV(GS.A_MAIN, 'Jugadores Estadisticas', null)
     .then(rows => {
       if (!rows || rows.length < 2) return;
       _jugTotalesCols = rows[0].map(c => String(c).trim());
@@ -15564,7 +15564,7 @@ function _anualesLoadPlayers(year) {
 
   const ranges = { '2023':'I2:O28', '2024':'I2:O33', '2025':'I2:O31' };
   if (!ranges[year]) return;
-  fetchProxy(String(year), ranges[year]).then(applyRows).catch(() => {});
+  fetchCSV(GS.A_MAIN, String(year), ranges[year]).then(applyRows).catch(() => {});
 }
 
 function _anualesFilter(q) {
