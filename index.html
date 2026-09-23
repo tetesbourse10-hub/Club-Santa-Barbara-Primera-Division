@@ -13961,11 +13961,12 @@ function _jugTotalBuild() {
       const v = r[ci];
       const n = _jugTotalNumeric(v);
       const m = COL_META[ci] || { color: '#94a3b8' };
-      const isNull = n === null || isNaN(n) || n === 0;
+      const isNull = n === null || isNaN(n);
+      const isZero = !isNull && n === 0;
       const isDecimal = n !== null && !isNaN(n) && !Number.isInteger(n);
       const display = isNull
         ? `<span style="color:rgba(255,255,255,0.18)">—</span>`
-        : `<span style="color:${m.color};font-weight:800;font-size:0.92rem">${isDecimal ? n.toFixed(2).replace('.',',') : n}</span>`;
+        : `<span style="color:${isZero ? 'rgba(255,255,255,0.4)' : m.color};font-weight:800;font-size:0.92rem">${isDecimal ? n.toFixed(2).replace('.',',') : n}</span>`;
       return `<td style="text-align:center;padding:9px 14px;vertical-align:middle">${display}</td>`;
     }).join('');
 
@@ -14287,11 +14288,12 @@ function _jugBBuild() {
       const v = r[ci];
       const nv = _jugBNumeric(v);
       const m = COL_META_B[ci] || { color: '#94a3b8' };
-      const isNull = nv === null || isNaN(nv) || nv === 0;
+      const isNull = nv === null || isNaN(nv);
+      const isZero = !isNull && nv === 0;
       const isDecimal = nv !== null && !isNaN(nv) && !Number.isInteger(nv);
       const display = isNull
         ? `<span style="color:rgba(255,255,255,0.18)">—</span>`
-        : `<span style="color:${m.color};font-weight:800;font-size:0.92rem">${isDecimal ? nv.toFixed(2).replace('.',',') : nv}</span>`;
+        : `<span style="color:${isZero ? 'rgba(255,255,255,0.4)' : m.color};font-weight:800;font-size:0.92rem">${isDecimal ? nv.toFixed(2).replace('.',',') : nv}</span>`;
       return `<td style="text-align:center;padding:9px 14px;vertical-align:middle">${display}</td>`;
     }).join('');
 
@@ -15565,11 +15567,11 @@ function _anualesBuildTableB(year) {
           </div>
         </div>
       </td>
-      <td style="text-align:center;padding:8px 10px"><span style="color:#94a3b8;font-weight:700">${p.pj || '<span style=\'color:rgba(255,255,255,0.18)\'>—</span>'}</span></td>
-      <td style="text-align:center;padding:8px 10px"><span style="color:${p.goles>0?'#22c55e':'rgba(255,255,255,0.18)'};font-weight:${p.goles>0?'800':'400'}">${p.goles > 0 ? p.goles : '—'}</span></td>
-      <td style="text-align:center;padding:8px 10px"><span style="color:${p.asist>0?'#60a5fa':'rgba(255,255,255,0.18)'};font-weight:${p.asist>0?'800':'400'}">${p.asist > 0 ? p.asist : '—'}</span></td>
-      <td style="text-align:center;padding:8px 10px"><span style="color:${p.gmas>0?'#a855f7':'rgba(255,255,255,0.18)'};font-weight:${p.gmas>0?'800':'400'}">${p.gmas  > 0 ? p.gmas  : '—'}</span></td>
-      <td style="text-align:center;padding:8px 10px"><span style="color:${p.promGmas>0?'#a855f7':'rgba(255,255,255,0.18)'}">${p.promGmas > 0 ? p.promGmas.toFixed(2).replace('.',',') : '—'}</span></td>
+      <td style="text-align:center;padding:8px 10px"><span style="color:#94a3b8;font-weight:700">${p.pj || 0}</span></td>
+      <td style="text-align:center;padding:8px 10px"><span style="color:${p.goles>0?'#22c55e':'rgba(255,255,255,0.4)'};font-weight:${p.goles>0?'800':'400'}">${p.goles || 0}</span></td>
+      <td style="text-align:center;padding:8px 10px"><span style="color:${p.asist>0?'#60a5fa':'rgba(255,255,255,0.4)'};font-weight:${p.asist>0?'800':'400'}">${p.asist || 0}</span></td>
+      <td style="text-align:center;padding:8px 10px"><span style="color:${p.gmas>0?'#a855f7':'rgba(255,255,255,0.4)'};font-weight:${p.gmas>0?'800':'400'}">${p.gmas  || 0}</span></td>
+      <td style="text-align:center;padding:8px 10px"><span style="color:${p.promGmas>0?'#a855f7':'rgba(255,255,255,0.4)'}">${(p.promGmas || 0).toFixed(2).replace('.',',')}</span></td>
     </tr>`;
   }).join('');
 
@@ -15721,11 +15723,11 @@ function _anualesBuildTable(year) {
           </div>
         </div>
       </td>
-      <td style="text-align:center;padding:8px 10px"><span style="color:#94a3b8;font-weight:700">${p.pj || '<span style=\'color:rgba(255,255,255,0.18)\'>—</span>'}</span></td>
-      <td style="text-align:center;padding:8px 10px"><span style="color:${p.goles>0?'#22c55e':'rgba(255,255,255,0.18)'};font-weight:${p.goles>0?'800':'400'}">${p.goles > 0 ? p.goles : '—'}</span></td>
-      <td style="text-align:center;padding:8px 10px"><span style="color:${p.asist>0?'#60a5fa':'rgba(255,255,255,0.18)'};font-weight:${p.asist>0?'800':'400'}">${p.asist > 0 ? p.asist : '—'}</span></td>
-      <td style="text-align:center;padding:8px 10px"><span style="color:${p.gmas>0?'#a855f7':'rgba(255,255,255,0.18)'};font-weight:${p.gmas>0?'800':'400'}">${p.gmas  > 0 ? p.gmas  : '—'}</span></td>
-      <td style="text-align:center;padding:8px 10px"><span style="color:${p.promGmas>0?'#a855f7':'rgba(255,255,255,0.18)'}">${p.promGmas > 0 ? p.promGmas.toFixed(2).replace('.',',') : '—'}</span></td>
+      <td style="text-align:center;padding:8px 10px"><span style="color:#94a3b8;font-weight:700">${p.pj || 0}</span></td>
+      <td style="text-align:center;padding:8px 10px"><span style="color:${p.goles>0?'#22c55e':'rgba(255,255,255,0.4)'};font-weight:${p.goles>0?'800':'400'}">${p.goles || 0}</span></td>
+      <td style="text-align:center;padding:8px 10px"><span style="color:${p.asist>0?'#60a5fa':'rgba(255,255,255,0.4)'};font-weight:${p.asist>0?'800':'400'}">${p.asist || 0}</span></td>
+      <td style="text-align:center;padding:8px 10px"><span style="color:${p.gmas>0?'#a855f7':'rgba(255,255,255,0.4)'};font-weight:${p.gmas>0?'800':'400'}">${p.gmas  || 0}</span></td>
+      <td style="text-align:center;padding:8px 10px"><span style="color:${p.promGmas>0?'#a855f7':'rgba(255,255,255,0.4)'}">${(p.promGmas || 0).toFixed(2).replace('.',',')}</span></td>
     </tr>`;
   }).join('');
 
@@ -19237,7 +19239,7 @@ async function loadLiveData() {
       const fmt = (raw, promField) => {
         if (promSwap && promSwap.field === promField) {
           const v = p[promField] || 0;
-          return v > 0 ? v.toFixed(2) : '—';
+          return v.toFixed(2);
         }
         return raw;
       };
@@ -19305,14 +19307,14 @@ async function loadLiveData() {
     }
     if (NIDO_PROM_KEYS.has(key)) {
       const v = p[key] || 0;
-      return v > 0 ? v.toFixed(2) : '—';
+      return v.toFixed(2);
     }
     const raw = key === 'titulos' ? (p.titulos || 0) : p[key];
     const promFieldByKey = { goles: 'promGol', asist: 'promAsist', gmas: 'promGmas', vallas: 'vallasProm' };
     const promField = promFieldByKey[key];
     if (promSwap && promField && promSwap.field === promField) {
       const v = p[promField] || 0;
-      return v > 0 ? v.toFixed(2) : '—';
+      return v.toFixed(2);
     }
     return raw;
   }
