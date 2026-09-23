@@ -12860,6 +12860,13 @@ function _parsePartidosPorTorneos(rows) {
     // texto matchea ese patrón, se descarta como encabezado colado, sea
     // cual sea el motivo estructural puntual.
     if (/\b(apertura|clausura)\s*\d{4}\b/i.test(c1) || /\brival\b/i.test(c1)) continue;
+    // Filtro más contundente aparte (el de arriba puede no calzar si el
+    // texto real no coincide exactamente en mayúsculas/espacios con lo que
+    // se vio una sola vez en devtools): ningún club rival real tiene una
+    // comilla literal en el nombre — las divisiones "AIFA "A"/"B"/"C"/"D""
+    // sí las usan siempre. Corta cualquier variante de esta filtración de
+    // raíz, sin depender de acertarle al patrón exacto de texto.
+    if (c1.includes('"') || c1.includes('“') || c1.includes('”')) continue;
 
     // Tournament header: cells[1] has content but the row is otherwise blank
     // (no Fecha AND no Local/Visita). A real match can have a blank Fecha too
