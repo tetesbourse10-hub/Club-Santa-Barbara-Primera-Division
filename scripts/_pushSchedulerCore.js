@@ -331,11 +331,19 @@ async function checkTorneo(store, torneo) {
     // guardado uno al otro bajo esa clave compartida, así que el de Copa
     // nunca lograba "asentar" su propio horario como base de comparación —
     // parecía "cambiar" en cada corrida aunque en el sheet no se tocó más.
-    // La clave de guardado/comparación ahora suma el rival (casi imposible
-    // que choque entre dos partidos reales), sin tocar `fecha` a secas —
-    // esa sigue siendo la que arma la URL de la ficha compartible
-    // (/#partido/:torneo/:fecha), un formato ya establecido en otros lados.
-    const matchKey = `${fecha}|${m.rival || ''}`;
+    // La clave de guardado/comparación sumaba el rival siempre — pero eso
+    // rompió un caso real distinto (reportado: corregir el rival de una
+    // fecha mal cargada, agregarle el horario, y no se mandó ningún aviso):
+    // corregir el rival cambia la clave, así que el partido parece "nunca
+    // visto" y el horario nuevo se absorbe en silencio como si fuera la
+    // primera carga. Un `fecha` REAL (no el `seq` sintético de una Copa sin
+    // número propio — ver fechaReal en parseDetailedMatches) ya es único
+    // de por sí dentro del torneo, así que ahí alcanza con la fecha sola,
+    // inmune a que el rival se corrija después. Solo cuando `fecha` es el
+    // seq sintético (el caso real que colisionaba) se suma el rival.
+    // `fecha` a secas sigue siendo la que arma la URL de la ficha
+    // compartible (/#partido/:torneo/:fecha), sin cambios ahí.
+    const matchKey = m.fechaReal ? fecha : `${fecha}|${m.rival || ''}`;
     const prevM = prev.matches[matchKey] || null;
     const curr = snapshotOf(m);
     const url = `${SITE_URL}/#partido/${torneo}/${encodeURIComponent(fecha)}`;
