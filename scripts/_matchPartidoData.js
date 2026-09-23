@@ -174,6 +174,9 @@ async function getAllMatchesFromWindow(window, torneo) {
     resultado: m.resultado, gf: m.gf, gc: m.gc, penales: m.penales,
     jugadores: m.jugadores || [], local: basicByFecha.get(String(m.fecha)) || null,
     torneoBadge: cfg.badge, torneoColor: cfg.color,
+    // Ver el comentario de `fechaReal` en parseDetailedMatches (index.html)
+    // — lo usa push-scheduler para armar una clave de seguimiento estable.
+    fechaReal: !!m.fechaReal,
   }));
 
   return { matches, helpers: buildHelpers(window) };

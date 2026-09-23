@@ -17151,6 +17151,13 @@ function parseDetailedMatches(rows, startInSection = false) {
         dia: (row[3]||'').trim(), hora: (row[4]||'').trim(),
         formacionCSB: (row[5]||'').trim(), formacionRival: (row[6]||'').trim(),
         resultado: resOk, gf, gc, penales, jugadores: [],
+        // Si vino un número de fecha REAL del sheet (no el `seq` sintético
+        // de arriba, que es lo que puede colisionar entre un partido de
+        // Copa y uno de Liga — ver el uso en push-scheduler). Un `fecha`
+        // real es único de por sí dentro del torneo, así que quien lo
+        // necesite como identificador estable no hace falta que sume nada
+        // más (ej. el rival, que puede corregirse por un error de carga).
+        fechaReal: parseInt(c1) > 0,
       };
       pCols = null; // reset until player header seen for this match
       matches.push(current);
