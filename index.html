@@ -13546,14 +13546,20 @@ function _mergeDuplicatePlayerRows(rows, COL) {
   }
   return order.map(key => {
     const dupes = groups.get(key);
-    if (dupes.length === 1) return dupes[0];
     const merged = [...dupes[0]];
-    merged[COL.nombre] = [...dupes].sort((a, b) => b[COL.nombre].length - a[COL.nombre].length)[0][COL.nombre];
-    if (COL.pos !== undefined) merged[COL.pos] = dupes.find(r => r[COL.pos])?.[COL.pos] || dupes[0][COL.pos];
-    sumFields.forEach(f => {
-      if (COL[f] === undefined) return;
-      merged[COL[f]] = String(dupes.reduce((s, r) => s + num(r[COL[f]]), 0));
-    });
+    if (dupes.length > 1) {
+      merged[COL.nombre] = [...dupes].sort((a, b) => b[COL.nombre].length - a[COL.nombre].length)[0][COL.nombre];
+      if (COL.pos !== undefined) merged[COL.pos] = dupes.find(r => r[COL.pos])?.[COL.pos] || dupes[0][COL.pos];
+      sumFields.forEach(f => {
+        if (COL[f] === undefined) return;
+        merged[COL[f]] = String(dupes.reduce((s, r) => s + num(r[COL[f]]), 0));
+      });
+    }
+    // Los promedios se recalculan siempre acá (aunque no haya duplicados)
+    // en vez de confiar en la columna de la planilla: esa columna a veces
+    // queda en 0 para todos los jugadores (fórmula rota/desvinculada en el
+    // sheet), lo cual antes quedaba oculto porque el "—" por defecto se
+    // veía igual para "sin dato" y para "0 real".
     const pj = num(merged[COL.pj]);
     if (COL.promGol   !== undefined) merged[COL.promGol]   = pj > 0 ? (num(merged[COL.goles]) / pj).toFixed(2) : '0';
     if (COL.promAsist !== undefined) merged[COL.promAsist] = pj > 0 ? (num(merged[COL.asist]) / pj).toFixed(2) : '0';
