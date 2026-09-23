@@ -12664,7 +12664,7 @@ function renderHistorial() {
       return `<th onclick="histSort('${c.key}')" class="${sorted ? 'sorted' : ''}">${c.label}<span class="hist-sort-arrow">${arrow}</span></th>`;
     }).join('');
     const tbody = rows.map(r => `
-      <tr onclick="histDrilldown('${r.rival.replace(/'/g,"\\'")}')">
+      <tr onclick="histDrilldown('${r.rival.replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">
         <td><span style="display:inline-flex;align-items:center;gap:6px;vertical-align:middle">${_rivalAvatarHtml(r.rival)}${r.rival}</span><span class="hist-rival-arrow">›</span></td>
         <td class="hist-td-pj">${r.pj}</td>
         <td class="hist-td-win">${r.pg}</td>
@@ -12685,7 +12685,7 @@ function renderHistorial() {
   function buildMobileCards(rows) {
     if (!rows.length) return '';
     const cardsHtml = rows.map(r => `
-      <div class="mrow-card clickable" onclick="histDrilldown('${r.rival.replace(/'/g,"\\'")}')">
+      <div class="mrow-card clickable" onclick="histDrilldown('${r.rival.replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">
         <div class="mrow-top">
           <div class="mrow-top-main">
             <div class="mrow-title-row">${_rivalAvatarHtml(r.rival)}<div class="mrow-title">${r.rival}</div><span class="mrow-chevron">›</span></div>
@@ -12849,6 +12849,17 @@ function _parsePartidosPorTorneos(rows) {
     if (c1.toLowerCase() === 'rival') continue;
     // Skip LIBRE / dashes
     if (c1 === 'LIBRE' || c1 === '-') continue;
+    // BUG REAL encontrado (rival fantasma en Historial vs Clubes de Primera
+    // A: "2016 APERTURA 2016 AIFA "C" rival", 1 PJ todo en cero): alguna
+    // fila del sheet con texto de encabezado de torneo (año + nombre del
+    // torneo + la palabra "rival") no cumplía la condición estructural de
+    // "fila de encabezado" (`!cells[2] && !cells[3]`) de más abajo — no se
+    // pudo confirmar la celda exacta en el sheet, así que en vez de eso se
+    // agrega una validación de sentido común: ningún club rival real se
+    // llama "Apertura"/"Clausura" + año, ni literalmente "Rival". Si el
+    // texto matchea ese patrón, se descarta como encabezado colado, sea
+    // cual sea el motivo estructural puntual.
+    if (/\b(apertura|clausura)\s*\d{4}\b/i.test(c1) || /\brival\b/i.test(c1)) continue;
 
     // Tournament header: cells[1] has content but the row is otherwise blank
     // (no Fecha AND no Local/Visita). A real match can have a blank Fecha too
