@@ -15253,15 +15253,22 @@ function _anualesLoadPlayersB(year) {
   _anualesBuildTableB(year);
   fetchGvizByGid(GS.B_HIST, ANUALES_LIVE_GID_B[year], 'I2:O60').then(rows => {
     if (!rows || rows.length < 2) return;
-    const mapped = rows.slice(1).map(r => ({
-      nombre:   String(r[0]||'').trim(),
-      pos:      String(r[1]||'').trim(),
-      goles:    Number(r[2])||0,
-      asist:    Number(r[3])||0,
-      gmas:     Number(r[4])||0,
-      pj:       Number(r[5])||0,
-      promGmas: parseFloat(r[6])||0,
-    })).filter(p => p.nombre);
+    const mapped = rows.slice(1).map(r => {
+      const pj = Number(r[5])||0;
+      const gmas = Number(r[4])||0;
+      return {
+        nombre:   String(r[0]||'').trim(),
+        pos:      String(r[1]||'').trim(),
+        goles:    Number(r[2])||0,
+        asist:    Number(r[3])||0,
+        gmas,
+        pj,
+        // Se calcula acá (gmas/pj) en vez de tomar r[6] tal cual: esa
+        // columna de la planilla viene en 0 para todos (fórmula rota),
+        // el mismo problema que en Jugadores Estadísticas Totales.
+        promGmas: pj > 0 ? gmas / pj : 0,
+      };
+    }).filter(p => p.nombre);
     if (mapped.length > 0) {
       _anualesPlayersB[year] = mapped;
       _anualesBuildRankingsB(year);
@@ -15599,15 +15606,22 @@ function _anualesLoadPlayers(year) {
 
   function applyRows(rows) {
     if (!rows || rows.length < 2) return;
-    const mapped = rows.slice(1).map(r => ({
-      nombre:   String(r[0]||'').trim(),
-      pos:      String(r[1]||'').trim(),
-      goles:    Number(r[2])||0,
-      asist:    Number(r[3])||0,
-      gmas:     Number(r[4])||0,
-      pj:       Number(r[5])||0,
-      promGmas: parseFloat(r[6])||0,
-    })).filter(p => p.nombre);
+    const mapped = rows.slice(1).map(r => {
+      const pj = Number(r[5])||0;
+      const gmas = Number(r[4])||0;
+      return {
+        nombre:   String(r[0]||'').trim(),
+        pos:      String(r[1]||'').trim(),
+        goles:    Number(r[2])||0,
+        asist:    Number(r[3])||0,
+        gmas,
+        pj,
+        // Se calcula acá (gmas/pj) en vez de tomar r[6] tal cual: esa
+        // columna de la planilla viene en 0 para todos (fórmula rota),
+        // el mismo problema que en Jugadores Estadísticas Totales.
+        promGmas: pj > 0 ? gmas / pj : 0,
+      };
+    }).filter(p => p.nombre);
     if (mapped.length > 0) {
       _anualesPlayers[year] = mapped;
       _anualesBuildAll(year);
