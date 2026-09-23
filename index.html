@@ -12913,7 +12913,17 @@ function _parsePartidosPorTorneos(rows) {
 async function _loadPartidosCache() {
   if (_partidosCache) return _partidosCache;
   try {
-    const rows = await fetchCSV(GS.A_MAIN, 'Partidos Historial', null);
+    // BUG REAL encontrado (reportado: un rival fantasma en Historial vs
+    // Clubes de Primera A, "2016 APERTURA 2016 AIFA "C" RIVAL" — texto que
+    // parece la fusión de una fila de año + una de encabezado de torneo +
+    // la fila de headers "Rival", como si gviz hubiera perdido un separador
+    // entre filas): esto se cambió de fetchProxy a fetchCSV hace poco (para
+    // resiliencia ante el arranque en frío de Apps Script), pero acá el
+    // lookup de gviz es por NOMBRE de pestaña ("Partidos Historial"), y ese
+    // camino ya está documentado en otras partes de este mismo archivo como
+    // propenso a resolver mal/ambiguo. Revertido a fetchProxy puro, que
+    // funcionó bien acá durante mucho tiempo antes del cambio.
+    const rows = await fetchProxy('Partidos Historial', null, GS.A_MAIN);
     if (!rows || rows.length < 5) throw new Error('empty response: ' + (rows ? rows.length : 0));
     const parsed = _parsePartidosPorTorneos(rows);
     // The 2023 Recopa match vs Regatas (2-2) sits in the sheet without a
