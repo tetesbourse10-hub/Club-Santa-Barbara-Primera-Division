@@ -16733,11 +16733,27 @@ async function fetchCSVFallback(id, tab, range) {
 
 // Fetch a sheet by gid instead of tab name — bypasses fetchProxy's silent
 // empty-array response when a B_HIST tab name doesn't match exactly.
-async function fetchGvizByGid(sheetId, gid, range) {
+// BUG REAL encontrado (reportado: partidos de Primera B "sin ficha resuelta"
+// en Historial vs Clubes — ej. Los Molinos en Apertura 2022 — aunque esa
+// temporada sí está cargada en su Fecha a Fecha): _ppEnsureAllHistoricoLoaded
+// dispara ~14 temporadas en paralelo, cada una con hasta 4 sub-fetches acá
+// mismo, y ese pico de decenas de requests simultáneos a docs.google.com
+// gatilla 429 (rate limit) en algunos de ellos (confirmado en la consola del
+// deploy preview). Sin reintento, ese 429 puntual tiraba el `throw` que
+// _loadHistoricoGeneric atrapa silenciosamente — pero igual marca esa
+// temporada como "cargada" para el resto de la sesión, así que quedaba con
+// `apertura: []` para siempre, sin ficha para ningún rival de esa temporada.
+// Reintenta un par de veces con backoff SOLO ante 429 (rate limit), no ante
+// cualquier error de red — un 404/CORS real seguiría fallando de una.
+async function fetchGvizByGid(sheetId, gid, range, _attempt = 0) {
   let url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`;
   if (range) url += `&range=${encodeURIComponent(range)}`;
   url += `&_=${Date.now()}`;
   const r = await fetch(url, { mode: 'cors', cache: 'no-store' });
+  if (r.status === 429 && _attempt < 2) {
+    await new Promise(res => setTimeout(res, 600 * (_attempt + 1)));
+    return fetchGvizByGid(sheetId, gid, range, _attempt + 1);
+  }
   if (!r.ok) throw new Error('HTTP ' + r.status);
   return parseCSV(await r.text());
 }
