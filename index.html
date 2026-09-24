@@ -12819,26 +12819,13 @@ function renderHistorial() {
   _loadPartidosCache().then(allMatches => {
     if (!allMatches || allMatches.length < 1) return;
     data = _buildSummaryFromCache(allMatches);
-    // BUG REAL encontrado (rival fantasma "...AIFA "C" rival" en Historial
-    // vs Clubes de Primera A, reportado varias veces seguidas pese a 2
-    // intentos anteriores de filtrarlo en el parser de más arriba —
-    // _parsePartidosPorTorneos): filtro final, a prueba de que el origen
-    // exacto de la fila colada sea otro distinto al que se identificó.
-    // Corta acá, en el ÚLTIMO punto antes de pintar en pantalla, así no
-    // importa de dónde venga: ningún club real tiene una comilla, ni el
-    // patrón "Apertura/Clausura + año", ni es literalmente "Rival".
-    const _antesDelFiltro = data.length;
+    // Filtro final por si algún encabezado de torneo coló como rival: ningún
+    // club real tiene el patrón "Apertura/Clausura + año" ni es literalmente
+    // "Rival". (Ya NO se filtra por comillas acá — las divisiones AIFA
+    // "A"/"B"/"C"/"D" las usan en nombres reales, ver _parsePartidosPorTorneos.)
     data = data.filter(r => r.rival
-      && !/["“”]/.test(r.rival)
       && !/\b(apertura|clausura)\s*\d{4}\b/i.test(r.rival)
       && !/\brival\b/i.test(r.rival));
-    // Log temporal de diagnóstico — sacar una vez confirmado si esto
-    // resuelve el rival fantasma reportado o no.
-    if (data.length !== _antesDelFiltro) {
-      console.log(`[Historial vs Clubes] filtro sacó ${_antesDelFiltro - data.length} fila(s) fantasma`);
-    } else {
-      console.log('[Historial vs Clubes] el filtro no sacó nada — el fantasma, si sigue apareciendo, no viene de este camino');
-    }
     const inp = document.getElementById('hist-search-input');
     if (inp) inp.placeholder = `Buscar entre ${data.length} clubes…`;
     paint();
@@ -12880,13 +12867,17 @@ function _parsePartidosPorTorneos(rows) {
     // texto matchea ese patrón, se descarta como encabezado colado, sea
     // cual sea el motivo estructural puntual.
     if (/\b(apertura|clausura)\s*\d{4}\b/i.test(c1) || /\brival\b/i.test(c1)) continue;
-    // Filtro más contundente aparte (el de arriba puede no calzar si el
-    // texto real no coincide exactamente en mayúsculas/espacios con lo que
-    // se vio una sola vez en devtools): ningún club rival real tiene una
-    // comilla literal en el nombre — las divisiones "AIFA "A"/"B"/"C"/"D""
-    // sí las usan siempre. Corta cualquier variante de esta filtración de
-    // raíz, sin depender de acertarle al patrón exacto de texto.
-    if (c1.includes('"') || c1.includes('“') || c1.includes('”')) continue;
+    // BUG REAL encontrado: un filtro anterior descartaba CUALQUIER fila con
+    // una comilla literal, pensando que ningún club real usa comillas — pero
+    // las divisiones AIFA sí las usan siempre (AIFA "A"/"B"/"C"/"D"), tanto
+    // en encabezados de torneo como en nombres de rival reales (ej. algún
+    // "GALICIA "BLANCO"" o equivalente). Ese filtro terminaba comiéndose
+    // encabezados de torneo reales antes de llegar al chequeo de "fila de
+    // encabezado" de abajo, dejando el `torneo` arrastrado del anterior para
+    // todas las filas siguientes — rompía el agrupamiento de partidos y
+    // podía hacer desaparecer o fusionar clubes reales. Se saca: el filtro
+    // de arriba (patrón "Apertura/Clausura + año" o la palabra "Rival") ya
+    // alcanza para descartar el fantasma original sin este efecto colateral.
 
     // Tournament header: cells[1] has content but the row is otherwise blank
     // (no Fecha AND no Local/Visita). A real match can have a blank Fecha too
