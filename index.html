@@ -13261,6 +13261,20 @@ function renderHistorialDetalle(rival) {
     // the aggregate historial sheet).
     const navMatches = _histRivalMatches(rival, isB);
     matches.forEach(m => { m._nav = _histResolveLineupMatch(m, navMatches); });
+    // Diagnóstico temporal (reportado: algunos rivales de Primera B, ej. Los
+    // Molinos en Apertura 2022/2025, no quedan clickeables aunque el partido
+    // sí está cargado en su Fecha a Fecha) — imprime, para cada partido sin
+    // ficha resuelta, el torneo/año que trae la hoja "Partidos Historial" vs
+    // los torneo/año disponibles en las fichas realmente cargadas para este
+    // rival, para encontrar el mismatch exacto sin adivinar. Sacar una vez
+    // identificada la causa.
+    const _sinFicha = matches.filter(m => !m._nav);
+    if (_sinFicha.length) {
+      console.log(`[Historial detalle] ${rival}: ${_sinFicha.length} partido(s) sin ficha resuelta`, {
+        sinFicha: _sinFicha.map(m => ({ torneo: m.torneo, anio: m.anio, tipo: _histTorneoTipo(m.torneo), fecha: m.fecha })),
+        fichasDisponibles: navMatches.map(c => ({ torneo: c.torneo, anio: c.anio, tipo: _histTorneoTipo(c.torneo), fecha: c.fecha, navKey: c.navKey })),
+      });
+    }
 
     // ── KPI calculations from real match data ─────────────────────────────
     const played = matches.filter(m => m.gf !== null && m.gc !== null);
