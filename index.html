@@ -3515,6 +3515,59 @@
         font-size:0.95rem; font-weight:900; color:rgba(255,255,255,0.3);
       }
     }
+
+    /* ── Rediseño visual desktop del Perfil de Jugador (pedido del club,
+       mockup en Tailwind) — SOLO estética: mismos ids/onclick/estructura de
+       datos que ya arma renderPlayerProfile, ningún filtro ni comportamiento
+       nuevo. Todo bajo min-width:769px para no tocar un solo píxel del
+       layout mobile (que ya tiene su propio bloque dedicado más abajo). ── */
+    @media (min-width: 769px) {
+      /* Hero: fondo plano en vez del degradado de antes, mismo lenguaje
+         visual (slate-900/slate-800/rounded-2xl) que el resto del mockup. */
+      .pp-hero-card {
+        background: #0f172a;
+        border-color: #1e293b;
+        border-radius: 16px;
+        box-shadow: 0 20px 25px -5px rgba(0,0,0,.3), 0 8px 10px -6px rgba(0,0,0,.3);
+      }
+      /* Avatar cuadrado con esquinas redondeadas y degradado azul, en vez
+         del círculo ámbar liso — mismo texto (iniciales) y mismo lugar en
+         el DOM, solo cambia la forma/color. */
+      .pp-avatar {
+        width: 80px; height: 80px; border-radius: 18px;
+        background: linear-gradient(135deg, #2563eb, #3730a3);
+        border: 2px solid #60a5fa; color: #fff;
+        font-size: 1.6rem;
+        box-shadow: 0 10px 15px -3px rgba(37,99,235,.25);
+      }
+      /* Nombre + posición en una misma fila, la posición como píldora
+         (antes iba abajo del nombre como texto plano). El div contenedor es
+         el 2º hijo directo de .pp-header (avatar es el 1º) — no tiene clase
+         propia en el HTML, pero esa posición es estable. */
+      .pp-header > div:last-child { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; row-gap: 4px; }
+      .pp-name { font-size: 1.6rem; }
+      .pp-pos {
+        margin-top: 0; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em;
+        color: #93c5fd; background: rgba(59,130,246,.12); border: 1px solid rgba(59,130,246,.3);
+        padding: 3px 10px; border-radius: 999px;
+      }
+
+      /* Tarjetas del dashboard (bento + fila principal + mini stats):
+         mismo fondo/borde consistentes en las tres, con un lift/glow sutil
+         al pasar el mouse — antes cada una tenía su propio gris ligeramente
+         distinto. */
+      .pp-bento-card, .pp-metrics-grid .hist-kpi, .pp-mini-stat {
+        background: #0f172a; border-color: #1e293b; border-radius: 16px;
+        transition: border-color .2s, transform .2s, box-shadow .2s;
+      }
+      .pp-bento-card:hover { border-color: #334155; }
+      .pp-metrics-grid .hist-kpi:hover, .pp-mini-stat:hover {
+        border-color: #334155; transform: translateY(-2px);
+        box-shadow: 0 10px 20px -8px rgba(0,0,0,.5);
+      }
+      .pp-metrics-grid .hist-kpi-icon { border-radius: 10px; }
+      .pp-mini-stat-icon { border-radius: 10px; }
+    }
     .pp-detail-header { font-size:0.75rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--gris-texto); margin:14px 0 8px; }
     .pp-year-group { margin-bottom:10px; border:1px solid #1e2a3a; border-radius:10px; overflow:hidden; }
     .pp-year-summary { cursor:pointer; padding:10px 14px; font-weight:800; font-size:0.88rem; color:#f1f5f9; background:rgba(255,255,255,0.03); list-style:none; }
