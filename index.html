@@ -7081,7 +7081,7 @@ function _ppV2Render() {
   // fondo blanco nativo del navegador.
   const catBtn = (v, label) => `<button onclick="_ppV2SetCat('${v}')" class="appearance-none border-0 cursor-pointer ${cat === v ? 'bg-blue-600 text-white shadow-sm font-bold' : 'bg-transparent hover:text-white'} px-2.5 py-1 rounded-lg transition">${label}</button>`;
   const header = `
-    <header class="bg-[#121827] border border-slate-800/80 rounded-2xl p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-xl mb-4">
+    <div class="bg-[#121827] border border-slate-800/80 rounded-2xl p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-xl mb-4">
       <div class="flex items-center gap-4">
         <div class="relative shrink-0">
           <div class="w-16 h-16 sm:w-[4.5rem] sm:h-[4.5rem] rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-blue-800 border-2 border-blue-400/50 flex items-center justify-center text-xl sm:text-2xl font-black text-white shadow-lg">${initials}</div>
@@ -7126,7 +7126,7 @@ function _ppV2Render() {
           </div>
         </button>
       </div>
-    </header>`;
+    </div>`;
 
   // ── Dashboard de estadísticas ────────────────────────────────────────────
   // Card centrada (ícono arriba, número y label centrados, footer con
@@ -7255,10 +7255,10 @@ function _ppV2Render() {
         </div>
       </div>
       <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs text-slate-200">
+        <table class="w-full text-left text-xs text-slate-200 bg-transparent">
           ${viewMode === 'resumen' ? `
-          <thead class="bg-slate-950 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
-            <tr>
+          <thead class="bg-slate-950/80 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+            <tr class="bg-transparent">
               <th class="py-2.5 px-3">Rival</th>
               <th class="py-2.5 px-3 text-center">PJ</th>
               <th class="py-2.5 px-3 text-center">V-E-D</th>
@@ -7270,8 +7270,8 @@ function _ppV2Render() {
           <tbody class="divide-y divide-slate-800/80 font-medium">
             ${(() => { const rows = _pp2RivalSummaryRows(filtered); return rows.length ? rows.map(_pp2RivalRowHtml).join('') : `<tr><td colspan="6" class="py-8 text-center text-slate-500">Sin partidos para este filtro.</td></tr>`; })()}
           </tbody>` : `
-          <thead class="bg-slate-950 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
-            <tr>
+          <thead class="bg-slate-950/80 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+            <tr class="bg-transparent">
               <th class="py-2.5 px-3">Fecha / Torneo</th>
               <th class="py-2.5 px-3">Partido</th>
               <th class="py-2.5 px-3 text-center">Resultado</th>
