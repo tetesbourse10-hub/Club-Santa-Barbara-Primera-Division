@@ -3527,6 +3527,15 @@
        El bloque viejo (.pp-hero-card, .pp-bento-grid, etc.) sigue existiendo
        tal cual para mobile; en desktop se oculta y se muestra este en su
        lugar. */
+    /* BUG REAL encontrado: esta regla incondicional iba DESPUÉS del bloque
+       @media de abajo — misma especificidad (una sola clase), así que a
+       cualquier ancho de pantalla esta ganaba la cascada por venir después
+       en el archivo y pisaba el display:block del media query, dejando
+       #pp2-wrap en blanco siempre (el bloque viejo también quedaba oculto
+       por el mismo @media, así que la pantalla entera se veía vacía salvo
+       Volver/Compartir, que viven fuera de ambos bloques). Va ANTES del
+       @media para que, cuando este aplique, sea la regla que gana. */
+    .pp2-wrap { display: none; }
     @media (min-width: 769px) {
       .pp-wrap > .pp-hero-card,
       .pp-wrap > .pp-metric-tabs,
@@ -3536,7 +3545,6 @@
       .pp-wrap > .pp-history-card { display: none; }
       .pp2-wrap { display: block; }
     }
-    .pp2-wrap { display: none; }
     .pp-detail-header { font-size:0.75rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--gris-texto); margin:14px 0 8px; }
     .pp-year-group { margin-bottom:10px; border:1px solid #1e2a3a; border-radius:10px; overflow:hidden; }
     .pp-year-summary { cursor:pointer; padding:10px 14px; font-weight:800; font-size:0.88rem; color:#f1f5f9; background:rgba(255,255,255,0.03); list-style:none; }
