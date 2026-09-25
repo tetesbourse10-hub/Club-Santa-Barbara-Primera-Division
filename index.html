@@ -7035,7 +7035,10 @@ function _pp2RowHtml(p) {
     : csb > riv ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
     : csb < riv ? 'bg-red-500/10 text-red-400 border-red-500/20'
     : 'bg-amber-500/10 text-amber-400 border-amber-500/20';
-  const resLabel = played ? `${csb} - ${riv}` : 'Próximo';
+  // El resultado se muestra en el orden real local-visitante (mismo orden
+  // que los escudos de partidoHtml más abajo), no siempre "CSB primero" —
+  // si Santa Bárbara jugó de visitante, el marcador va rival-CSB.
+  const resLabel = played ? (p.local === 'VISITANTE' ? `${riv} - ${csb}` : `${csb} - ${riv}`) : 'Próximo';
   const rolBadge = p.condCorta === 'Titular'
     ? `<span class="bg-slate-800/80 text-slate-300 border border-slate-700/60 text-[11px] font-extrabold px-2.5 py-0.5 rounded-md">Titular</span>`
     : `<span class="bg-slate-800/80 text-slate-400 border border-slate-700/60 text-[11px] font-extrabold px-2.5 py-0.5 rounded-md">Suplente</span>`;
