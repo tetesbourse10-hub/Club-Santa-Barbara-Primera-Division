@@ -7079,7 +7079,13 @@ function _ppV2Render() {
   // sí lo necesitan acá: el sitio corre Tailwind sin preflight (ver
   // comentario en .pp2-wrap), así que sin bg-transparent explícito caen al
   // fondo blanco nativo del navegador.
-  const catBtn = (v, label) => `<button onclick="_ppV2SetCat('${v}')" class="appearance-none border-0 cursor-pointer ${cat === v ? 'bg-blue-600 text-white shadow-sm font-bold' : 'bg-transparent hover:text-white'} px-2.5 py-1 rounded-lg transition">${label}</button>`;
+  // BUG REAL encontrado: el estado inactivo no tenía color de texto propio
+  // — dependía de heredar el text-slate-400 del contenedor, pero sin
+  // preflight el <button> puede traer su propio color por defecto del
+  // navegador (negro) que no hereda solo. Mismo problema que ya se arregló
+  // con los fondos, ahora con el color de texto — declarar SIEMPRE un
+  // color explícito, nunca depender de heredarlo en un <button> acá.
+  const catBtn = (v, label) => `<button onclick="_ppV2SetCat('${v}')" class="appearance-none border-0 cursor-pointer ${cat === v ? 'bg-blue-600 text-white shadow-sm font-bold' : 'bg-transparent text-slate-400 hover:text-white'} px-2.5 py-1 rounded-lg transition">${label}</button>`;
   const header = `
     <div class="bg-[#121827] border border-slate-800/80 rounded-2xl p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-xl mb-4">
       <div class="flex items-center gap-4">
@@ -7287,18 +7293,22 @@ function _ppV2Render() {
     </section>`;
 
   // ── Modales ───────────────────────────────────────────────────────────────
+  // Botón de cerrar "suelto" (sin verse como un botón con caja): sin fondo,
+  // sin borde, sin padding — solo el carácter × grande, con appearance-none
+  // para que ni el navegador le agregue su propio marco por default.
+  const closeX = id => `<button onclick="_ppV2CloseModal('${id}')" class="appearance-none bg-transparent border-0 p-0 cursor-pointer text-slate-400 hover:text-white text-2xl leading-none transition-colors">&times;</button>`;
   const modalTitulos = `
     <div id="pp2-modal-titulos" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4 z-[700]">
       <div class="bg-[#111827] border border-[#1e293b] rounded-2xl max-w-md w-full p-5 space-y-4 ">
         <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-          <h3 class="text-base font-bold text-white flex items-center gap-2">🏅 Títulos Ganados (${s.titulos})</h3>
-          <button onclick="_ppV2CloseModal('pp2-modal-titulos')" class="appearance-none bg-transparent cursor-pointer text-slate-400 hover:text-white font-bold text-lg">&times;</button>
+          <h3 class="text-lg font-bold text-white flex items-center gap-2">🏅 Títulos Ganados (${s.titulos})</h3>
+          ${closeX('pp2-modal-titulos')}
         </div>
-        <ul class="space-y-2 text-xs max-h-[50vh] overflow-y-auto">
+        <ul class="space-y-2.5 max-h-[50vh] overflow-y-auto">
           ${s.titulosList.length ? s.titulosList.map(t => `
-          <li class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex justify-between items-center gap-3">
-            <div><div class="font-bold text-white">${t.torneo}</div><div class="text-[10px] text-slate-400">${t.categoria} · Temporada ${t.anio}</div></div>
-            <span class="bg-amber-500/20 text-amber-300 font-bold px-2 py-1 rounded text-[10px] shrink-0">🏆 Campeón</span>
+          <li class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex justify-between items-center gap-3">
+            <div><div class="font-bold text-white text-base">${t.torneo}</div><div class="text-xs text-slate-400 mt-0.5">${t.categoria} · Temporada ${t.anio}</div></div>
+            <span class="bg-amber-500/20 text-amber-300 font-bold px-2.5 py-1 rounded text-xs shrink-0">🏆 Campeón</span>
           </li>`).join('') : `<li class="text-slate-500 text-center py-4">Sin títulos registrados.</li>`}
         </ul>
       </div>
@@ -7308,7 +7318,7 @@ function _ppV2Render() {
       <div class="bg-[#111827] border border-[#1e293b] rounded-2xl max-w-md w-full p-5 space-y-4 ">
         <div class="flex justify-between items-center border-b border-slate-800 pb-3">
           <h3 class="text-lg font-bold text-white flex items-center gap-2">📊 Posición Histórica del Club</h3>
-          <button onclick="_ppV2CloseModal('pp2-modal-rankings')" class="appearance-none bg-transparent cursor-pointer text-slate-400 hover:text-white font-bold text-lg">&times;</button>
+          ${closeX('pp2-modal-rankings')}
         </div>
         <div class="space-y-2.5">
           ${_pp2RankRow('Partidos Jugados', s.rankGen?.pj, 'text-white', 'PJ', s.pj)}
