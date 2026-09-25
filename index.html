@@ -7149,8 +7149,8 @@ function _ppV2Render() {
       ${badge ? `<div class="absolute top-3.5 right-3.5">
         <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-black px-2 py-0.5 rounded-lg flex items-center gap-1 shadow-sm">🏆 ${badge}</span>
       </div>` : ''}
-      <div class="w-full flex flex-col items-center${badge ? ' pr-10' : ''}">
-        <div class="flex items-center gap-1.5 mb-1">
+      <div class="w-full flex flex-col items-center">
+        <div class="flex items-center gap-1.5 mb-1${badge ? ' pr-10' : ''}">
           <span class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">${label}</span>
           ${icon ? `<span class="text-xs">${icon}</span>` : ''}
         </div>
