@@ -137,6 +137,23 @@ function snapshotOf(m) {
   };
 }
 
+// BUG REAL encontrado (reportado: un capitán con "(C)" en el sheet
+// disparaba Debut/Primer gol de nuevo aunque ya tuviera historia en el
+// club): parseDetailedMatches (index.html) toma el nombre de la celda tal
+// cual viene del sheet, "(C)" incluido cuando el jugador fue capitán en ESE
+// partido puntual — el propio index.html ya sabe esto y usa normName()
+// (que sí pela el "(c)") para matchear contra el registro de jugadores en
+// todo lo que renderiza. Acá, en cambio, `j.nombre` se usaba crudo como
+// clave de identidad (vistos, golesCareraPrevios, las rachas por jugador/
+// arquero) — un mismo jugador que fue capitán en una fecha y no en otra
+// quedaba split en dos claves distintas ("Juan Pérez" / "Juan Pérez (C)"),
+// así que la fecha con "(C)" nunca encontraba su propio historial previo y
+// disparaba Debut/Primer gol como si fuera la primera vez. Se limpia acá,
+// una sola vez, antes de usar el nombre como clave o en el texto del push.
+function _cleanNombre(n) {
+  return String(n || '').replace(/\s*\(c\)\s*/gi, '').trim();
+}
+
 // Primer partido pendiente (sin resultado todavía) por número de fecha —
 // mismo criterio que ya usa _teamNextMatch en index.html para "Próximo
 // Partido" del home, reimplementado acá liviano (sin necesitar el resto de
@@ -198,8 +215,9 @@ function calcRachasVallasPorArquero(matches) {
     const arq = (m.jugadores || []).find(j => j.titular && String(j.pos || '').toUpperCase() === 'ARQ');
     const goles = csbGoles(m);
     if (!arq || !arq.nombre || !goles) continue;
-    if (!porArquero.has(arq.nombre)) porArquero.set(arq.nombre, []);
-    porArquero.get(arq.nombre).push(goles.riv === 0);
+    const nombreArq = _cleanNombre(arq.nombre);
+    if (!porArquero.has(nombreArq)) porArquero.set(nombreArq, []);
+    porArquero.get(nombreArq).push(goles.riv === 0);
   }
   const rachas = {};
   for (const [nombre, vallas] of porArquero) {
@@ -222,8 +240,9 @@ function calcRachasGolPorJugador(matches) {
   for (const m of jugados) {
     for (const j of (m.jugadores || [])) {
       if (!j.nombre || !(j.titular || j.entro)) continue;
-      if (!porJugador.has(j.nombre)) porJugador.set(j.nombre, []);
-      porJugador.get(j.nombre).push(j.goles > 0);
+      const nombreJ = _cleanNombre(j.nombre);
+      if (!porJugador.has(nombreJ)) porJugador.set(nombreJ, []);
+      porJugador.get(nombreJ).push(j.goles > 0);
     }
   }
   const rachas = {};
@@ -314,7 +333,7 @@ async function checkTorneo(store, torneo) {
       if (m.resultado === null) continue;
       for (const j of (m.jugadores || [])) {
         if (!j.nombre) continue;
-        if (j.titular || j.entro) vistos.add(j.nombre);
+        if (j.titular || j.entro) vistos.add(_cleanNombre(j.nombre));
       }
     }
   }
@@ -422,7 +441,7 @@ async function checkTorneo(store, torneo) {
       // vuelo y la cachea 5 min en el borde — es el mismo camino que ya usa
       // el link compartible como fallback en vivo (ver netlify/functions/
       // partido.js), probado en producción.
-      const probables = (m.jugadores || []).filter(j => j.titular && j.nombre).map(j => j.nombre);
+      const probables = (m.jugadores || []).filter(j => j.titular && j.nombre).map(j => _cleanNombre(j.nombre));
       const imageUrl = probables.length
         ? `${SITE_URL}/.netlify/functions/partido-og?torneo=${torneo}&fecha=${encodeURIComponent(fecha)}`
         : null;
@@ -444,7 +463,7 @@ async function checkTorneo(store, torneo) {
       // su total de goles en ESE partido (no una entrada por gol).
       const goleadores = (m.jugadores || [])
         .filter(j => j.nombre && j.goles > 0)
-        .map(j => j.goles > 1 ? `${j.nombre} (${j.goles})` : j.nombre);
+        .map(j => j.goles > 1 ? `${_cleanNombre(j.nombre)} (${j.goles})` : _cleanNombre(j.nombre));
       const golesTxt = goleadores.length ? ` — Goles: ${goleadores.join(', ')}` : '';
       await sendPush(
         '🔚 Final del partido',
@@ -461,17 +480,18 @@ async function checkTorneo(store, torneo) {
       // carrera de El Nido (golesCareraPrevios), no de este set.
       for (const j of (m.jugadores || [])) {
         if (!j.nombre) continue;
+        const nombreJ = _cleanNombre(j.nombre);
         const jugo = j.titular || j.entro;
-        if (!esSeedInicial && jugo && !vistos.has(j.nombre)) {
-          await sendPush('🆕 Debut', `${j.nombre} debutó en Primera — vs ${m.rival}, Fecha ${fecha}`, url);
+        if (!esSeedInicial && jugo && !vistos.has(nombreJ)) {
+          await sendPush('🆕 Debut', `${nombreJ} debutó en Primera — vs ${m.rival}, Fecha ${fecha}`, url);
         }
-        if (nidoListo && j.goles > 0 && (golesCareraPrevios[j.nombre] || 0) === 0) {
-          await sendPush('⚽️ Primer gol', `${j.nombre} convirtió su primer gol — vs ${m.rival}, Fecha ${fecha}`, url);
+        if (nidoListo && j.goles > 0 && (golesCareraPrevios[nombreJ] || 0) === 0) {
+          await sendPush('⚽️ Primer gol', `${nombreJ} convirtió su primer gol — vs ${m.rival}, Fecha ${fecha}`, url);
         }
         if (!esSeedInicial && j.goles >= 3) {
-          await sendPush('🎩 Hat-trick', `${j.nombre} convirtió ${j.goles} goles — vs ${m.rival}, Fecha ${fecha}`, url);
+          await sendPush('🎩 Hat-trick', `${nombreJ} convirtió ${j.goles} goles — vs ${m.rival}, Fecha ${fecha}`, url);
         }
-        if (jugo) vistos.add(j.nombre);
+        if (jugo) vistos.add(nombreJ);
       }
     }
   }
