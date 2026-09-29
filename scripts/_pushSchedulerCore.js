@@ -390,7 +390,7 @@ async function checkTorneo(store, torneo) {
           if (!curr.recordatorioEnviado && msFalta > 0 && msFalta <= RECORDATORIO_MS) {
             await sendPush(
               '⏳ Recordatorio',
-              `Santa Bárbara vs ${m.rival} (${_condicionLabel(m.local)}) en ${_formatTiempoFalta(msFalta)} — Fecha ${fecha} (${badge})`,
+              `Santa Bárbara (${_condicionLabel(m.local)}) vs ${m.rival} en ${_formatTiempoFalta(msFalta)} — Fecha ${fecha} (${badge})`,
               url
             );
             curr.recordatorioEnviado = true;
@@ -398,7 +398,7 @@ async function checkTorneo(store, torneo) {
           if (!curr.comienzoEnviado && msFalta <= 0 && -msFalta <= COMIENZO_GRACE_MS) {
             await sendPush(
               '🚨 ¡Arrancó el partido!',
-              `Santa Bárbara vs ${m.rival} (${_condicionLabel(m.local)}) — ${badge}`,
+              `Santa Bárbara (${_condicionLabel(m.local)}) vs ${m.rival} — ${badge}`,
               url
             );
             curr.comienzoEnviado = true;
