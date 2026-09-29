@@ -12607,7 +12607,7 @@ function renderResumen() {
             ${proximo ? `
               <div class="rsm-match-rival"><span class="rsm-match-crest">${_crestImgHtml(proximo.rival)}</span>vs ${proximo.rival}</div>
               <div class="rsm-actualidad-meta">${[proximo.fecha ? 'Fecha ' + proximo.fecha : '', _rsmLocalTxt(proximo.local)].filter(Boolean).join(' · ')}</div>
-              <span class="rsm-match-torneo ${ultimoBadgeCls(clausuraLabel)}">${proximoDiaFmt}</span>
+              <span class="rsm-match-torneo ${ultimoBadgeCls(clausuraLabel)}">${proximoDiaHora || proximoDiaFmt}</span>
             ` : `<div class="rsm-actualidad-empty">Torneo finalizado</div>`}
           </div>
         </div>
