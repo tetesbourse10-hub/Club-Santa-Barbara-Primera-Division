@@ -2703,6 +2703,11 @@
     .cd-td-pos { color:#e2e8f0; font-size:0.82rem; white-space:nowrap; }
     .cd-vs { color:var(--gris-texto); font-size:0.72rem; }
     .cd-obs-text { color:#cbd5e1; font-size:0.82rem; line-height:1.4; }
+    .cd-obs-wrap { display:flex; align-items:center; gap:8px; max-width:260px; }
+    .cd-obs-truncated { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .cd-obs-truncated.cd-obs-expanded { white-space:normal; overflow:visible; text-overflow:clip; }
+    .cd-obs-toggle { color:#fac775; font-size:0.72rem; font-weight:700; cursor:pointer; white-space:nowrap; flex-shrink:0; background:none; border:0; font-family:inherit; padding:0; }
+    .cd-obs-toggle:hover { text-decoration:underline; }
     .cd-racha-chip { display:inline-block; font-size:0.7rem; font-weight:800; padding:2px 8px; border-radius:999px;
       background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.3); color:var(--dorado); margin-right:6px; white-space:nowrap; }
     .cd-dim { color:#475569; }
@@ -2710,6 +2715,27 @@
       .cd-table { font-size:0.78rem; }
       .cd-table th, .cd-table td { padding:9px 10px; }
     }
+    /* ── Centro de Datos: resumen Local/Visitante + filtro (desktop only,
+       mismo criterio que .cd-wrap: oculto ≤768px, la vista mobile usa sus
+       propias .mrow-card sin estos agregados). ── */
+    .cd-summary-wrap { margin-bottom:16px; }
+    @media (max-width:768px) { .cd-summary-wrap { display:none; } }
+    .cd-summary-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px; }
+    .cd-summary-card { border-radius:14px; background:#141d2e; padding:14px 16px; }
+    .cd-summary-card-general { border:1px solid rgba(250,199,117,0.2); }
+    .cd-summary-card-split { border:1px solid rgba(255,255,255,0.08); }
+    .cd-summary-head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:10px; }
+    .cd-summary-title { font-size:0.78rem; font-weight:800; color:#e2e8f0; }
+    .cd-summary-pj { font-size:0.7rem; color:#64748b; font-weight:700; }
+    .cd-summary-body { display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+    .cd-summary-ved span { margin-right:6px; }
+    .cd-summary-gf-gc { display:flex; gap:14px; }
+    .cd-summary-gf-gc div { text-align:center; }
+    .cd-summary-glabel { display:block; font-size:0.62rem; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:.04em; }
+    .cd-summary-dg { padding:4px 10px; border-radius:999px; font-weight:800; font-size:0.78rem; margin-left:auto; }
+    .cd-filter-tabs { display:inline-flex; align-items:center; border-radius:10px; padding:4px; gap:2px; background:rgba(255,255,255,0.04); margin-bottom:14px; }
+    .cd-filter-tab { border:0; border-radius:7px; padding:7px 14px; font-size:0.78rem; font-weight:700; cursor:pointer; font-family:inherit; background:transparent; color:#94a3b8; transition:background .15s, color .15s; }
+    .cd-filter-tab.active { background:#412402; color:#fac775; }
 
     /* ── Plantel tab ── */
     .ap-plantel-kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
@@ -4943,7 +4969,7 @@ function renderCentroDatosOnly(key) {
   document.getElementById('torneo-cdonly-content').innerHTML = `
     ${_volverBtnHtml()}
     <div class="section-title" style="margin-bottom:20px">🗂️ ${cfg.name} — Centro de Datos</div>
-    ${buildCentroDatosHtml(d.partidos, { isCopa: cfg.isCopa, clickable: false })}`;
+    ${buildCentroDatosHtml(d.partidos, { isCopa: cfg.isCopa, clickable: false, instanceKey: key })}`;
   if (!_cdOnlyLoaded[key]) {
     _loadCentroDatosOnly(key).then(() => { if (_cdOnlyLoaded[key]) renderCentroDatosOnly(key); });
   }
@@ -10338,6 +10364,68 @@ function _cdMobileCardsHtml(rows, opts) {
   return `<div class="mrow-cards">${cardsHtml || '<div class="mrow-empty">📭 Sin datos cargados para este torneo todavía.</div>'}</div>`;
 }
 
+// Condición normalizada para filtrar (local/visitante/neutral) — mismo
+// parseo de m.local que ya usa _cdCondicion, pero devuelve la clave en vez
+// del label con emoji listo para mostrar.
+function _cdCondKey(local) {
+  const L = String(local || '').toUpperCase();
+  if (L.includes('LOCAL')) return 'local';
+  if (L.includes('VISIT')) return 'visitante';
+  return 'neutral';
+}
+// V-E-D/GF/GC/diferencia de gol de una lista de partidos — una sola función
+// para las 3 tarjetas de resumen (General/Local/Visitante), cada una le
+// pasa su propio subconjunto ya filtrado.
+function _cdSummaryStats(list) {
+  let v = 0, e = 0, d = 0, gf = 0, gc = 0, pj = 0;
+  for (const m of list) {
+    if (m.gf == null || m.gc == null) continue;
+    pj++;
+    const { csb, riv } = _cdCsbGoles(m);
+    gf += csb; gc += riv;
+    if (csb > riv) v++; else if (csb < riv) d++; else e++;
+  }
+  return { pj, v, e, d, gf, gc, dg: gf - gc };
+}
+function _cdSummaryCardHtml(title, list, isGeneral) {
+  const s = _cdSummaryStats(list);
+  const vedSize = isGeneral ? '24px' : '20px';
+  const gfgcSize = isGeneral ? '24px' : '15px';
+  return `<div class="cd-summary-card ${isGeneral ? 'cd-summary-card-general' : 'cd-summary-card-split'}">
+    <div class="cd-summary-head">
+      <span class="cd-summary-title">${title}</span>
+      <span class="cd-summary-pj">${s.pj} PJ</span>
+    </div>
+    <div class="cd-summary-body">
+      <div class="cd-summary-ved" style="font-size:${vedSize};font-weight:800">
+        <span style="color:#97c459">${s.v}V</span><span style="color:#fac775">${s.e}E</span><span style="color:#f09595">${s.d}D</span>
+      </div>
+      <div class="cd-summary-gf-gc">
+        <div><span style="color:#ef9f27;font-size:${gfgcSize};font-weight:800">${s.gf}</span><span class="cd-summary-glabel">GF</span></div>
+        <div><span style="color:#f09595;font-size:${gfgcSize};font-weight:800">${s.gc}</span><span class="cd-summary-glabel">GC</span></div>
+      </div>
+      <span class="cd-summary-dg" style="background:rgba(151,196,89,0.12);color:#97c459">${s.dg >= 0 ? '+' : ''}${s.dg} DG</span>
+    </div>
+  </div>`;
+}
+// Filtro Todos/Local/Visitante: muestra/oculta filas por data-cd-cond y
+// actualiza qué tab queda activo — pura manipulación de DOM (sin re-render)
+// scopeada por instanceId, así conviven varias tablas de Centro de Datos en
+// la misma página (distintos torneos) sin pisarse el filtro entre sí.
+function _cdSetFilter(instanceId, cond, btn) {
+  const wrap = document.getElementById(instanceId);
+  if (!wrap) return;
+  wrap.querySelectorAll('[data-cd-row]').forEach(tr => {
+    tr.style.display = (cond === 'todos' || tr.dataset.cdCond === cond) ? '' : 'none';
+  });
+  wrap.querySelectorAll('.cd-filter-tab').forEach(b => b.classList.toggle('active', b === btn));
+}
+function _cdToggleObs(btn) {
+  const wrap = btn.closest('.cd-obs-wrap');
+  const textEl = wrap.querySelector('.cd-obs-truncated');
+  const expanded = textEl.classList.toggle('cd-obs-expanded');
+  btn.textContent = expanded ? '← Ver menos' : 'Ver más →';
+}
 function buildCentroDatosHtml(matches, opts) {
   opts = opts || {};
   const tabFn = opts.tabFn || 'apSwitchTab';
@@ -10349,16 +10437,40 @@ function buildCentroDatosHtml(matches, opts) {
   const asc = [...list].sort((a, b) => (parseInt(a.fecha) || 0) - (parseInt(b.fecha) || 0));
   const withRachas = _cdCalcRachas(asc);
   const rows = withRachas; // Fecha 1 arriba, última fecha abajo
+  // Id estable por vista (no por instancia de render) — así el filtro
+  // Todos/Local/Visitante sigue apuntando al contenedor correcto después de
+  // un refresh de 60s que reconstruye este HTML entero.
+  const instanceId = 'cd-' + (opts.instanceKey || opts.tabFn || 'default') + '-' + (opts.fechaFn || 'default');
+  const localList = rows.filter(m => _cdCondKey(m.local) === 'local');
+  const visitList = rows.filter(m => _cdCondKey(m.local) === 'visitante');
+  const summaryHtml = `<div class="cd-summary-wrap">
+    ${_cdSummaryCardHtml('General', rows, true)}
+    <div class="cd-summary-grid">
+      ${_cdSummaryCardHtml('Como Local', localList, false)}
+      ${_cdSummaryCardHtml('Como Visitante', visitList, false)}
+    </div>
+  </div>
+  <div class="cd-filter-tabs">
+    <button type="button" class="cd-filter-tab active" onclick="_cdSetFilter('${instanceId}','todos',this)">Todos (${rows.length})</button>
+    <button type="button" class="cd-filter-tab" onclick="_cdSetFilter('${instanceId}','local',this)">🏠 Local (${localList.length})</button>
+    <button type="button" class="cd-filter-tab" onclick="_cdSetFilter('${instanceId}','visitante',this)">✈️ Visitante (${visitList.length})</button>
+  </div>`;
   const trs = rows.map(m => {
     const isCopaRow = opts.isCopa || !/^\d+$/.test(String(m.fecha ?? '').trim());
     const rachaChip = m._racha ? `<span class="cd-racha-chip">${m._racha}</span> ` : '';
+    const condKey = _cdCondKey(m.local);
     // opts.clickable === false disables the Fecha a Fecha deep-link entirely
     // — for seasons with only this flat table on record (no Fecha a Fecha
     // tab exists to jump to).
     const clickable = opts.clickable !== false && !isCopaRow;
-    const trAttrs = clickable
+    const trAttrs = (clickable
       ? ` class="cd-row cd-row-clickable" onclick="_cdGoToFecha('${tabFn}','${fechaFn}',${parseInt(m.fecha)})" title="Ver Fecha ${parseInt(m.fecha)} en Fecha a Fecha"`
-      : ` class="cd-row"`;
+      : ` class="cd-row"`) + ` data-cd-row data-cd-cond="${condKey}"`;
+    // Crónica (m.obs) truncada a una línea + "Ver más →" — solo se arma el
+    // wrapper expandible si hay texto realmente largo que truncar.
+    const obsHtml = m.obs
+      ? `<div class="cd-obs-wrap"><span class="cd-obs-text cd-obs-truncated">${m.obs}</span><button type="button" class="cd-obs-toggle" onclick="_cdToggleObs(this)">Ver más →</button></div>`
+      : (rachaChip ? '' : '<span class="cd-dim">—</span>');
     return `<tr${trAttrs}>
       <td class="cd-td-fecha">${_cdFechaLabel(m.fecha, isCopaRow)}</td>
       <td class="cd-td-rival">
@@ -10368,10 +10480,12 @@ function buildCentroDatosHtml(matches, opts) {
       <td class="cd-td-res">${_cdResultadoBadge(m)}</td>
       <td class="cd-td-parciales">${_cdParciales(m.parciales)}</td>
       <td class="cd-td-pos">${_cdPosicion(m, isCopaRow)}</td>
-      <td class="cd-td-obs">${rachaChip}${m.obs ? `<span class="cd-obs-text">${m.obs}</span>` : (rachaChip ? '' : '<span class="cd-dim">—</span>')}</td>
+      <td class="cd-td-obs">${rachaChip}${obsHtml}</td>
     </tr>`;
   }).join('');
-  return `<div class="cd-wrap">
+  return `<div id="${instanceId}">
+  ${summaryHtml}
+  <div class="cd-wrap">
     <table class="cd-table">
       <thead><tr>
         <th>Fecha N° / Tipo</th>
@@ -10383,6 +10497,7 @@ function buildCentroDatosHtml(matches, opts) {
       </tr></thead>
       <tbody>${trs}</tbody>
     </table>
+  </div>
   </div>${_cdMobileCardsHtml(rows, opts)}`;
 }
 
