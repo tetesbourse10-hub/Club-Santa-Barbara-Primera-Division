@@ -2724,15 +2724,18 @@
     .cd-summary-card { border-radius:14px; background:#141d2e; padding:14px 16px; }
     .cd-summary-card-general { border:1px solid rgba(250,199,117,0.2); }
     .cd-summary-card-split { border:1px solid rgba(255,255,255,0.08); }
-    .cd-summary-head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:10px; }
+    .cd-summary-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; flex-wrap:wrap; gap:8px; }
     .cd-summary-title { font-size:0.78rem; font-weight:800; color:#e2e8f0; }
-    .cd-summary-pj { font-size:0.7rem; color:#64748b; font-weight:700; }
-    .cd-summary-body { display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+    .cd-summary-head-right { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .cd-summary-badge { font-size:0.68rem; font-weight:800; padding:3px 9px; border-radius:999px; white-space:nowrap; }
+    .cd-summary-pj { font-size:0.7rem; color:#64748b; font-weight:700; white-space:nowrap; }
+    .cd-summary-grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; align-items:center; gap:10px; }
     .cd-summary-ved span { margin-right:6px; }
-    .cd-summary-gf-gc { display:flex; gap:14px; }
+    .cd-summary-gf-gc { display:flex; justify-content:center; gap:14px; }
     .cd-summary-gf-gc div { text-align:center; }
     .cd-summary-glabel { display:block; font-size:0.62rem; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:.04em; }
-    .cd-summary-dg { padding:4px 10px; border-radius:999px; font-weight:800; font-size:0.78rem; margin-left:auto; }
+    .cd-summary-dg-wrap { display:flex; justify-content:flex-end; }
+    .cd-summary-dg { padding:4px 10px; border-radius:999px; font-weight:800; font-size:0.78rem; }
     .cd-filter-tabs { display:inline-flex; align-items:center; border-radius:10px; padding:4px; gap:2px; background:rgba(255,255,255,0.04); margin-bottom:14px; }
     .cd-filter-tab { border:0; border-radius:7px; padding:7px 14px; font-size:0.78rem; font-weight:700; cursor:pointer; font-family:inherit; background:transparent; color:#94a3b8; transition:background .15s, color .15s; }
     .cd-filter-tab.active { background:#412402; color:#fac775; }
@@ -10373,18 +10376,30 @@ function _cdSummaryStats(list) {
     gf += csb; gc += riv;
     if (csb > riv) v++; else if (csb < riv) d++; else e++;
   }
-  return { pj, v, e, d, gf, gc, dg: gf - gc };
+  // Puntos estándar de liga (3 por victoria, 1 por empate) — se derivan acá
+  // mismo en vez de leer la tabla de posiciones real, así Local+Visitante
+  // siempre suman exacto el total de General sin depender de otra fuente.
+  return { pj, v, e, d, gf, gc, dg: gf - gc, pts: v * 3 + e };
 }
 function _cdSummaryCardHtml(title, list, isGeneral) {
   const s = _cdSummaryStats(list);
   const vedSize = isGeneral ? '24px' : '20px';
   const gfgcSize = isGeneral ? '24px' : '15px';
+  // Posición en la tabla: solo tiene sentido real en "General" (no existe
+  // una "posición como local/visitante" en la tabla de posiciones) — se
+  // toma del partido jugado más reciente con posCSB cargado, mismo dato
+  // que ya muestra cada fila en "Posición / Instancia".
+  const posActual = isGeneral ? [...list].reverse().find(m => m.posCSB)?.posCSB : null;
   return `<div class="cd-summary-card ${isGeneral ? 'cd-summary-card-general' : 'cd-summary-card-split'}">
     <div class="cd-summary-head">
       <span class="cd-summary-title">${title}</span>
-      <span class="cd-summary-pj">${s.pj} PJ</span>
+      <span class="cd-summary-head-right">
+        ${posActual ? `<span class="cd-summary-badge" style="background:rgba(250,199,117,0.12);color:#fac775">${posActual} en la tabla</span>` : ''}
+        <span class="cd-summary-badge" style="background:rgba(151,196,89,0.12);color:#97c459">${s.pts} pts</span>
+        <span class="cd-summary-pj">${s.pj} PJ</span>
+      </span>
     </div>
-    <div class="cd-summary-body">
+    <div class="cd-summary-grid-3">
       <div class="cd-summary-ved" style="font-size:${vedSize};font-weight:800">
         <span style="color:#97c459">${s.v}V</span><span style="color:#fac775">${s.e}E</span><span style="color:#f09595">${s.d}D</span>
       </div>
@@ -10392,7 +10407,9 @@ function _cdSummaryCardHtml(title, list, isGeneral) {
         <div><span style="color:#ef9f27;font-size:${gfgcSize};font-weight:800">${s.gf}</span><span class="cd-summary-glabel">GF</span></div>
         <div><span style="color:#f09595;font-size:${gfgcSize};font-weight:800">${s.gc}</span><span class="cd-summary-glabel">GC</span></div>
       </div>
-      <span class="cd-summary-dg" style="background:rgba(151,196,89,0.12);color:#97c459">${s.dg >= 0 ? '+' : ''}${s.dg} DG</span>
+      <div class="cd-summary-dg-wrap">
+        <span class="cd-summary-dg" style="background:rgba(151,196,89,0.12);color:#97c459">${s.dg >= 0 ? '+' : ''}${s.dg} DG</span>
+      </div>
     </div>
   </div>`;
 }
