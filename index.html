@@ -2737,22 +2737,22 @@
     .cd-summary-head-left-sm { display:flex; align-items:center; gap:7px; }
     .cd-summary-title-sm { font-size:0.72rem; font-weight:800; color:#fff; text-transform:uppercase; letter-spacing:.04em; margin:0; }
     .cd-summary-badge-sm { font-size:0.68rem; font-weight:900; padding:3px 10px; border-radius:8px; white-space:nowrap; }
-    /* Grid de 4 métricas — General: 1 fila de 4; Local/Visitante: 2x2 */
+    /* Grid de 4 métricas — General y Local/Visitante: siempre 1 sola fila de 4 */
     .cd-metric-grid-4 { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
-    .cd-metric-grid-4-sm { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
+    .cd-metric-grid-4-sm { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
     .cd-metric-box { background:#0b0f19; border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:12px; display:flex; align-items:center; justify-content:space-around; box-shadow:inset 0 1px 2px rgba(0,0,0,0.2); }
-    .cd-metric-box-sm { background:#0b0f19; border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:9px; text-align:center; box-shadow:inset 0 1px 2px rgba(0,0,0,0.2); }
+    .cd-metric-box-sm { background:#0b0f19; border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:6px 4px; text-align:center; box-shadow:inset 0 1px 2px rgba(0,0,0,0.2); min-width:0; }
     .cd-metric-ved-row { display:flex; align-items:center; justify-content:space-around; width:100%; gap:8px; }
     .cd-metric-item { text-align:center; }
     .cd-metric-val { font-size:1.15rem; font-weight:900; line-height:1.1; }
     .cd-metric-lbl { font-size:0.6rem; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:.03em; margin-top:2px; }
-    .cd-metric-lbl-sm { font-size:0.58rem; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:.03em; margin-top:4px; }
+    .cd-metric-lbl-sm { font-size:0.56rem; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:.03em; margin-top:3px; white-space:nowrap; }
     .cd-metric-sep { color:#1e293b; font-weight:700; }
-    .cd-metric-record-sm { font-size:0.78rem; font-weight:900; }
+    .cd-metric-record-sm { font-size:0.68rem; font-weight:900; white-space:nowrap; }
     .cd-metric-box-dg { justify-content:space-between; padding:12px 14px; }
     .cd-metric-balance { font-size:0.7rem; font-weight:700; color:#cbd5e1; }
     .cd-metric-dg-badge { font-size:0.85rem; font-weight:900; padding:5px 12px; border-radius:10px; }
-    .cd-metric-dg-badge-sm { font-size:0.72rem; font-weight:900; padding:3px 9px; border-radius:8px; }
+    .cd-metric-dg-badge-sm { font-size:0.68rem; font-weight:900; padding:3px 7px; border-radius:8px; white-space:nowrap; }
     .cd-metric-box-sm-center { display:flex; align-items:center; justify-content:center; }
     /* Efectividad (barra de progreso con color por umbral) */
     .cd-metric-box-eff { flex-direction:column; align-items:stretch; justify-content:space-between; gap:5px; }
@@ -2761,7 +2761,7 @@
     .cd-eff-fill { height:100%; border-radius:999px; }
     .cd-eff-sub { font-size:0.62rem; color:#64748b; font-weight:700; text-align:right; }
     .cd-metric-box-sm-eff { flex-direction:column; align-items:stretch; text-align:left; gap:4px; }
-    .cd-eff-head-sm { display:flex; align-items:center; justify-content:space-between; font-size:0.66rem; font-weight:800; }
+    .cd-eff-head-sm { display:flex; align-items:center; justify-content:space-between; gap:4px; font-size:0.62rem; font-weight:800; }
     .cd-eff-bar-sm { width:100%; height:6px; background:#1e293b; border-radius:999px; overflow:hidden; }
     .cd-filter-tabs { display:inline-flex; align-items:center; border-radius:10px; padding:4px; gap:2px; background:rgba(255,255,255,0.04); margin-bottom:14px; }
     .cd-filter-tab { border:0; border-radius:7px; padding:7px 14px; font-size:0.78rem; font-weight:700; cursor:pointer; font-family:inherit; background:transparent; color:#94a3b8; transition:background .15s, color .15s; }
@@ -7026,10 +7026,9 @@ function _ppCopyLinkFallback(url, btnEl) {
 function _ppV2SetCat(cat) {
   window._pp2Cat = cat;
   window._pp2Year = 'todos'; window._pp2Tipo = 'todos';
-  window._pp2ResFilter = 'todos'; window._pp2CapOnly = false; window._pp2Aporte = 'todos'; window._pp2RojasOnly = false;
+  window._pp2CapOnly = false; window._pp2Aporte = 'todos'; window._pp2RojasOnly = false;
   _ppV2Render();
 }
-function _ppV2SetRes(res) { window._pp2ResFilter = (window._pp2ResFilter === res && res !== 'todos') ? 'todos' : res; _ppV2Render(); }
 function _ppV2ToggleCap() { window._pp2CapOnly = !window._pp2CapOnly; _ppV2Render(); }
 // "Todos" es el estado por defecto, no un filtro más — clickear de nuevo el
 // mismo filtro ya activo (torneo o aporte) lo apaga y vuelve a "todos" en
@@ -7407,7 +7406,6 @@ function _ppV2Render() {
   yearFiltered.forEach(p => tipoCounts[_ppTipoOf(p)]++);
 
   let filtered = catList;
-  if (window._pp2ResFilter !== 'todos') filtered = filtered.filter(p => _ppMatchResultado(p) === window._pp2ResFilter);
   if (window._pp2CapOnly) filtered = filtered.filter(p => p.esCapitan);
   if (window._pp2Year !== 'todos') filtered = filtered.filter(p => p.anio === window._pp2Year);
   if (window._pp2Tipo !== 'todos') filtered = filtered.filter(p => _ppTipoOf(p) === window._pp2Tipo);
@@ -7425,17 +7423,14 @@ function _ppV2Render() {
     loss: { text: 'text-[#f09595]', dot: 'bg-[#f09595]', shadow: 'shadow-[#f09595]/50', hex: '#f09595' },
   };
   const RES_TITLE = { win: 'Victorias', draw: 'Empates', loss: 'Derrotas' };
-  const RES_LABEL = { win: 'Ganados', draw: 'Empatados', loss: 'Derrotas' };
-  // V-E-D vuelve a ser clickable (filtra el Historial) — mismo riel de tabs
-  // que torneo/aporte, reordenado junto a ellos en la fila principal.
-  // "Todos" es el estado por defecto: clickear de nuevo el mismo filtro ya
-  // activo lo apaga y vuelve a "todos" (ver _ppV2SetRes).
-  const vedTabsHtml = `<div class="inline-flex items-center rounded-[10px] p-1 gap-[2px]" style="background:rgba(255,255,255,0.04)">
-    <button onclick="_ppV2SetRes('todos')" class="appearance-none border-0 cursor-pointer rounded-[7px] text-xs font-bold transition" style="padding:7px 14px;background:${window._pp2ResFilter === 'todos' ? '#412402' : 'transparent'};color:${window._pp2ResFilter === 'todos' ? '#fac775' : '#94a3b8'}">Todos (${resCounts.todos})</button>
-    ${['win', 'draw', 'loss'].map(v => {
-      const active = window._pp2ResFilter === v;
+  const RES_LETTER = { win: 'V', draw: 'E', loss: 'D' };
+  // V-E-D es de solo lectura (no filtra el Historial) — cápsula fija con
+  // los 3 totales (ganados/empatados/perdidos) en su color, tal como estaba
+  // antes del riel de tabs.
+  const vedCapsuleHtml = `<div class="flex items-center gap-3.5 rounded-[10px] text-xs font-black" style="background:rgba(255,255,255,0.04);padding:8px 14px">
+    ${['win', 'draw', 'loss'].map((v, i) => {
       const c = RES_TYPE_CLS[v];
-      return `<button onclick="_ppV2SetRes('${v}')" title="${RES_TITLE[v]}" class="appearance-none border-0 cursor-pointer rounded-[7px] text-xs font-bold transition" style="padding:7px 14px;background:${active ? c.hex + '1f' : 'transparent'};color:${c.hex}">${RES_LABEL[v]} (${resCounts[v]})</button>`;
+      return `${i > 0 ? '<span class="text-slate-700 font-normal">|</span>' : ''}<span title="${RES_TITLE[v]}" class="inline-flex items-center gap-1.5 font-black ${c.text}"><span class="w-2 h-2 rounded-full ${c.dot} shadow-sm ${c.shadow}"></span><span>${resCounts[v]}${RES_LETTER[v]}</span></span>`;
     }).join('')}
   </div>`;
   const viewMode = window._pp2ViewMode || 'historial';
@@ -7483,7 +7478,7 @@ function _ppV2Render() {
             <h2 class="text-lg font-black text-white">${viewMode === 'resumen' ? 'Resumen por Rival' : 'Historial de Partidos'}</h2>
           </div>
           ${torneoTabsHtml}
-          ${vedTabsHtml}
+          ${vedCapsuleHtml}
           <button onclick="_ppV2ToggleCap()" class="appearance-none border inline-flex items-center h-[38px] box-border px-4 rounded-full text-xs font-bold gap-1.5 transition cursor-pointer ${window._pp2CapOnly ? 'border-[#412402] bg-[#412402] text-[#fac775]' : 'border-[rgba(255,255,255,0.12)] bg-transparent text-slate-300 hover:border-white/20'}">
             <span class="w-4 h-4 rounded-full bg-[#fac775]/30 border border-[#fac775]/40 text-[9px] font-black text-[#fac775] flex items-center justify-center shrink-0">C</span>
             <span>${capCount}</span>
@@ -7888,7 +7883,6 @@ function renderPlayerProfile(nombre) {
 
   window._pp2State = { s, initials, posLabel, isArquero, showVallasSector, partidosSource: _ppPartidosSource };
   window._pp2Cat = 'total';
-  window._pp2ResFilter = 'todos';
   window._pp2CapOnly = false;
   window._pp2Aporte = 'todos';
   window._pp2Year = 'todos';
@@ -10423,7 +10417,7 @@ function _cdEfectividadHtml(pts, pj, isGeneral) {
     </div>`;
   }
   return `<div class="cd-metric-box-sm cd-metric-box-sm-eff">
-    <div class="cd-eff-head-sm"><span>Efectividad</span><span style="color:${color}">${pct}%</span></div>
+    <div class="cd-eff-head-sm"><span>Efect.</span><span style="color:${color}">${pct}%</span></div>
     <div class="cd-eff-bar-sm"><div class="cd-eff-fill" style="width:${pct}%;background:${grad}"></div></div>
   </div>`;
 }
