@@ -7145,7 +7145,7 @@ function _pp2RivalExpandedRowHtml(r) {
     const gaVal = p.goles > 0 || p.asist > 0 ? p.goles + p.asist : 0;
     return `<tr class="bg-slate-950/30 transition${clickAttr ? ' cursor-pointer hover:bg-slate-800/40' : ''}"${clickAttr}>
       <td class="py-2 pl-8 pr-3">
-        <div class="text-[11px] font-bold text-slate-300">Fecha ${p.fecha || '—'}</div>
+        <div class="text-[11px] font-bold text-slate-300">${_ppMatchLabel(p) || '—'}</div>
         <span class="inline-block ${PP2_TORNEO_CLS[torneoTipo]} border text-[9px] font-semibold px-1.5 py-0.5 rounded mt-0.5">${p.torneo || ''}</span>
       </td>
       <td class="py-2 px-3 text-center">${condBadge}</td>
@@ -7242,7 +7242,7 @@ function _pp2RowHtml(p) {
     : `<span class="inline-flex items-center gap-1 bg-[#97c459]/10 text-[#97c459] text-[10px] font-semibold px-2 py-0.5 rounded">🏠 Local</span>`;
   return `<div class="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 px-5 py-3.5 items-center hover:bg-slate-800/30 transition${clickable ? ' cursor-pointer' : ''}"${clickAttr} data-roja="${p.rojas > 0}">
     <div class="md:col-span-3 space-y-0.5">
-      <div class="font-extrabold text-white text-sm md:text-xs">Fecha ${p.fecha || '—'}</div>
+      <div class="font-extrabold text-white text-sm md:text-xs">${_ppMatchLabel(p) || '—'}</div>
       <div class="flex items-center gap-1.5 flex-wrap"><span class="inline-block ${PP2_TORNEO_CLS[torneoTipo]} border text-[10px] font-semibold px-2 py-0.5 rounded">${p.torneo}</span>${condBadge}</div>
     </div>
     <div class="md:col-span-4 grid grid-cols-[1fr_auto_1fr] items-center gap-2 max-w-xs mx-auto w-full">${partidoHtml}</div>
