@@ -7422,13 +7422,20 @@ function _ppV2Render() {
     loss: { text: 'text-[#f09595]', dot: 'bg-[#f09595]', shadow: 'shadow-[#f09595]/50', hex: '#f09595' },
   };
   const RES_TITLE = { win: 'Victorias', draw: 'Empates', loss: 'Derrotas' };
-  const RES_LETTER = { win: 'V', draw: 'E', loss: 'D' };
   // V-E-D vuelve a ser clickable (filtra el Historial, combina con
   // capitán/año/torneo/aporte vía AND, igual que el resto de los filtros) —
   // misma cápsula visual de siempre (punto + número), solo que ahora cada
   // ítem es un botón. El activo se resalta con opacidad completa; el resto
   // queda atenuado. "Todos" es el estado por defecto: clickear de nuevo el
-  // mismo filtro ya activo lo apaga (ver _ppV2SetRes).
+  // mismo filtro ya activo lo apaga (ver _ppV2SetRes). Sin la letra V/E/D
+  // al lado del número: ya está el label "V-E-D" arriba y el color por
+  // ítem, repetirla era redundante.
+  // A diferencia de los riel de Torneo/Aporte, acá los divisores van SIEMPRE
+  // entre los 3 ítems (no se saltean junto al activo): no hay un fondo
+  // relleno detrás del activo (solo cambia opacidad), así que no hay bloque
+  // de color que un separador pueda "cortar" — y saltear el separador al
+  // togglear corría los botones de lugar (quedaban como si "temblara" la
+  // fila con cada click).
   const PP2_GROUP_LABEL_CLS = 'style="font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#b4c0d1"';
   const VED_ORDER = ['win', 'draw', 'loss'];
   const vedCapsuleHtml = `<div class="flex flex-col items-start gap-1">
@@ -7438,9 +7445,8 @@ function _ppV2Render() {
         const c = RES_TYPE_CLS[v];
         const active = window._pp2ResFilter === v;
         const dim = window._pp2ResFilter !== 'todos' && !active;
-        const prevActive = i > 0 && window._pp2ResFilter === VED_ORDER[i - 1];
-        const divider = (i > 0 && !active && !prevActive) ? `<span style="width:1px;height:12px;background:rgba(255,255,255,0.1);flex-shrink:0"></span>` : '';
-        return `${divider}<button onclick="_ppV2SetRes('${v}')" title="${RES_TITLE[v]}" class="appearance-none bg-transparent border-0 p-0.5 -m-0.5 cursor-pointer inline-flex items-center gap-1.5 font-black ${c.text} transition hover:brightness-125${dim ? ' opacity-60' : ''}"><span class="w-2 h-2 rounded-full ${c.dot} shadow-sm ${c.shadow}"></span><span>${resCounts[v]}${RES_LETTER[v]}</span></button>`;
+        const divider = i > 0 ? `<span style="width:1px;height:12px;background:rgba(255,255,255,0.1);flex-shrink:0"></span>` : '';
+        return `${divider}<button onclick="_ppV2SetRes('${v}')" title="${RES_TITLE[v]}" class="appearance-none bg-transparent border-0 p-0.5 -m-0.5 cursor-pointer inline-flex items-center gap-1.5 font-black ${c.text} transition hover:brightness-125${dim ? ' opacity-60' : ''}"><span class="w-2 h-2 rounded-full ${c.dot} shadow-sm ${c.shadow}"></span><span>${resCounts[v]}</span></button>`;
       }).join('')}
     </div>
   </div>`;
