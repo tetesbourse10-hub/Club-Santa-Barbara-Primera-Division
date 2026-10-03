@@ -416,6 +416,27 @@ async function checkTorneo(store, torneo) {
     // sus 3 avisos de golpe en la primera corrida después del deploy.
     if (!prevM) continue;
 
+    // Partido suspendido: se interpreta así cuando el horario pasa de tener
+    // dato a quedar vacío (el club borra día/hora/citados en el sheet sin
+    // saber todavía cuándo se va a jugar) — no se exige que día/citados
+    // también se hayan borrado porque la edición del sheet no siempre es
+    // atómica, y el horario solo ya es una señal inequívoca. Se resetean acá
+    // mismo los flags de Recordatorio/Comienzo (no alcanza con el reset de
+    // más arriba, que solo dispara si HAY un horario nuevo distinto del
+    // viejo): si no se resetean en este momento, cuando después carguen la
+    // fecha reprogramada el "horario anterior" ya va a estar vacío y ese
+    // reset de arriba no va a correr, dejando el partido reprogramado sin
+    // Recordatorio/Comienzo propios.
+    if (m.resultado === null && !curr.hora && prevM.hora) {
+      await sendPush(
+        '⚠️ Partido suspendido',
+        `Santa Bárbara vs ${m.rival} — Fecha ${fecha} (${badge}) se suspende. Nueva fecha a confirmar.`,
+        url
+      );
+      curr.recordatorioEnviado = false;
+      curr.comienzoEnviado = false;
+    }
+
     if (curr.hora && curr.hora !== prevM.hora) {
       // Antes solo avisaba si pasaba de vacío a con dato — una corrección
       // real (cambiar 15:30 por 16:00) no disparaba nada porque "antes"
