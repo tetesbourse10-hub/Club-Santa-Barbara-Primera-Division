@@ -2256,7 +2256,10 @@
       display: none;
       position: fixed; left:0; right:0; bottom:0; z-index: 90;
       background: var(--azul-mid); border-top: 1px solid var(--gris);
-      padding-bottom: env(safe-area-inset-bottom, 0);
+      /* +10px extra sobre el safe-area: en algunos dispositivos el inset
+         reportado por el navegador no alcanza para despegar las letras de
+         la barra de gestos/home del sistema, que termina pisándolas. */
+      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
       /* BUG REAL reportado (Safari iOS): la barra se despegaba del fondo
          al hacer scroll. WebKit "pierde" temporalmente el anclaje de
          position:fixed durante el resize del viewport que dispara la
@@ -2278,7 +2281,7 @@
     .bnav-btn.active { color: var(--dorado); }
     /* Deja hueco abajo de página para que el contenido no quede tapado
        detrás de la bottom nav fija — solo cuando está en pantalla. */
-    @media (max-width:768px) { body.has-bottom-nav .panel { padding-bottom: 76px; } }
+    @media (max-width:768px) { body.has-bottom-nav .panel { padding-bottom: 86px; } }
     /* La bottom nav reemplaza a la nav superior en mobile — mostrar las dos
        a la vez duplica la navegación sin necesidad. #main-nav se sigue
        usando igual como fuente de verdad del estado activo (ver showTab/
@@ -19415,7 +19418,7 @@ function _pmCard(label, labelClass, m, navKey) {
     <div class="pm-card-center">
       <div class="pm-card-label ${labelClass}">${label}</div>
       ${cd ? `<div class="pm-card-countdown ${cdClass}">${cdVal}</div>` : `<div class="pm-card-countdown ${cdClass}">VS</div>`}
-      <div class="pm-card-meta">${metaLine || 'Fecha a confirmar'}${meta.localTxt ? ` · <span class="pm-local-tag">${meta.localTxt}</span>` : ''}</div>
+      <div class="pm-card-meta">${[metaLine || 'Fecha a confirmar', meta.horaTxt].filter(Boolean).join(' · ')}${meta.localTxt ? ` · <span class="pm-local-tag">${meta.localTxt}</span>` : ''}</div>
     </div>
     <div class="pm-card-team">
       ${rightCrest}
