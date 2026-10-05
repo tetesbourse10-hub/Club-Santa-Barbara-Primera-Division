@@ -7198,8 +7198,6 @@ function _pp2DropdownHtml(id, currentLabel, options, onSelectFn) {
 }
 function _ppV2ToggleRojas(btn) {
   window._pp2RojasOnly = !window._pp2RojasOnly;
-  btn.classList.toggle('ring-2', window._pp2RojasOnly);
-  btn.classList.toggle('ring-red-500', window._pp2RojasOnly);
   _ppV2Render();
 }
 function _ppV2OpenModal(id) { document.getElementById(id)?.classList.remove('hidden'); }
