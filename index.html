@@ -7329,25 +7329,30 @@ function _pp2RowHtml(p) {
 // Tarjeta de partido para la versión mobile del Historial (ver pp-m2-wrap)
 // — misma data que _pp2RowHtml (vía _pp2RowCommon), layout de card apilada
 // en vez de grid de 12 columnas.
+// Badge de condición (Local/Visitante/Neutral) propio de las tarjetas
+// mobile del perfil (Local en ámbar) — distinto de c.condBadge (compartido
+// con _pp2RowHtml/desktop, donde Local es verde) para no tocar esa vista.
+// Usado tanto por el Historial (_pp2RowHtmlMobile) como por el sub-listado
+// de partidos dentro de un rival expandido en Resumen.
+function _pp2CondBadgeMobile(local, compact) {
+  const size = compact ? 'text-[8px] px-1 py-0.5' : 'text-[10px] px-2 py-0.5';
+  return local === 'VISITANTE'
+    ? `<span class="inline-flex items-center gap-1 bg-[#85b7eb]/10 text-[#85b7eb] ${size} font-black rounded">✈️ Visitante</span>`
+    : local === 'NEUTRAL'
+    ? `<span class="inline-flex items-center gap-1 bg-slate-500/10 text-slate-400 ${size} font-black rounded">🏟️ Neutral</span>`
+    : `<span class="inline-flex items-center gap-1 bg-[#fac775]/10 text-[#fac775] ${size} font-black rounded">🏠 Local</span>`;
+}
 function _pp2RowHtmlMobile(p) {
   const c = _pp2RowCommon(p);
   const leftChip = p.local === 'VISITANTE' ? c.rivalChip : c.csbChip;
   const rightChip = p.local === 'VISITANTE' ? c.csbChip : c.rivalChip;
-  // Condición propia de la tarjeta mobile (Local en ámbar) — no reusa
-  // c.condBadge (compartido con _pp2RowHtml/desktop, donde Local es verde)
-  // para no tocar esa vista.
-  const condBadgeMobile = p.local === 'VISITANTE'
-    ? `<span class="inline-flex items-center gap-1 bg-[#85b7eb]/10 text-[#85b7eb] text-[10px] font-black px-2 py-0.5 rounded-md">✈️ Visitante</span>`
-    : p.local === 'NEUTRAL'
-    ? `<span class="inline-flex items-center gap-1 bg-slate-500/10 text-slate-400 text-[10px] font-black px-2 py-0.5 rounded-md">🏟️ Neutral</span>`
-    : `<span class="inline-flex items-center gap-1 bg-[#fac775]/10 text-[#fac775] text-[10px] font-black px-2 py-0.5 rounded-md">🏠 Local</span>`;
   return `<div class="bg-[#121827] border-y border-r border-slate-800 rounded-xl p-3 shadow-lg space-y-2.5 text-xs" style="border-left:4px solid ${c.resColor}"${c.clickAttr ? ` ${c.clickAttr} data-roja="${p.rojas > 0}"` : ` data-roja="${p.rojas > 0}"`}>
     <div class="flex items-center justify-between text-[11px] gap-1.5 flex-wrap">
       <div class="flex items-center gap-1.5">
         <span class="font-black text-white">${_ppMatchLabel(p) || '—'}</span>
         <span class="font-bold" style="color:#b4c0d1">• ${p.torneo}</span>
       </div>
-      ${condBadgeMobile}
+      ${_pp2CondBadgeMobile(p.local)}
     </div>
     <div class="bg-[#0b0f19] border border-slate-800/90 rounded-lg p-2.5 flex items-center justify-between gap-1">
       <div class="flex items-center gap-1.5 w-5/12 justify-end text-right overflow-hidden">${leftChip}</div>
@@ -7360,16 +7365,81 @@ function _pp2RowHtmlMobile(p) {
     </div>
   </div>`;
 }
-// Tarjeta compacta de rival para el modo "Resumen" en mobile — sin fila
-// expandible partido a partido (eso queda solo en desktop por ahora).
-function _pp2RivalRowHtmlMobile(r) {
-  return `<div class="bg-[#121827] border border-slate-800/80 rounded-2xl p-3 shadow-xl flex items-center justify-between gap-2 text-xs">
-    <div class="flex items-center gap-2 overflow-hidden">${_pp2TeamChip(false, r.rival)}</div>
-    <div class="flex items-center gap-3 shrink-0 text-center">
-      <div><div class="font-black text-white">${r.pj}</div><div class="text-[9px] font-bold" style="color:#b4c0d1">PJ</div></div>
-      <div class="font-bold"><span style="color:#97c459">${r.v}V</span>-<span style="color:#fac775">${r.e}E</span>-<span style="color:#f09595">${r.d}D</span></div>
-      <div><div class="font-black" style="color:#ef9f27">${r.goles}</div><div class="text-[9px] font-bold" style="color:#b4c0d1">G</div></div>
-      <div><div class="font-black" style="color:#97c459">${r.asist}</div><div class="text-[9px] font-bold" style="color:#b4c0d1">A</div></div>
+// Sub-tarjeta de un partido puntual dentro de un rival expandido (Resumen
+// mobile) — mismo criterio de colores que _pp2RowHtmlMobile (resultado
+// nuevo-paleta, condición propia), pero en grilla de 3 columnas (Fecha/
+// Torneo | Resultado centrado | Aportes a la derecha) en vez de card
+// apilada, para que quepan varios partidos cortos uno debajo del otro.
+function _pp2RivalSubMatchHtmlMobile(p) {
+  const played = p.gf != null && p.gc != null;
+  const { csb, riv } = played ? _csbGoles(p) : { csb: null, riv: null };
+  const resColor = !played ? '#85b7eb' : csb > riv ? '#97c459' : csb < riv ? '#f09595' : '#fac775';
+  const resLabel = played ? (p.local === 'VISITANTE' ? `${riv} - ${csb}` : `${csb} - ${riv}`) : 'Próximo';
+  const aportesHtml = [
+    p.goles > 0 ? `<span class="bg-[#ef9f27]/20 text-[#ef9f27] border border-[#ef9f27]/30 text-[10px] font-black px-1.5 py-0.5 rounded">⚽ ${p.goles}</span>` : '',
+    p.asist > 0 ? `<span class="bg-[#97c459]/20 text-[#97c459] border border-[#97c459]/30 text-[10px] font-black px-1.5 py-0.5 rounded">🎯 ${p.asist}</span>` : '',
+    p.rojas > 0 ? `<span class="bg-[#f09595]/20 text-[#f09595] border border-[#f09595]/30 text-[10px] font-black px-1.5 py-0.5 rounded">🟥 Roja</span>` : '',
+  ].filter(Boolean).join('');
+  const clickAttr = _pp2RowClickAttr(p);
+  return `<div class="bg-[#121827] border border-slate-800/60 rounded-lg p-2 grid grid-cols-3 items-center${clickAttr ? ' cursor-pointer' : ''}"${clickAttr}>
+    <div class="space-y-0.5 overflow-hidden text-left">
+      <div class="flex items-center gap-1 flex-wrap">
+        <span class="font-extrabold text-white text-[11px]">${_ppMatchLabel(p) || '—'}</span>
+        ${_pp2CondBadgeMobile(p.local, true)}
+      </div>
+      <div class="text-[9px] font-bold truncate" style="color:#b4c0d1">${p.torneo || ''}</div>
+    </div>
+    <div class="flex justify-center">
+      <span class="border text-xs font-black px-2.5 py-0.5 rounded-md" style="background:${resColor}33;color:${resColor};border-color:${resColor}4d">${resLabel}</span>
+    </div>
+    <div class="flex items-center gap-1 justify-end flex-wrap">
+      ${aportesHtml || '<span class="text-[10px] font-bold" style="color:#475569">—</span>'}
+    </div>
+  </div>`;
+}
+// Tarjeta de rival para el modo "Resumen" en mobile — desplegable: un clic
+// en el header expande el sub-listado de partidos contra ese rival (mismo
+// estado window._pp2ResumenExpanded/_ppV2ToggleResumenRow ya usado por la
+// fila expandible de desktop, un solo rival abierto a la vez). La métrica
+// destacada de la derecha (ícono+valor+color) sigue al criterio de orden
+// activo (sortMeta, ver RESUMEN_SORT_TABS) — así el número que más resalta
+// es siempre el que se está usando para ordenar la lista.
+function _pp2RivalCardHtmlMobile(r, sortMeta) {
+  const expanded = window._pp2ResumenExpanded === r.rival;
+  const safeRival = r.rival.replace(/'/g, "\\'");
+  const metricVal = sortMeta.col === 'pj' ? r.pj : sortMeta.col === 'goles' ? r.goles : sortMeta.col === 'asist' ? r.asist : (r.goles + r.asist);
+  const metricLabel = sortMeta.col === 'pj' ? (metricVal === 1 ? 'Partido' : 'Partidos') : sortMeta.col === 'goles' ? (metricVal === 1 ? 'Gol' : 'Goles') : sortMeta.col === 'asist' ? 'Asist' : 'G+A';
+  const headerHtml = `<div class="flex items-center justify-between cursor-pointer" onclick="_ppV2ToggleResumenRow('${safeRival}')">
+    <div class="flex items-center gap-2.5 min-w-0">
+      <div class="w-8 h-8 rounded-full bg-slate-800 border border-slate-600 overflow-hidden shrink-0 flex items-center justify-center">${_crestImgHtml(r.rival)}</div>
+      <div class="truncate">
+        <h3 class="font-black text-white text-xs truncate uppercase tracking-wide">${r.rival}</h3>
+        <div class="text-[10px] font-bold">
+          <span style="color:#b4c0d1">${r.pj} PJ • </span><span style="color:#97c459">${r.v}PG</span>-<span style="color:#fac775">${r.e}PE</span>-<span style="color:#f09595">${r.d}PP</span>
+        </div>
+      </div>
+    </div>
+    <div class="flex items-center gap-2.5 shrink-0">
+      <div class="flex items-center gap-1 px-2.5 py-1 rounded-xl border" style="background:${expanded ? sortMeta.color + '1a' : '#0b0f19'};border-color:${expanded ? sortMeta.color + '4d' : '#1e293b'}">
+        <span class="text-xs">${sortMeta.icon}</span>
+        <span class="text-sm font-black" style="color:${sortMeta.color}">${metricVal} ${metricLabel}</span>
+      </div>
+      <span class="text-xs font-bold" style="color:${expanded ? '#97c459' : '#64748b'}">${expanded ? '▲' : '▼'}</span>
+    </div>
+  </div>`;
+  if (!expanded) {
+    return `<div class="bg-[#121827] border border-slate-800/80 rounded-2xl p-3 shadow-xl">${headerHtml}</div>`;
+  }
+  const subList = r.partidos.map(_pp2RivalSubMatchHtmlMobile).join('');
+  return `<div class="bg-[#121827] rounded-2xl p-3 shadow-xl space-y-3" style="border:1px solid rgba(151,196,89,0.4)">
+    ${headerHtml}
+    <div class="bg-[#0b0f19] border border-slate-800/80 rounded-xl p-2 space-y-1.5 text-xs">
+      <div class="text-[9px] font-extrabold uppercase px-1 pb-1 grid grid-cols-3 items-center text-center" style="color:#64748b;border-bottom:1px solid rgba(255,255,255,0.06)">
+        <span class="text-left">Fecha / Torneo</span>
+        <span>Resultado</span>
+        <span class="text-right">Aportes</span>
+      </div>
+      ${subList}
     </div>
   </div>`;
 }
@@ -7771,15 +7841,17 @@ function _ppV2Render() {
         ${showVallasSector ? m2ImpactoItem('Rival Cerrado', favVallas, 'Vallas', '#85b7eb') : ''}
       </div>
     </div>`;
-  // V-E-D clickable (filtra el Historial, mismo _ppV2SetRes que el resto de
-  // los filtros) — activo con fondo relleno de su color, inactivo con fondo
-  // neutro y solo el texto coloreado.
+  // V-E-D clickable (filtra el Historial/Resumen, mismo _ppV2SetRes que el
+  // resto de los filtros) — activo con fondo relleno de su color, inactivo
+  // con fondo neutro y solo el texto coloreado. En Resumen las etiquetas
+  // cambian a PG/PE/PP ("Partidos Ganados/Empatados/Perdidos", el lenguaje
+  // de un historial contra rivales) en vez de Vic/Emp/Der.
+  const m2VedLabels = viewMode === 'resumen' ? { win: 'PG', draw: 'PE', loss: 'PP' } : { win: 'Vic', draw: 'Emp', loss: 'Der' };
   const m2VedBtns = ['win', 'draw', 'loss'].map(v => {
     const active = window._pp2ResFilter === v;
     const color = v === 'win' ? '#97c459' : v === 'draw' ? '#fac775' : '#f09595';
-    const label = v === 'win' ? 'Vic' : v === 'draw' ? 'Emp' : 'Der';
     return `<button onclick="_ppV2SetRes('${v}')" class="appearance-none active:scale-95 transition-all text-[11px] font-black px-2.5 py-1 rounded-xl shadow-sm flex items-center gap-1 border" style="background:${active ? color + '33' : '#0b0f19'};border-color:${active ? color + '80' : '#1e293b'};color:${color}">
-      <span>${resCounts[v]}</span><span class="text-[9px] uppercase font-bold" style="opacity:.75">${label}</span>
+      <span>${resCounts[v]}</span><span class="text-[9px] uppercase font-bold" style="opacity:.75">${m2VedLabels[v]}</span>
     </button>`;
   }).join('');
   const m2TorneoTabsHtml = `<div class="flex items-center gap-1.5 overflow-x-auto text-xs pb-1 no-scrollbar">
@@ -7792,24 +7864,42 @@ function _ppV2Render() {
     const active = window._pp2Aporte === o.value;
     return `<button onclick="_ppV2SetAporte('${o.value}')" class="appearance-none border font-extrabold px-3 py-1 rounded-lg shrink-0 flex items-center gap-1" style="${active ? 'border-color:#412402;background:#412402;color:#fac775' : 'border-color:#1e293b;background:#0b0f19;color:#f1f5f9'}">${o.icon ? `<span>${o.icon}</span>` : ''}<span>${o.label}</span></button>`;
   }).join('');
+  // En Resumen, la fila de Aporte se reemplaza por criterios de orden de la
+  // lista de rivales (mismo window._pp2ResumenSort/_ppV2SetResumenSort que
+  // ya ordena la tabla de desktop) — cada botón lleva el color propio de su
+  // métrica (no el ámbar genérico de los demás filtros) para que se note de
+  // un vistazo qué número es el que se está mirando, y el sufijo
+  // "(Máx ▾)"/"(Mín ▲)" indica la dirección en el criterio activo.
+  const RESUMEN_SORT_TABS = [
+    { col: 'pj', label: 'Partidos', icon: '📋', color: '#fac775' },
+    { col: 'goles', label: 'Goles', icon: '⚽', color: '#ef9f27' },
+    { col: 'asist', label: 'Asistencias', icon: '🎯', color: '#97c459' },
+    { col: 'ga', label: 'G+A', icon: '🔥', color: '#af9ec6' },
+  ];
+  const m2SortTabsHtml = RESUMEN_SORT_TABS.map(o => {
+    const active = window._pp2ResumenSort.col === o.col;
+    const dirLabel = active ? (window._pp2ResumenSort.dir === 'desc' ? ' (Máx ▾)' : ' (Mín ▲)') : '';
+    return `<button onclick="_ppV2SetResumenSort('${o.col}')" class="appearance-none border font-black px-3 py-1 rounded-lg shrink-0 flex items-center gap-1" style="${active ? `border-color:${o.color}80;background:${o.color}33;color:${o.color}` : 'border-color:#1e293b;background:#0b0f19;color:#f1f5f9'}"><span>${o.icon}</span><span>${o.label}${dirLabel}</span></button>`;
+  }).join('');
   const m2ResumenBtnHtml = `<button onclick="_ppV2ToggleResumen()" class="appearance-none border font-black px-3 py-1 rounded-lg shrink-0 flex items-center gap-1 shadow-sm" style="${viewMode === 'resumen' ? 'border-color:#412402;background:#412402;color:#fac775' : 'border-color:#1e293b;background:#0b0f19;color:#f1f5f9'}"><span>📊</span> Resumen</button>`;
   const m2FilterBar = `
     <div class="bg-[#121827] border border-slate-800/80 rounded-2xl p-3.5 shadow-xl space-y-3">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-        <h2 class="text-sm font-black text-white flex items-center gap-1.5"><span>📋</span> ${viewMode === 'resumen' ? 'Resumen' : 'Historial'}</h2>
+        <h2 class="text-sm font-black text-white flex items-center gap-1.5"><span>📋</span> ${viewMode === 'resumen' ? 'Historial por Rival' : 'Historial'}</h2>
         <div class="flex items-center gap-1.5">${m2VedBtns}</div>
       </div>
       ${m2TorneoTabsHtml}
       <div class="flex items-center gap-1.5 overflow-x-auto text-xs pt-2 no-scrollbar" style="border-top:1px solid rgba(255,255,255,0.06)">
         ${m2ResumenBtnHtml}
         <span class="text-slate-700 font-bold shrink-0">|</span>
-        ${m2AporteTabsHtml}
+        ${viewMode === 'resumen' ? m2SortTabsHtml : m2AporteTabsHtml}
       </div>
     </div>`;
   const m2ListHtml = viewMode === 'resumen'
     ? (() => {
         const rows = _pp2SortRivalRows(_pp2RivalSummaryRows(filtered), window._pp2ResumenSort);
-        return rows.length ? `<div class="space-y-2">${rows.map(_pp2RivalRowHtmlMobile).join('')}</div>` : `<div class="text-center py-8" style="color:#b4c0d1">Sin partidos para este filtro.</div>`;
+        const sortMeta = RESUMEN_SORT_TABS.find(t => t.col === window._pp2ResumenSort.col) || RESUMEN_SORT_TABS[0];
+        return rows.length ? `<div class="space-y-2">${rows.map(r => _pp2RivalCardHtmlMobile(r, sortMeta)).join('')}</div>` : `<div class="text-center py-8" style="color:#b4c0d1">Sin partidos para este filtro.</div>`;
       })()
     : (filtered.length ? `<div class="space-y-2">${filtered.map(_pp2RowHtmlMobile).join('')}</div>` : `<div class="text-center py-8" style="color:#b4c0d1">Sin partidos para este filtro.</div>`);
   const mobileHtml = `<div class="space-y-4">${m2Header}${m2Kpi}${m2Rivales}${m2FilterBar}${m2ListHtml}</div>`;
