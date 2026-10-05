@@ -6517,6 +6517,18 @@ function _ppMatchResultado(p) {
   return csb > riv ? 'win' : csb < riv ? 'loss' : 'draw';
 }
 
+// Mismo criterio de filtrado por Aporte (Goles/Asist./G+A/Vallas) que usa
+// el Historial — factorizado acá para que el conteo de la cápsula V-E-D
+// también se recorte por Aporte (antes solo se recortaba por año/torneo),
+// sin duplicar la lógica entre ambos usos.
+function _ppFilterByAporte(list, aporte) {
+  if (aporte === 'goles') return list.filter(p => p.goles > 0);
+  if (aporte === 'asist') return list.filter(p => p.asist > 0);
+  if (aporte === 'ga') return list.filter(p => p.goles > 0 || p.asist > 0);
+  if (aporte === 'vallas') return list.filter(p => _csbGoles(p).riv === 0);
+  return list;
+}
+
 // G+A per rival, keeping the goles/asist split (not just the combined
 // total) — powers the "X G+A ➔ Y ⚽ + Z 🎯" breakdown in both the
 // "Mayor Impacto" micro-banner and the G+A "Resumen" tab.
@@ -7396,8 +7408,12 @@ function _ppV2Render() {
   let yearTipoFiltered = yearFiltered;
   if (window._pp2Tipo !== 'todos') yearTipoFiltered = yearTipoFiltered.filter(p => _ppTipoOf(p) === window._pp2Tipo);
 
-  const resCounts = { todos: yearTipoFiltered.length, win: 0, draw: 0, loss: 0 };
-  yearTipoFiltered.forEach(p => { const r = _ppMatchResultado(p); if (r === 'win') resCounts.win++; else if (r === 'draw') resCounts.draw++; else if (r === 'loss') resCounts.loss++; });
+  // La cápsula V-E-D también se recorta por Aporte (no solo año/torneo):
+  // si estás viendo "Goles", "54V" tiene que contar victorias CON gol
+  // propio, no cualquier victoria — ver _ppFilterByAporte.
+  const yearTipoAporteFiltered = _ppFilterByAporte(yearTipoFiltered, window._pp2Aporte);
+  const resCounts = { todos: yearTipoAporteFiltered.length, win: 0, draw: 0, loss: 0 };
+  yearTipoAporteFiltered.forEach(p => { const r = _ppMatchResultado(p); if (r === 'win') resCounts.win++; else if (r === 'draw') resCounts.draw++; else if (r === 'loss') resCounts.loss++; });
   const capCount = yearTipoFiltered.filter(p => p.esCapitan).length;
   const years = [...new Set(catList.map(p => p.anio).filter(Boolean))].sort((a, b) => b - a);
   const tipoCounts = { apertura: 0, clausura: 0, copas: 0, otros: 0 };
@@ -7408,10 +7424,7 @@ function _ppV2Render() {
   if (window._pp2CapOnly) filtered = filtered.filter(p => p.esCapitan);
   if (window._pp2Year !== 'todos') filtered = filtered.filter(p => p.anio === window._pp2Year);
   if (window._pp2Tipo !== 'todos') filtered = filtered.filter(p => _ppTipoOf(p) === window._pp2Tipo);
-  if (window._pp2Aporte === 'goles') filtered = filtered.filter(p => p.goles > 0);
-  else if (window._pp2Aporte === 'asist') filtered = filtered.filter(p => p.asist > 0);
-  else if (window._pp2Aporte === 'ga') filtered = filtered.filter(p => p.goles > 0 || p.asist > 0);
-  else if (window._pp2Aporte === 'vallas') filtered = filtered.filter(p => _csbGoles(p).riv === 0);
+  filtered = _ppFilterByAporte(filtered, window._pp2Aporte);
   if (window._pp2RojasOnly) filtered = filtered.filter(p => p.rojas > 0);
 
   // Cada resultado tiene su propio color fijo (verde/ámbar/rojo) vía punto
