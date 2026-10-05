@@ -10810,7 +10810,7 @@ function _cdSummaryStats(list) {
 }
 // Barra de "Efectividad" (pts / (pj*3) * 100) con 3 tramos de color —
 // compartida entre la tarjeta General (grande) y Local/Visitante (chica).
-function _cdEfectividadHtml(pts, pj, isGeneral) {
+function _cdEfectividadHtml(pts, pj, isGeneral, label) {
   const pct = pj > 0 ? Math.round((pts / (pj * 3)) * 100) : 0;
   const grad = pct >= 75 ? 'linear-gradient(90deg,#4ade80,#16a34a)'
     : pct >= 50 ? 'linear-gradient(90deg,#60a5fa,#22d3ee)'
@@ -10818,13 +10818,13 @@ function _cdEfectividadHtml(pts, pj, isGeneral) {
   const color = pct >= 75 ? '#4ade80' : pct >= 50 ? '#60a5fa' : '#f87171';
   if (isGeneral) {
     return `<div class="cd-metric-box cd-metric-box-eff">
-      <div class="cd-eff-head"><span class="cd-metric-lbl" style="margin-top:0">Efectividad</span><span style="color:${color};font-weight:900">${pct}%</span></div>
+      <div class="cd-eff-head"><span class="cd-metric-lbl" style="margin-top:0">${label || 'Efectividad'}</span><span style="color:${color};font-weight:900">${pct}%</span></div>
       <div class="cd-eff-bar"><div class="cd-eff-fill" style="width:${pct}%;background:${grad}"></div></div>
       <div class="cd-eff-sub">${pts} / ${pj * 3} Puntos</div>
     </div>`;
   }
   return `<div class="cd-metric-box-sm cd-metric-box-sm-eff">
-    <div class="cd-eff-head-sm"><span>Efect.</span><span style="color:${color}">${pct}%</span></div>
+    <div class="cd-eff-head-sm"><span>${label || 'Efect.'}</span><span style="color:${color}">${pct}%</span></div>
     <div class="cd-eff-bar-sm"><div class="cd-eff-fill" style="width:${pct}%;background:${grad}"></div></div>
   </div>`;
 }
@@ -10833,8 +10833,11 @@ function _cdSummaryCardHtml(title, list, isGeneral, torneoName) {
   // Posición en la tabla: solo tiene sentido real en "General" (no existe
   // una "posición como local/visitante" en la tabla de posiciones) — se
   // toma del partido jugado más reciente con posCSB cargado, mismo dato
-  // que ya muestra cada fila en "Posición / Instancia".
+  // que ya muestra cada fila en "Posición / Instancia". Medalla real
+  // (🥇🥈🥉 solo 1°-3°) — mismo criterio que ya usa la tarjeta mobile
+  // (_cdPosMedal), unificado acá también.
   const posActual = isGeneral ? [...list].reverse().find(m => m.posCSB)?.posCSB : null;
+  const medal = _cdPosMedal(posActual);
   if (isGeneral) {
     return `<div class="cd-summary-card cd-summary-card-general">
       <div class="cd-summary-head-g">
@@ -10845,54 +10848,55 @@ function _cdSummaryCardHtml(title, list, isGeneral, torneoName) {
             ${torneoName ? `<p class="cd-summary-subtitle">${torneoName}</p>` : ''}
           </div>
         </div>
-        <div class="cd-summary-badges">
-          ${posActual ? `<span class="cd-summary-badge-lg" style="background:rgba(250,199,117,0.12);color:#fac775">🥇 ${posActual} en la tabla</span>` : ''}
-          <span class="cd-summary-badge-lg" style="background:rgba(151,196,89,0.12);color:#97c459">${s.pts} pts • ${s.pj} PJ</span>
-        </div>
+        ${posActual ? `<div class="cd-summary-badges"><span class="cd-summary-badge-lg" style="background:rgba(250,199,117,0.12);color:#fac775">${medal || '🏆'} ${posActual} en la tabla de posiciones</span></div>` : ''}
       </div>
       <div class="cd-metric-grid-4">
+        <div class="cd-metric-box"><div class="cd-metric-lbl" style="margin-top:0">Partidos Jugados</div><div class="cd-metric-val" style="font-size:1.5rem">${s.pj} <span style="font-size:0.7rem;color:#64748b;font-weight:700">PJ</span></div></div>
+        <div class="cd-metric-box"><div class="cd-metric-lbl" style="margin-top:0;color:rgba(250,199,117,0.8)">Puntos Conseguidos</div><div class="cd-metric-val" style="font-size:1.5rem;color:#fac775">${s.pts} <span style="font-size:0.7rem;color:rgba(250,199,117,0.8);font-weight:700">PTS</span></div></div>
         <div class="cd-metric-box">
           <div class="cd-metric-ved-row">
-            <div class="cd-metric-item"><div class="cd-metric-val" style="color:#97c459">${s.v}</div><div class="cd-metric-lbl">Vic</div></div>
-            <div class="cd-metric-item"><div class="cd-metric-val" style="color:#fac775">${s.e}</div><div class="cd-metric-lbl">Emp</div></div>
-            <div class="cd-metric-item"><div class="cd-metric-val" style="color:#f09595">${s.d}</div><div class="cd-metric-lbl">Der</div></div>
+            <div class="cd-metric-item"><div class="cd-metric-val" style="color:#97c459">${s.v}</div><div class="cd-metric-lbl">PG</div></div>
+            <span style="color:#475569;font-weight:700">—</span>
+            <div class="cd-metric-item"><div class="cd-metric-val" style="color:#fac775">${s.e}</div><div class="cd-metric-lbl">PE</div></div>
+            <span style="color:#475569;font-weight:700">—</span>
+            <div class="cd-metric-item"><div class="cd-metric-val" style="color:#f09595">${s.d}</div><div class="cd-metric-lbl">PP</div></div>
           </div>
         </div>
-        <div class="cd-metric-box">
-          <div class="cd-metric-ved-row">
-            <div class="cd-metric-item"><div class="cd-metric-val" style="color:#ef9f27;filter:drop-shadow(0 0 6px rgba(239,159,39,0.5))">${s.gf}</div><div class="cd-metric-lbl">GF (Favor)</div></div>
-            <div class="cd-metric-item"><div class="cd-metric-val" style="color:#f09595">${s.gc}</div><div class="cd-metric-lbl">GC (Contra)</div></div>
-          </div>
+        ${_cdEfectividadHtml(s.pts, s.pj, true, 'Efectividad General')}
+      </div>
+      <div class="cd-metric-box" style="margin-top:10px">
+        <div class="cd-metric-ved-row">
+          <div class="cd-metric-item"><div class="cd-metric-val" style="color:#ef9f27;filter:drop-shadow(0 0 6px rgba(239,159,39,0.5))">${s.gf}</div><div class="cd-metric-lbl">GF</div></div>
+          <div class="cd-metric-item"><div class="cd-metric-val" style="color:#f09595">${s.gc}</div><div class="cd-metric-lbl">GC</div></div>
+          <div class="cd-metric-item"><div class="cd-metric-val" style="color:${s.dg >= 0 ? '#97c459' : '#f09595'}">${s.dg >= 0 ? '+' : ''}${s.dg}</div><div class="cd-metric-lbl">DG</div></div>
+          <div class="cd-metric-item"><div class="cd-metric-val" style="color:#85b7eb">${s.vallas}</div><div class="cd-metric-lbl">Vallas Inv.</div></div>
         </div>
-        <div class="cd-metric-box cd-metric-box-dg">
-          <div><div class="cd-metric-lbl" style="margin-top:0">Diferencia de Gol</div><div class="cd-metric-balance">Balance</div></div>
-          <span class="cd-metric-dg-badge" style="background:${s.dg >= 0 ? 'rgba(151,196,89,0.12)' : 'rgba(240,149,149,0.12)'};color:${s.dg >= 0 ? '#97c459' : '#f09595'}">${s.dg >= 0 ? '+' : ''}${s.dg}</span>
-        </div>
-        ${_cdEfectividadHtml(s.pts, s.pj, true)}
       </div>
     </div>`;
   }
+  const effLabelSplit = title === 'Como Local' ? 'Efect. Local' : 'Efect. Visit.';
   return `<div class="cd-summary-card cd-summary-card-split">
     <div class="cd-summary-head-split">
       <div class="cd-summary-head-left-sm">
         <span class="cd-summary-icon">${title === 'Como Local' ? '🏠' : '✈️'}</span>
         <span class="cd-summary-title-sm">${title}</span>
       </div>
-      <span class="cd-summary-badge-sm" style="background:rgba(151,196,89,0.12);color:#97c459">${s.pts} pts • ${s.pj} PJ</span>
     </div>
     <div class="cd-metric-grid-4-sm">
+      <div class="cd-metric-box-sm"><span class="cd-metric-record-sm">${s.pj}</span><div class="cd-metric-lbl-sm">PJ</div></div>
+      <div class="cd-metric-box-sm"><span class="cd-metric-record-sm" style="color:#fac775">${s.pts}</span><div class="cd-metric-lbl-sm">PTS</div></div>
       <div class="cd-metric-box-sm">
-        <span class="cd-metric-record-sm"><span style="color:#97c459">${s.v}V</span><span style="color:#475569"> - </span><span style="color:#fac775">${s.e}E</span><span style="color:#475569"> - </span><span style="color:#f09595">${s.d}D</span></span>
-        <div class="cd-metric-lbl-sm">Record</div>
+        <span class="cd-metric-record-sm"><span style="color:#97c459">${s.v}PG</span><span style="color:#475569"> - </span><span style="color:#fac775">${s.e}PE</span><span style="color:#475569"> - </span><span style="color:#f09595">${s.d}PP</span></span>
       </div>
-      <div class="cd-metric-box-sm">
-        <span class="cd-metric-record-sm"><span style="color:#ef9f27">${s.gf}</span><span class="cd-metric-sep"> : </span><span style="color:#f09595">${s.gc}</span></span>
-        <div class="cd-metric-lbl-sm">GF : GC</div>
-      </div>
+      ${_cdEfectividadHtml(s.pts, s.pj, false, effLabelSplit)}
+    </div>
+    <div class="cd-metric-grid-4-sm" style="margin-top:8px">
+      <div class="cd-metric-box-sm"><span class="cd-metric-record-sm" style="color:#ef9f27">${s.gf}</span><div class="cd-metric-lbl-sm">GF</div></div>
+      <div class="cd-metric-box-sm"><span class="cd-metric-record-sm" style="color:#f09595">${s.gc}</span><div class="cd-metric-lbl-sm">GC</div></div>
       <div class="cd-metric-box-sm cd-metric-box-sm-center">
         <span class="cd-metric-dg-badge-sm" style="background:${s.dg >= 0 ? 'rgba(151,196,89,0.12)' : 'rgba(240,149,149,0.12)'};color:${s.dg >= 0 ? '#97c459' : '#f09595'}">${s.dg >= 0 ? '+' : ''}${s.dg} DG</span>
       </div>
-      ${_cdEfectividadHtml(s.pts, s.pj, false)}
+      <div class="cd-metric-box-sm"><span class="cd-metric-record-sm" style="color:#85b7eb">${s.vallas}</span><div class="cd-metric-lbl-sm">Vallas</div></div>
     </div>
   </div>`;
 }
