@@ -2625,25 +2625,28 @@
        compartido, para no tocar la vista de escritorio. ── */
     .cd-m-summary-wrap { display:none; }
     @media (max-width:768px) { .cd-m-summary-wrap { display:block; margin-bottom:14px; } }
-    .cd-m-sel-rail { display:inline-flex; align-items:center; border-radius:10px; padding:4px; gap:4px; background:rgba(255,255,255,0.04); margin-bottom:12px; }
-    .cd-m-sel-btn { appearance:none; border:0; cursor:pointer; border-radius:7px; padding:7px 12px; font-size:0.78rem; font-weight:700; font-family:inherit; background:transparent; color:#f1f5f9; transition:background .15s, color .15s; }
-    .cd-m-sel-btn.active { background:#412402; color:#fac775; }
-    .cd-m-sel-sep { width:1px; height:16px; background:rgba(255,255,255,0.1); flex-shrink:0; }
+    .cd-m-sel-rail { display:flex; align-items:center; gap:6px; background:#121827; border:1px solid rgba(255,255,255,0.08); border-radius:16px; padding:6px; margin-bottom:12px; box-shadow:0 2px 6px rgba(0,0,0,0.15); }
+    .cd-m-sel-btn { appearance:none; flex:1; cursor:pointer; border-radius:10px; padding:7px 8px; font-size:0.76rem; font-weight:800; font-family:inherit; background:#0b0f19; border:1px solid #1e293b; color:#f1f5f9; text-align:center; transition:background .15s, color .15s, border-color .15s; }
+    .cd-m-sel-btn.active { background:rgba(250,199,117,0.15); border-color:rgba(250,199,117,0.4); color:#fac775; box-shadow:0 1px 2px rgba(0,0,0,0.2); }
     .cd-m-sum-card { background:#121827; border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:14px; margin-bottom:12px; }
-    .cd-m-sum-pills { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
-    .cd-m-sum-pill { font-size:0.74rem; font-weight:900; padding:5px 11px; border-radius:10px; white-space:nowrap; }
-    .cd-m-ved-row { display:flex; align-items:center; justify-content:space-around; background:#0b0f19; border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:10px; margin-bottom:10px; }
-    .cd-m-ved-item { text-align:center; }
-    .cd-m-ved-val { font-size:1.3rem; font-weight:900; line-height:1.1; }
-    .cd-m-ved-lbl { font-size:0.64rem; font-weight:800; color:#b4c0d1; text-transform:uppercase; letter-spacing:.04em; margin-top:2px; }
-    .cd-m-ved-sep { width:1px; height:28px; background:rgba(255,255,255,0.08); }
-    .cd-m-gfgcdg-row { display:flex; align-items:center; justify-content:space-around; background:#0b0f19; border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:10px; margin-bottom:10px; }
-    .cd-m-gfgcdg-item { text-align:center; }
-    .cd-m-gfgcdg-val { font-size:1.2rem; font-weight:900; line-height:1.1; }
-    .cd-m-gfgcdg-lbl { font-size:0.62rem; font-weight:800; color:#b4c0d1; text-transform:uppercase; letter-spacing:.04em; margin-top:2px; }
-    .cd-m-dg-pill { font-size:0.85rem; font-weight:900; padding:5px 12px; border-radius:10px; }
+    .cd-m-pos-pill { display:inline-flex; align-items:center; gap:6px; background:rgba(250,199,117,0.1); color:#fac775; border:1px solid rgba(250,199,117,0.3); font-size:0.78rem; font-weight:900; padding:6px 12px; border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,0.15); margin-bottom:12px; }
+    .cd-m-pjpts-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px; }
+    .cd-m-pjpts-box { background:#0b0f19; border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:10px; text-align:center; }
+    .cd-m-pjpts-box-pts { border-color:rgba(250,199,117,0.2); }
+    .cd-m-pjpts-lbl { font-size:0.62rem; font-weight:800; color:#94a3b8; text-transform:uppercase; letter-spacing:.04em; margin-bottom:3px; }
+    .cd-m-pjpts-val { font-size:1.4rem; font-weight:900; color:#fff; display:flex; align-items:baseline; justify-content:center; gap:4px; }
+    .cd-m-pjpts-unit { font-size:0.7rem; font-weight:700; color:#64748b; }
+    .cd-m-record-row { display:flex; align-items:center; justify-content:center; gap:8px; background:#0b0f19; border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:9px; margin-bottom:10px; font-size:0.78rem; font-weight:900; }
+    .cd-m-record-chip { display:inline-flex; align-items:baseline; gap:4px; padding:4px 10px; border-radius:8px; border:1px solid; }
+    .cd-m-record-sub { font-size:0.6rem; font-weight:800; }
+    .cd-m-record-sep { color:#475569; font-weight:700; }
+    .cd-m-stats-grid { background:#0b0f19; border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:10px; display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px; font-size:0.78rem; }
+    .cd-m-stats-item { display:flex; align-items:center; justify-content:space-between; gap:4px; background:#121827; border:1px solid rgba(255,255,255,0.06); padding:6px 10px; border-radius:8px; }
+    .cd-m-stats-lbl { font-size:0.64rem; font-weight:800; color:#94a3b8; }
+    .cd-m-stats-val { font-size:0.88rem; font-weight:900; }
+    .cd-m-dg-pill { font-size:0.74rem; font-weight:900; padding:3px 8px; border-radius:8px; border:1px solid; }
     .cd-m-eff-head { display:flex; align-items:center; justify-content:space-between; font-size:0.78rem; font-weight:700; color:#f1f5f9; margin-bottom:5px; }
-    .cd-m-eff-bar { width:100%; height:8px; background:#1e293b; border-radius:999px; overflow:hidden; }
+    .cd-m-eff-bar { width:100%; height:8px; background:#1e293b; border-radius:999px; overflow:hidden; border:1px solid rgba(255,255,255,0.08); }
     .cd-m-eff-fill { height:100%; border-radius:999px; }
     .cd-m-list-title { font-size:0.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:#b4c0d1; margin-bottom:8px; }
 
@@ -10791,18 +10794,19 @@ function _cdCondKey(local) {
 // para las 3 tarjetas de resumen (General/Local/Visitante), cada una le
 // pasa su propio subconjunto ya filtrado.
 function _cdSummaryStats(list) {
-  let v = 0, e = 0, d = 0, gf = 0, gc = 0, pj = 0;
+  let v = 0, e = 0, d = 0, gf = 0, gc = 0, pj = 0, vallas = 0;
   for (const m of list) {
     if (m.gf == null || m.gc == null) continue;
     pj++;
     const { csb, riv } = _cdCsbGoles(m);
     gf += csb; gc += riv;
     if (csb > riv) v++; else if (csb < riv) d++; else e++;
+    if (riv === 0) vallas++;
   }
   // Puntos estándar de liga (3 por victoria, 1 por empate) — se derivan acá
   // mismo en vez de leer la tabla de posiciones real, así Local+Visitante
   // siempre suman exacto el total de General sin depender de otra fuente.
-  return { pj, v, e, d, gf, gc, dg: gf - gc, pts: v * 3 + e };
+  return { pj, v, e, d, gf, gc, dg: gf - gc, pts: v * 3 + e, vallas };
 }
 // Barra de "Efectividad" (pts / (pj*3) * 100) con 3 tramos de color —
 // compartida entre la tarjeta General (grande) y Local/Visitante (chica).
@@ -10938,27 +10942,36 @@ function _cdMobileSummaryCardHtml(stats, mode, posActual) {
   const effColor = pct >= 75 ? '#4ade80' : pct >= 50 ? '#60a5fa' : '#f87171';
   const medal = _cdPosMedal(posActual);
   const posPill = (mode === 'general' && posActual)
-    ? `<span class="cd-m-sum-pill" style="background:rgba(250,199,117,0.12);color:#fac775">${medal ? medal + ' ' : ''}${posActual} en la tabla</span>`
+    ? `<div style="display:flex;justify-content:center"><span class="cd-m-pos-pill">${medal ? medal : '🏆'} ${posActual} en la tabla de posiciones</span></div>`
     : '';
+  const effLabel = mode === 'general' ? 'Efectividad General' : mode === 'local' ? 'Efectividad como Local' : 'Efectividad como Visitante';
   return `<div class="cd-m-sum-card" data-cd-m-summary="${mode}"${mode === 'general' ? '' : ' style="display:none"'}>
-    <div class="cd-m-sum-pills">
-      ${posPill}
-      <span class="cd-m-sum-pill" style="background:rgba(151,196,89,0.12);color:#97c459">${s.pts} pts · ${s.pj} PJ</span>
+    ${posPill}
+    <div class="cd-m-pjpts-grid">
+      <div class="cd-m-pjpts-box">
+        <div class="cd-m-pjpts-lbl">Partidos Jugados</div>
+        <div class="cd-m-pjpts-val">${s.pj} <span class="cd-m-pjpts-unit">PJ</span></div>
+      </div>
+      <div class="cd-m-pjpts-box cd-m-pjpts-box-pts">
+        <div class="cd-m-pjpts-lbl" style="color:rgba(250,199,117,0.8)">Puntos Conseguidos</div>
+        <div class="cd-m-pjpts-val" style="color:#fac775">${s.pts} <span class="cd-m-pjpts-unit" style="color:rgba(250,199,117,0.8)">PTS</span></div>
+      </div>
     </div>
-    <div class="cd-m-ved-row">
-      <div class="cd-m-ved-item"><div class="cd-m-ved-val" style="color:#97c459">${s.v}</div><div class="cd-m-ved-lbl">VIC</div></div>
-      <span class="cd-m-ved-sep"></span>
-      <div class="cd-m-ved-item"><div class="cd-m-ved-val" style="color:#fac775">${s.e}</div><div class="cd-m-ved-lbl">EMP</div></div>
-      <span class="cd-m-ved-sep"></span>
-      <div class="cd-m-ved-item"><div class="cd-m-ved-val" style="color:#f09595">${s.d}</div><div class="cd-m-ved-lbl">DER</div></div>
+    <div class="cd-m-record-row">
+      <span class="cd-m-record-chip" style="background:rgba(151,196,89,0.1);border-color:rgba(151,196,89,0.25);color:#97c459">${s.v} <span class="cd-m-record-sub" style="color:rgba(151,196,89,0.8)">PG</span></span>
+      <span class="cd-m-record-sep">—</span>
+      <span class="cd-m-record-chip" style="background:rgba(250,199,117,0.1);border-color:rgba(250,199,117,0.25);color:#fac775">${s.e} <span class="cd-m-record-sub" style="color:rgba(250,199,117,0.8)">PE</span></span>
+      <span class="cd-m-record-sep">—</span>
+      <span class="cd-m-record-chip" style="background:rgba(240,149,149,0.1);border-color:rgba(240,149,149,0.25);color:#f09595">${s.d} <span class="cd-m-record-sub" style="color:rgba(240,149,149,0.8)">PP</span></span>
     </div>
-    <div class="cd-m-gfgcdg-row">
-      <div class="cd-m-gfgcdg-item"><div class="cd-m-gfgcdg-val" style="color:#ef9f27">${s.gf}</div><div class="cd-m-gfgcdg-lbl">GF</div></div>
-      <div class="cd-m-gfgcdg-item"><div class="cd-m-gfgcdg-val" style="color:#f09595">${s.gc}</div><div class="cd-m-gfgcdg-lbl">GC</div></div>
-      <div class="cd-m-gfgcdg-item"><span class="cd-m-dg-pill" style="background:${s.dg >= 0 ? 'rgba(151,196,89,0.12)' : 'rgba(240,149,149,0.12)'};color:${s.dg >= 0 ? '#97c459' : '#f09595'}">${s.dg >= 0 ? '+' : ''}${s.dg} DG</span></div>
+    <div class="cd-m-stats-grid">
+      <div class="cd-m-stats-item"><span class="cd-m-stats-lbl">⚽ GF:</span><span class="cd-m-stats-val" style="color:#ef9f27">${s.gf}</span></div>
+      <div class="cd-m-stats-item"><span class="cd-m-stats-lbl">🛡️ GC:</span><span class="cd-m-stats-val" style="color:#f09595">${s.gc}</span></div>
+      <div class="cd-m-stats-item"><span class="cd-m-stats-lbl">⚖️ Dif:</span><span class="cd-m-dg-pill" style="background:${s.dg >= 0 ? 'rgba(151,196,89,0.1)' : 'rgba(240,149,149,0.1)'};border-color:${s.dg >= 0 ? 'rgba(151,196,89,0.3)' : 'rgba(240,149,149,0.3)'};color:${s.dg >= 0 ? '#97c459' : '#f09595'}">${s.dg >= 0 ? '+' : ''}${s.dg} DG</span></div>
+      <div class="cd-m-stats-item"><span class="cd-m-stats-lbl">🧤 Vallas Inv:</span><span class="cd-m-stats-val" style="color:#85b7eb">${s.vallas}</span></div>
     </div>
     <div class="cd-m-eff">
-      <div class="cd-m-eff-head"><span>Efectividad</span><span style="color:${effColor};font-weight:900">${pct}%</span></div>
+      <div class="cd-m-eff-head"><span>${effLabel}</span><span style="color:${effColor};font-weight:900">${pct}%</span></div>
       <div class="cd-m-eff-bar"><div class="cd-m-eff-fill" style="width:${pct}%;background:${grad}"></div></div>
     </div>
   </div>`;
@@ -10977,7 +10990,7 @@ function _cdMobileSelectorHtml(rows, localList, visitList) {
     { key: 'visitante', label: '✈️ Visitante', title: `PARTIDOS COMO VISITANTE (${visitList.length})` },
   ];
   const railHtml = `<div class="cd-m-sel-rail">
-    ${MODES.map((m, i) => `${i > 0 ? '<span class="cd-m-sel-sep"></span>' : ''}<button type="button" class="cd-m-sel-btn${i === 0 ? ' active' : ''}" data-label="${m.title}" onclick="_cdSetMobileSummary(this, '${m.key}')">${m.label}</button>`).join('')}
+    ${MODES.map((m, i) => `<button type="button" class="cd-m-sel-btn${i === 0 ? ' active' : ''}" data-label="${m.title}" onclick="_cdSetMobileSummary(this, '${m.key}')">${m.label}</button>`).join('')}
   </div>`;
   return `<div class="cd-m-summary-wrap">
     ${railHtml}
