@@ -2803,6 +2803,53 @@
     .cd-metric-box-sm-eff { flex-direction:column; align-items:stretch; text-align:left; gap:4px; }
     .cd-eff-head-sm { display:flex; align-items:center; justify-content:space-between; gap:4px; font-size:0.62rem; font-weight:800; }
     .cd-eff-bar-sm { width:calc(100% - 6px); margin:0 auto; height:6px; background:#1e293b; border-radius:999px; overflow:hidden; }
+
+    /* ── Centro de Datos: tarjetas resumen desktop (cd-sum-*) ── */
+    .cd-summary-icon-boxed { width:34px; height:34px; display:flex; align-items:center; justify-content:center; border-radius:9px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); flex-shrink:0; }
+    .cd-sum-g-row12 { display:grid; grid-template-columns:repeat(12,1fr); gap:10px; }
+    .cd-sum-g-col2 { grid-column:span 2; }
+    .cd-sum-g-col3 { grid-column:span 3; }
+    .cd-sum-g-col4 { grid-column:span 4; }
+    .cd-sum-metric-box { background:#0b0f19; border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:10px 8px; text-align:center; box-shadow:inset 0 1px 2px rgba(0,0,0,0.2); display:flex; flex-direction:column; justify-content:center; }
+    .cd-sum-metric-lbl { font-size:0.6rem; font-weight:800; color:#b4c0d1; text-transform:uppercase; letter-spacing:.03em; margin-bottom:4px; }
+    .cd-sum-metric-val { font-size:1.3rem; font-weight:900; color:#fff; line-height:1.1; }
+    .cd-sum-metric-unit { font-size:0.62rem; font-weight:800; color:#b4c0d1; }
+    .cd-sum-record-box { background:#0b0f19; border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:10px 8px; display:flex; align-items:center; justify-content:center; gap:6px; flex-wrap:wrap; box-shadow:inset 0 1px 2px rgba(0,0,0,0.2); }
+    .cd-sum-record-chip { font-size:0.68rem; font-weight:900; padding:4px 9px; border-radius:8px; border:1px solid transparent; white-space:nowrap; }
+    .cd-sum-record-chip-big { font-size:0.82rem; padding:6px 12px; }
+    .cd-sum-record-sub { font-size:0.6rem; font-weight:800; opacity:.85; }
+    .cd-sum-record-sep { color:#1e293b; font-weight:700; }
+    .cd-sum-eff-box { background:#0b0f19; border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:10px 12px; display:flex; flex-direction:column; justify-content:center; gap:6px; box-shadow:inset 0 1px 2px rgba(0,0,0,0.2); }
+    .cd-sum-eff-head { display:flex; align-items:center; justify-content:space-between; font-size:0.74rem; font-weight:800; }
+    .cd-sum-eff-lbl { color:#f1f5f9; }
+    .cd-sum-eff-bar { width:100%; height:7px; background:#1e293b; border-radius:999px; overflow:hidden; }
+    .cd-sum-eff-fill { height:100%; border-radius:999px; }
+    .cd-sum-eff-sub { font-size:0.6rem; color:#b4c0d1; font-weight:700; text-align:right; }
+    .cd-sum-strip4 { display:grid; grid-template-columns:repeat(4,1fr); border:1px solid rgba(255,255,255,0.08); border-radius:10px; margin-top:10px; }
+    .cd-sum-strip4-item { display:flex; align-items:center; justify-content:center; gap:6px; padding:11px 6px; border-left:1px solid rgba(255,255,255,0.08); flex-wrap:wrap; }
+    .cd-sum-strip4-item:first-child { border-left:0; }
+    .cd-sum-strip4-lbl { font-size:0.66rem; font-weight:700; color:#b4c0d1; white-space:nowrap; }
+    .cd-sum-strip4-val { font-size:0.82rem; font-weight:900; }
+    .cd-sum-split-head-badges { display:flex; align-items:center; gap:8px; }
+    .cd-sum-split-pts-badge { font-size:0.7rem; font-weight:900; padding:4px 10px; border-radius:8px; background:rgba(250,199,117,0.12); color:#fac775; border:1px solid rgba(250,199,117,0.3); white-space:nowrap; }
+    .cd-sum-split-pj { font-size:0.68rem; font-weight:700; color:#b4c0d1; white-space:nowrap; }
+    .cd-sum-split-body { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .cd-sum-split-record { background:#0b0f19; border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:10px 8px; display:flex; align-items:center; justify-content:center; gap:6px; flex-wrap:wrap; font-size:0.72rem; font-weight:900; box-shadow:inset 0 1px 2px rgba(0,0,0,0.2); }
+    .cd-sum-split-eff { background:#0b0f19; border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:10px 10px; display:flex; flex-direction:column; justify-content:center; gap:6px; box-shadow:inset 0 1px 2px rgba(0,0,0,0.2); }
+    .cd-sum-split-eff-head { display:flex; align-items:center; justify-content:space-between; font-size:0.68rem; font-weight:800; color:#f1f5f9; }
+    .cd-sum-split-eff-bar { width:100%; height:6px; background:#1e293b; border-radius:999px; overflow:hidden; }
+    .cd-sum-split-eff-fill { height:100%; border-radius:999px; }
+    .cd-sum-strip4-sm { display:grid; grid-template-columns:repeat(4,1fr); border:1px solid rgba(255,255,255,0.08); border-radius:10px; margin-top:10px; }
+    .cd-sum-strip4-sm > div { text-align:center; padding:8px 4px; border-left:1px solid rgba(255,255,255,0.08); }
+    .cd-sum-strip4-sm > div:first-child { border-left:0; }
+    .cd-sum-strip4-sm-val { font-size:0.8rem; font-weight:900; line-height:1.1; }
+    .cd-sum-strip4-sm-lbl { font-size:0.56rem; font-weight:800; color:#b4c0d1; text-transform:uppercase; letter-spacing:.03em; margin-top:3px; }
+    .cd-sum-strip4-sm-dif { font-size:0.74rem; font-weight:900; padding:2px 8px; border-radius:7px; display:inline-block; }
+    @media (max-width:900px) {
+      .cd-sum-g-row12 { grid-template-columns:repeat(2,1fr); }
+      .cd-sum-g-col2, .cd-sum-g-col3, .cd-sum-g-col4 { grid-column:span 1; }
+    }
+
     .cd-filter-tabs { display:inline-flex; align-items:center; border-radius:10px; padding:4px; gap:2px; background:rgba(255,255,255,0.04); margin-bottom:14px; }
     .cd-filter-tab { border:0; border-radius:7px; padding:7px 14px; font-size:0.78rem; font-weight:700; cursor:pointer; font-family:inherit; background:transparent; color:#f1f5f9; transition:background .15s, color .15s; }
     .cd-filter-tab.active { background:#412402; color:#fac775; }
@@ -10856,65 +10903,90 @@ function _cdSummaryCardHtml(title, list, isGeneral, torneoName) {
   // (_cdPosMedal), unificado acá también.
   const posActual = isGeneral ? [...list].reverse().find(m => m.posCSB)?.posCSB : null;
   const medal = _cdPosMedal(posActual);
+  // Efectividad: mismos 3 tramos de color por umbral que ya usa
+  // _cdEfectividadHtml (mobile) — recalculado acá inline porque el layout
+  // desktop nuevo no encaja en esa función (no se toca, sigue sirviendo a
+  // mobile tal cual).
+  const pct = s.pj > 0 ? Math.round((s.pts / (s.pj * 3)) * 100) : 0;
+  const effColor = pct >= 75 ? '#4ade80' : pct >= 50 ? '#60a5fa' : '#f87171';
+  const effGrad = pct >= 75 ? 'linear-gradient(90deg,#4ade80,#16a34a)'
+    : pct >= 50 ? 'linear-gradient(90deg,#60a5fa,#22d3ee)'
+    : 'linear-gradient(90deg,#f87171,#fb7185)';
+  const dgColor = s.dg >= 0 ? '#97c459' : '#f09595';
   if (isGeneral) {
     return `<div class="cd-summary-card cd-summary-card-general">
       <div class="cd-summary-head-g">
         <div class="cd-summary-head-left">
-          <span class="cd-summary-icon">🏆</span>
+          <span class="cd-summary-icon cd-summary-icon-boxed">🏆</span>
           <div>
             <p class="cd-summary-title-g">${title}</p>
             ${torneoName ? `<p class="cd-summary-subtitle">${torneoName}</p>` : ''}
           </div>
         </div>
-        ${posActual ? `<div class="cd-summary-badges"><span class="cd-summary-badge-lg" style="background:rgba(250,199,117,0.12);color:#fac775">${medal || '🏆'} ${posActual} en la tabla de posiciones</span></div>` : ''}
+        ${posActual ? `<span class="cd-summary-badge-lg" style="background:rgba(250,199,117,0.1);color:#fac775;border:1px solid rgba(250,199,117,0.3)">${medal || '🏆'} ${posActual} en la tabla de posiciones</span>` : ''}
       </div>
-      <div class="cd-metric-grid-4">
-        <div class="cd-metric-box"><div class="cd-metric-lbl" style="margin-top:0">Partidos Jugados</div><div class="cd-metric-val" style="font-size:1.5rem">${s.pj} <span style="font-size:0.7rem;color:#64748b;font-weight:700">PJ</span></div></div>
-        <div class="cd-metric-box"><div class="cd-metric-lbl" style="margin-top:0;color:rgba(250,199,117,0.8)">Puntos Conseguidos</div><div class="cd-metric-val" style="font-size:1.5rem;color:#fac775">${s.pts} <span style="font-size:0.7rem;color:rgba(250,199,117,0.8);font-weight:700">PTS</span></div></div>
-        <div class="cd-metric-box">
-          <div class="cd-metric-ved-row">
-            <div class="cd-metric-item"><div class="cd-metric-val" style="color:#97c459">${s.v}</div><div class="cd-metric-lbl">PG</div></div>
-            <span style="color:#475569;font-weight:700">—</span>
-            <div class="cd-metric-item"><div class="cd-metric-val" style="color:#fac775">${s.e}</div><div class="cd-metric-lbl">PE</div></div>
-            <span style="color:#475569;font-weight:700">—</span>
-            <div class="cd-metric-item"><div class="cd-metric-val" style="color:#f09595">${s.d}</div><div class="cd-metric-lbl">PP</div></div>
-          </div>
+      <div class="cd-sum-g-row12">
+        <div class="cd-sum-metric-box cd-sum-g-col2">
+          <div class="cd-sum-metric-lbl">Partidos Jugados</div>
+          <div class="cd-sum-metric-val">${s.pj} <span class="cd-sum-metric-unit">PJ</span></div>
         </div>
-        ${_cdEfectividadHtml(s.pts, s.pj, true, 'Efectividad General')}
+        <div class="cd-sum-metric-box cd-sum-g-col3" style="border-color:rgba(250,199,117,0.3)">
+          <div class="cd-sum-metric-lbl" style="color:rgba(250,199,117,0.9)">Puntos Conseguidos</div>
+          <div class="cd-sum-metric-val" style="color:#fac775;filter:drop-shadow(0 0 8px rgba(250,199,117,0.25))">${s.pts} <span class="cd-sum-metric-unit" style="color:rgba(250,199,117,0.8)">PTS</span></div>
+        </div>
+        <div class="cd-sum-record-box cd-sum-g-col4">
+          <span class="cd-sum-record-chip cd-sum-record-chip-big" style="background:rgba(151,196,89,0.1);border-color:rgba(151,196,89,0.3);color:#97c459">${s.v} <span class="cd-sum-record-sub">PG</span></span>
+          <span class="cd-sum-record-sep">—</span>
+          <span class="cd-sum-record-chip cd-sum-record-chip-big" style="background:rgba(250,199,117,0.1);border-color:rgba(250,199,117,0.3);color:#fac775">${s.e} <span class="cd-sum-record-sub">PE</span></span>
+          <span class="cd-sum-record-sep">—</span>
+          <span class="cd-sum-record-chip cd-sum-record-chip-big" style="background:rgba(240,149,149,0.1);border-color:rgba(240,149,149,0.3);color:#f09595">${s.d} <span class="cd-sum-record-sub">PP</span></span>
+        </div>
+        <div class="cd-sum-eff-box cd-sum-g-col3">
+          <div class="cd-sum-eff-head"><span class="cd-sum-eff-lbl">Efectividad General</span><span style="color:${effColor}">${pct}%</span></div>
+          <div class="cd-sum-eff-bar"><div class="cd-sum-eff-fill" style="width:${pct}%;background:${effGrad}"></div></div>
+          <div class="cd-sum-eff-sub">${s.pts} / ${s.pj * 3} Puntos</div>
+        </div>
       </div>
-      <div class="cd-metric-box" style="margin-top:10px">
-        <div class="cd-metric-ved-row">
-          <div class="cd-metric-item"><div class="cd-metric-val" style="color:#ef9f27;filter:drop-shadow(0 0 6px rgba(239,159,39,0.5))">${s.gf}</div><div class="cd-metric-lbl">GF</div></div>
-          <div class="cd-metric-item"><div class="cd-metric-val" style="color:#f09595">${s.gc}</div><div class="cd-metric-lbl">GC</div></div>
-          <div class="cd-metric-item"><div class="cd-metric-val" style="color:${s.dg >= 0 ? '#97c459' : '#f09595'}">${s.dg >= 0 ? '+' : ''}${s.dg}</div><div class="cd-metric-lbl">DG</div></div>
-          <div class="cd-metric-item"><div class="cd-metric-val" style="color:#85b7eb">${s.vallas}</div><div class="cd-metric-lbl">Vallas Inv.</div></div>
-        </div>
+      <div class="cd-sum-strip4">
+        <div class="cd-sum-strip4-item"><span class="cd-sum-strip4-lbl">⚽ Goles a Favor:</span><span class="cd-sum-strip4-val" style="color:#ef9f27">${s.gf}</span></div>
+        <div class="cd-sum-strip4-item"><span class="cd-sum-strip4-lbl">🛡️ Goles en Contra:</span><span class="cd-sum-strip4-val" style="color:#f09595">${s.gc}</span></div>
+        <div class="cd-sum-strip4-item"><span class="cd-sum-strip4-lbl">⚖️ Diferencia:</span><span class="cd-sum-record-chip" style="background:${dgColor === '#97c459' ? 'rgba(151,196,89,0.1)' : 'rgba(240,149,149,0.1)'};border-color:${dgColor === '#97c459' ? 'rgba(151,196,89,0.3)' : 'rgba(240,149,149,0.3)'};color:${dgColor}">${s.dg >= 0 ? '+' : ''}${s.dg} DG</span></div>
+        <div class="cd-sum-strip4-item"><span class="cd-sum-strip4-lbl">🧤 Vallas Invictas:</span><span class="cd-sum-strip4-val" style="color:#85b7eb">${s.vallas}</span></div>
       </div>
     </div>`;
   }
-  const effLabelSplit = title === 'Como Local' ? 'Efect. Local' : 'Efect. Visit.';
+  const effLabelSplit = title === 'Como Local' ? 'Efect. Local' : 'Efect. Visitante';
+  const splitIcon = title === 'Como Local' ? '🏠' : '✈️';
+  const splitIconColor = title === 'Como Local' ? 'rgba(250,199,117,0.3)' : 'rgba(133,183,235,0.3)';
   return `<div class="cd-summary-card cd-summary-card-split">
     <div class="cd-summary-head-split">
       <div class="cd-summary-head-left-sm">
-        <span class="cd-summary-icon">${title === 'Como Local' ? '🏠' : '✈️'}</span>
-        <span class="cd-summary-title-sm">${title}</span>
+        <span class="cd-summary-icon cd-summary-icon-boxed" style="border-color:${splitIconColor}">${splitIcon}</span>
+        <h3 class="cd-summary-title-sm">${title}</h3>
+      </div>
+      <div class="cd-sum-split-head-badges">
+        <span class="cd-sum-split-pts-badge">${s.pts} PTS</span>
+        <span class="cd-sum-split-pj">${s.pj} PJ</span>
       </div>
     </div>
-    <div class="cd-metric-grid-4-sm">
-      <div class="cd-metric-box-sm"><span class="cd-metric-record-sm">${s.pj}</span><div class="cd-metric-lbl-sm">PJ</div></div>
-      <div class="cd-metric-box-sm"><span class="cd-metric-record-sm" style="color:#fac775">${s.pts}</span><div class="cd-metric-lbl-sm">PTS</div></div>
-      <div class="cd-metric-box-sm">
-        <span class="cd-metric-record-sm"><span style="color:#97c459">${s.v}PG</span><span style="color:#475569"> - </span><span style="color:#fac775">${s.e}PE</span><span style="color:#475569"> - </span><span style="color:#f09595">${s.d}PP</span></span>
+    <div class="cd-sum-split-body">
+      <div class="cd-sum-split-record">
+        <span style="color:#97c459">${s.v} PG</span>
+        <span class="cd-sum-record-sep">—</span>
+        <span style="color:#fac775">${s.e} PE</span>
+        <span class="cd-sum-record-sep">—</span>
+        <span style="color:#f09595">${s.d} PP</span>
       </div>
-      ${_cdEfectividadHtml(s.pts, s.pj, false, effLabelSplit)}
+      <div class="cd-sum-split-eff">
+        <div class="cd-sum-split-eff-head"><span>${effLabelSplit}</span><span style="color:${effColor}">${pct}%</span></div>
+        <div class="cd-sum-split-eff-bar"><div class="cd-sum-split-eff-fill" style="width:${pct}%;background:${effColor}"></div></div>
+      </div>
     </div>
-    <div class="cd-metric-grid-4-sm" style="margin-top:8px">
-      <div class="cd-metric-box-sm"><span class="cd-metric-record-sm" style="color:#ef9f27">${s.gf}</span><div class="cd-metric-lbl-sm">GF</div></div>
-      <div class="cd-metric-box-sm"><span class="cd-metric-record-sm" style="color:#f09595">${s.gc}</span><div class="cd-metric-lbl-sm">GC</div></div>
-      <div class="cd-metric-box-sm cd-metric-box-sm-center">
-        <span class="cd-metric-dg-badge-sm" style="background:${s.dg >= 0 ? 'rgba(151,196,89,0.12)' : 'rgba(240,149,149,0.12)'};color:${s.dg >= 0 ? '#97c459' : '#f09595'}">${s.dg >= 0 ? '+' : ''}${s.dg} DG</span>
-      </div>
-      <div class="cd-metric-box-sm"><span class="cd-metric-record-sm" style="color:#85b7eb">${s.vallas}</span><div class="cd-metric-lbl-sm">Vallas</div></div>
+    <div class="cd-sum-strip4-sm">
+      <div><div class="cd-sum-strip4-sm-val" style="color:#ef9f27">${s.gf}</div><div class="cd-sum-strip4-sm-lbl">GF</div></div>
+      <div><div class="cd-sum-strip4-sm-val" style="color:#f09595">${s.gc}</div><div class="cd-sum-strip4-sm-lbl">GC</div></div>
+      <div><div class="cd-sum-strip4-sm-dif" style="background:${dgColor === '#97c459' ? 'rgba(151,196,89,0.1)' : 'rgba(240,149,149,0.1)'};color:${dgColor}">${s.dg >= 0 ? '+' : ''}${s.dg} DG</div><div class="cd-sum-strip4-sm-lbl">Dif</div></div>
+      <div><div class="cd-sum-strip4-sm-val" style="color:#85b7eb">${s.vallas}</div><div class="cd-sum-strip4-sm-lbl">Vallas Inv</div></div>
     </div>
   </div>`;
 }
