@@ -2609,6 +2609,43 @@
     }
     .cd-mcard-next { border-color:rgba(245,158,11,0.4); background:linear-gradient(135deg, rgba(245,158,11,0.08), #141d2e 60%); }
     .cd-next-flag { font-size:0.66rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--dorado); margin-bottom:8px; }
+    /* Crónica truncada a 2 líneas en la tarjeta de partido mobile de Centro
+       de Datos — independiente de .cd-obs-wrap (desktop, tabla) para no
+       tocarlo; mismo patrón de expandir/colapsar, solo CSS/clases propias. */
+    .cd-m-obs-wrap { margin-top:8px; }
+    .cd-m-obs-truncated { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; font-size:0.78rem; color:#f1f5f9; line-height:1.4; }
+    .cd-m-obs-truncated.cd-m-obs-expanded { display:block; -webkit-line-clamp:unset; overflow:visible; }
+    .cd-m-obs-toggle { appearance:none; background:transparent; border:0; padding:4px 0 0; margin:0; color:var(--dorado); font-size:0.74rem; font-weight:700; cursor:pointer; font-family:inherit; }
+    .cd-m-res-pill { display:inline-block; padding:4px 10px; border-radius:999px; font-weight:800; font-size:0.78rem; white-space:nowrap; }
+
+    /* ── Centro de Datos (MOBILE): selector General/Local/Visitante que
+       controla a la vez la tarjeta de resumen y la lista de abajo — ver
+       _cdMobileSelectorHtml/_cdSetMobileSummary. Completamente aparte de
+       .cd-summary-wrap/.cd-filter-tabs (desktop): clases propias, nada
+       compartido, para no tocar la vista de escritorio. ── */
+    .cd-m-summary-wrap { display:none; }
+    @media (max-width:768px) { .cd-m-summary-wrap { display:block; margin-bottom:14px; } }
+    .cd-m-sel-rail { display:inline-flex; align-items:center; border-radius:10px; padding:4px; gap:4px; background:rgba(255,255,255,0.04); margin-bottom:12px; }
+    .cd-m-sel-btn { appearance:none; border:0; cursor:pointer; border-radius:7px; padding:7px 12px; font-size:0.78rem; font-weight:700; font-family:inherit; background:transparent; color:#f1f5f9; transition:background .15s, color .15s; }
+    .cd-m-sel-btn.active { background:#412402; color:#fac775; }
+    .cd-m-sel-sep { width:1px; height:16px; background:rgba(255,255,255,0.1); flex-shrink:0; }
+    .cd-m-sum-card { background:#121827; border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:14px; margin-bottom:12px; }
+    .cd-m-sum-pills { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+    .cd-m-sum-pill { font-size:0.74rem; font-weight:900; padding:5px 11px; border-radius:10px; white-space:nowrap; }
+    .cd-m-ved-row { display:flex; align-items:center; justify-content:space-around; background:#0b0f19; border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:10px; margin-bottom:10px; }
+    .cd-m-ved-item { text-align:center; }
+    .cd-m-ved-val { font-size:1.3rem; font-weight:900; line-height:1.1; }
+    .cd-m-ved-lbl { font-size:0.64rem; font-weight:800; color:#b4c0d1; text-transform:uppercase; letter-spacing:.04em; margin-top:2px; }
+    .cd-m-ved-sep { width:1px; height:28px; background:rgba(255,255,255,0.08); }
+    .cd-m-gfgcdg-row { display:flex; align-items:center; justify-content:space-around; background:#0b0f19; border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:10px; margin-bottom:10px; }
+    .cd-m-gfgcdg-item { text-align:center; }
+    .cd-m-gfgcdg-val { font-size:1.2rem; font-weight:900; line-height:1.1; }
+    .cd-m-gfgcdg-lbl { font-size:0.62rem; font-weight:800; color:#b4c0d1; text-transform:uppercase; letter-spacing:.04em; margin-top:2px; }
+    .cd-m-dg-pill { font-size:0.85rem; font-weight:900; padding:5px 12px; border-radius:10px; }
+    .cd-m-eff-head { display:flex; align-items:center; justify-content:space-between; font-size:0.78rem; font-weight:700; color:#f1f5f9; margin-bottom:5px; }
+    .cd-m-eff-bar { width:100%; height:8px; background:#1e293b; border-radius:999px; overflow:hidden; }
+    .cd-m-eff-fill { height:100%; border-radius:999px; }
+    .cd-m-list-title { font-size:0.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:#b4c0d1; margin-bottom:8px; }
 
     /* ── Plantel mobile: filtro Pos + Orden + buscador (ver _plantelMobileCardsHtml) ── */
     .pmf-bar { display:none; }
@@ -2766,6 +2803,11 @@
     .cd-filter-tabs { display:inline-flex; align-items:center; border-radius:10px; padding:4px; gap:2px; background:rgba(255,255,255,0.04); margin-bottom:14px; }
     .cd-filter-tab { border:0; border-radius:7px; padding:7px 14px; font-size:0.78rem; font-weight:700; cursor:pointer; font-family:inherit; background:transparent; color:#f1f5f9; transition:background .15s, color .15s; }
     .cd-filter-tab.active { background:#412402; color:#fac775; }
+    /* Reemplazado en mobile por el selector General/Local/Visitante propio
+       de Centro de Datos (ver .cd-m-sel-rail) — este rail "Todos/Local/
+       Visitante" solo filtraba la tabla de escritorio (.cd-wrap, ya oculta
+       ≤768px) y quedaba visible pero sin efecto en mobile. */
+    @media (max-width:768px) { .cd-filter-tabs { display:none; } }
 
     /* ── Plantel tab ── */
     .ap-plantel-kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
@@ -10573,15 +10615,30 @@ function _cdMobileCardsHtml(rows, opts) {
       m.horario ? `🕐 ${m.horario}` : '',
       m.estadio ? `📍 ${m.estadio}` : '',
     ].filter(Boolean).join(' &bull; ');
+    // Pill de resultado con los colores "nuevos" del resto del sitio
+    // (verde/ámbar/rojo establecidos en Perfil de Jugador/Centro de Datos
+    // desktop) — propio de esta tarjeta mobile, no toca _cdResultadoBadge
+    // (compartido con la tabla de escritorio).
+    const resPill = (() => {
+      if (!played) return `<span class="cd-m-res-pill" style="background:rgba(133,183,235,0.12);color:#85b7eb">Pendiente</span>`;
+      const { csb, riv } = _cdCsbGoles(m);
+      const cls = csb > riv ? { bg: 'rgba(151,196,89,0.12)', c: '#97c459' }
+        : csb < riv ? { bg: 'rgba(240,149,149,0.12)', c: '#f09595' }
+        : { bg: 'rgba(250,199,117,0.12)', c: '#fac775' };
+      return `<span class="cd-m-res-pill" style="background:${cls.bg};color:${cls.c}">${m.resultado || (m.gf + '-' + m.gc)}</span>`;
+    })();
+    const obsHtmlMobile = obsText
+      ? `<div class="cd-m-obs-wrap"><span class="cd-m-obs-text cd-m-obs-truncated">${obsText}</span><button type="button" class="cd-m-obs-toggle" onclick="_cdToggleObsMobile(this)">Ver más ▾</button></div>`
+      : '';
     return `
-      <div class="mrow-card${clickable ? ' clickable' : ''}${isNext ? ' cd-mcard-next' : ''}"${clickAttr}>
+      <div class="mrow-card${clickable ? ' clickable' : ''}${isNext ? ' cd-mcard-next' : ''}" data-cd-cond="${_cdCondKey(m.local)}"${clickAttr}>
         ${isNext ? `<div class="cd-next-flag">⭐ Próximo Partido</div>` : ''}
         <div class="cd-mcard-headrow"><span>${_cdFechaLabel(m.fecha, isCopaRow)}</span><span class="cd-mcard-cond">${condLabel}</span></div>
         <div class="mrow-top">
           <div class="mrow-top-main">
             <div class="mrow-title-row">${_rivalAvatarHtml(m.rival)}<div class="mrow-title">${m.rival}</div></div>
           </div>
-          <div class="mrow-highlight">${_cdResultadoBadge(m)}</div>
+          <div class="mrow-highlight">${resPill}</div>
         </div>
         ${played
           ? `<div class="mrow-secondary">
@@ -10590,7 +10647,8 @@ function _cdMobileCardsHtml(rows, opts) {
             </div>`
           : (scheduleBits ? `<div class="cd-mcard-schedule">${scheduleBits}</div>` : '')}
         ${rachaChip ? `<div style="margin-top:8px">${rachaChip}</div>` : ''}
-        ${played && clickable ? `<div class="cd-mcard-footer">Ver Crónica y Ficha →</div>` : ''}
+        ${obsHtmlMobile}
+        ${played && clickable ? `<div class="cd-mcard-footer">Ver Ficha →</div>` : ''}
       </div>`;
   }).join('');
   return `<div class="mrow-cards">${cardsHtml || '<div class="mrow-empty">📭 Sin datos cargados para este torneo todavía.</div>'}</div>`;
@@ -10728,6 +10786,97 @@ function _cdToggleObs(btn) {
   const expanded = textEl.classList.toggle('cd-obs-expanded');
   btn.textContent = expanded ? '← Ver menos' : 'Ver más →';
 }
+// ── Centro de Datos (MOBILE) ────────────────────────────────────────────
+// Selector General/Local/Visitante propio del mobile, separado por completo
+// de .cd-summary-wrap/.cd-filter-tabs (desktop, ocultos ≤768px) — reusa
+// solo el cálculo ya compartido (_cdSummaryStats/_cdCondKey), ningún estilo
+// ni markup en común, para no tocar la vista de escritorio.
+function _cdToggleObsMobile(btn) {
+  const wrap = btn.closest('.cd-m-obs-wrap');
+  const textEl = wrap.querySelector('.cd-m-obs-truncated');
+  const expanded = textEl.classList.toggle('cd-m-obs-expanded');
+  btn.textContent = expanded ? 'Ver menos ▴' : 'Ver más ▾';
+}
+// Medalla solo para 1°-3° puesto real — a diferencia del badge de posición
+// de la tarjeta General de desktop (_cdSummaryCardHtml), que siempre pone
+// 🥇 sin mirar el puesto real. No se toca esa función (desktop) para no
+// introducir ahí un cambio visual no pedido; acá sí se calcula bien.
+function _cdPosMedal(pos) {
+  const n = parseInt(String(pos || '').replace('°', ''), 10);
+  return n === 1 ? '🥇' : n === 2 ? '🥈' : n === 3 ? '🥉' : '';
+}
+function _cdMobileSummaryCardHtml(stats, mode, posActual) {
+  const s = stats;
+  const pct = s.pj > 0 ? Math.round((s.pts / (s.pj * 3)) * 100) : 0;
+  const grad = pct >= 75 ? 'linear-gradient(90deg,#4ade80,#16a34a)'
+    : pct >= 50 ? 'linear-gradient(90deg,#60a5fa,#22d3ee)'
+    : 'linear-gradient(90deg,#f87171,#fb7185)';
+  const effColor = pct >= 75 ? '#4ade80' : pct >= 50 ? '#60a5fa' : '#f87171';
+  const medal = _cdPosMedal(posActual);
+  const posPill = (mode === 'general' && posActual)
+    ? `<span class="cd-m-sum-pill" style="background:rgba(250,199,117,0.12);color:#fac775">${medal ? medal + ' ' : ''}${posActual} en la tabla</span>`
+    : '';
+  return `<div class="cd-m-sum-card" data-cd-m-summary="${mode}"${mode === 'general' ? '' : ' style="display:none"'}>
+    <div class="cd-m-sum-pills">
+      ${posPill}
+      <span class="cd-m-sum-pill" style="background:rgba(151,196,89,0.12);color:#97c459">${s.pts} pts · ${s.pj} PJ</span>
+    </div>
+    <div class="cd-m-ved-row">
+      <div class="cd-m-ved-item"><div class="cd-m-ved-val" style="color:#97c459">${s.v}</div><div class="cd-m-ved-lbl">VIC</div></div>
+      <span class="cd-m-ved-sep"></span>
+      <div class="cd-m-ved-item"><div class="cd-m-ved-val" style="color:#fac775">${s.e}</div><div class="cd-m-ved-lbl">EMP</div></div>
+      <span class="cd-m-ved-sep"></span>
+      <div class="cd-m-ved-item"><div class="cd-m-ved-val" style="color:#f09595">${s.d}</div><div class="cd-m-ved-lbl">DER</div></div>
+    </div>
+    <div class="cd-m-gfgcdg-row">
+      <div class="cd-m-gfgcdg-item"><div class="cd-m-gfgcdg-val" style="color:#ef9f27">${s.gf}</div><div class="cd-m-gfgcdg-lbl">GF</div></div>
+      <div class="cd-m-gfgcdg-item"><div class="cd-m-gfgcdg-val" style="color:#f09595">${s.gc}</div><div class="cd-m-gfgcdg-lbl">GC</div></div>
+      <div class="cd-m-gfgcdg-item"><span class="cd-m-dg-pill" style="background:${s.dg >= 0 ? 'rgba(151,196,89,0.12)' : 'rgba(240,149,149,0.12)'};color:${s.dg >= 0 ? '#97c459' : '#f09595'}">${s.dg >= 0 ? '+' : ''}${s.dg} DG</span></div>
+    </div>
+    <div class="cd-m-eff">
+      <div class="cd-m-eff-head"><span>Efectividad</span><span style="color:${effColor};font-weight:900">${pct}%</span></div>
+      <div class="cd-m-eff-bar"><div class="cd-m-eff-fill" style="width:${pct}%;background:${grad}"></div></div>
+    </div>
+  </div>`;
+}
+// Rail + 3 tarjetas de resumen (una visible por vez, vía display) + título
+// de la lista de abajo — todo scopeado por instanceId, mismo criterio que
+// _cdSetFilter, así conviven varias vistas de Centro de Datos sin pisarse.
+function _cdMobileSelectorHtml(rows, localList, visitList) {
+  const statsGeneral = _cdSummaryStats(rows);
+  const statsLocal = _cdSummaryStats(localList);
+  const statsVisit = _cdSummaryStats(visitList);
+  const posActual = [...rows].reverse().find(m => m.posCSB)?.posCSB;
+  const MODES = [
+    { key: 'general', label: 'General', title: `PARTIDOS (${rows.length})` },
+    { key: 'local', label: '🏠 Local', title: `PARTIDOS COMO LOCAL (${localList.length})` },
+    { key: 'visitante', label: '✈️ Visitante', title: `PARTIDOS COMO VISITANTE (${visitList.length})` },
+  ];
+  const railHtml = `<div class="cd-m-sel-rail">
+    ${MODES.map((m, i) => `${i > 0 ? '<span class="cd-m-sel-sep"></span>' : ''}<button type="button" class="cd-m-sel-btn${i === 0 ? ' active' : ''}" data-label="${m.title}" onclick="_cdSetMobileSummary(this, '${m.key}')">${m.label}</button>`).join('')}
+  </div>`;
+  return `<div class="cd-m-summary-wrap">
+    ${railHtml}
+    ${_cdMobileSummaryCardHtml(statsGeneral, 'general', posActual)}
+    ${_cdMobileSummaryCardHtml(statsLocal, 'local')}
+    ${_cdMobileSummaryCardHtml(statsVisit, 'visitante')}
+    <div class="cd-m-list-title" data-cd-m-title>${MODES[0].title}</div>
+  </div>`;
+}
+function _cdSetMobileSummary(btn, mode) {
+  const wrap = btn.closest('.cd-m-summary-wrap');
+  const container = wrap && wrap.parentElement;
+  if (!wrap || !container) return;
+  wrap.querySelectorAll('.cd-m-sel-btn').forEach(b => b.classList.toggle('active', b === btn));
+  wrap.querySelectorAll('[data-cd-m-summary]').forEach(c => { c.style.display = c.dataset.cdMSummary === mode ? '' : 'none'; });
+  const titleEl = wrap.querySelector('[data-cd-m-title]');
+  if (titleEl) titleEl.textContent = btn.dataset.label;
+  // La lista de partidos (.mrow-cards) es hermana de .cd-m-summary-wrap
+  // dentro del mismo contenedor de instancia — ver buildCentroDatosHtml.
+  container.querySelectorAll('.mrow-card[data-cd-cond]').forEach(card => {
+    card.style.display = (mode === 'general' || card.dataset.cdCond === mode) ? '' : 'none';
+  });
+}
 function buildCentroDatosHtml(matches, opts) {
   opts = opts || {};
   const tabFn = opts.tabFn || 'apSwitchTab';
@@ -10800,7 +10949,9 @@ function buildCentroDatosHtml(matches, opts) {
       <tbody>${trs}</tbody>
     </table>
   </div>
-  </div>${_cdMobileCardsHtml(rows, opts)}`;
+  ${_cdMobileSelectorHtml(rows, localList, visitList)}
+  ${_cdMobileCardsHtml(rows, opts)}
+  </div>`;
 }
 
 // ──────────────────────────────────────────────
