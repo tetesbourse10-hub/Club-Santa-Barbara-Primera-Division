@@ -6312,8 +6312,20 @@ function _ppImpactIconsHtml(p) {
 // el nombre de la fase (parseado desde la sheet), se prioriza ese valor sobre
 // el mapeo fijo — solo se usa el mapeo como fallback.
 const PP_FASE_MAP = { '1': 'Octavos de Final', '2': 'Cuartos de Final', '3': 'Semifinal', '4': 'Final' };
+// Partidos post-torneo puntuales (playoff de desempate / promoción-
+// descenso): llevan una fecha numérica real en el sheet pero no son fecha
+// de liga regular — mismos nombres que ya usa Centro de Datos para estas 2
+// temporadas (ver AP24D_FECHA_LABELS / HISTORICO_GENERIC['clausura-2024c-b']
+// .fechaLabels), para que el listado de partidos del jugador no siga
+// mostrando "Fecha 16".
+const PP_POST_TORNEO_FECHA_LABELS = {
+  'Apertura AIFA D 2024': { '16': 'Final Desempate' },
+  'Clausura AIFA C 2024': { '16': 'Promoción' },
+};
 function _ppMatchLabel(p) {
   if (!p.fecha) return '';
+  const postTorneoLabel = PP_POST_TORNEO_FECHA_LABELS[p.torneo]?.[String(p.fecha)];
+  if (postTorneoLabel) return postTorneoLabel;
   if (!p.esCopa) return 'Fecha ' + p.fecha;
   if (p.posCSB && /octavos|cuartos|semi|final/i.test(p.posCSB)) return p.posCSB;
   return PP_FASE_MAP[String(p.fecha)] || (p.posCSB || 'Fecha ' + p.fecha);
@@ -10479,9 +10491,15 @@ function _cdPosicion(m, isCopa) {
   return csb || riv || '<span class="cd-dim">—</span>';
 }
 
-function _cdFechaLabel(fecha, isCopa) {
+// overrideLabels (ej. {16: 'Final Desempate'}): mismo mapa que ya usa cada
+// temporada para renombrar el botón de "Fecha a Fecha" de un partido post-
+// torneo (playoff/promoción) sin tocar el número de fecha real — acá se
+// reusa para que Centro de Datos muestre la MISMA etiqueta en vez de
+// "Fecha 16".
+function _cdFechaLabel(fecha, isCopa, overrideLabels) {
   const f = String(fecha ?? '').trim();
   if (!f) return '<span class="cd-dim">—</span>';
+  if (overrideLabels && overrideLabels[f]) return overrideLabels[f];
   if (isCopa || !/^\d+$/.test(f)) return f.toUpperCase() === 'COPA' ? '🏆 COPA' : f;
   return 'Fecha ' + f;
 }
@@ -10760,7 +10778,7 @@ function _cdMobileCardsHtml(rows, opts) {
     return `
       <div class="mrow-card${clickable ? ' clickable' : ''}${isNext ? ' cd-mcard-next' : ''}" data-cd-cond="${_cdCondKey(m.local)}"${clickAttr}>
         ${isNext ? `<div class="cd-next-flag">⭐ Próximo Partido</div>` : ''}
-        <div class="cd-mcard-headrow"><span>${_cdFechaLabel(m.fecha, isCopaRow)}</span><span class="cd-mcard-cond">${condLabel}</span></div>
+        <div class="cd-mcard-headrow"><span>${_cdFechaLabel(m.fecha, isCopaRow, opts.fechaLabels)}</span><span class="cd-mcard-cond">${condLabel}</span></div>
         <div class="mrow-top">
           <div class="mrow-top-main">
             <div class="mrow-title-row">${_rivalAvatarHtml(m.rival)}<div class="mrow-title">${m.rival}</div></div>
@@ -10983,10 +11001,15 @@ function _cdMobileSummaryCardHtml(stats, mode, posActual) {
 // Rail + 3 tarjetas de resumen (una visible por vez, vía display) + título
 // de la lista de abajo — todo scopeado por instanceId, mismo criterio que
 // _cdSetFilter, así conviven varias vistas de Centro de Datos sin pisarse.
-function _cdMobileSelectorHtml(rows, localList, visitList) {
-  const statsGeneral = _cdSummaryStats(rows);
-  const statsLocal = _cdSummaryStats(localList);
-  const statsVisit = _cdSummaryStats(visitList);
+function _cdMobileSelectorHtml(rows, localList, visitList, excludeStatsFechas) {
+  // Mismo criterio que la versión desktop (ver forStats en buildCentroDatosHtml):
+  // los partidos post-torneo siguen contando para el título "PARTIDOS (N)"
+  // y aparecen en la lista de abajo, pero no en el resumen de rendimiento.
+  const excludeSet = new Set((excludeStatsFechas || []).map(String));
+  const forStats = l => excludeSet.size ? l.filter(m => !excludeSet.has(String(m.fecha))) : l;
+  const statsGeneral = _cdSummaryStats(forStats(rows));
+  const statsLocal = _cdSummaryStats(forStats(localList));
+  const statsVisit = _cdSummaryStats(forStats(visitList));
   const posActual = [...rows].reverse().find(m => m.posCSB)?.posCSB;
   const MODES = [
     { key: 'general', label: 'General', title: `PARTIDOS (${rows.length})` },
@@ -11035,11 +11058,19 @@ function buildCentroDatosHtml(matches, opts) {
   const instanceId = 'cd-' + (opts.instanceKey || opts.tabFn || 'default') + '-' + (opts.fechaFn || 'default');
   const localList = rows.filter(m => _cdCondKey(m.local) === 'local');
   const visitList = rows.filter(m => _cdCondKey(m.local) === 'visitante');
+  // Partidos post-torneo (playoff de desempate, promoción/descenso) — se
+  // siguen listando en la tabla/tarjetas normalmente (son partidos reales),
+  // pero no suman al resumen de rendimiento (V-E-D/GF/GC/puntos/
+  // efectividad): no son parte de la temporada regular. opts.excludeStatsFechas
+  // es un array de números de fecha (ej. ['16']), solo lo pasan las 1-2
+  // temporadas puntuales que lo necesitan.
+  const excludeStatsSet = new Set((opts.excludeStatsFechas || []).map(String));
+  const forStats = l => excludeStatsSet.size ? l.filter(m => !excludeStatsSet.has(String(m.fecha))) : l;
   const summaryHtml = `<div class="cd-summary-wrap">
-    ${_cdSummaryCardHtml('Rendimiento General', rows, true, opts.torneoName)}
+    ${_cdSummaryCardHtml('Rendimiento General', forStats(rows), true, opts.torneoName)}
     <div class="cd-summary-grid">
-      ${_cdSummaryCardHtml('Como Local', localList, false)}
-      ${_cdSummaryCardHtml('Como Visitante', visitList, false)}
+      ${_cdSummaryCardHtml('Como Local', forStats(localList), false)}
+      ${_cdSummaryCardHtml('Como Visitante', forStats(visitList), false)}
     </div>
   </div>
   <div class="cd-filter-tabs">
@@ -11064,7 +11095,7 @@ function buildCentroDatosHtml(matches, opts) {
       ? `<div class="cd-obs-wrap"><span class="cd-obs-text cd-obs-truncated">${m.obs}</span><button type="button" class="cd-obs-toggle" onclick="_cdToggleObs(this)">Ver más →</button></div>`
       : (rachaChip ? '' : '<span class="cd-dim">—</span>');
     return `<tr${trAttrs}>
-      <td class="cd-td-fecha">${_cdFechaLabel(m.fecha, isCopaRow)}</td>
+      <td class="cd-td-fecha">${_cdFechaLabel(m.fecha, isCopaRow, opts.fechaLabels)}</td>
       <td class="cd-td-rival">
         <div class="cd-rival-name">${_rivalAvatarHtml(m.rival)}${m.rival}</div>
         <div class="cd-cond">${_cdCondicion(m.local)}</div>
@@ -11090,7 +11121,7 @@ function buildCentroDatosHtml(matches, opts) {
       <tbody>${trs}</tbody>
     </table>
   </div>
-  ${_cdMobileSelectorHtml(rows, localList, visitList)}
+  ${_cdMobileSelectorHtml(rows, localList, visitList, opts.excludeStatsFechas)}
   ${_cdMobileCardsHtml(rows, opts)}
   </div>`;
 }
@@ -11775,7 +11806,7 @@ function renderTorneoApertura2025A() {
 // just parameterized so we don't hand-copy this ~250-line component per season.
 // Only one of these is ever on screen at a time, so fixed "gh-" ids are safe —
 // each call fully replaces the shared container's innerHTML.
-function renderTorneoHistoricoGeneric(d, name, fechaLabels) {
+function renderTorneoHistoricoGeneric(d, name, fechaLabels, excludeStatsFechas) {
   const CONTAINER = 'torneo-historico-generic-content';
   fechaLabels = fechaLabels || {};
   const FECHA_TARGET = 'gh-fecha-detail';
@@ -12015,7 +12046,7 @@ function renderTorneoHistoricoGeneric(d, name, fechaLabels) {
     </nav>
 
     <div class="ap-tab-panel active" id="gh-tab-datos">
-      ${buildCentroDatosHtml(d.partidos || [], { tabFn: 'ghSwitchTab', fechaFn: 'ghSelectFecha', torneoName: name })}
+      ${buildCentroDatosHtml(d.partidos || [], { tabFn: 'ghSwitchTab', fechaFn: 'ghSelectFecha', torneoName: name, fechaLabels, excludeStatsFechas })}
     </div>
 
     <div class="ap-tab-panel" id="gh-tab-plantel">
@@ -12607,9 +12638,12 @@ const HISTORICO_GENERIC = {
     tablaFix: [{ equipo: 'LOS MOLINOS', patch: { pts: 32, pj: 15, pg: 10, pe: 2, pp: 3 } }] },
   // The 16th match (vs SHOLEM ROJO) was a promotion/relegation playoff, not a
   // regular matchday — relabel it without changing the underlying fecha
-  // number used for sorting/matching.
+  // number used for sorting/matching, and exclude it from Centro de Datos'
+  // V-E-D/GF/GC/puntos/efectividad summary (post-tournament match, doesn't
+  // count toward the regular-season table).
   'clausura-2024c-b': { d: DATA_B_CL2024C, sheet: 'B_HIST', gid: 1938147752, name: 'Clausura AIFA C 2024',
     plantel: 'L3:X33', fecha: 'A20:J562', tabla: 'L37:V53', basico: 'A1:Z17', fechaLabels: { 16: 'Promoción' },
+    excludeStatsFechas: ['16'],
     // The básico table's Promoción row (vs SHOLEM ROJO) has a blank Fecha
     // cell — patch it to 16 so it isn't dropped by the numeric-fecha filter.
     basicoFechaFix: [{ rival: 'SHOLEM ROJO', fecha: '16' }],
@@ -12666,10 +12700,10 @@ function openHistoricoGenerico(key) {
   if (!cfg) return;
   const el = document.getElementById('tab-torneo-historico-generic');
   if (el) el.classList.add('active');
-  renderTorneoHistoricoGeneric(cfg.d, cfg.name, cfg.fechaLabels);
+  renderTorneoHistoricoGeneric(cfg.d, cfg.name, cfg.fechaLabels, cfg.excludeStatsFechas);
   if (!_historicoGenericLoaded[key]) {
     _loadHistoricoGeneric(key, cfg.d, cfg).then(() => {
-      if (_historicoGenericLoaded[key]) renderTorneoHistoricoGeneric(cfg.d, cfg.name, cfg.fechaLabels);
+      if (_historicoGenericLoaded[key]) renderTorneoHistoricoGeneric(cfg.d, cfg.name, cfg.fechaLabels, cfg.excludeStatsFechas);
     });
   }
 }
@@ -12926,7 +12960,7 @@ function renderTorneoApt2024DB() {
         <button class="ap-tab-btn"        data-tab="detalladas" onclick="ap24dSwitchTab('detalladas')"> <span class="ap-tab-icon">🔍</span> Estadísticas Detalladas</button>
       </nav>
       <div class="ap-tab-panel active" id="ap24d-tab-datos">
-        ${buildCentroDatosHtml(d.partidos || [], { tabFn: 'ap24dSwitchTab', fechaFn: 'ap24dSelectFecha', torneoName: name })}
+        ${buildCentroDatosHtml(d.partidos || [], { tabFn: 'ap24dSwitchTab', fechaFn: 'ap24dSelectFecha', torneoName: name, fechaLabels: AP24D_FECHA_LABELS, excludeStatsFechas: ['16'] })}
       </div>
       <div class="ap-tab-panel" id="ap24d-tab-plantel">${buildPlantelTab()}</div>
       <div class="ap-tab-panel" id="ap24d-tab-tabla">
@@ -20024,6 +20058,10 @@ async function loadLiveData() {
     const t = parseTablaSheet(ok(bApTabla));
     if (t.length >= 5) DATA_B_APERTURA2026.tabla = t;
   }
+  // GEBA AZUL's row keeps coming back con PTS/PJ/PG/PE en 0 sin importar
+  // cómo se lean las columnas del sheet (mismo patrón que tablaFix de
+  // HISTORICO_GENERIC) — club-confirmado: 34 pts, 15 PJ, 10 PG, 4 PE.
+  _applyTablaFix(DATA_B_APERTURA2026.tabla, [{ equipo: 'GEBA AZUL', patch: { pts: 34, pj: 15, pg: 10, pe: 4 } }]);
 
   // PRIMERA B — Clausura AIFA B 2026 (live season, own new sheet tab → DATA_B).
   // bClTabla es la fuente real de la tabla de posiciones (el gid propio del
