@@ -7411,6 +7411,7 @@ function _ppV2Render() {
   if (window._pp2Aporte === 'goles') filtered = filtered.filter(p => p.goles > 0);
   else if (window._pp2Aporte === 'asist') filtered = filtered.filter(p => p.asist > 0);
   else if (window._pp2Aporte === 'ga') filtered = filtered.filter(p => p.goles > 0 || p.asist > 0);
+  else if (window._pp2Aporte === 'vallas') filtered = filtered.filter(p => _csbGoles(p).riv === 0);
   if (window._pp2RojasOnly) filtered = filtered.filter(p => p.rojas > 0);
 
   // Cada resultado tiene su propio color fijo (verde/ámbar/rojo) vía punto
@@ -7471,11 +7472,15 @@ function _ppV2Render() {
   </div>`;
   // Filtro de Aporte: solo etiqueta + emoji, sin cantidades al lado (los
   // totales reales ya se ven en las tarjetas de Métricas de arriba).
+  // "Vallas" solo se ofrece para arqueros/defensores (showVallasSector),
+  // mismo criterio que ya usa la tarjeta "Vallas Invictas" de arriba — para
+  // el resto de posiciones ese dato ni se muestra ni tiene sentido filtrar.
   const APORTE_TABS = [
     { value: 'todos', label: 'Partidos', icon: '📋' },
     { value: 'goles', label: 'Goles', icon: '⚽' },
     { value: 'asist', label: 'Asistencias', icon: '🎯' },
     { value: 'ga', label: 'G+A', icon: '🔥' },
+    ...(showVallasSector ? [{ value: 'vallas', label: 'Vallas', icon: '🧤' }] : []),
   ];
   const aporteTabsHtml = `<div class="inline-flex items-center rounded-[10px] p-1 gap-1" style="background:rgba(255,255,255,0.04)">
     ${APORTE_TABS.map((o, i) => {
