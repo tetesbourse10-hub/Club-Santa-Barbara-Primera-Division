@@ -13301,7 +13301,10 @@ function renderResumen() {
   // vienen las filas del sheet).
   const ultimo = ultimos[0] || null;
   const ultimoRes = ultimo ? (({ csb, riv }) => csb > riv ? 'win' : csb < riv ? 'loss' : 'draw')(_csbGoles(ultimo)) : null;
-  const proximo = (d.partidos || []).find(p => p.gf == null || p.gc == null) || null;
+  // Elegido por fecha real, no por orden de grilla — ver _nextPendingPartido
+  // (mismo BUG REAL que _teamNextMatch: una fecha postergada no debe tapar
+  // una fecha posterior que en verdad se juega antes).
+  const proximo = _nextPendingPartido(d)?.m || null;
 
   // ── Datos para el rediseño desktop (Tailwind) del Bloque 1 ──
   // "Último Partido": goleadores/asistidores del partido puntual, derivados
@@ -19021,7 +19024,20 @@ function _countdownParts(target) {
 // Next PENDING league match for a team's live season — same "next"/"detNext"
 // pattern already used by the Torneos Actuales "Próximo Partido" card,
 // reused here so the landing banner reads from that exact same source.
-function _teamNextMatch(d, navKey) {
+// Partido pendiente cronológicamente más próximo de una temporada (liga),
+// según su fecha/hora REAL (d.apertura) — no el primero en orden de grilla
+// (número de fecha). BUG REAL encontrado (fecha 8 suspendida por lluvia y
+// reprogramada para el miércoles, pero la fecha 9 sí se jugaba el sábado
+// anterior a esa reprogramación): tanto _teamNextMatch (casilla de Próximo
+// Partido de la Home) como el módulo "Actualidad" de renderResumen() (el
+// mismo card, pero arriba de la sección de cada plantel) elegían acá el
+// primer pendiente EN ORDEN DE GRILLA, sin mirar la fecha real — una
+// postergación corre la fecha real para adelante sin cambiar su número de
+// fecha, así que el número de fecha ya no sirve para decidir cuál es
+// cronológicamente el próximo. Se centraliza acá para que las dos vistas
+// compartan el mismo criterio en vez de duplicarlo (y poder arreglar las
+// dos de una, como pasó con este mismo bug).
+function _nextPendingPartido(d) {
   const partidos = (d.partidos || []).filter(m => /^\d+$/.test(m.fecha));
   const pending = partidos.filter(m => m.resultado === null);
   if (!pending.length) return null;
@@ -19029,23 +19045,21 @@ function _teamNextMatch(d, navKey) {
     const det = (d.apertura || []).find(a => String(a.fecha) === String(m.fecha));
     return { m, det, dt: det ? _parseFechaHora(det.dia, det.hora) : null };
   });
-  // BUG REAL encontrado (fecha 8 suspendida por lluvia y reprogramada para
-  // el miércoles, pero la fecha 9 sí se jugaba el sábado anterior a esa
-  // reprogramación): acá se elegía como "próximo partido" el primer
-  // pendiente EN ORDEN DE GRILLA (fecha 8 antes que fecha 9), sin mirar la
-  // fecha real del partido — una postergación corre la fecha real para
-  // adelante sin cambiar su número de fecha, así que el número de fecha ya
-  // no sirve para decidir cuál es cronológicamente el próximo. Se ordena
-  // por `dt` real cuando está disponible (los partidos sin fecha/hora
-  // confirmada todavía quedan al final, en su mismo orden relativo, vía
-  // sort estable).
+  // Se ordena por `dt` real cuando está disponible (los partidos sin
+  // fecha/hora confirmada todavía quedan al final, en su mismo orden
+  // relativo, vía sort estable).
   candidates.sort((a, b) => {
     if (a.dt && b.dt) return a.dt.getTime() - b.dt.getTime();
     if (a.dt) return -1;
     if (b.dt) return 1;
     return 0;
   });
-  const { m: next, det } = candidates[0];
+  return candidates[0];
+}
+function _teamNextMatch(d, navKey) {
+  const cand = _nextPendingPartido(d);
+  if (!cand) return null;
+  const { m: next, det } = cand;
   // BUG REAL encontrado (Primera A no mostraba la ubicación en la casilla de
   // Próximo Partido del home, aunque el sheet sí la tenía cargada, mientras
   // Primera B sí la mostraba): el bloque detallado de Fecha a Fecha de
