@@ -19024,9 +19024,28 @@ function _countdownParts(target) {
 function _teamNextMatch(d, navKey) {
   const partidos = (d.partidos || []).filter(m => /^\d+$/.test(m.fecha));
   const pending = partidos.filter(m => m.resultado === null);
-  const next = pending[0];
-  if (!next) return null;
-  const det = (d.apertura || []).find(m => String(m.fecha) === String(next.fecha));
+  if (!pending.length) return null;
+  const candidates = pending.map(m => {
+    const det = (d.apertura || []).find(a => String(a.fecha) === String(m.fecha));
+    return { m, det, dt: det ? _parseFechaHora(det.dia, det.hora) : null };
+  });
+  // BUG REAL encontrado (fecha 8 suspendida por lluvia y reprogramada para
+  // el miércoles, pero la fecha 9 sí se jugaba el sábado anterior a esa
+  // reprogramación): acá se elegía como "próximo partido" el primer
+  // pendiente EN ORDEN DE GRILLA (fecha 8 antes que fecha 9), sin mirar la
+  // fecha real del partido — una postergación corre la fecha real para
+  // adelante sin cambiar su número de fecha, así que el número de fecha ya
+  // no sirve para decidir cuál es cronológicamente el próximo. Se ordena
+  // por `dt` real cuando está disponible (los partidos sin fecha/hora
+  // confirmada todavía quedan al final, en su mismo orden relativo, vía
+  // sort estable).
+  candidates.sort((a, b) => {
+    if (a.dt && b.dt) return a.dt.getTime() - b.dt.getTime();
+    if (a.dt) return -1;
+    if (b.dt) return 1;
+    return 0;
+  });
+  const { m: next, det } = candidates[0];
   // BUG REAL encontrado (Primera A no mostraba la ubicación en la casilla de
   // Próximo Partido del home, aunque el sheet sí la tenía cargada, mientras
   // Primera B sí la mostraba): el bloque detallado de Fecha a Fecha de
