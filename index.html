@@ -2107,6 +2107,10 @@
     }
     .rsm-actualidad-card .rsm-match-rival { text-align:left; }
     .rsm-actualidad-meta { font-size:0.72rem; color:#cbd5e1; margin-top:2px; }
+    /* Botón "Cómo llegar" del módulo Actualidad mobile — mismo link que la
+       versión desktop (ver _mapsUrlFor), acá como línea de texto clickeable
+       en vez de card aparte para no agrandar la tarjeta. */
+    .rsm-actualidad-maps { display:flex; align-items:center; gap:3px; font-size:0.68rem; color:#fbbf24; margin-top:4px; font-weight:700; text-decoration:none; }
     .rsm-actualidad-empty { font-size:0.74rem; color:#475569; }
     /* "Próximo Partido" no tiene resultado (sin border-top de color ni
        fondo distinguido, a diferencia de "Último Partido" con .win/.draw/
@@ -13566,6 +13570,9 @@ function renderResumen() {
               <div class="rsm-match-rival"><span class="rsm-match-crest">${_crestImgHtml(proximo.rival)}</span>vs ${proximo.rival}</div>
               <div class="rsm-actualidad-meta">${[proximo.fecha ? 'Fecha ' + proximo.fecha : '', _rsmLocalTxt(proximo.local)].filter(Boolean).join(' · ')}</div>
               <span class="rsm-match-torneo ${ultimoBadgeCls(clausuraLabel)}">${proximoDiaHora || proximoDiaFmt}</span>
+              ${(proximo.lugar || proximo.estadio) ? (proximoMapsUrl ? `
+                <a href="${proximoMapsUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="rsm-actualidad-maps">📍 ${proximo.lugar || proximo.estadio}</a>
+              ` : `<div class="rsm-actualidad-meta">📍 ${proximo.lugar || proximo.estadio}</div>`) : ''}
             ` : `<div class="rsm-actualidad-empty">Torneo finalizado</div>`}
           </div>
         </div>
