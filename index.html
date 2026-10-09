@@ -7921,7 +7921,7 @@ function _ppV2Render() {
       <span>${resCounts[v]}</span><span class="text-[9px] uppercase font-bold" style="opacity:.75">${m2VedLabels[v]}</span>
     </button>`;
   }).join('');
-  const m2TorneoTabsHtml = `<div class="flex items-center gap-1.5 overflow-x-auto text-xs pb-1 no-scrollbar">
+  const m2TorneoTabsHtml = `<div id="pp-m2-torneo-scroll" class="flex items-center gap-1.5 overflow-x-auto text-xs pb-1 no-scrollbar">
     ${TORNEO_TABS.map(o => {
       const active = window._pp2Tipo === o.value;
       return `<button onclick="_ppV2SetTipo('${o.value}')" class="appearance-none border font-extrabold px-3 py-1 rounded-xl shrink-0" style="${active ? 'border-color:#412402;background:#412402;color:#fac775' : 'border-color:#1e293b;background:#0b0f19;color:#f1f5f9'}">${o.label} (${o.count})</button>`;
@@ -7956,7 +7956,7 @@ function _ppV2Render() {
         <div class="flex items-center gap-1.5">${m2VedBtns}</div>
       </div>
       ${m2TorneoTabsHtml}
-      <div class="flex items-center gap-1.5 overflow-x-auto text-xs pt-2 no-scrollbar" style="border-top:1px solid rgba(255,255,255,0.06)">
+      <div id="pp-m2-aporte-scroll" class="flex items-center gap-1.5 overflow-x-auto text-xs pt-2 no-scrollbar" style="border-top:1px solid rgba(255,255,255,0.06)">
         ${m2ResumenBtnHtml}
         <span class="text-slate-700 font-bold shrink-0">|</span>
         ${viewMode === 'resumen' ? m2SortTabsHtml : m2AporteTabsHtml}
@@ -8023,7 +8023,29 @@ function _ppV2Render() {
   const modalsWrap = document.getElementById('pp2-modals');
   if (modalsWrap) modalsWrap.innerHTML = modalTitulos + modalRankings;
   const m2wrap = document.getElementById('pp-m2-wrap');
-  if (m2wrap) m2wrap.innerHTML = mobileHtml;
+  if (m2wrap) {
+    // BUG REAL encontrado (al tocar un filtro de Aporte — Goles/Asistencias/
+    // G+A — en el Historial mobile, toda la fila de filtros "saltaba" hacia
+    // la izquierda): cada click re-renderiza TODO #pp-m2-wrap de cero
+    // (innerHTML completo), así que el navegador arranca el nuevo scroll
+    // horizontal de esas filas en 0 sin importar dónde estuviera scrolleado
+    // antes — si el filtro tocado no era el primero visible, el usuario veía
+    // el riel entero "correrse". Se guarda el scrollLeft de cada riel
+    // scrolleable (Torneo y Aporte/Resumen) antes de reemplazar el HTML y se
+    // reaplica después, así el filtro clickeado queda exactamente donde
+    // estaba en vez de resetear la fila al extremo izquierdo.
+    const scrollIds = ['pp-m2-torneo-scroll', 'pp-m2-aporte-scroll'];
+    const savedScroll = {};
+    for (const id of scrollIds) {
+      const el = document.getElementById(id);
+      if (el) savedScroll[id] = el.scrollLeft;
+    }
+    m2wrap.innerHTML = mobileHtml;
+    for (const id of scrollIds) {
+      const el = document.getElementById(id);
+      if (el && savedScroll[id]) el.scrollLeft = savedScroll[id];
+    }
+  }
 }
 function _pp2RankSummary(rankGen) {
   const parts = [];
