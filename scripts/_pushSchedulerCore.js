@@ -486,9 +486,20 @@ async function checkTorneo(store, torneo) {
         .filter(j => j.nombre && j.goles > 0)
         .map(j => j.goles > 1 ? `${_cleanNombre(j.nombre)} (${j.goles})` : _cleanNombre(j.nombre));
       const golesTxt = goleadores.length ? ` — Goles: ${goleadores.join(', ')}` : '';
+      // BUG REAL encontrado (reportado: "ganó Libertador" en la notificación
+      // de un partido que Santa Bárbara ganó 3-1 de visitante): acá se
+      // mandaba `curr.resultado` tal cual viene del sheet, que guarda el
+      // marcador en orden Local-Visitante, no CSB-Rival — de visitante, el
+      // gol de CSB es el SEGUNDO número ("1-3" = Libertador 1, Santa
+      // Bárbara 3), así que el mensaje leía "Santa Bárbara 1-3 vs Rival" y
+      // parecía una derrota. Se arma el marcador con csbGoles(m) (mismo
+      // criterio que ya usa calcRachaInvicto más arriba) para que el
+      // primer número sea siempre el de Santa Bárbara, de local o visitante.
+      const goles = csbGoles(m);
+      const marcador = goles ? `${goles.csb}-${goles.riv}` : curr.resultado;
       await sendPush(
         '🔚 Final del partido',
-        `Santa Bárbara ${curr.resultado}${m.penales ? ` (pen. ${m.penales})` : ''} vs ${m.rival}${golesTxt}`,
+        `Santa Bárbara ${marcador}${m.penales ? ` (pen. ${m.penales})` : ''} vs ${m.rival}${golesTxt}`,
         url
       );
       huboFinal = true;
