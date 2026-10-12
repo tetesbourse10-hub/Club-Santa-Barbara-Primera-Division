@@ -2349,6 +2349,10 @@
       width:18px; height:18px; border-radius:50%; background:#fff; margin-right:5px;
       overflow:hidden; position:relative; font-size:0.5rem; font-weight:800; color:#334155;
     }
+    .tabla-team-link { cursor:pointer; }
+    .tabla-team-link:hover { text-decoration:underline; }
+    .tbm-team span[onclick] { cursor:pointer; }
+    .tbm-team span[onclick]:hover { text-decoration:underline; }
     .copa-badge { display:inline-block; padding:2px 7px; border-radius:20px; font-size:0.6rem; font-weight:700; white-space:nowrap; }
     .copa-campeon   { background:rgba(245,158,11,.12); color:#f59e0b; border:1px solid rgba(245,158,11,.3); }
     .copa-recopa    { background:rgba(34,197,94,.10);  color:#22c55e; border:1px solid rgba(34,197,94,.25); }
@@ -3201,6 +3205,8 @@
     .ap-fd-hero-d-team .ap-fd-mobile-crest { width:64px; height:64px; }
     .ap-fd-hero-d-team .ap-fd-mobile-crest-rival { font-size:1.05rem; }
     .ap-fd-hero-d-name { font-size:1.05rem; font-weight:800; color:var(--blanco); }
+    .ap-fd-rival-link { cursor:pointer; }
+    .ap-fd-rival-link:hover { text-decoration:underline; }
     /* Escudo/avatar+nombre+posición — usados tanto acá (hero desktop) como
        en .ap-fd-mobile (hero mobile, ver más abajo): mismas clases, mismos
        datos, un solo lugar de estilo base (los dos heros solo ajustan
@@ -9519,6 +9525,14 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
   const played   = resultado !== null;
 
   const rivalDisplay = rival !== '—' ? rival : `<span class="ap-fd-ph">Rival</span>`;
+  // Versión clickeable de rivalDisplay — SOLO para el nombre que se muestra
+  // en el marcador (mobile/desktop), nunca para rivalDisplay a secas (se usa
+  // también en el título y en el texto plano de "Compartir", donde este span
+  // con onclick rompería el texto). Clickear el nombre lleva directo al
+  // Historial vs Clubes de ese rival (ver goToRivalHistorial).
+  const rivalDisplayClickable = rival !== '—'
+    ? `<span class="ap-fd-rival-link" onclick="event.stopPropagation();goToRivalHistorial('${rival.replace(/'/g, "\\'")}')" title="Ver Historial vs ${rival}">${rival}</span>`
+    : rivalDisplay;
 
   // Strip trailing ° from posCSB/posRival values (sheet may already include it)
   const posCSBClean    = posCSB    !== '—' ? String(posCSB).replace(/°+$/, '')    : '—';
@@ -9596,6 +9610,11 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
   const csbIsLeft = !isLocal ? false : true; // visitante -> CSB a la derecha
   const leftName  = csbIsLeft ? 'Santa Bárbara' : rivalDisplay;
   const rightName = csbIsLeft ? rivalDisplay : 'Santa Bárbara';
+  // Mismos leftName/rightName, pero con el rival clickeable — solo para el
+  // marcador en pantalla (mobile/desktop); leftName/rightName a secas siguen
+  // siendo texto plano para la tarjeta/texto de "Compartir" más abajo.
+  const leftNameClickable  = csbIsLeft ? 'Santa Bárbara' : rivalDisplayClickable;
+  const rightNameClickable = csbIsLeft ? rivalDisplayClickable : 'Santa Bárbara';
   const leftCrest  = csbIsLeft ? csbCrestHtml : rivalCrestHtml;
   const rightCrest = csbIsLeft ? rivalCrestHtml : csbCrestHtml;
   // Pos CSB / Pos Rival debajo del escudo/nombre de cada equipo (antes
@@ -9622,11 +9641,11 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
     <div class="ap-fd-mobile">
       ${topbarHtml ? `<div class="ap-fd-mobile-topbar">${topbarHtml}</div>` : ''}
       <div class="ap-fd-mobile-matchup">
-        <div class="ap-fd-mobile-team">${leftCrest}<span class="ap-fd-mobile-team-name">${leftName}</span>${leftPos}</div>
+        <div class="ap-fd-mobile-team">${leftCrest}<span class="ap-fd-mobile-team-name">${leftNameClickable}</span>${leftPos}</div>
         <div class="ap-fd-mobile-score" style="${played ? `color:${resColor}` : ''}">${played
           ? `${resultado}${penales ? `<small>(pen. ${penales})</small>` : ''}`
           : 'vs'}</div>
-        <div class="ap-fd-mobile-team">${rightCrest}<span class="ap-fd-mobile-team-name">${rightName}</span>${rightPos}</div>
+        <div class="ap-fd-mobile-team">${rightCrest}<span class="ap-fd-mobile-team-name">${rightNameClickable}</span>${rightPos}</div>
       </div>
       ${!played ? `<div class="ap-fd-mobile-pending">⏳ Pendiente</div>` : ''}
     </div>`;
@@ -9661,7 +9680,7 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
       <div class="ap-fd-hero-d-row">
         <div class="ap-fd-hero-d-team">
           ${leftCrest}
-          <div class="ap-fd-hero-d-name">${leftName}</div>
+          <div class="ap-fd-hero-d-name">${leftNameClickable}</div>
           ${leftForm !== '—' ? `<div class="ap-fd-hero-d-form">${leftForm}</div>` : ''}
           ${leftPosVal !== '—' && !isRoundName(leftPosVal) ? `<div class="ap-fd-mobile-pos">POS: ${leftPosVal}°</div>` : ''}
         </div>
@@ -9673,7 +9692,7 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
         </div>
         <div class="ap-fd-hero-d-team">
           ${rightCrest}
-          <div class="ap-fd-hero-d-name">${rightName}</div>
+          <div class="ap-fd-hero-d-name">${rightNameClickable}</div>
           ${rightForm !== '—' ? `<div class="ap-fd-hero-d-form">${rightForm}</div>` : ''}
           ${rightPosVal !== '—' && !isRoundName(rightPosVal) ? `<div class="ap-fd-mobile-pos">POS: ${rightPosVal}°</div>` : ''}
         </div>
@@ -10779,9 +10798,12 @@ function _tablaMobileCardsHtml(tabla, legendItems, aifaUrl) {
     const dfColor = t.df > 0 ? '#22c55e' : t.df < 0 ? '#ef4444' : 'inherit';
     const df = (t.df > 0 ? '+' : '') + (t.df ?? '–');
     const isLeader = parseInt(t.pos) === 1;
+    const teamNameHtml = t.csb
+      ? t.equipo
+      : `<span onclick="event.stopPropagation();goToRivalHistorial('${t.equipo.replace(/'/g, "\\'")}')" title="Ver Historial vs ${t.equipo}">${t.equipo}</span>`;
     return `<div class="tbm-row${t.csb ? ' csb' : ''}">
       <span class="tbm-pos${t.csb ? ' csb' : ''}">${isLeader ? '🏆' : t.pos}</span>
-      <span class="tbm-team${t.csb ? ' csb' : ''}"><span class="tbm-avatar">${_teamCrestHtml(t.equipo, t.csb)}</span>${t.equipo}</span>
+      <span class="tbm-team${t.csb ? ' csb' : ''}"><span class="tbm-avatar">${_teamCrestHtml(t.equipo, t.csb)}</span>${teamNameHtml}</span>
       <span class="tbm-num${t.csb ? ' csb' : ''}">${t.pts}</span>
       <span class="tbm-num">${t.pj ?? '–'}</span>
       <span class="tbm-num" style="color:${dfColor}">${df}</span>
@@ -11486,9 +11508,12 @@ function renderTorneoApertura() {
       const isLeader = i === 0;
       const df = (t.df > 0 ? '+' : '') + (t.df ?? 0);
       const dfColor = t.df > 0 ? 'color:#22c55e' : t.df < 0 ? 'color:#ef4444' : '';
+      const equipoHtml = t.csb
+        ? `<span class="tabla-team-crest">${_teamCrestHtml(t.equipo, t.csb)}</span>${t.equipo}`
+        : `<span class="tabla-team-crest">${_teamCrestHtml(t.equipo, t.csb)}</span><span class="tabla-team-link" onclick="event.stopPropagation();goToRivalHistorial('${t.equipo.replace(/'/g, "\\'")}')" title="Ver Historial vs ${t.equipo}">${t.equipo}</span>`;
       return `<tr class="${isLeader ? 'leader-row' : t.csb ? 'csb-row' : ''}">
         <td style="font-weight:700;color:${isLeader ? '#22c55e' : 'var(--gris-texto)'};font-size:${isLeader ? '0.95rem' : 'inherit'}">${isLeader ? '🏆' : t.pos}</td>
-        <td><span class="tabla-team-crest">${_teamCrestHtml(t.equipo, t.csb)}</span>${t.equipo}</td>
+        <td>${equipoHtml}</td>
         <td>${copaBadge(t.copas)}</td>
         <td><strong style="color:${isLeader ? '#22c55e' : '#f1f5f9'}">${t.pts}</strong></td>
         <td>${t.pj??'–'}</td><td>${t.pg??'–'}</td><td>${t.pe??'–'}</td><td>${t.pp??'–'}</td>
@@ -11798,9 +11823,12 @@ function renderTorneoApertura2025A() {
       const isLeader = i === 0;
       const df = (t.df > 0 ? '+' : '') + (t.df ?? 0);
       const dfColor = t.df > 0 ? 'color:#22c55e' : t.df < 0 ? 'color:#ef4444' : '';
+      const equipoHtml = t.csb
+        ? `<span class="tabla-team-crest">${_teamCrestHtml(t.equipo, t.csb)}</span>${t.equipo}`
+        : `<span class="tabla-team-crest">${_teamCrestHtml(t.equipo, t.csb)}</span><span class="tabla-team-link" onclick="event.stopPropagation();goToRivalHistorial('${t.equipo.replace(/'/g, "\\'")}')" title="Ver Historial vs ${t.equipo}">${t.equipo}</span>`;
       return `<tr class="${isLeader ? 'leader-row' : t.csb ? 'csb-row' : ''}">
         <td style="font-weight:700;color:${isLeader ? '#22c55e' : 'var(--gris-texto)'};font-size:${isLeader ? '0.95rem' : 'inherit'}">${isLeader ? '🏆' : t.pos}</td>
-        <td><span class="tabla-team-crest">${_teamCrestHtml(t.equipo, t.csb)}</span>${t.equipo}</td>
+        <td>${equipoHtml}</td>
         <td>${copaBadge(t.copas)}</td>
         <td><strong style="color:${isLeader ? '#22c55e' : '#f1f5f9'}">${t.pts}</strong></td>
         <td>${t.pj??'–'}</td><td>${t.pg??'–'}</td><td>${t.pe??'–'}</td><td>${t.pp??'–'}</td>
@@ -12092,9 +12120,12 @@ function renderTorneoHistoricoGeneric(d, name, fechaLabels, excludeStatsFechas) 
       const isLeader = i === 0;
       const df = (t.df > 0 ? '+' : '') + (t.df ?? 0);
       const dfColor = t.df > 0 ? 'color:#22c55e' : t.df < 0 ? 'color:#ef4444' : '';
+      const equipoHtml = t.csb
+        ? `<span class="tabla-team-crest">${_teamCrestHtml(t.equipo, t.csb)}</span>${t.equipo}`
+        : `<span class="tabla-team-crest">${_teamCrestHtml(t.equipo, t.csb)}</span><span class="tabla-team-link" onclick="event.stopPropagation();goToRivalHistorial('${t.equipo.replace(/'/g, "\\'")}')" title="Ver Historial vs ${t.equipo}">${t.equipo}</span>`;
       return `<tr class="${isLeader ? 'leader-row' : t.csb ? 'csb-row' : ''}">
         <td style="font-weight:700;color:${isLeader ? '#22c55e' : 'var(--gris-texto)'};font-size:${isLeader ? '0.95rem' : 'inherit'}">${isLeader ? '🏆' : t.pos}</td>
-        <td><span class="tabla-team-crest">${_teamCrestHtml(t.equipo, t.csb)}</span>${t.equipo}</td>
+        <td>${equipoHtml}</td>
         <td>${copaBadge(t.copas)}</td>
         <td><strong style="color:${isLeader ? '#22c55e' : '#f1f5f9'}">${t.pts}</strong></td>
         <td>${t.pj??'–'}</td><td>${t.pg??'–'}</td><td>${t.pe??'–'}</td><td>${t.pp??'–'}</td>
@@ -13009,9 +13040,12 @@ function renderTorneoApt2024DB() {
         const isLeader = i === 0;
         const df = (t.df > 0 ? '+' : '') + (t.df ?? 0);
         const dfColor = t.df > 0 ? 'color:#22c55e' : t.df < 0 ? 'color:#ef4444' : '';
+        const equipoHtml = t.csb
+          ? `<span class="tabla-team-crest">${_teamCrestHtml(t.equipo, t.csb)}</span>${t.equipo}`
+          : `<span class="tabla-team-crest">${_teamCrestHtml(t.equipo, t.csb)}</span><span class="tabla-team-link" onclick="event.stopPropagation();goToRivalHistorial('${t.equipo.replace(/'/g, "\\'")}')" title="Ver Historial vs ${t.equipo}">${t.equipo}</span>`;
         return `<tr class="${isLeader ? 'leader-row' : t.csb ? 'csb-row' : ''}">
           <td style="font-weight:700;color:${isLeader ? '#22c55e' : 'var(--gris-texto)'};font-size:${isLeader ? '0.95rem' : 'inherit'}">${isLeader ? '🏆' : t.pos}</td>
-          <td><span class="tabla-team-crest">${_teamCrestHtml(t.equipo, t.csb)}</span>${t.equipo}</td>
+          <td>${equipoHtml}</td>
           <td>${copaBadge(t.copas)}</td>
           <td><strong style="color:${isLeader ? '#22c55e' : '#f1f5f9'}">${t.pts}</strong></td>
           <td>${t.pj??'–'}</td><td>${t.pg??'–'}</td><td>${t.pe??'–'}</td><td>${t.pp??'–'}</td>
@@ -14434,12 +14468,22 @@ function _parsePartidosPorTorneos(rows) {
     // de arriba (patrón "Apertura/Clausura + año" o la palabra "Rival") ya
     // alcanza para descartar el fantasma original sin este efecto colateral.
 
-    // Tournament header: cells[1] has content but the row is otherwise blank
-    // (no Fecha AND no Local/Visita). A real match can have a blank Fecha too
-    // (pending fixture with no date set yet) but still carries Local/Visita,
-    // so require both blank to avoid mistaking a pending match for a header
-    // and silently dropping it from the count.
-    if (!cells[2] && !cells[3]) {
+    // Tournament header: cells[1] has content but the row is otherwise
+    // COMPLETELY blank (no Fecha, Local/Visita, Resultado, Parciales,
+    // PosCSB, PosRival ni Obs) — un encabezado real, por cómo está armada
+    // esta hoja, nunca trae nada más que el nombre del torneo en cells[1].
+    // BUG REAL encontrado (reportado: partidos de Historial vs Clubes "no
+    // se correlacionan bien" y aparecen agrupados bajo el torneo
+    // equivocado): antes alcanzaba con que Fecha y Local/Visita estuvieran
+    // en blanco para tratar la fila como encabezado — pero un partido
+    // pendiente sin esos 2 datos todavía cargados, que SÍ tuviera algo en
+    // Parciales/PosCSB/PosRival/Obs (ej. una observación cargada antes que
+    // el fixture), se leía igual como "nuevo torneo" y pisaba `torneo` con
+    // el nombre del rival de esa fila — corrompiendo el torneo de TODAS las
+    // filas siguientes hasta el próximo encabezado real. Exigir que las 7
+    // columnas de datos estén vacías (no solo 2) reduce drásticamente el
+    // riesgo de confundir un partido real con un encabezado.
+    if (!cells[2] && !cells[3] && !cells[4] && !cells[5] && !cells[6] && !cells[7] && !cells[8]) {
       torneo = c1; continue;
     }
 
@@ -14775,6 +14819,24 @@ function histGoToMatchFecha(navKey, locator, rivalName, isB) {
     renderHistorialDetalle(rivalName);
   });
   goToMatchFecha(navKey, locator);
+}
+// Inverso de histGoToMatchFecha: clickear el nombre de un club rival desde
+// Fecha a Fecha o la Tabla de Posiciones lleva directo a su Historial vs
+// Clubes. Reusado por 4 renderers de torneo distintos (Torneos Actuales en
+// vivo + 3 variantes de Torneos Antiguos, cada uno con su propio show/switch
+// de sub-tab), así que a propósito NO empuja un restore puntual a "la fecha
+// exacta de donde vine" (tendría que saber reconstruir 4 vistas distintas)
+// — sin _navPush, "Atrás" cae al fallback genérico y seguro de volverAtras()
+// (vuelve al listado de Historial vs Clubes, nunca a un estado roto).
+function goToRivalHistorial(rival) {
+  if (!rival) return;
+  const badge = document.getElementById('section-badge');
+  badge.textContent = currentData.badge;
+  badge.className = 'header-section-badge ' + currentData.badgeClass;
+  const histBtn = document.querySelector("#main-nav button[onclick*=\"'historial'\"]");
+  showTab('historial', histBtn);
+  _syncBottomNavFromMainNav();
+  renderHistorialDetalle(rival);
 }
 // One "referente vs rival" card (Máximo Goleador/Asistidor/Más Presencias) —
 // each tied player gets its own stacked line instead of a comma-joined list,
@@ -21515,6 +21577,31 @@ if (window.__OG_BUILD__) {
   _ensureJugTotalesB();
   const _initialLoadLiveDataPromise = loadLiveData();
   _maybeShowIosShareBanner();
+  // BUG REAL encontrado (reportado: "al actualizar la página, pierde la
+  // posición del scroll" — F5 en medio de una sección larga vuelve siempre
+  // arriba de todo): a diferencia de la navegación DENTRO de la SPA (que ya
+  // preserva el scroll vía _navStack/refreshCurrentView, ver más arriba), un
+  // refresh real del navegador destruye todo el estado de JS — nada guardaba
+  // la posición antes de esa recarga. sessionStorage sobrevive un F5 (mismo
+  // tab) pero no una pestaña nueva/sesión distinta, que es exactamente el
+  // alcance que hace falta acá. Se guarda en pagehide/beforeunload (el que
+  // dispare primero — beforeunload no es confiable en mobile Safari, pagehide
+  // sí) y se restaura una sola vez después de que la sección real ya se haya
+  // reconstruido (mismo timing que el resto de los _tryRestore*/_tryOpen* de
+  // abajo), nunca contra el landing en blanco de un instante antes.
+  const _saveScrollForReload = () => { try { sessionStorage.setItem('_csbScrollY', String(window.scrollY)); } catch (e) {} };
+  window.addEventListener('pagehide', _saveScrollForReload);
+  window.addEventListener('beforeunload', _saveScrollForReload);
+  function _restoreScrollAfterReload() {
+    let saved;
+    try {
+      saved = sessionStorage.getItem('_csbScrollY');
+      sessionStorage.removeItem('_csbScrollY');
+    } catch (e) { return; }
+    if (saved == null) return;
+    const y = parseInt(saved, 10);
+    if (Number.isFinite(y) && y > 0) setTimeout(() => window.scrollTo(0, y), 0);
+  }
   if (location.hash) {
     // Deep link directo: alguien entra por /jugador/:slug, que redirige acá
     // con el hash ya puesto (ver scripts/generate-og.js). El listener de
@@ -21525,15 +21612,24 @@ if (window.__OG_BUILD__) {
     // directamente la home en vez del perfil del jugador. Se espera a que
     // El Nido esté cargado por si el jugador buscado solo aparece en ese
     // pool y no en los datos ya horneados de DATA_A/DATA_B.
+    // isJugador/isPartido deciden en qué rama se restaura el scroll — tiene
+    // que disparar una sola vez, recién después de que la sección REAL ya
+    // esté reconstruida (no contra el bloque de #jugador de acá abajo, que
+    // corre siempre que haya hash pero es un no-op cuando el hash es de otro
+    // tipo — restaurar ahí para los casos #partido/genérico lo haría
+    // demasiado temprano, contra el landing en blanco de un instante antes).
+    const isJugador = /^#jugador\//.test(location.hash);
+    const isPartido = /^#partido\//.test(location.hash);
     (window._nidoEnsureLoaded ? window._nidoEnsureLoaded() : Promise.resolve())
       .then(_tryOpenPlayerFromHash)
+      .then(isJugador ? _restoreScrollAfterReload : undefined)
       .catch(_tryOpenPlayerFromHash);
     // Mismo motivo para /partido/:torneo/:fecha (ver netlify/functions/
     // partido.js) — acá alcanza con esperar a loadLiveData() (llena
     // DATA_A/DATA_B.apertura), no hace falta El Nido.
-    if (/^#partido\//.test(location.hash)) {
-      _initialLoadLiveDataPromise.then(_tryOpenPartidoFromHash).catch(_tryOpenPartidoFromHash);
-    } else if (!/^#jugador\//.test(location.hash)) {
+    if (isPartido) {
+      _initialLoadLiveDataPromise.then(_tryOpenPartidoFromHash).then(_restoreScrollAfterReload).catch(_tryOpenPartidoFromHash);
+    } else if (!isJugador) {
       // Mismo motivo, para el resto de la navegación (sección/pestaña/
       // torneo/fecha — ver _tryRestoreRouteFromHash): entrar por un link
       // tipo #a/tab/posiciones/torneo/apertura/fecha/4 (copiado mientras
@@ -21541,8 +21637,12 @@ if (window.__OG_BUILD__) {
       // loadLiveData() haya llenado DATA_A/DATA_B antes de reconstruir la
       // vista, para no mostrar Fecha a Fecha vacío por una carrera de
       // timing contra el primer fetch.
-      _initialLoadLiveDataPromise.then(_tryRestoreRouteFromHash).catch(_tryRestoreRouteFromHash);
+      _initialLoadLiveDataPromise.then(_tryRestoreRouteFromHash).then(_restoreScrollAfterReload).catch(_tryRestoreRouteFromHash);
     }
+  } else {
+    // Reload sin hash (landing/home) — igual puede venir con scroll
+    // guardado si la última vista antes del F5 era la landing scrolleada.
+    _initialLoadLiveDataPromise.then(_restoreScrollAfterReload).catch(_restoreScrollAfterReload);
   }
   setInterval(loadLiveData, 60 * 1000); // auto-refresh every 60s
   document.addEventListener('visibilitychange', () => { if (!document.hidden) loadLiveData(); });
