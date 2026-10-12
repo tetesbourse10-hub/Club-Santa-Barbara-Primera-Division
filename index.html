@@ -14445,29 +14445,6 @@ function _parsePartidosPorTorneos(rows) {
     if (c1.toLowerCase() === 'rival') continue;
     // Skip LIBRE / dashes
     if (c1 === 'LIBRE' || c1 === '-') continue;
-    // BUG REAL encontrado (rival fantasma en Historial vs Clubes de Primera
-    // A: "2016 APERTURA 2016 AIFA "C" rival", 1 PJ todo en cero): alguna
-    // fila del sheet con texto de encabezado de torneo (año + nombre del
-    // torneo + la palabra "rival") no cumplía la condición estructural de
-    // "fila de encabezado" (`!cells[2] && !cells[3]`) de más abajo — no se
-    // pudo confirmar la celda exacta en el sheet, así que en vez de eso se
-    // agrega una validación de sentido común: ningún club rival real se
-    // llama "Apertura"/"Clausura" + año, ni literalmente "Rival". Si el
-    // texto matchea ese patrón, se descarta como encabezado colado, sea
-    // cual sea el motivo estructural puntual.
-    if (/\b(apertura|clausura)\s*\d{4}\b/i.test(c1) || /\brival\b/i.test(c1)) continue;
-    // BUG REAL encontrado: un filtro anterior descartaba CUALQUIER fila con
-    // una comilla literal, pensando que ningún club real usa comillas — pero
-    // las divisiones AIFA sí las usan siempre (AIFA "A"/"B"/"C"/"D"), tanto
-    // en encabezados de torneo como en nombres de rival reales (ej. algún
-    // "GALICIA "BLANCO"" o equivalente). Ese filtro terminaba comiéndose
-    // encabezados de torneo reales antes de llegar al chequeo de "fila de
-    // encabezado" de abajo, dejando el `torneo` arrastrado del anterior para
-    // todas las filas siguientes — rompía el agrupamiento de partidos y
-    // podía hacer desaparecer o fusionar clubes reales. Se saca: el filtro
-    // de arriba (patrón "Apertura/Clausura + año" o la palabra "Rival") ya
-    // alcanza para descartar el fantasma original sin este efecto colateral.
-
     // Tournament header: cells[1] has content but the row is otherwise
     // COMPLETELY blank (no Fecha, Local/Visita, Resultado, Parciales,
     // PosCSB, PosRival ni Obs) — un encabezado real, por cómo está armada
@@ -14483,9 +14460,50 @@ function _parsePartidosPorTorneos(rows) {
     // filas siguientes hasta el próximo encabezado real. Exigir que las 7
     // columnas de datos estén vacías (no solo 2) reduce drásticamente el
     // riesgo de confundir un partido real con un encabezado.
+    //
+    // IMPORTANTE: este chequeo estructural va ANTES del filtro de "rival
+    // fantasma" de abajo (antes estaba al revés). BUG REAL encontrado
+    // (reportado con ejemplo concreto: AFALP en Primera A, todos los
+    // partidos de 2024/2025/2026 agrupados bajo "Copa Maradona Luefi 2020",
+    // el torneo de liga correcto de cada fila nunca aparecía): un encabezado
+    // real de torneo de LIGA a veces se escribe en la hoja sin el sufijo de
+    // categoría, literalmente "Apertura 2024" o "Clausura 2026" — texto que
+    // matchea el patrón "Apertura/Clausura + año" del filtro de abajo. Con
+    // el filtro ANTES de este chequeo, esos encabezados reales se
+    // descartaban con `continue` sin pisar `torneo`, dejando colgado el
+    // nombre del último torneo real anterior (una copa vieja) para todos
+    // los partidos de liga siguientes, año tras año, hasta el próximo
+    // encabezado que lograra sobrevivir el filtro. Haciendo el chequeo
+    // estructural primero, un encabezado real (todas las columnas de datos
+    // vacías) siempre se toma como encabezado sin importar qué texto tenga
+    // — el filtro de "rival fantasma" de abajo solo se evalúa después, para
+    // filas que NO son encabezados estructurales (como el fantasma original,
+    // que sí tenía datos de partido pegados, ver comentario de abajo).
     if (!cells[2] && !cells[3] && !cells[4] && !cells[5] && !cells[6] && !cells[7] && !cells[8]) {
       torneo = c1; continue;
     }
+    // BUG REAL encontrado (rival fantasma en Historial vs Clubes de Primera
+    // A: "2016 APERTURA 2016 AIFA "C" rival", 1 PJ todo en cero): alguna
+    // fila del sheet con texto de encabezado de torneo (año + nombre del
+    // torneo + la palabra "rival") no cumplía la condición estructural de
+    // "fila de encabezado" de arriba (traía datos de partido pegados, por
+    // eso contaba 1 PJ) — así que en vez de eso se agrega una validación de
+    // sentido común: ningún club rival real se llama "Apertura"/"Clausura" +
+    // año, ni literalmente "Rival". Si el texto matchea ese patrón Y la fila
+    // ya no pudo tomarse como encabezado estructural arriba, se descarta
+    // como fantasma colado en vez de contarse como partido real.
+    if (/\b(apertura|clausura)\s*\d{4}\b/i.test(c1) || /\brival\b/i.test(c1)) continue;
+    // BUG REAL encontrado: un filtro anterior descartaba CUALQUIER fila con
+    // una comilla literal, pensando que ningún club real usa comillas — pero
+    // las divisiones AIFA sí las usan siempre (AIFA "A"/"B"/"C"/"D"), tanto
+    // en encabezados de torneo como en nombres de rival reales (ej. algún
+    // "GALICIA "BLANCO"" o equivalente). Ese filtro terminaba comiéndose
+    // encabezados de torneo reales antes de llegar al chequeo de "fila de
+    // encabezado" de arriba, dejando el `torneo` arrastrado del anterior para
+    // todas las filas siguientes — rompía el agrupamiento de partidos y
+    // podía hacer desaparecer o fusionar clubes reales. Se saca: el filtro
+    // de arriba (patrón "Apertura/Clausura + año" o la palabra "Rival") ya
+    // alcanza para descartar el fantasma original sin este efecto colateral.
 
     // Data row: c1=rival, cells[2]=fecha
     const fechaRaw = cells[2];
