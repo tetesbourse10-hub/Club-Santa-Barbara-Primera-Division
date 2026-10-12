@@ -14424,6 +14424,17 @@ function renderHistorial() {
 // ── Parser for "Partidos Historial" sheet ── col A always blank, data in cells[1..8] ──
 let _partidosCache  = null;
 let _partidosCacheB = null;
+// Promesa en vuelo de cada loader (no solo el resultado ya resuelto). BUG
+// REAL encontrado (goToRivalHistorial): showTab('historial') arranca
+// renderHistorial(), que ya pide _loadPartidosCache()/_loadPartidosCacheB();
+// inmediatamente después, en el mismo tick, renderHistorialDetalle() vuelve
+// a pedir el mismo loader para armar el drilldown. El guard de arriba
+// (`if (_partidosCache) return _partidosCache;`) solo corta el pedido una
+// vez que la promesa YA resolvió — mientras está en vuelo, un segundo
+// llamado entraba igual y disparaba un fetch duplicado a Sheets. Guardar la
+// promesa misma evita el duplicado sin cambiar el resultado para nadie.
+let _partidosCachePromise  = null;
+let _partidosCacheBPromise = null;
 
 function _parsePartidosPorTorneos(rows) {
   // Column A in the sheet is always blank — data starts at cells[1]:
@@ -14558,6 +14569,11 @@ function _parsePartidosPorTorneos(rows) {
 
 async function _loadPartidosCache() {
   if (_partidosCache) return _partidosCache;
+  if (_partidosCachePromise) return _partidosCachePromise;
+  _partidosCachePromise = _loadPartidosCacheImpl().finally(() => { _partidosCachePromise = null; });
+  return _partidosCachePromise;
+}
+async function _loadPartidosCacheImpl() {
   try {
     // BUG REAL encontrado (reportado: un rival fantasma en Historial vs
     // Clubes de Primera A, "2016 APERTURA 2016 AIFA "C" RIVAL" — texto que
@@ -14699,6 +14715,11 @@ function _ensureHistResumenBSync() {
 // so column A stays in place as the parser's assumed blank cells[0].
 async function _loadPartidosCacheB() {
   if (_partidosCacheB) return _partidosCacheB;
+  if (_partidosCacheBPromise) return _partidosCacheBPromise;
+  _partidosCacheBPromise = _loadPartidosCacheBImpl().finally(() => { _partidosCacheBPromise = null; });
+  return _partidosCacheBPromise;
+}
+async function _loadPartidosCacheBImpl() {
   try {
     const url = `https://docs.google.com/spreadsheets/d/${GS.B_HIST}/gviz/tq?tqx=out:csv&gid=345619863`;
     const r = await fetch(url, { mode: 'cors' });
