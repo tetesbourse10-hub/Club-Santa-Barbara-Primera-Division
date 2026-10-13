@@ -7626,11 +7626,19 @@ function _ppV2Render() {
   // número grande centrado y un pie propio (caja bg-[#0f1729]) con el rival
   // favorito — ya no comparte borde con el resto de la card, queda como su
   // propio recuadro anidado.
+  // BUG REAL encontrado (reportado: en desktop, el rival favorito de cada
+  // card se salía afuera del recuadro, ej. "LIBERTA..." sangrando a la
+  // derecha del borde): el contenedor del footer no tenía overflow-hidden,
+  // y este wrapper tampoco tenía min-w-0 — en un flex row, un hijo no se
+  // achica más allá de su contenido natural sin min-w-0, así que ni el
+  // truncate del nombre (que sí tenía max-w-[90px]) ni nada evitaba que el
+  // conjunto completo (escudo + nombre + badge) excediera el ancho
+  // disponible y se desbordara visualmente fuera del borde redondeado.
   const favPill = (fv, unit, pillCls) => fv
-    ? `<div class="flex items-center gap-1.5 font-bold text-slate-200">
+    ? `<div class="flex items-center gap-1.5 font-bold text-slate-200 min-w-0 overflow-hidden">
         <span class="w-4 h-4 rounded-full bg-white overflow-hidden shrink-0 inline-block">${_crestImgHtml(fv.rival)}</span>
-        <span class="truncate max-w-[90px]">${fv.rival}</span>
-        <span class="text-[10px] ${pillCls} px-1.5 py-0.5 rounded font-black">(${fv.val} ${unit})</span>
+        <span class="truncate min-w-0">${fv.rival}</span>
+        <span class="text-[10px] ${pillCls} px-1.5 py-0.5 rounded font-black shrink-0">(${fv.val} ${unit})</span>
       </div>`
     : '<span class="text-slate-600">—</span>';
   const statCard = (label, icon, value, valueColor, sub, footerIcon, footerLabel, footerPill, badge, topColor) => `
@@ -7643,9 +7651,9 @@ function _ppV2Render() {
         <div class="text-4xl font-black ${valueColor} tracking-tight">${value}</div>
         <div class="text-xs font-extrabold text-slate-400 mt-1">${sub}</div>
       </div>
-      <div class="bg-[#0f1729] border border-slate-800/80 rounded-xl px-3 py-1.5 flex items-center justify-between text-xs">
+      <div class="bg-[#0f1729] border border-slate-800/80 rounded-xl px-3 py-1.5 flex items-center justify-between gap-2 text-xs overflow-hidden">
         <span class="text-slate-400 font-semibold text-[11px] shrink-0">${footerIcon} ${footerLabel}:</span>
-        ${footerPill}
+        <div class="min-w-0 flex-1 flex justify-end">${footerPill}</div>
       </div>
     </div>`;
   const dashCards = `
@@ -7834,7 +7842,13 @@ function _ppV2Render() {
         <div class="col-span-1 text-center">Rol</div>
         <div class="col-span-2 text-center">Aporte</div>
       </div>
-      <div class="divide-y divide-slate-800/50 text-xs">
+      <!-- divide-slate-800/50 (la sombra anterior) prácticamente no se veía
+           contra el fondo oscuro de la card (#141d2e) — pedido explícito de
+           una pequeña división entre cada partido del listado. Pasa a
+           divide-slate-800 SIN opacidad (ya viene compilado en el bloque
+           Tailwind de arriba, así no hace falta regenerarlo para esta clase
+           puntual) — mismo color, opacidad completa en vez de 50%. -->
+      <div class="divide-y divide-slate-800 text-xs">
         ${filtered.length ? filtered.map(_pp2RowHtml).join('') : `<div class="py-8 text-center text-slate-500">Sin partidos para este filtro.</div>`}
       </div>`}
     </section>`;
