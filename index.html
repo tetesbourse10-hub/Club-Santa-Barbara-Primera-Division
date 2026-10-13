@@ -55,6 +55,26 @@
       };
       syncNotifBtn();
       OneSignal.Notifications.addEventListener('permissionChange', syncNotifBtn);
+      // BUG REAL encontrado (reportado: tocar una notificación de Citación/11
+      // probable en el teléfono deja la PWA en la home en vez de llevar al
+      // partido): cuando la pestaña/PWA ya estaba abierta en segundo plano
+      // (el caso típico en mobile — no se cierra la app, solo queda en
+      // background), el Service Worker de OneSignal simplemente la trae al
+      // frente, sin garantía de que también navegue a la URL real de la
+      // notificación. Se fuerza acá el hash a mano con la misma URL que ya
+      // manda push-scheduler en el campo `url` del payload — el listener de
+      // 'hashchange' del <script> principal, más abajo, es el que reacciona
+      // a este cambio y lleva a la vista real (ver ese mismo comentario).
+      OneSignal.Notifications.addEventListener('click', (event) => {
+        try {
+          const launch = event?.notification?.launchURL;
+          if (!launch) return;
+          const target = new URL(launch, location.href);
+          if (target.origin === location.origin && target.hash && target.hash !== location.hash) {
+            location.hash = target.hash;
+          }
+        } catch (e) {}
+      });
     });
     window._togglePush = function () {
       window.OneSignalDeferred = window.OneSignalDeferred || [];
@@ -21683,6 +21703,29 @@ if (window.__OG_BUILD__) {
     // guardado si la última vista antes del F5 era la landing scrolleada.
     _initialLoadLiveDataPromise.then(_restoreScrollAfterReload).catch(_restoreScrollAfterReload);
   }
+  // BUG REAL encontrado (reportado: tocar una notificación push de Citación/
+  // 11 probable en el teléfono deja la PWA/pestaña en la home en vez de
+  // llevar al partido): todo el bloque de arriba (_tryOpenPlayerFromHash/
+  // _tryOpenPartidoFromHash/_tryRestoreRouteFromHash) corre UNA SOLA VEZ, en
+  // la carga inicial — lee location.hash en ese momento nada más. Si la
+  // pestaña/PWA ya estaba abierta en segundo plano cuando llega el push (el
+  // caso típico en mobile), tocar la notificación no dispara una carga nueva
+  // de la página, así que esa lógica de arriba nunca vuelve a correr — como
+  // mucho el Service Worker de OneSignal trae la pestaña al frente, pero
+  // nada reaccionaba después a que el hash cambiara. Se agrega acá un
+  // listener real de 'hashchange' que corre la misma lógica para cualquier
+  // cambio de hash DURANTE la sesión (lo dispara tanto el click forzado de
+  // OneSignal de arriba en el <head> como cualquier otro deep link futuro).
+  window.addEventListener('hashchange', () => {
+    if (!location.hash) return;
+    if (/^#jugador\//.test(location.hash)) {
+      (window._nidoEnsureLoaded ? window._nidoEnsureLoaded() : Promise.resolve()).then(_tryOpenPlayerFromHash);
+    } else if (/^#partido\//.test(location.hash)) {
+      _tryOpenPartidoFromHash();
+    } else {
+      _tryRestoreRouteFromHash();
+    }
+  });
   setInterval(loadLiveData, 60 * 1000); // auto-refresh every 60s
   document.addEventListener('visibilitychange', () => { if (!document.hidden) loadLiveData(); });
   window.addEventListener('focus', loadLiveData);
