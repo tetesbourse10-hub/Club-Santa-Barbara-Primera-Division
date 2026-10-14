@@ -55,6 +55,26 @@
       };
       syncNotifBtn();
       OneSignal.Notifications.addEventListener('permissionChange', syncNotifBtn);
+      // BUG REAL encontrado (reportado: tocar una notificación de Citación/11
+      // probable en el teléfono deja la PWA en la home en vez de llevar al
+      // partido): cuando la pestaña/PWA ya estaba abierta en segundo plano
+      // (el caso típico en mobile — no se cierra la app, solo queda en
+      // background), el Service Worker de OneSignal simplemente la trae al
+      // frente, sin garantía de que también navegue a la URL real de la
+      // notificación. Se fuerza acá el hash a mano con la misma URL que ya
+      // manda push-scheduler en el campo `url` del payload — el listener de
+      // 'hashchange' del <script> principal, más abajo, es el que reacciona
+      // a este cambio y lleva a la vista real (ver ese mismo comentario).
+      OneSignal.Notifications.addEventListener('click', (event) => {
+        try {
+          const launch = event?.notification?.launchURL;
+          if (!launch) return;
+          const target = new URL(launch, location.href);
+          if (target.origin === location.origin && target.hash && target.hash !== location.hash) {
+            location.hash = target.hash;
+          }
+        } catch (e) {}
+      });
     });
     window._togglePush = function () {
       window.OneSignalDeferred = window.OneSignalDeferred || [];
@@ -3311,6 +3331,31 @@
     .ap-inc-group:last-child { border-bottom:none; }
     .ap-inc-label { font-size:0.68rem; font-weight:700; color:var(--gris-texto); min-width:90px; }
     .ap-inc-item { background:rgba(255,255,255,0.06); border-radius:6px; padding:2px 8px; color:var(--texto); font-size:0.74rem; }
+    /* Seguimiento en vivo minuto a minuto (ver _vivoSectionHtml) — mismo
+       lenguaje visual que .ap-incidencias (misma card oscura, mismos
+       ap-inc-item) pero con el punto rojo pulsante + reloj que distingue un
+       partido EN CURSO de uno ya terminado. */
+    .ap-fd-vivo { background:var(--azul-card); border:1px solid rgba(239,68,68,0.25); border-radius:14px; padding:14px 18px; margin:10px 0; }
+    .ap-fd-vivo-head { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+    .ap-fd-vivo-dot { width:8px; height:8px; border-radius:50%; background:#ef4444; box-shadow:0 0 0 rgba(239,68,68,.6); animation:ap-fd-vivo-pulse 1.6s infinite; flex-shrink:0; }
+    @keyframes ap-fd-vivo-pulse {
+      0%   { box-shadow:0 0 0 0 rgba(239,68,68,.55); }
+      70%  { box-shadow:0 0 0 7px rgba(239,68,68,0); }
+      100% { box-shadow:0 0 0 0 rgba(239,68,68,0); }
+    }
+    .ap-fd-vivo-label { font-size:0.7rem; font-weight:900; letter-spacing:0.08em; color:#ef4444; }
+    .ap-fd-vivo-clock { font-size:0.78rem; font-weight:800; color:var(--blanco); background:rgba(255,255,255,0.08); border-radius:20px; padding:2px 10px; }
+    .ap-fd-vivo-marcador { margin-left:auto; font-size:0.95rem; font-weight:900; color:var(--blanco); }
+    .ap-fd-vivo-row { display:flex; align-items:center; gap:6px 10px; flex-wrap:wrap; padding:5px 0; border-top:1px solid rgba(255,255,255,0.04); font-size:0.78rem; }
+    .ap-fd-vivo-row-label { font-size:0.68rem; font-weight:700; color:var(--gris-texto); min-width:90px; }
+    .ap-fd-vivo-row-items { display:flex; flex-wrap:wrap; gap:6px; }
+    .ap-fd-vivo-item { background:rgba(255,255,255,0.06); border-radius:6px; padding:2px 8px; color:var(--texto); font-size:0.74rem; }
+    .ap-fd-vivo-item small { color:var(--gris-texto); }
+    /* "🔴 En vivo" (debajo del marcador mobile) es una etiqueta de estado,
+       no el resultado — se mantiene siempre roja/llamativa, a diferencia
+       del marcador en sí (que sí se pinta verde/amarillo/rojo según vamos
+       ganando/empatando/perdiendo, ver vivoColor en buildFechaDetailHTML). */
+    .ap-fd-mobile-pending-vivo { color:#ef4444 !important; }
     /* ── Recopa bracket ── */
     .rc-bracket-wrap { overflow-x:auto; padding:12px 0 24px; }
     .rc-bracket { display:flex; align-items:stretch; gap:0; min-width:980px; }
@@ -7606,11 +7651,19 @@ function _ppV2Render() {
   // número grande centrado y un pie propio (caja bg-[#0f1729]) con el rival
   // favorito — ya no comparte borde con el resto de la card, queda como su
   // propio recuadro anidado.
+  // BUG REAL encontrado (reportado: en desktop, el rival favorito de cada
+  // card se salía afuera del recuadro, ej. "LIBERTA..." sangrando a la
+  // derecha del borde): el contenedor del footer no tenía overflow-hidden,
+  // y este wrapper tampoco tenía min-w-0 — en un flex row, un hijo no se
+  // achica más allá de su contenido natural sin min-w-0, así que ni el
+  // truncate del nombre (que sí tenía max-w-[90px]) ni nada evitaba que el
+  // conjunto completo (escudo + nombre + badge) excediera el ancho
+  // disponible y se desbordara visualmente fuera del borde redondeado.
   const favPill = (fv, unit, pillCls) => fv
-    ? `<div class="flex items-center gap-1.5 font-bold text-slate-200">
+    ? `<div class="flex items-center gap-1.5 font-bold text-slate-200 min-w-0 overflow-hidden">
         <span class="w-4 h-4 rounded-full bg-white overflow-hidden shrink-0 inline-block">${_crestImgHtml(fv.rival)}</span>
-        <span class="truncate max-w-[90px]">${fv.rival}</span>
-        <span class="text-[10px] ${pillCls} px-1.5 py-0.5 rounded font-black">(${fv.val} ${unit})</span>
+        <span class="truncate min-w-0">${fv.rival}</span>
+        <span class="text-[10px] ${pillCls} px-1.5 py-0.5 rounded font-black shrink-0">(${fv.val} ${unit})</span>
       </div>`
     : '<span class="text-slate-600">—</span>';
   const statCard = (label, icon, value, valueColor, sub, footerIcon, footerLabel, footerPill, badge, topColor) => `
@@ -7623,9 +7676,9 @@ function _ppV2Render() {
         <div class="text-4xl font-black ${valueColor} tracking-tight">${value}</div>
         <div class="text-xs font-extrabold text-slate-400 mt-1">${sub}</div>
       </div>
-      <div class="bg-[#0f1729] border border-slate-800/80 rounded-xl px-3 py-1.5 flex items-center justify-between text-xs">
+      <div class="bg-[#0f1729] border border-slate-800/80 rounded-xl px-3 py-1.5 flex items-center justify-between gap-2 text-xs overflow-hidden">
         <span class="text-slate-400 font-semibold text-[11px] shrink-0">${footerIcon} ${footerLabel}:</span>
-        ${footerPill}
+        <div class="min-w-0 flex-1 flex justify-end">${footerPill}</div>
       </div>
     </div>`;
   const dashCards = `
@@ -7814,7 +7867,13 @@ function _ppV2Render() {
         <div class="col-span-1 text-center">Rol</div>
         <div class="col-span-2 text-center">Aporte</div>
       </div>
-      <div class="divide-y divide-slate-800/50 text-xs">
+      <!-- divide-slate-800/50 (la sombra anterior) prácticamente no se veía
+           contra el fondo oscuro de la card (#141d2e) — pedido explícito de
+           una pequeña división entre cada partido del listado. Pasa a
+           divide-slate-800 SIN opacidad (ya viene compilado en el bloque
+           Tailwind de arriba, así no hace falta regenerarlo para esta clase
+           puntual) — mismo color, opacidad completa en vez de 50%. -->
+      <div class="divide-y divide-slate-800 text-xs">
         ${filtered.length ? filtered.map(_pp2RowHtml).join('') : `<div class="py-8 text-center text-slate-500">Sin partidos para este filtro.</div>`}
       </div>`}
     </section>`;
@@ -9484,6 +9543,84 @@ function formatISOHora(raw) {
   return raw;
 }
 
+// ── Seguimiento en vivo minuto a minuto ──────────────────────────────────
+// Reloj sintético 100% del lado del cliente (no pide nada al backend): el
+// minuto se calcula contando desde la hora programada del partido
+// (dia/hora, mismo parser que ya usa push-scheduler para Recordatorio/
+// Comienzo), tope en 45'. 'estadoVivo' (columna J de Fecha a Fecha, cargada
+// a mano por quien está en la cancha — ver el tab "Control Vivo") es lo que
+// corrige el reloj: '' = sin seguimiento, '1T' = primer tiempo en curso,
+// 'ET' = entretiempo, '2T' = segundo tiempo en curso.
+function _vivoClockLabel(dia, hora, estadoVivo) {
+  if (!estadoVivo) return null;
+  if (estadoVivo === 'ET') return 'Entretiempo';
+  const kickoff = _parseFechaHora(dia, hora);
+  // Sin hora cargada (no debería pasar si ya hay estadoVivo, pero por las
+  // dudas) — mejor mostrar el estado a secas que un reloj roto.
+  if (!kickoff) return estadoVivo === '2T' ? '2T' : '1T';
+  const minutosDesdeKickoff = Math.floor((Date.now() - kickoff.getTime()) / 60000);
+  if (estadoVivo === '2T') {
+    // No hay un timestamp real de cuándo arrancó el complemento (la celda
+    // 'Inicio 2T' es un marcador SI/NO, no una hora) — se aproxima asumiendo
+    // que el entretiempo real duró 10', igual que el reloj del 1T de abajo
+    // asume 45' de primer tiempo corrido. No es matemáticamente exacto si el
+    // entretiempo real duró más o menos, pero evita un reloj parado.
+    const minuto2T = Math.max(46, minutosDesdeKickoff - 10);
+    return `${Math.min(minuto2T, 90)}'`;
+  }
+  return `${Math.min(Math.max(minutosDesdeKickoff, 0), 45)}'`;
+}
+// Sección "EN VIVO" de Fecha a Fecha — clock + marcador + goles/cambios/
+// rojas ya cargados hasta el momento (mismo agrupamiento que ya usa
+// incidenciasHtml para partidos TERMINADOS, reusado acá para partidos en
+// curso: evita mantener un segundo mecanismo de "feed cronológico" de
+// eventos — los pushes de push-scheduler-vivo.js ya cubren el aviso
+// evento-a-evento en el momento; esta sección es el estado actual, no un
+// historial de jugadas). `data-dia`/`data-hora`/`data-estado` quedan en el
+// propio badge del reloj para que el ticker de abajo (_vivoStartClockTicker)
+// lo pueda recalcular cada 20s sin tener que re-renderizar toda la ficha.
+function _vivoSectionHtml(detail, marcadorTxt, marcadorColor) {
+  const estadoVivo = (detail.estadoVivo || '').toUpperCase();
+  if (!estadoVivo) return '';
+  const jugadores = detail.jugadores || [];
+  const goleadores = jugadores.filter(j => j.goles > 0);
+  const cambios    = jugadores.filter(j => j.entro);
+  const rojas      = jugadores.filter(j => j.rojas > 0);
+  const clockLabel = _vivoClockLabel(detail.dia, detail.hora, estadoVivo) || estadoVivo;
+  const row = (icon, label, items, render) => items.length ? `
+    <div class="ap-fd-vivo-row">
+      <span class="ap-fd-vivo-row-label">${icon} ${label}</span>
+      <div class="ap-fd-vivo-row-items">${items.map(render).join('')}</div>
+    </div>` : '';
+  return `
+    <div class="ap-fd-vivo">
+      <div class="ap-fd-vivo-head">
+        <span class="ap-fd-vivo-dot"></span>
+        <span class="ap-fd-vivo-label">EN VIVO</span>
+        <span class="ap-fd-vivo-clock" id="ap-fd-vivo-clock"
+              data-dia="${detail.dia || ''}" data-hora="${detail.hora || ''}" data-estado="${estadoVivo}">${clockLabel}</span>
+        ${marcadorTxt ? `<span class="ap-fd-vivo-marcador" style="color:${marcadorColor || '#ef4444'}">${marcadorTxt}</span>` : ''}
+      </div>
+      ${row('⚽', 'Goles', goleadores, j => `<span class="ap-fd-vivo-item">${pl(j.nombre)}${j.goles > 1 ? ` ×${j.goles}` : ''}</span>`)}
+      ${row('🔄', 'Cambios', cambios, j => `<span class="ap-fd-vivo-item">${pl(j.nombre)}${j.porQuien ? ` <small>(x ${pl(j.porQuien)})</small>` : ''}</span>`)}
+      ${row('🟥', 'Rojas', rojas, j => `<span class="ap-fd-vivo-item">${pl(j.nombre)}</span>`)}
+    </div>`;
+}
+// Ticker liviano: recalcula SOLO el texto del reloj cada 20s, sin re-pintar
+// toda la ficha (que de por sí ya se refresca con loadLiveData() cada 60s/
+// focus/visibilitychange — este intervalo solo es para que el minuto avance
+// de forma fluida entre esos refrescos, no para traer datos nuevos).
+let _vivoClockTickerId = null;
+function _vivoStartClockTicker() {
+  if (_vivoClockTickerId) return;
+  _vivoClockTickerId = setInterval(() => {
+    const el = document.getElementById('ap-fd-vivo-clock');
+    if (!el) return;
+    const label = _vivoClockLabel(el.dataset.dia, el.dataset.hora, el.dataset.estado);
+    if (label) el.textContent = label;
+  }, 20000);
+}
+
 function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
   const ph = v => (v === '—' || v === null || v === undefined)
     ? `<span class="ap-fd-ph">—</span>` : v;
@@ -9629,6 +9766,28 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
   const rivalPosBadge = posRivalClean !== '—' && !isRoundName(posRivalClean) ? `<span class="ap-fd-mobile-pos">Pos: ${posRivalClean}º</span>` : '';
   const leftPos  = csbIsLeft ? csbPosBadge : rivalPosBadge;
   const rightPos = csbIsLeft ? rivalPosBadge : csbPosBadge;
+  // Seguimiento en vivo — `marcadorVivo` se muestra TAL CUAL viene (Local-
+  // Visitante), mismo criterio que `resultado` en esta misma ficha (ninguno
+  // de los dos se reordena CSB-primero; quién es quién ya lo comunican el
+  // escudo/nombre a cada lado, no el orden de los números). Mientras el
+  // partido está en curso (estadoVivoActivo, sin resultado todavía),
+  // reemplaza el "⏳ Pendiente"/"vs" de siempre en el marcador principal —
+  // ver _vivoSectionHtml más abajo para el detalle de goles/cambios/rojas.
+  const estadoVivoActivo = (detail && detail.estadoVivo) || '';
+  const vivoMarcadorTxt = (detail && detail.marcadorVivo) || '';
+  // Color del marcador en vivo — mismo criterio que resColor (arriba, para
+  // partidos ya terminados): ganando en verde, perdiendo en rojo, empatando
+  // en amarillo/dorado. `vivoMarcadorTxt` viene Local-Visitante (ver el
+  // comentario de arriba), así que se reusa _csbEsVisitanteONeutral para
+  // saber cuál de los 2 números es el de CSB antes de comparar.
+  const vivoMarcadorMatch = /(\d+)\s*-\s*(\d+)/.exec(vivoMarcadorTxt);
+  const vivoColor = (() => {
+    if (!vivoMarcadorMatch) return '#ef4444'; // sin marcador cargado todavía: rojo "en vivo" de siempre
+    const n1 = parseInt(vivoMarcadorMatch[1], 10), n2 = parseInt(vivoMarcadorMatch[2], 10);
+    const vivoCsb = _csbEsVisitanteONeutral ? n2 : n1;
+    const vivoRiv = _csbEsVisitanteONeutral ? n1 : n2;
+    return vivoCsb > vivoRiv ? 'var(--verde)' : vivoCsb < vivoRiv ? 'var(--rojo)' : 'var(--dorado)';
+  })();
   // Barra de metadatos como píldoras con fondo/borde propios en vez de
   // texto plano suelto — cada una con su ícono a color.
   const topbarHtml = [
@@ -9642,12 +9801,12 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
       ${topbarHtml ? `<div class="ap-fd-mobile-topbar">${topbarHtml}</div>` : ''}
       <div class="ap-fd-mobile-matchup">
         <div class="ap-fd-mobile-team">${leftCrest}<span class="ap-fd-mobile-team-name">${leftNameClickable}</span>${leftPos}</div>
-        <div class="ap-fd-mobile-score" style="${played ? `color:${resColor}` : ''}">${played
+        <div class="ap-fd-mobile-score" style="${played ? `color:${resColor}` : (estadoVivoActivo && vivoMarcadorMatch ? `color:${vivoColor}` : '')}">${played
           ? `${resultado}${penales ? `<small>(pen. ${penales})</small>` : ''}`
-          : 'vs'}</div>
+          : (estadoVivoActivo ? (vivoMarcadorTxt || 'vs') : 'vs')}</div>
         <div class="ap-fd-mobile-team">${rightCrest}<span class="ap-fd-mobile-team-name">${rightNameClickable}</span>${rightPos}</div>
       </div>
-      ${!played ? `<div class="ap-fd-mobile-pending">⏳ Pendiente</div>` : ''}
+      ${!played ? (estadoVivoActivo ? `<div class="ap-fd-mobile-pending ap-fd-mobile-pending-vivo">🔴 En vivo</div>` : `<div class="ap-fd-mobile-pending">⏳ Pendiente</div>`) : ''}
     </div>`;
 
   // ── Hero Scoreboard desktop (>768px) ── Reemplaza al viejo título+score
@@ -9687,7 +9846,9 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
         <div class="ap-fd-hero-d-center">
           <div class="ap-fd-hero-d-score" style="${played ? `color:${resColor}` : ''}">${played
             ? `${resultado}${penales ? `<span class="ap-fd-hero-d-pen">(pen. ${penales})</span>` : ''}`
-            : `<span class="ap-fd-hero-d-pending">⏳ Pendiente</span>`}</div>
+            : (estadoVivoActivo
+                ? `<span class="ap-fd-hero-d-pending" style="color:${vivoMarcadorMatch ? vivoColor : '#ef4444'}">${vivoMarcadorTxt || '🔴 En vivo'}</span>`
+                : `<span class="ap-fd-hero-d-pending">⏳ Pendiente</span>`)}</div>
           ${played && parcialesVal !== '—' ? `<div class="ap-fd-hero-d-parcial">Parcial: ${parcialesVal}</div>` : ''}
         </div>
         <div class="ap-fd-hero-d-team">
@@ -9699,7 +9860,9 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
       </div>
     </div>`;
 
-  const summary = mobileMatchup + heroDesktop + `
+  const vivoHtml = detail ? _vivoSectionHtml(detail, vivoMarcadorTxt, vivoMarcadorMatch ? vivoColor : null) : '';
+
+  const summary = mobileMatchup + heroDesktop + vivoHtml + `
     <div class="ap-fd-card">
       <div class="ap-fd-header">
         <div class="ap-fd-title">Santa Bárbara vs ${rivalDisplay}</div>
@@ -10075,6 +10238,7 @@ function renderFechaDetail(basic, detail, targetId = 'ap-fecha-detail', fechaLab
   const el = document.getElementById(targetId);
   if (!el) return;
   el.innerHTML = buildFechaDetailHTML(basic, detail, fechaLabelOverride);
+  if (detail && detail.estadoVivo) _vivoStartClockTicker();
 }
 
 // Torneos Antiguos puede tener 15-17+ fechas en el selector horizontal — sin esto,
@@ -13328,24 +13492,45 @@ function renderResumen() {
   // mezclan en la misma cola móvil (típicamente al arrancar un torneo
   // nuevo, cuando la mayoría de las 5 tarjetas todavía son del anterior).
   const aperturaLabel = 'Apertura 2026', clausuraLabel = 'Clausura 2026';
+  // `_dt` = fecha/hora REAL del partido (cruzando contra el detalle de Fecha
+  // a Fecha de esa misma fuente, mismo criterio que ya usa _nextPendingPartido
+  // para "Próximo Partido") — null cuando no hay detalle cargado todavía.
   const jugadosDe = (dataObj, navKey, torneoLabel) => (dataObj.partidos || [])
     .filter(p => p.resultado !== null && p.gf !== null)
-    .map(p => ({ ...p, _navKey: navKey, _torneoLabel: torneoLabel }));
-  // Apertura primero (más antiguo) + Clausura después (más reciente) — tomar
-  // los últimos 5 de esa secuencia da exactamente la cola móvil. Para
-  // Primera A, la Recopa 2026 corre en paralelo a la liga y no vive en
-  // d.partidos — el último resultado (eliminados en Semifinales, 13/08) se
-  // suma al final a mano, como el partido más reciente jugado por el plantel,
-  // SOLO mientras el Clausura todavía no arrancó a jugar. BUG REAL
-  // encontrado (la ficha de "Último Partido" seguía mostrando la Recopa
-  // mucho después de que el Clausura ya tuviera resultados cargados,
-  // ignorando por completo la fecha real de cada uno): antes se sumaba
-  // siempre al final sin importar si el Clausura ya había jugado partidos
-  // más recientes que esa semifinal.
+    .map(p => {
+      const det = (dataObj.apertura || []).find(a => String(a.fecha) === String(p.fecha));
+      return { ...p, _navKey: navKey, _torneoLabel: torneoLabel, _dt: det ? _parseFechaHora(det.dia, det.hora, true) : null };
+    });
+  // Apertura primero (más antiguo) + Clausura después (más reciente) como
+  // orden DE PARTIDA — pero antes de cortar los últimos 5 se reordena por
+  // `_dt` real (ver abajo), no por este orden de sheet/grilla. Para Primera
+  // A, la Recopa 2026 corre en paralelo a la liga y no vive en d.partidos —
+  // el último resultado (eliminados en Semifinales, 13/08) se suma a mano,
+  // SOLO mientras el Clausura todavía no arrancó a jugar.
   const clausuraJugados = jugadosDe(d, clausuraNavKey, clausuraLabel);
   const combinadoUltimos = [...jugadosDe(aperturaSrc, aperturaNavKey, aperturaLabel), ...clausuraJugados];
-  if (isA && clausuraJugados.length === 0) combinadoUltimos.push(RECOPA_2026_A_ULTIMO_RESULTADO);
-  const ultimos = combinadoUltimos.slice(-5).reverse();
+  if (isA && clausuraJugados.length === 0) {
+    combinadoUltimos.push({ ...RECOPA_2026_A_ULTIMO_RESULTADO, _dt: _parseFechaHora(RECOPA_2026_A_ULTIMO_RESULTADO.dia, null, true) });
+  }
+  // BUG REAL encontrado (reportado: "Último Partido" de Primera B mostraba
+  // el de Libertador en vez del de Lasalle, jugado un día después): esto
+  // ordenaba por la posición de cada fila en el sheet (asumiendo que esa
+  // grilla ya viene en orden cronológico real), pero una fecha reprogramada
+  // puede jugarse DESPUÉS de otra que en la grilla aparece más adelante —
+  // exactamente el mismo problema que _nextPendingPartido ya resuelve para
+  // "Próximo Partido" cruzando contra la fecha/hora real de Fecha a Fecha en
+  // vez de confiar en el orden de carga. Acá se aplica el mismo criterio
+  // para "último jugado": se ordena por `_dt` ascendente (los partidos sin
+  // fecha real resuelta se tratan como los más viejos, al principio — mejor
+  // subestimar su reciencia que dejar que un dato incompleto se cuele como
+  // "el último" por error) y recién ahí se cortan los últimos 5.
+  const combinadoPorFechaReal = [...combinadoUltimos].sort((a, b) => {
+    if (a._dt && b._dt) return a._dt.getTime() - b._dt.getTime();
+    if (a._dt) return 1;
+    if (b._dt) return -1;
+    return 0;
+  });
+  const ultimos = combinadoPorFechaReal.slice(-5).reverse();
   function ultimoBadgeCls(torneoLabel) {
     return /apertura/i.test(torneoLabel) ? 'badge-apertura'
       : /clausura/i.test(torneoLabel) ? 'badge-clausura' : 'badge-copa';
@@ -18422,6 +18607,29 @@ async function fetchGvizByGid(sheetId, gid, range, _attempt = 0) {
   return parseCSV(await r.text());
 }
 
+// Seguimiento en vivo minuto a minuto — tab chico y propio "Control Vivo",
+// UNO en cada sheet (A_MAIN para Primera A, B_HIST para Primera B — no un
+// tab compartido entre las 2 categorías: mismo criterio que el resto del
+// sitio, donde cada categoría vive 100% en su propio spreadsheet). Layout:
+// A1 = "Activo", B1 = "SI"/"NO". Deliberadamente SEPARADO del fetch grande
+// de Fecha a Fecha (detRange, ~500 filas): push-scheduler-vivo.js corre
+// cada 1-2 min TODOS los días, y la idea completa de activarlo "a mano" es
+// que la mayor parte del tiempo (cuando no hay partido) ese chequeo sea
+// baratísimo — un fetch de 1 celda por categoría, no releer el sheet entero
+// de Fecha a Fecha para nada. Ante cualquier error de red devuelve false
+// (fail-safe: mejor perderse un aviso en vivo puntual que spamear pushes
+// con datos a medio cargar).
+async function _loadControlVivoActivo(sheetId) {
+  try {
+    const rows = await fetchProxy('Control Vivo', 'A1:B1', sheetId);
+    const row = rows[0] || [];
+    return /^s[ií]$/i.test(String(row[1] || '').trim());
+  } catch (e) {
+    console.error('[Vivo] Control Vivo load failed:', e.message || e);
+    return false;
+  }
+}
+
 function parseCSV(text) {
   const rows = []; let row = [], f = '', q = false;
   for (let i = 0; i < text.length; i++) {
@@ -18912,6 +19120,15 @@ function parseDetailedMatches(rows, startInSection = false) {
         // necesite como identificador estable no hace falta que sume nada
         // más (ej. el rival, que puede corregirse por un error de carga).
         fechaReal: parseInt(c1) > 0,
+        // Seguimiento en vivo (Fecha 12/10: push-scheduler-vivo.js +
+        // feed minuto a minuto de Fecha a Fecha): columnas I/J de la misma
+        // fila de encabezado del partido, libres hasta ahora. marcadorVivo
+        // es texto tipo "1-0" que se va actualizando a mano durante el
+        // partido; estadoVivo es '' (sin seguimiento) | '1T' | 'ET'
+        // (entretiempo) | '2T' — ambas en blanco para cualquier partido
+        // viejo que no las tenga cargadas, sin romper nada existente.
+        marcadorVivo: (row[8]||'').trim(),
+        estadoVivo: (row[9]||'').trim().toUpperCase(),
       };
       pCols = null; // reset until player header seen for this match
       matches.push(current);
@@ -19130,7 +19347,7 @@ function _swrHydrate() {
 // The "Dia" column comes in as "d/m" or "d/m/yyyy" (year omitted for the
 // current season), "Hora" as "Nhs", "N:MMhs" or plain "N:MM" — tolerant
 // parse into a real Date so the countdown has something to count down to.
-function _parseFechaHora(diaStr, horaStr) {
+function _parseFechaHora(diaStr, horaStr, noFutureRoll) {
   const m = String(diaStr || '').trim().match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
   if (!m) return null;
   const day = parseInt(m[1]), month = parseInt(m[2]);
@@ -19155,8 +19372,17 @@ function _parseFechaHora(diaStr, horaStr) {
   const dt = new Date(Date.UTC(year, month - 1, day, hour + 3, min));
   // No explicit year in the sheet and the assumed-current-year date already
   // passed by more than a few days → the match is really next year (season
-  // crossing Dec→Jan), bump forward once.
-  if (!m[3] && dt.getTime() < Date.now() - 3 * 86400000) dt.setFullYear(year + 1);
+  // crossing Dec→Jan), bump forward once. SOLO para fixtures FUTUROS
+  // (Recordatorio/Comienzo/Próximo Partido, los únicos casos pensados acá
+  // originalmente) — pasar `noFutureRoll=true` para resolver la fecha real
+  // de un partido YA JUGADO (ver "Último Partido" en renderResumen): sin
+  // este freno, cualquier partido jugado hace más de 3 días (sin año
+  // explícito, lo normal en el sheet) se corría solo al año que viene,
+  // haciendo que pareciera "más reciente" que partidos jugados después de
+  // verdad — BUG REAL encontrado (reportado: "Último Partido" de Primera B
+  // mostraba el de Libertador, de hace varios días, en vez del de Lasalle,
+  // jugado ayer).
+  if (!noFutureRoll && !m[3] && dt.getTime() < Date.now() - 3 * 86400000) dt.setFullYear(year + 1);
   return dt;
 }
 function _countdownParts(target) {
@@ -21683,6 +21909,29 @@ if (window.__OG_BUILD__) {
     // guardado si la última vista antes del F5 era la landing scrolleada.
     _initialLoadLiveDataPromise.then(_restoreScrollAfterReload).catch(_restoreScrollAfterReload);
   }
+  // BUG REAL encontrado (reportado: tocar una notificación push de Citación/
+  // 11 probable en el teléfono deja la PWA/pestaña en la home en vez de
+  // llevar al partido): todo el bloque de arriba (_tryOpenPlayerFromHash/
+  // _tryOpenPartidoFromHash/_tryRestoreRouteFromHash) corre UNA SOLA VEZ, en
+  // la carga inicial — lee location.hash en ese momento nada más. Si la
+  // pestaña/PWA ya estaba abierta en segundo plano cuando llega el push (el
+  // caso típico en mobile), tocar la notificación no dispara una carga nueva
+  // de la página, así que esa lógica de arriba nunca vuelve a correr — como
+  // mucho el Service Worker de OneSignal trae la pestaña al frente, pero
+  // nada reaccionaba después a que el hash cambiara. Se agrega acá un
+  // listener real de 'hashchange' que corre la misma lógica para cualquier
+  // cambio de hash DURANTE la sesión (lo dispara tanto el click forzado de
+  // OneSignal de arriba en el <head> como cualquier otro deep link futuro).
+  window.addEventListener('hashchange', () => {
+    if (!location.hash) return;
+    if (/^#jugador\//.test(location.hash)) {
+      (window._nidoEnsureLoaded ? window._nidoEnsureLoaded() : Promise.resolve()).then(_tryOpenPlayerFromHash);
+    } else if (/^#partido\//.test(location.hash)) {
+      _tryOpenPartidoFromHash();
+    } else {
+      _tryRestoreRouteFromHash();
+    }
+  });
   setInterval(loadLiveData, 60 * 1000); // auto-refresh every 60s
   document.addEventListener('visibilitychange', () => { if (!document.hidden) loadLiveData(); });
   window.addEventListener('focus', loadLiveData);

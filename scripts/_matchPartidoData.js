@@ -125,6 +125,11 @@ function buildHelpers(window) {
       // la usa netlify/functions/push-scheduler.js para el Recordatorio/
       // Comienzo del partido (dispara por reloj, no por diff de snapshot).
       parseFechaHora: window._parseFechaHora,
+      // Mismo reloj sintético que ya pinta el cliente en la ficha de Fecha a
+      // Fecha (ver _vivoClockLabel en index.html) — reusado acá para que
+      // push-scheduler-vivo.js meta el minuto en vivo ("23'") en el texto
+      // del push, en vez de duplicar esa cuenta a mano del lado del server.
+      vivoClockLabel: window._vivoClockLabel,
       parseTablaSheet: window.parseTablaSheet,
       GS: window.GS,
       fetchGvizByGid: window.fetchGvizByGid,
@@ -177,6 +182,10 @@ async function getAllMatchesFromWindow(window, torneo) {
     // Ver el comentario de `fechaReal` en parseDetailedMatches (index.html)
     // — lo usa push-scheduler para armar una clave de seguimiento estable.
     fechaReal: !!m.fechaReal,
+    // Seguimiento en vivo — ver el comentario de marcadorVivo/estadoVivo en
+    // parseDetailedMatches (index.html). Usado por push-scheduler-vivo.js.
+    marcadorVivo: m.marcadorVivo || '',
+    estadoVivo: m.estadoVivo || '',
   }));
 
   return { matches, helpers: buildHelpers(window) };
@@ -243,6 +252,21 @@ async function getElNidoRankings() {
   return { general, a, b };
 }
 
+// Chequeo barato de "¿hay algún partido en seguimiento en vivo ahora?" — un
+// solo fetch chico por categoría (tab "Control Vivo" propio de cada sheet,
+// 1 celda) en vez de releer Fecha a Fecha entera (detRange, ~500 filas x 2
+// categorías) en cada corrida de push-scheduler-vivo.js, que dispara cada
+// 1-2 min TODOS los días. Solo cuando esto devuelve alguna categoría activa
+// vale la pena pagar el fetch grande de getAllMatches para esa categoría.
+async function getControlVivo() {
+  const window = await _loadEngine();
+  const [a, b] = await Promise.all([
+    window._loadControlVivoActivo(window.GS[TORNEO_CFG.a.sheetKey]),
+    window._loadControlVivoActivo(window.GS[TORNEO_CFG.b.sheetKey]),
+  ]);
+  return { a, b };
+}
+
 // Un solo partido por torneo+fecha — lo usa el fallback en vivo
 // (netlify/functions/partido.js/partido-og.js). Internamente pide la MISMA
 // lista completa que getAllMatches (mismos 2 fetches, no hay un tercer
@@ -256,4 +280,4 @@ async function getMatchData(torneo, fecha) {
   return { match, helpers: data.helpers };
 }
 
-module.exports = { getAllMatches, getAllMatchesFromWindow, getMatchData, getTabla, getElNidoRankings, SITE_URL, TORNEO_CFG };
+module.exports = { getAllMatches, getAllMatchesFromWindow, getMatchData, getTabla, getElNidoRankings, getControlVivo, SITE_URL, TORNEO_CFG };
