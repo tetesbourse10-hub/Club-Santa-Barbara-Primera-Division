@@ -11457,7 +11457,7 @@ function renderTorneoApertura() {
   const partidos = (d.partidos || []).filter(m => /^\d+$/.test(m.fecha));
   const played   = partidos.filter(m => m.resultado !== null);
   const pending  = partidos.filter(m => m.resultado === null);
-  const last     = played.length ? played[played.length - 1] : null;
+  const last     = _ultimoJugadoReal(played, d.apertura);
   const next     = pending.length ? pending[0] : null;
   const detLast  = last && (d.apertura || []).find(m => String(m.fecha) === String(last.fecha));
   const detNext  = next && (d.apertura || []).find(m => String(m.fecha) === String(next.fecha));
@@ -11807,7 +11807,7 @@ function renderTorneoApertura2025A() {
 
   const partidos = (d.partidos || []).filter(m => /^\d+$/.test(m.fecha));
   const played   = partidos.filter(m => m.resultado !== null);
-  const last     = played.length ? played[played.length - 1] : null;
+  const last     = _ultimoJugadoReal(played, d.apertura);
 
   const rc    = m => { const { csb, riv } = _csbGoles(m); return csb > riv ? 'var(--verde)' : csb < riv ? 'var(--rojo)' : 'var(--dorado)'; };
   const badge = m => { const { csb, riv } = _csbGoles(m); return csb > riv ? '<span class="ap-mc-badge won">Victoria</span>'
@@ -12104,7 +12104,7 @@ function renderTorneoHistoricoGeneric(d, name, fechaLabels, excludeStatsFechas) 
 
   const partidos = (d.partidos || []).filter(m => /^\d+$/.test(m.fecha));
   const played   = partidos.filter(m => m.resultado !== null);
-  const last     = played.length ? played[played.length - 1] : null;
+  const last     = _ultimoJugadoReal(played, d.apertura);
 
   const rc    = m => { const { csb, riv } = _csbGoles(m); return csb > riv ? 'var(--verde)' : csb < riv ? 'var(--rojo)' : 'var(--dorado)'; };
   const badge = m => { const { csb, riv } = _csbGoles(m); return csb > riv ? '<span class="ap-mc-badge won">Victoria</span>'
@@ -13057,7 +13057,7 @@ function renderTorneoApt2024DB() {
   function doRender() {
     const partidos = (d.partidos || []).filter(m => /^\d+$/.test(m.fecha));
     const played   = partidos.filter(m => m.resultado !== null);
-    const last     = played.length ? played[played.length - 1] : null;
+    const last     = _ultimoJugadoReal(played, d.apertura);
 
     const rc    = m => { const { csb, riv } = _csbGoles(m); return csb > riv ? 'var(--verde)' : csb < riv ? 'var(--rojo)' : 'var(--dorado)'; };
     const badge = m => { const { csb, riv } = _csbGoles(m); return csb > riv ? '<span class="ap-mc-badge won">Victoria</span>'
@@ -19379,6 +19379,25 @@ function _parseFechaHora(diaStr, horaStr, noFutureRoll) {
   // jugado ayer).
   if (!noFutureRoll && !m[3] && dt.getTime() < Date.now() - 3 * 86400000) dt.setFullYear(year + 1);
   return dt;
+}
+// "Último Partido" de la Tabla Completa de un torneo (renderTorneoApertura/
+// Apertura2025A/HistoricoGeneric/Apt2024DB, las 4 duplican esta misma línea)
+// — mismo BUG REAL ya arreglado en renderResumen (ver _parseFechaHora de
+// arriba): `played[played.length - 1]` asume que el sheet ya viene en
+// orden cronológico real, pero una fecha reprogramada puede jugarse
+// DESPUÉS de otra que en la grilla aparece más adelante. Acá no hay
+// torneos distintos que mezclar (un solo `d`, a diferencia de Resumen que
+// combina Apertura anterior + Clausura actual), así que alcanza con
+// ordenar por fecha real dentro de este único `played` — sort estable
+// (nunca reordena cuando a alguno le falta `_dt`) y se toma el último.
+function _ultimoJugadoReal(played, apertura) {
+  if (!played.length) return null;
+  const conDt = played.map(m => {
+    const det = (apertura || []).find(a => String(a.fecha) === String(m.fecha));
+    return { m, _dt: det ? _parseFechaHora(det.dia, det.hora, true) : null };
+  });
+  conDt.sort((a, b) => a._dt && b._dt ? a._dt.getTime() - b._dt.getTime() : 0);
+  return conDt[conDt.length - 1].m;
 }
 function _countdownParts(target) {
   const diffMs = target.getTime() - Date.now();
