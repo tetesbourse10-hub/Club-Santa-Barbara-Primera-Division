@@ -32,7 +32,7 @@
 //   8. Entró al Top 10 de El Nido — General/Primera A/Primera B, por
 //      categoría (ver checkElNido más abajo)
 const { getStore } = require('@netlify/blobs');
-const { getAllMatches, getTabla, getElNidoRankings, SITE_URL, TORNEO_CFG } = require('./_matchPartidoData');
+const { getAllMatches, getTabla, getElNidoRankings, getControlVivo, SITE_URL, TORNEO_CFG } = require('./_matchPartidoData');
 
 const ONESIGNAL_APP_ID = '313bdf7f-d8ce-4ef4-868d-bfbe78d0ccee';
 // Secreta — nunca hardcodeada. Se configura como variable de entorno en
@@ -711,6 +711,137 @@ async function checkElNido(store) {
   await store.setJSON(stateKey, { top10: nextTop10, goles: nextGoles });
 }
 
+// ── Seguimiento en vivo minuto a minuto (push-scheduler-vivo.js) ───────────
+// A diferencia de runOnce()/checkTorneo (corre cada 5 min solo sábados, o
+// cada 2h el resto de la semana, y compara snapshots de TODOS los partidos
+// del torneo), esto corre cada 1-2 min TODOS los días pero de entrada
+// chequea `getControlVivo()` — un fetch chico y propio, separado del fetch
+// grande de Fecha a Fecha — y no hace nada más si nadie activó el
+// seguimiento a mano (ver el comentario de _loadControlVivo en index.html).
+// Snapshot propio (`estado-vivo-${torneo}`, clave separada de
+// `estado-${torneo}` que ya usa checkTorneo) para no interferir con esas
+// otras reglas ni heredar su lógica de "primera corrida, no avisar nada" —
+// acá si hay seguimiento activo, SIEMPRE queremos reaccionar a cualquier
+// cambio real, no solo después de una corrida base.
+function _parseMarcador(txt) {
+  const m = String(txt || '').match(/(\d+)\s*-\s*(\d+)/);
+  if (!m) return null;
+  return { local: parseInt(m[1], 10), visita: parseInt(m[2], 10) };
+}
+// Mismo criterio que csbGoles de arriba, pero a partir del texto de
+// Marcador en Vivo (local-visitante) en vez de gf/gc (que recién se llenan
+// con el resultado FINAL, no sirven mientras el partido está en curso).
+function _csbGolesVivo(marcador, local) {
+  if (!marcador) return null;
+  const esVisitanteONeutral = String(local || '').toUpperCase() !== 'LOCAL';
+  return esVisitanteONeutral
+    ? { csb: marcador.visita, riv: marcador.local }
+    : { csb: marcador.local, riv: marcador.visita };
+}
+function _snapshotVivoJugador(j) {
+  return { goles: j.goles || 0, entro: !!j.entro, rojas: j.rojas || 0 };
+}
+async function _checkTorneoVivo(store, torneo) {
+  const data = await getAllMatches(torneo);
+  if (!data) return;
+  const { matches } = data;
+  // El partido "en seguimiento" es el único con estadoVivo no vacío (lo
+  // marca a mano quien está en la cancha) — si por error quedó más de uno
+  // así (alguien se olvidó de limpiarlo en el anterior), se toma el primero
+  // y listo; no vale la pena una regla más estricta para un caso de carga
+  // manual que ya es responsabilidad de quien la carga.
+  const m = matches.find(mm => mm.estadoVivo);
+  const stateKey = `estado-vivo-${torneo}`;
+  if (!m) {
+    // Nadie en seguimiento en este torneo — se limpia el estado guardado
+    // (si había uno de un partido anterior) para que, cuando se active de
+    // nuevo más adelante, no arrastre jugadores/marcador de ESE partido
+    // viejo como si fueran el "antes" del nuevo.
+    await store.delete(stateKey);
+    return;
+  }
+  const fecha = String(m.fecha);
+  const url = `${SITE_URL}/#partido/${torneo}/${encodeURIComponent(fecha)}`;
+  const marcador = _parseMarcador(m.marcadorVivo);
+  const goles = _csbGolesVivo(marcador, m.local);
+  const marcadorTxt = goles != null ? `${goles.csb}-${goles.riv}` : (m.marcadorVivo || '');
+
+  const prev = (await store.get(stateKey, { type: 'json' })) || null;
+  // Primera corrida de ESTE partido en seguimiento (prev es de otro partido,
+  // o no había ninguno): se guarda la foto tal cual, sin avisar nada — recién
+  // activado, cualquier Entró/Gol/Roja ya cargado antes de prenderlo no es
+  // un evento nuevo que haya que avisar ahora.
+  const esPrimeraVezEstePartido = !prev || prev.fecha !== fecha;
+  const prevJugadores = esPrimeraVezEstePartido ? {} : (prev.jugadores || {});
+  const prevEstado = esPrimeraVezEstePartido ? m.estadoVivo : (prev.estadoVivo || '');
+  const prevGolesTotal = esPrimeraVezEstePartido ? (goles ? goles.csb : 0) : (prev.golesTotal ?? (goles ? goles.csb : 0));
+
+  if (!esPrimeraVezEstePartido) {
+    // Cambios/goles/rojas — mismo plantel que ya usa el resto de las reglas,
+    // comparado jugador a jugador contra la foto anterior.
+    for (const j of (m.jugadores || [])) {
+      if (!j.nombre) continue;
+      const nombre = _cleanNombre(j.nombre);
+      const curr = _snapshotVivoJugador(j);
+      const prevJ = prevJugadores[nombre];
+      if (prevJ) {
+        if (j.entro && !prevJ.entro) {
+          const sale = j.porQuien ? ` (sale ${_cleanNombre(j.porQuien)})` : '';
+          await sendPush('🔄 Cambio', `Entra ${nombre}${sale} — Santa Bárbara vs ${m.rival}`, url);
+        }
+        if (curr.rojas > prevJ.rojas) {
+          await sendPush('🟥 Tarjeta roja', `${nombre} fue expulsado — Santa Bárbara vs ${m.rival}`, url);
+        }
+        if (curr.goles > prevJ.goles) {
+          await sendPush('⚽ GOL de Santa Bárbara', `${nombre} marcó — Santa Bárbara ${marcadorTxt} ${m.rival}`, url);
+        }
+      }
+    }
+    // Gol del rival: el marcador total de CSB no subió respecto a la foto
+    // anterior, pero el marcador cambió igual — solo puede ser un gol en
+    // contra. (Si CSB sí subió, ya se avisó arriba con el nombre real del
+    // goleador — no se manda un segundo push genérico para el mismo gol.)
+    if (goles != null && marcadorTxt !== prev.marcadorTxt && goles.csb === prevGolesTotal) {
+      await sendPush('⚽ GOL del rival', `${m.rival} marcó — Santa Bárbara ${marcadorTxt} ${m.rival}`, url);
+    }
+    // Entretiempo / arranca el complemento — por transición de estadoVivo,
+    // no por reloj (ver el reloj sintético del lado del cliente, que SÍ
+    // corre por reloj pero solo pinta la pantalla, no manda push). No se
+    // avisa la transición blank→'1T' porque "Comienzo del partido" (regla
+    // de reloj en checkTorneo) ya cubre el arranque del partido.
+    if (m.estadoVivo === 'ET' && prevEstado !== 'ET') {
+      await sendPush('⏸️ Entretiempo', `Santa Bárbara ${marcadorTxt} ${m.rival} — fin del primer tiempo`, url);
+    }
+    if (m.estadoVivo === '2T' && prevEstado !== '2T') {
+      await sendPush('▶️ Arranca el complemento', `Santa Bárbara ${marcadorTxt} ${m.rival} — arranca el 2do tiempo`, url);
+    }
+  }
+
+  const nextJugadores = {};
+  for (const j of (m.jugadores || [])) {
+    if (!j.nombre) continue;
+    nextJugadores[_cleanNombre(j.nombre)] = _snapshotVivoJugador(j);
+  }
+  await store.setJSON(stateKey, {
+    fecha, estadoVivo: m.estadoVivo, marcadorTxt,
+    golesTotal: goles ? goles.csb : 0, jugadores: nextJugadores,
+  });
+}
+async function runOnceVivo() {
+  const activo = await getControlVivo();
+  if (!activo.a && !activo.b) return { statusCode: 200, body: 'sin seguimiento activo' };
+  const store = getStore(_blobsStoreOptions());
+  for (const torneo of Object.keys(TORNEO_CFG)) {
+    if (!activo[torneo]) continue;
+    try {
+      await _checkTorneoVivo(store, torneo);
+    } catch (e) {
+      console.error(`push-scheduler-vivo: falló el chequeo de ${torneo}:`, e);
+    }
+  }
+  return { statusCode: 200, body: 'ok' };
+}
+
 async function runOnce() {
   if (!process.env.BLOBS_ACCESS_TOKEN) {
     console.error('push-scheduler: falta BLOBS_ACCESS_TOKEN — Netlify Blobs va a tirar MissingBlobsEnvironmentError y no se va a poder guardar/comparar estado.');
@@ -734,4 +865,4 @@ async function runOnce() {
   return { statusCode: 200, body: 'ok' };
 }
 
-module.exports = { runOnce };
+module.exports = { runOnce, runOnceVivo };

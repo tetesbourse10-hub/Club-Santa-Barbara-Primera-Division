@@ -177,6 +177,10 @@ async function getAllMatchesFromWindow(window, torneo) {
     // Ver el comentario de `fechaReal` en parseDetailedMatches (index.html)
     // — lo usa push-scheduler para armar una clave de seguimiento estable.
     fechaReal: !!m.fechaReal,
+    // Seguimiento en vivo — ver el comentario de marcadorVivo/estadoVivo en
+    // parseDetailedMatches (index.html). Usado por push-scheduler-vivo.js.
+    marcadorVivo: m.marcadorVivo || '',
+    estadoVivo: m.estadoVivo || '',
   }));
 
   return { matches, helpers: buildHelpers(window) };
@@ -247,6 +251,17 @@ async function getElNidoRankings() {
 // (netlify/functions/partido.js/partido-og.js). Internamente pide la MISMA
 // lista completa que getAllMatches (mismos 2 fetches, no hay un tercer
 // camino a mantener sincronizado) y busca la fecha pedida.
+// Chequeo barato de "¿hay algún partido en seguimiento en vivo ahora?" — un
+// solo fetch chico (tab "Control Vivo", 2 filas) en vez de releer Fecha a
+// Fecha entera (detRange, ~500 filas x 2 categorías) en cada corrida de
+// push-scheduler-vivo.js, que dispara cada 1-2 min TODOS los días. Solo
+// cuando esto devuelve alguna categoría activa vale la pena pagar el fetch
+// grande de getAllMatches para esa categoría.
+async function getControlVivo() {
+  const window = await _loadEngine();
+  return window._loadControlVivo();
+}
+
 async function getMatchData(torneo, fecha) {
   if (!fecha) return null;
   const data = await getAllMatches(torneo);
@@ -256,4 +271,4 @@ async function getMatchData(torneo, fecha) {
   return { match, helpers: data.helpers };
 }
 
-module.exports = { getAllMatches, getAllMatchesFromWindow, getMatchData, getTabla, getElNidoRankings, SITE_URL, TORNEO_CFG };
+module.exports = { getAllMatches, getAllMatchesFromWindow, getMatchData, getTabla, getElNidoRankings, getControlVivo, SITE_URL, TORNEO_CFG };
