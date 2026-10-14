@@ -3351,11 +3351,11 @@
     .ap-fd-vivo-row-items { display:flex; flex-wrap:wrap; gap:6px; }
     .ap-fd-vivo-item { background:rgba(255,255,255,0.06); border-radius:6px; padding:2px 8px; color:var(--texto); font-size:0.74rem; }
     .ap-fd-vivo-item small { color:var(--gris-texto); }
-    /* Marcador principal (mobile/desktop) mientras el partido está en
-       seguimiento en vivo, sin resultado final todavía — reemplaza el
-       "⏳ Pendiente" de siempre por el marcador real, en rojo para que se
-       note que es un dato que todavía se está actualizando. */
-    .ap-fd-mobile-score-vivo, .ap-fd-mobile-pending-vivo, .ap-fd-vivo-score-inline { color:#ef4444 !important; }
+    /* "🔴 En vivo" (debajo del marcador mobile) es una etiqueta de estado,
+       no el resultado — se mantiene siempre roja/llamativa, a diferencia
+       del marcador en sí (que sí se pinta verde/amarillo/rojo según vamos
+       ganando/empatando/perdiendo, ver vivoColor en buildFechaDetailHTML). */
+    .ap-fd-mobile-pending-vivo { color:#ef4444 !important; }
     /* ── Recopa bracket ── */
     .rc-bracket-wrap { overflow-x:auto; padding:12px 0 24px; }
     .rc-bracket { display:flex; align-items:stretch; gap:0; min-width:980px; }
@@ -9579,7 +9579,7 @@ function _vivoClockLabel(dia, hora, estadoVivo) {
 // historial de jugadas). `data-dia`/`data-hora`/`data-estado` quedan en el
 // propio badge del reloj para que el ticker de abajo (_vivoStartClockTicker)
 // lo pueda recalcular cada 20s sin tener que re-renderizar toda la ficha.
-function _vivoSectionHtml(detail, marcadorTxt) {
+function _vivoSectionHtml(detail, marcadorTxt, marcadorColor) {
   const estadoVivo = (detail.estadoVivo || '').toUpperCase();
   if (!estadoVivo) return '';
   const jugadores = detail.jugadores || [];
@@ -9599,7 +9599,7 @@ function _vivoSectionHtml(detail, marcadorTxt) {
         <span class="ap-fd-vivo-label">EN VIVO</span>
         <span class="ap-fd-vivo-clock" id="ap-fd-vivo-clock"
               data-dia="${detail.dia || ''}" data-hora="${detail.hora || ''}" data-estado="${estadoVivo}">${clockLabel}</span>
-        ${marcadorTxt ? `<span class="ap-fd-vivo-marcador">${marcadorTxt}</span>` : ''}
+        ${marcadorTxt ? `<span class="ap-fd-vivo-marcador" style="color:${marcadorColor || '#ef4444'}">${marcadorTxt}</span>` : ''}
       </div>
       ${row('⚽', 'Goles', goleadores, j => `<span class="ap-fd-vivo-item">${pl(j.nombre)}${j.goles > 1 ? ` ×${j.goles}` : ''}</span>`)}
       ${row('🔄', 'Cambios', cambios, j => `<span class="ap-fd-vivo-item">${pl(j.nombre)}${j.porQuien ? ` <small>(x ${pl(j.porQuien)})</small>` : ''}</span>`)}
@@ -9775,6 +9775,19 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
   // ver _vivoSectionHtml más abajo para el detalle de goles/cambios/rojas.
   const estadoVivoActivo = (detail && detail.estadoVivo) || '';
   const vivoMarcadorTxt = (detail && detail.marcadorVivo) || '';
+  // Color del marcador en vivo — mismo criterio que resColor (arriba, para
+  // partidos ya terminados): ganando en verde, perdiendo en rojo, empatando
+  // en amarillo/dorado. `vivoMarcadorTxt` viene Local-Visitante (ver el
+  // comentario de arriba), así que se reusa _csbEsVisitanteONeutral para
+  // saber cuál de los 2 números es el de CSB antes de comparar.
+  const vivoMarcadorMatch = /(\d+)\s*-\s*(\d+)/.exec(vivoMarcadorTxt);
+  const vivoColor = (() => {
+    if (!vivoMarcadorMatch) return '#ef4444'; // sin marcador cargado todavía: rojo "en vivo" de siempre
+    const n1 = parseInt(vivoMarcadorMatch[1], 10), n2 = parseInt(vivoMarcadorMatch[2], 10);
+    const vivoCsb = _csbEsVisitanteONeutral ? n2 : n1;
+    const vivoRiv = _csbEsVisitanteONeutral ? n1 : n2;
+    return vivoCsb > vivoRiv ? 'var(--verde)' : vivoCsb < vivoRiv ? 'var(--rojo)' : 'var(--dorado)';
+  })();
   // Barra de metadatos como píldoras con fondo/borde propios en vez de
   // texto plano suelto — cada una con su ícono a color.
   const topbarHtml = [
@@ -9788,7 +9801,7 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
       ${topbarHtml ? `<div class="ap-fd-mobile-topbar">${topbarHtml}</div>` : ''}
       <div class="ap-fd-mobile-matchup">
         <div class="ap-fd-mobile-team">${leftCrest}<span class="ap-fd-mobile-team-name">${leftNameClickable}</span>${leftPos}</div>
-        <div class="ap-fd-mobile-score${!played && estadoVivoActivo ? ' ap-fd-mobile-score-vivo' : ''}" style="${played ? `color:${resColor}` : ''}">${played
+        <div class="ap-fd-mobile-score" style="${played ? `color:${resColor}` : (estadoVivoActivo && vivoMarcadorMatch ? `color:${vivoColor}` : '')}">${played
           ? `${resultado}${penales ? `<small>(pen. ${penales})</small>` : ''}`
           : (estadoVivoActivo ? (vivoMarcadorTxt || 'vs') : 'vs')}</div>
         <div class="ap-fd-mobile-team">${rightCrest}<span class="ap-fd-mobile-team-name">${rightNameClickable}</span>${rightPos}</div>
@@ -9831,10 +9844,10 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
           ${leftPosVal !== '—' && !isRoundName(leftPosVal) ? `<div class="ap-fd-mobile-pos">POS: ${leftPosVal}°</div>` : ''}
         </div>
         <div class="ap-fd-hero-d-center">
-          <div class="ap-fd-hero-d-score${!played && estadoVivoActivo ? ' ap-fd-mobile-score-vivo' : ''}" style="${played ? `color:${resColor}` : ''}">${played
+          <div class="ap-fd-hero-d-score" style="${played ? `color:${resColor}` : ''}">${played
             ? `${resultado}${penales ? `<span class="ap-fd-hero-d-pen">(pen. ${penales})</span>` : ''}`
             : (estadoVivoActivo
-                ? `<span class="ap-fd-hero-d-pending ap-fd-vivo-score-inline">${vivoMarcadorTxt || '🔴 En vivo'}</span>`
+                ? `<span class="ap-fd-hero-d-pending" style="color:${vivoMarcadorMatch ? vivoColor : '#ef4444'}">${vivoMarcadorTxt || '🔴 En vivo'}</span>`
                 : `<span class="ap-fd-hero-d-pending">⏳ Pendiente</span>`)}</div>
           ${played && parcialesVal !== '—' ? `<div class="ap-fd-hero-d-parcial">Parcial: ${parcialesVal}</div>` : ''}
         </div>
@@ -9847,7 +9860,7 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
       </div>
     </div>`;
 
-  const vivoHtml = detail ? _vivoSectionHtml(detail, vivoMarcadorTxt) : '';
+  const vivoHtml = detail ? _vivoSectionHtml(detail, vivoMarcadorTxt, vivoMarcadorMatch ? vivoColor : null) : '';
 
   const summary = mobileMatchup + heroDesktop + vivoHtml + `
     <div class="ap-fd-card">
