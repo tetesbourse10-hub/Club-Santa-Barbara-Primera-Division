@@ -13492,24 +13492,45 @@ function renderResumen() {
   // mezclan en la misma cola móvil (típicamente al arrancar un torneo
   // nuevo, cuando la mayoría de las 5 tarjetas todavía son del anterior).
   const aperturaLabel = 'Apertura 2026', clausuraLabel = 'Clausura 2026';
+  // `_dt` = fecha/hora REAL del partido (cruzando contra el detalle de Fecha
+  // a Fecha de esa misma fuente, mismo criterio que ya usa _nextPendingPartido
+  // para "Próximo Partido") — null cuando no hay detalle cargado todavía.
   const jugadosDe = (dataObj, navKey, torneoLabel) => (dataObj.partidos || [])
     .filter(p => p.resultado !== null && p.gf !== null)
-    .map(p => ({ ...p, _navKey: navKey, _torneoLabel: torneoLabel }));
-  // Apertura primero (más antiguo) + Clausura después (más reciente) — tomar
-  // los últimos 5 de esa secuencia da exactamente la cola móvil. Para
-  // Primera A, la Recopa 2026 corre en paralelo a la liga y no vive en
-  // d.partidos — el último resultado (eliminados en Semifinales, 13/08) se
-  // suma al final a mano, como el partido más reciente jugado por el plantel,
-  // SOLO mientras el Clausura todavía no arrancó a jugar. BUG REAL
-  // encontrado (la ficha de "Último Partido" seguía mostrando la Recopa
-  // mucho después de que el Clausura ya tuviera resultados cargados,
-  // ignorando por completo la fecha real de cada uno): antes se sumaba
-  // siempre al final sin importar si el Clausura ya había jugado partidos
-  // más recientes que esa semifinal.
+    .map(p => {
+      const det = (dataObj.apertura || []).find(a => String(a.fecha) === String(p.fecha));
+      return { ...p, _navKey: navKey, _torneoLabel: torneoLabel, _dt: det ? _parseFechaHora(det.dia, det.hora, true) : null };
+    });
+  // Apertura primero (más antiguo) + Clausura después (más reciente) como
+  // orden DE PARTIDA — pero antes de cortar los últimos 5 se reordena por
+  // `_dt` real (ver abajo), no por este orden de sheet/grilla. Para Primera
+  // A, la Recopa 2026 corre en paralelo a la liga y no vive en d.partidos —
+  // el último resultado (eliminados en Semifinales, 13/08) se suma a mano,
+  // SOLO mientras el Clausura todavía no arrancó a jugar.
   const clausuraJugados = jugadosDe(d, clausuraNavKey, clausuraLabel);
   const combinadoUltimos = [...jugadosDe(aperturaSrc, aperturaNavKey, aperturaLabel), ...clausuraJugados];
-  if (isA && clausuraJugados.length === 0) combinadoUltimos.push(RECOPA_2026_A_ULTIMO_RESULTADO);
-  const ultimos = combinadoUltimos.slice(-5).reverse();
+  if (isA && clausuraJugados.length === 0) {
+    combinadoUltimos.push({ ...RECOPA_2026_A_ULTIMO_RESULTADO, _dt: _parseFechaHora(RECOPA_2026_A_ULTIMO_RESULTADO.dia, null, true) });
+  }
+  // BUG REAL encontrado (reportado: "Último Partido" de Primera B mostraba
+  // el de Libertador en vez del de Lasalle, jugado un día después): esto
+  // ordenaba por la posición de cada fila en el sheet (asumiendo que esa
+  // grilla ya viene en orden cronológico real), pero una fecha reprogramada
+  // puede jugarse DESPUÉS de otra que en la grilla aparece más adelante —
+  // exactamente el mismo problema que _nextPendingPartido ya resuelve para
+  // "Próximo Partido" cruzando contra la fecha/hora real de Fecha a Fecha en
+  // vez de confiar en el orden de carga. Acá se aplica el mismo criterio
+  // para "último jugado": se ordena por `_dt` ascendente (los partidos sin
+  // fecha real resuelta se tratan como los más viejos, al principio — mejor
+  // subestimar su reciencia que dejar que un dato incompleto se cuele como
+  // "el último" por error) y recién ahí se cortan los últimos 5.
+  const combinadoPorFechaReal = [...combinadoUltimos].sort((a, b) => {
+    if (a._dt && b._dt) return a._dt.getTime() - b._dt.getTime();
+    if (a._dt) return 1;
+    if (b._dt) return -1;
+    return 0;
+  });
+  const ultimos = combinadoPorFechaReal.slice(-5).reverse();
   function ultimoBadgeCls(torneoLabel) {
     return /apertura/i.test(torneoLabel) ? 'badge-apertura'
       : /clausura/i.test(torneoLabel) ? 'badge-clausura' : 'badge-copa';
@@ -19326,7 +19347,7 @@ function _swrHydrate() {
 // The "Dia" column comes in as "d/m" or "d/m/yyyy" (year omitted for the
 // current season), "Hora" as "Nhs", "N:MMhs" or plain "N:MM" — tolerant
 // parse into a real Date so the countdown has something to count down to.
-function _parseFechaHora(diaStr, horaStr) {
+function _parseFechaHora(diaStr, horaStr, noFutureRoll) {
   const m = String(diaStr || '').trim().match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
   if (!m) return null;
   const day = parseInt(m[1]), month = parseInt(m[2]);
@@ -19351,8 +19372,17 @@ function _parseFechaHora(diaStr, horaStr) {
   const dt = new Date(Date.UTC(year, month - 1, day, hour + 3, min));
   // No explicit year in the sheet and the assumed-current-year date already
   // passed by more than a few days → the match is really next year (season
-  // crossing Dec→Jan), bump forward once.
-  if (!m[3] && dt.getTime() < Date.now() - 3 * 86400000) dt.setFullYear(year + 1);
+  // crossing Dec→Jan), bump forward once. SOLO para fixtures FUTUROS
+  // (Recordatorio/Comienzo/Próximo Partido, los únicos casos pensados acá
+  // originalmente) — pasar `noFutureRoll=true` para resolver la fecha real
+  // de un partido YA JUGADO (ver "Último Partido" en renderResumen): sin
+  // este freno, cualquier partido jugado hace más de 3 días (sin año
+  // explícito, lo normal en el sheet) se corría solo al año que viene,
+  // haciendo que pareciera "más reciente" que partidos jugados después de
+  // verdad — BUG REAL encontrado (reportado: "Último Partido" de Primera B
+  // mostraba el de Libertador, de hace varios días, en vez del de Lasalle,
+  // jugado ayer).
+  if (!noFutureRoll && !m[3] && dt.getTime() < Date.now() - 3 * 86400000) dt.setFullYear(year + 1);
   return dt;
 }
 function _countdownParts(target) {
