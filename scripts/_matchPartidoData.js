@@ -125,6 +125,11 @@ function buildHelpers(window) {
       // la usa netlify/functions/push-scheduler.js para el Recordatorio/
       // Comienzo del partido (dispara por reloj, no por diff de snapshot).
       parseFechaHora: window._parseFechaHora,
+      // Mismo reloj sintético que ya pinta el cliente en la ficha de Fecha a
+      // Fecha (ver _vivoClockLabel en index.html) — reusado acá para que
+      // push-scheduler-vivo.js meta el minuto en vivo ("23'") en el texto
+      // del push, en vez de duplicar esa cuenta a mano del lado del server.
+      vivoClockLabel: window._vivoClockLabel,
       parseTablaSheet: window.parseTablaSheet,
       GS: window.GS,
       fetchGvizByGid: window.fetchGvizByGid,

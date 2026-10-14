@@ -744,7 +744,7 @@ function _snapshotVivoJugador(j) {
 async function _checkTorneoVivo(store, torneo) {
   const data = await getAllMatches(torneo);
   if (!data) return;
-  const { matches } = data;
+  const { matches, helpers } = data;
   // El partido "en seguimiento" es el único con estadoVivo no vacío (lo
   // marca a mano quien está en la cancha) — si por error quedó más de uno
   // así (alguien se olvidó de limpiarlo en el anterior), se toma el primero
@@ -765,6 +765,12 @@ async function _checkTorneoVivo(store, torneo) {
   const marcador = _parseMarcador(m.marcadorVivo);
   const goles = _csbGolesVivo(marcador, m.local);
   const marcadorTxt = goles != null ? `${goles.csb}-${goles.riv}` : (m.marcadorVivo || '');
+  // Minuto en vivo ("23'", "Entretiempo", "46'"...) — mismo reloj sintético
+  // que ya pinta la ficha de Fecha a Fecha del lado del cliente (ver
+  // _vivoClockLabel en index.html), reusado acá vía helpers para que el
+  // texto del push sea corto y vaya al grano (estilo 365Scores: minuto +
+  // marcador, no una oración completa describiendo el evento).
+  const minuto = helpers.vivoClockLabel ? (helpers.vivoClockLabel(m.dia, m.hora, m.estadoVivo) || '') : '';
 
   const prev = (await store.get(stateKey, { type: 'json' })) || null;
   // Primera corrida de ESTE partido en seguimiento (prev es de otro partido,
@@ -785,15 +791,20 @@ async function _checkTorneoVivo(store, torneo) {
       const curr = _snapshotVivoJugador(j);
       const prevJ = prevJugadores[nombre];
       if (prevJ) {
+        // BUG REAL encontrado (reportado: "quiero menos texto, estilo
+        // 365Scores — minuto + marcador, no una oración completa"): se
+        // acortan los 6 mensajes de abajo al mínimo (título = emoji + minuto
+        // + lo esencial, cuerpo = 1 dato más si hace falta), reusando
+        // `minuto` (de arriba) y `marcadorTxt` en vez de armar una frase.
         if (j.entro && !prevJ.entro) {
-          const sale = j.porQuien ? ` (sale ${_cleanNombre(j.porQuien)})` : '';
-          await sendPush('🔄 Cambio', `Entra ${nombre}${sale} — Santa Bárbara vs ${m.rival}`, url);
+          const sale = j.porQuien ? `, sale ${_cleanNombre(j.porQuien)}` : '';
+          await sendPush(`🔄 ${minuto} Cambio`, `Entra ${nombre}${sale}`, url);
         }
         if (curr.rojas > prevJ.rojas) {
-          await sendPush('🟥 Tarjeta roja', `${nombre} fue expulsado — Santa Bárbara vs ${m.rival}`, url);
+          await sendPush(`🟥 ${minuto} Expulsado`, nombre, url);
         }
         if (curr.goles > prevJ.goles) {
-          await sendPush('⚽ GOL de Santa Bárbara', `${nombre} marcó — Santa Bárbara ${marcadorTxt} ${m.rival}`, url);
+          await sendPush(`⚽ ${minuto} Santa Bárbara ${marcadorTxt}`, `Gol de ${nombre}`, url);
         }
       }
     }
@@ -802,7 +813,7 @@ async function _checkTorneoVivo(store, torneo) {
     // contra. (Si CSB sí subió, ya se avisó arriba con el nombre real del
     // goleador — no se manda un segundo push genérico para el mismo gol.)
     if (goles != null && marcadorTxt !== prev.marcadorTxt && goles.csb === prevGolesTotal) {
-      await sendPush('⚽ GOL del rival', `${m.rival} marcó — Santa Bárbara ${marcadorTxt} ${m.rival}`, url);
+      await sendPush(`⚽ ${minuto} Santa Bárbara ${marcadorTxt}`, `Gol de ${m.rival}`, url);
     }
     // Entretiempo / arranca el complemento — por transición de estadoVivo,
     // no por reloj (ver el reloj sintético del lado del cliente, que SÍ
@@ -810,10 +821,10 @@ async function _checkTorneoVivo(store, torneo) {
     // avisa la transición blank→'1T' porque "Comienzo del partido" (regla
     // de reloj en checkTorneo) ya cubre el arranque del partido.
     if (m.estadoVivo === 'ET' && prevEstado !== 'ET') {
-      await sendPush('⏸️ Entretiempo', `Santa Bárbara ${marcadorTxt} ${m.rival} — fin del primer tiempo`, url);
+      await sendPush('⏸️ Entretiempo', `Santa Bárbara ${marcadorTxt} ${m.rival}`, url);
     }
     if (m.estadoVivo === '2T' && prevEstado !== '2T') {
-      await sendPush('▶️ Arranca el complemento', `Santa Bárbara ${marcadorTxt} ${m.rival} — arranca el 2do tiempo`, url);
+      await sendPush(`▶️ ${minuto} Arranca el 2T`, `Santa Bárbara ${marcadorTxt} ${m.rival}`, url);
     }
   }
 
