@@ -247,21 +247,25 @@ async function getElNidoRankings() {
   return { general, a, b };
 }
 
+// Chequeo barato de "¿hay algún partido en seguimiento en vivo ahora?" — un
+// solo fetch chico por categoría (tab "Control Vivo" propio de cada sheet,
+// 1 celda) en vez de releer Fecha a Fecha entera (detRange, ~500 filas x 2
+// categorías) en cada corrida de push-scheduler-vivo.js, que dispara cada
+// 1-2 min TODOS los días. Solo cuando esto devuelve alguna categoría activa
+// vale la pena pagar el fetch grande de getAllMatches para esa categoría.
+async function getControlVivo() {
+  const window = await _loadEngine();
+  const [a, b] = await Promise.all([
+    window._loadControlVivoActivo(window.GS[TORNEO_CFG.a.sheetKey]),
+    window._loadControlVivoActivo(window.GS[TORNEO_CFG.b.sheetKey]),
+  ]);
+  return { a, b };
+}
+
 // Un solo partido por torneo+fecha — lo usa el fallback en vivo
 // (netlify/functions/partido.js/partido-og.js). Internamente pide la MISMA
 // lista completa que getAllMatches (mismos 2 fetches, no hay un tercer
 // camino a mantener sincronizado) y busca la fecha pedida.
-// Chequeo barato de "¿hay algún partido en seguimiento en vivo ahora?" — un
-// solo fetch chico (tab "Control Vivo", 2 filas) en vez de releer Fecha a
-// Fecha entera (detRange, ~500 filas x 2 categorías) en cada corrida de
-// push-scheduler-vivo.js, que dispara cada 1-2 min TODOS los días. Solo
-// cuando esto devuelve alguna categoría activa vale la pena pagar el fetch
-// grande de getAllMatches para esa categoría.
-async function getControlVivo() {
-  const window = await _loadEngine();
-  return window._loadControlVivo();
-}
-
 async function getMatchData(torneo, fecha) {
   if (!fecha) return null;
   const data = await getAllMatches(torneo);

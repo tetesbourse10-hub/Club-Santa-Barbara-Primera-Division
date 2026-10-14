@@ -18573,29 +18573,26 @@ async function fetchGvizByGid(sheetId, gid, range, _attempt = 0) {
   return parseCSV(await r.text());
 }
 
-// Seguimiento en vivo minuto a minuto — tab chico y propio "Control Vivo"
-// (en A_MAIN, no hay un sheet único compartido entre A y B en GS, así que se
-// centraliza acá) con una fila por categoría: columna A = 'A'/'B', columna B
-// = 'SI'/'NO'. Deliberadamente SEPARADO del fetch grande de Fecha a Fecha
-// (detRange, ~500 filas): push-scheduler-vivo.js corre cada 1-2 min TODOS
-// los días, y la idea completa de activarlo "a mano" es que la mayor parte
-// del tiempo (cuando no hay partido) ese chequeo sea baratísimo — un solo
-// fetch de 2 filas, no releer el sheet entero de Fecha a Fecha para nada.
-// Devuelve { a: bool, b: bool }; ante cualquier error de red, ambas en
-// false (fail-safe: mejor perderse un aviso en vivo puntual que spamear
-// pushes con datos a medio cargar).
-async function _loadControlVivo() {
+// Seguimiento en vivo minuto a minuto — tab chico y propio "Control Vivo",
+// UNO en cada sheet (A_MAIN para Primera A, B_HIST para Primera B — no un
+// tab compartido entre las 2 categorías: mismo criterio que el resto del
+// sitio, donde cada categoría vive 100% en su propio spreadsheet). Layout:
+// A1 = "Activo", B1 = "SI"/"NO". Deliberadamente SEPARADO del fetch grande
+// de Fecha a Fecha (detRange, ~500 filas): push-scheduler-vivo.js corre
+// cada 1-2 min TODOS los días, y la idea completa de activarlo "a mano" es
+// que la mayor parte del tiempo (cuando no hay partido) ese chequeo sea
+// baratísimo — un fetch de 1 celda por categoría, no releer el sheet entero
+// de Fecha a Fecha para nada. Ante cualquier error de red devuelve false
+// (fail-safe: mejor perderse un aviso en vivo puntual que spamear pushes
+// con datos a medio cargar).
+async function _loadControlVivoActivo(sheetId) {
   try {
-    const rows = await fetchProxy('Control Vivo', 'A1:B3', GS.A_MAIN);
-    const activo = {};
-    for (const row of rows) {
-      const cat = String(row[0] || '').trim().toUpperCase();
-      if (cat === 'A' || cat === 'B') activo[cat] = /^s[ií]$/i.test(String(row[1] || '').trim());
-    }
-    return { a: !!activo.A, b: !!activo.B };
+    const rows = await fetchProxy('Control Vivo', 'A1:B1', sheetId);
+    const row = rows[0] || [];
+    return /^s[ií]$/i.test(String(row[1] || '').trim());
   } catch (e) {
     console.error('[Vivo] Control Vivo load failed:', e.message || e);
-    return { a: false, b: false };
+    return false;
   }
 }
 
