@@ -9559,6 +9559,12 @@ function _vivoClockLabel(dia, hora, estadoVivo) {
   // dudas) — mejor mostrar el estado a secas que un reloj roto.
   if (!kickoff) return estadoVivo === '2T' ? '2T' : '1T';
   const minutosDesdeKickoff = Math.floor((Date.now() - kickoff.getTime()) / 60000);
+  // Tiempo de descuento: en vez de quedarse pegado en "45'"/"90'" mientras
+  // el primer/segundo tiempo sigue en curso de verdad, pasa a "45+X'"/
+  // "90+X'" (mismo formato que se ve en cualquier transmisión real) una vez
+  // que se pasa de esos topes — sin esto, un primer tiempo que se extiende
+  // (lesión, VAR, etc.) mostraba 45' fijo aunque todavía no hubiera llegado
+  // el entretiempo real.
   if (estadoVivo === '2T') {
     // No hay un timestamp real de cuándo arrancó el complemento (la celda
     // 'Inicio 2T' es un marcador SI/NO, no una hora) — se aproxima asumiendo
@@ -9566,9 +9572,10 @@ function _vivoClockLabel(dia, hora, estadoVivo) {
     // asume 45' de primer tiempo corrido. No es matemáticamente exacto si el
     // entretiempo real duró más o menos, pero evita un reloj parado.
     const minuto2T = Math.max(46, minutosDesdeKickoff - 10);
-    return `${Math.min(minuto2T, 90)}'`;
+    return minuto2T > 90 ? `90+${minuto2T - 90}'` : `${minuto2T}'`;
   }
-  return `${Math.min(Math.max(minutosDesdeKickoff, 0), 45)}'`;
+  const minuto1T = Math.max(minutosDesdeKickoff, 0);
+  return minuto1T > 45 ? `45+${minuto1T - 45}'` : `${minuto1T}'`;
 }
 // Sección "EN VIVO" de Fecha a Fecha — clock + marcador + goles/cambios/
 // rojas ya cargados hasta el momento (mismo agrupamiento que ya usa
