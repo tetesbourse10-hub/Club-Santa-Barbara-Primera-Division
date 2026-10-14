@@ -9559,6 +9559,12 @@ function _vivoClockLabel(dia, hora, estadoVivo) {
   // dudas) — mejor mostrar el estado a secas que un reloj roto.
   if (!kickoff) return estadoVivo === '2T' ? '2T' : '1T';
   const minutosDesdeKickoff = Math.floor((Date.now() - kickoff.getTime()) / 60000);
+  // Tiempo de descuento: en vez de quedarse pegado en "45'"/"90'" mientras
+  // el primer/segundo tiempo sigue en curso de verdad, pasa a "45+X'"/
+  // "90+X'" (mismo formato que se ve en cualquier transmisión real) una vez
+  // que se pasa de esos topes — sin esto, un primer tiempo que se extiende
+  // (lesión, VAR, etc.) mostraba 45' fijo aunque todavía no hubiera llegado
+  // el entretiempo real.
   if (estadoVivo === '2T') {
     // No hay un timestamp real de cuándo arrancó el complemento (la celda
     // 'Inicio 2T' es un marcador SI/NO, no una hora) — se aproxima asumiendo
@@ -9566,9 +9572,10 @@ function _vivoClockLabel(dia, hora, estadoVivo) {
     // asume 45' de primer tiempo corrido. No es matemáticamente exacto si el
     // entretiempo real duró más o menos, pero evita un reloj parado.
     const minuto2T = Math.max(46, minutosDesdeKickoff - 10);
-    return `${Math.min(minuto2T, 90)}'`;
+    return minuto2T > 90 ? `90+${minuto2T - 90}'` : `${minuto2T}'`;
   }
-  return `${Math.min(Math.max(minutosDesdeKickoff, 0), 45)}'`;
+  const minuto1T = Math.max(minutosDesdeKickoff, 0);
+  return minuto1T > 45 ? `45+${minuto1T - 45}'` : `${minuto1T}'`;
 }
 // Sección "EN VIVO" de Fecha a Fecha — clock + marcador + goles/cambios/
 // rojas ya cargados hasta el momento (mismo agrupamiento que ya usa
@@ -11457,7 +11464,7 @@ function renderTorneoApertura() {
   const partidos = (d.partidos || []).filter(m => /^\d+$/.test(m.fecha));
   const played   = partidos.filter(m => m.resultado !== null);
   const pending  = partidos.filter(m => m.resultado === null);
-  const last     = played.length ? played[played.length - 1] : null;
+  const last     = _ultimoJugadoReal(played, d.apertura);
   const next     = pending.length ? pending[0] : null;
   const detLast  = last && (d.apertura || []).find(m => String(m.fecha) === String(last.fecha));
   const detNext  = next && (d.apertura || []).find(m => String(m.fecha) === String(next.fecha));
@@ -11807,7 +11814,7 @@ function renderTorneoApertura2025A() {
 
   const partidos = (d.partidos || []).filter(m => /^\d+$/.test(m.fecha));
   const played   = partidos.filter(m => m.resultado !== null);
-  const last     = played.length ? played[played.length - 1] : null;
+  const last     = _ultimoJugadoReal(played, d.apertura);
 
   const rc    = m => { const { csb, riv } = _csbGoles(m); return csb > riv ? 'var(--verde)' : csb < riv ? 'var(--rojo)' : 'var(--dorado)'; };
   const badge = m => { const { csb, riv } = _csbGoles(m); return csb > riv ? '<span class="ap-mc-badge won">Victoria</span>'
@@ -12104,7 +12111,7 @@ function renderTorneoHistoricoGeneric(d, name, fechaLabels, excludeStatsFechas) 
 
   const partidos = (d.partidos || []).filter(m => /^\d+$/.test(m.fecha));
   const played   = partidos.filter(m => m.resultado !== null);
-  const last     = played.length ? played[played.length - 1] : null;
+  const last     = _ultimoJugadoReal(played, d.apertura);
 
   const rc    = m => { const { csb, riv } = _csbGoles(m); return csb > riv ? 'var(--verde)' : csb < riv ? 'var(--rojo)' : 'var(--dorado)'; };
   const badge = m => { const { csb, riv } = _csbGoles(m); return csb > riv ? '<span class="ap-mc-badge won">Victoria</span>'
@@ -13057,7 +13064,7 @@ function renderTorneoApt2024DB() {
   function doRender() {
     const partidos = (d.partidos || []).filter(m => /^\d+$/.test(m.fecha));
     const played   = partidos.filter(m => m.resultado !== null);
-    const last     = played.length ? played[played.length - 1] : null;
+    const last     = _ultimoJugadoReal(played, d.apertura);
 
     const rc    = m => { const { csb, riv } = _csbGoles(m); return csb > riv ? 'var(--verde)' : csb < riv ? 'var(--rojo)' : 'var(--dorado)'; };
     const badge = m => { const { csb, riv } = _csbGoles(m); return csb > riv ? '<span class="ap-mc-badge won">Victoria</span>'
@@ -13501,36 +13508,31 @@ function renderResumen() {
       const det = (dataObj.apertura || []).find(a => String(a.fecha) === String(p.fecha));
       return { ...p, _navKey: navKey, _torneoLabel: torneoLabel, _dt: det ? _parseFechaHora(det.dia, det.hora, true) : null };
     });
-  // Apertura primero (más antiguo) + Clausura después (más reciente) como
-  // orden DE PARTIDA — pero antes de cortar los últimos 5 se reordena por
-  // `_dt` real (ver abajo), no por este orden de sheet/grilla. Para Primera
-  // A, la Recopa 2026 corre en paralelo a la liga y no vive en d.partidos —
-  // el último resultado (eliminados en Semifinales, 13/08) se suma a mano,
-  // SOLO mientras el Clausura todavía no arrancó a jugar.
-  const clausuraJugados = jugadosDe(d, clausuraNavKey, clausuraLabel);
-  const combinadoUltimos = [...jugadosDe(aperturaSrc, aperturaNavKey, aperturaLabel), ...clausuraJugados];
-  if (isA && clausuraJugados.length === 0) {
-    combinadoUltimos.push({ ...RECOPA_2026_A_ULTIMO_RESULTADO, _dt: _parseFechaHora(RECOPA_2026_A_ULTIMO_RESULTADO.dia, null, true) });
-  }
   // BUG REAL encontrado (reportado: "Último Partido" de Primera B mostraba
   // el de Libertador en vez del de Lasalle, jugado un día después): esto
   // ordenaba por la posición de cada fila en el sheet (asumiendo que esa
   // grilla ya viene en orden cronológico real), pero una fecha reprogramada
-  // puede jugarse DESPUÉS de otra que en la grilla aparece más adelante —
-  // exactamente el mismo problema que _nextPendingPartido ya resuelve para
-  // "Próximo Partido" cruzando contra la fecha/hora real de Fecha a Fecha en
-  // vez de confiar en el orden de carga. Acá se aplica el mismo criterio
-  // para "último jugado": se ordena por `_dt` ascendente (los partidos sin
-  // fecha real resuelta se tratan como los más viejos, al principio — mejor
-  // subestimar su reciencia que dejar que un dato incompleto se cuele como
-  // "el último" por error) y recién ahí se cortan los últimos 5.
-  const combinadoPorFechaReal = [...combinadoUltimos].sort((a, b) => {
-    if (a._dt && b._dt) return a._dt.getTime() - b._dt.getTime();
-    if (a._dt) return 1;
-    if (b._dt) return -1;
-    return 0;
-  });
-  const ultimos = combinadoPorFechaReal.slice(-5).reverse();
+  // puede jugarse DESPUÉS de otra que en la grilla aparece más adelante.
+  // Mismo problema que _nextPendingPartido ya resuelve para "Próximo
+  // Partido" cruzando contra la fecha/hora real de Fecha a Fecha.
+  //
+  // SEGUNDO BUG REAL encontrado (el intento anterior de este mismo fix):
+  // reordenar TODO el combinado (Apertura anterior + Clausura actual
+  // mezclados) por `_dt` real rompía el supuesto de que Apertura siempre es
+  // más viejo que Clausura — si por lo que sea `_dt` no se resolvía bien
+  // para algún partido del Clausura actual (quedaba null), ese partido real
+  // y reciente caía ordenado ANTES que partidos del Apertura anterior que sí
+  // habían resuelto `_dt`, y terminaban colándose en "Último Partido"
+  // partidos de un torneo que ya terminó. Arreglo: el orden ENTRE torneos
+  // (Apertura siempre antes que Clausura) nunca se toca — _dt solo se usa
+  // para reordenar los partidos DENTRO de cada torneo por separado, nunca
+  // entre uno y otro. Sort estable (devuelve 0 cuando a alguno le falta
+  // `_dt`) para no tocar el orden relativo de lo que no se puede resolver.
+  const _porFechaReal = (list) => [...list].sort((a, b) => a._dt && b._dt ? a._dt.getTime() - b._dt.getTime() : 0);
+  const clausuraJugados = _porFechaReal(jugadosDe(d, clausuraNavKey, clausuraLabel));
+  const combinadoUltimos = [..._porFechaReal(jugadosDe(aperturaSrc, aperturaNavKey, aperturaLabel)), ...clausuraJugados];
+  if (isA && clausuraJugados.length === 0) combinadoUltimos.push(RECOPA_2026_A_ULTIMO_RESULTADO);
+  const ultimos = combinadoUltimos.slice(-5).reverse();
   function ultimoBadgeCls(torneoLabel) {
     return /apertura/i.test(torneoLabel) ? 'badge-apertura'
       : /clausura/i.test(torneoLabel) ? 'badge-clausura' : 'badge-copa';
@@ -19384,6 +19386,25 @@ function _parseFechaHora(diaStr, horaStr, noFutureRoll) {
   // jugado ayer).
   if (!noFutureRoll && !m[3] && dt.getTime() < Date.now() - 3 * 86400000) dt.setFullYear(year + 1);
   return dt;
+}
+// "Último Partido" de la Tabla Completa de un torneo (renderTorneoApertura/
+// Apertura2025A/HistoricoGeneric/Apt2024DB, las 4 duplican esta misma línea)
+// — mismo BUG REAL ya arreglado en renderResumen (ver _parseFechaHora de
+// arriba): `played[played.length - 1]` asume que el sheet ya viene en
+// orden cronológico real, pero una fecha reprogramada puede jugarse
+// DESPUÉS de otra que en la grilla aparece más adelante. Acá no hay
+// torneos distintos que mezclar (un solo `d`, a diferencia de Resumen que
+// combina Apertura anterior + Clausura actual), así que alcanza con
+// ordenar por fecha real dentro de este único `played` — sort estable
+// (nunca reordena cuando a alguno le falta `_dt`) y se toma el último.
+function _ultimoJugadoReal(played, apertura) {
+  if (!played.length) return null;
+  const conDt = played.map(m => {
+    const det = (apertura || []).find(a => String(a.fecha) === String(m.fecha));
+    return { m, _dt: det ? _parseFechaHora(det.dia, det.hora, true) : null };
+  });
+  conDt.sort((a, b) => a._dt && b._dt ? a._dt.getTime() - b._dt.getTime() : 0);
+  return conDt[conDt.length - 1].m;
 }
 function _countdownParts(target) {
   const diffMs = target.getTime() - Date.now();
