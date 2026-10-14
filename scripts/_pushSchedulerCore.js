@@ -798,13 +798,15 @@ async function _checkTorneoVivo(store, torneo) {
         // `minuto` (de arriba) y `marcadorTxt` en vez de armar una frase.
         if (j.entro && !prevJ.entro) {
           const sale = j.porQuien ? `, sale ${_cleanNombre(j.porQuien)}` : '';
-          await sendPush(`🔄 ${minuto} Cambio`, `Entra ${nombre}${sale}`, url);
+          await sendPush(`🔄 ${minuto} Cambio (Santa Bárbara)`, `Entra ${nombre}${sale}`, url);
         }
         if (curr.rojas > prevJ.rojas) {
-          await sendPush(`🟥 ${minuto} Expulsado`, nombre, url);
+          await sendPush(`🟥 ${minuto} Expulsado (Santa Bárbara)`, nombre, url);
         }
         if (curr.goles > prevJ.goles) {
-          await sendPush(`⚽ ${minuto} Santa Bárbara ${marcadorTxt}`, `Gol de ${nombre}`, url);
+          // "Gooool" (con 3 "o") solo para el gol PROPIO — el festejo es
+          // nuestro; el del rival (más abajo) queda en "Gol" a secas.
+          await sendPush(`⚽ ${minuto} Santa Bárbara ${marcadorTxt} ${m.rival}`, `Gooool de ${nombre}`, url);
         }
       }
     }
@@ -813,7 +815,7 @@ async function _checkTorneoVivo(store, torneo) {
     // contra. (Si CSB sí subió, ya se avisó arriba con el nombre real del
     // goleador — no se manda un segundo push genérico para el mismo gol.)
     if (goles != null && marcadorTxt !== prev.marcadorTxt && goles.csb === prevGolesTotal) {
-      await sendPush(`⚽ ${minuto} Santa Bárbara ${marcadorTxt}`, `Gol de ${m.rival}`, url);
+      await sendPush(`⚽ ${minuto} Santa Bárbara ${marcadorTxt} ${m.rival}`, `Gol de ${m.rival}`, url);
     }
     // Entretiempo / arranca el complemento — por transición de estadoVivo,
     // no por reloj (ver el reloj sintético del lado del cliente, que SÍ
