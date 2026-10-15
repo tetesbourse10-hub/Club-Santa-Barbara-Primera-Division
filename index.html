@@ -19623,12 +19623,45 @@ function _paintLandingSkeletons() {
     if (footEl && !footEl.innerHTML) footEl.innerHTML = bar('120px', '12px');
   });
 }
+// Partido en seguimiento vivo (Estado Vivo cargado a mano, ver
+// _vivoSectionHtml) de un equipo — se usa en la Home para mostrar el
+// resultado/reloj actual en el lugar donde normalmente va la cuenta
+// regresiva del próximo partido ("Recordatorio"), en vez de quedar vacío
+// (BUG REAL: _countdownParts devuelve null para una fecha ya pasada, así
+// que mientras el partido se está jugando esa cajita no mostraba nada).
+// Mientras Estado Vivo sigue cargado pero YA se cargó el resultado final
+// (el que está en la cancha todavía no volvió a limpiar la celda a mano,
+// lo normal son unos minutos), queda mostrando "Final" + el resultado en
+// vez de saltar directo al próximo partido pendiente.
+function _liveMatchInfo(d, navKey) {
+  const detail = (d.apertura || []).find(a => a.estadoVivo);
+  if (!detail) return null;
+  const basic = (d.partidos || []).find(m => String(m.fecha) === String(detail.fecha));
+  const estadoVivo = (detail.estadoVivo || '').toUpperCase();
+  const final = detail.resultado !== null;
+  const clockLabel = final ? null : (_vivoClockLabel(detail.dia, detail.hora, estadoVivo, estadoVivo === '2T' ? _vivo2TAnchorTs(detail.dia, detail.hora) : null) || estadoVivo);
+  return {
+    rival: detail.rival || (basic && basic.rival) || '', fecha: detail.fecha,
+    local: (basic && basic.local) || '',
+    lugar: detail.lugar || (basic && basic.estadio) || '',
+    navKey, locator: detail.fecha,
+    isLive: true, final, clockLabel,
+    marcadorTxt: final ? detail.resultado : (detail.marcadorVivo || ''),
+  };
+}
 function _renderNextMatchBox(elId, boxClass, label, m, navKey) {
   const el = document.getElementById(elId);
   if (!el) return;
   if (!m) { _softSetHtml(el, ''); return; }
   const meta = _fmtProximoMeta(m);
-  const cd = m.dt ? _countdownParts(m.dt) : null;
+  const cd = (!m.isLive && m.dt) ? _countdownParts(m.dt) : null;
+  // Badge "en vivo"/"final" en el lugar de la cuenta regresiva — ver
+  // _liveMatchInfo arriba.
+  const liveBadge = m.isLive ? `<div class="flex items-center gap-2 bg-slate-900/90 border border-slate-700/60 px-3.5 py-1 rounded-xl text-base font-extrabold ${m.final ? 'text-emerald-400' : 'text-red-400'} shadow-inner">
+    ${m.final ? '' : `<span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span></span>`}
+    <span>${m.final ? 'Final' : (m.clockLabel || '')}</span>
+    ${m.marcadorTxt ? `<span class="text-slate-100">${m.marcadorTxt}</span>` : ''}
+  </div>` : '';
   const diaLine = [meta.weekday, meta.diaMes].filter(Boolean).join(' ');
   const metaLine = [diaLine, meta.horaTxt].filter(Boolean).join(' · ');
   // <1 día restante: se omite el "0d" — "18h 45m" en vez de "0d 18h".
@@ -19668,11 +19701,11 @@ function _renderNextMatchBox(elId, boxClass, label, m, navKey) {
           <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-extrabold tracking-wide uppercase ${c.badge} shadow-sm">${label}</span>
           ${m.fecha ? `<span class="text-xs font-semibold text-slate-400">Fecha ${m.fecha}</span>` : ''}
         </div>
-        ${cd ? `<div class="flex items-center gap-2 bg-slate-900/90 border border-slate-700/60 px-3.5 py-1 rounded-xl text-base font-extrabold ${c.cdText} shadow-inner">
+        ${liveBadge || (cd ? `<div class="flex items-center gap-2 bg-slate-900/90 border border-slate-700/60 px-3.5 py-1 rounded-xl text-base font-extrabold ${c.cdText} shadow-inner">
           <svg class="w-5 h-5 ${c.cdText} animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
           <span>${cdVal}</span>
           <span class="text-[10px] text-slate-500 font-normal uppercase tracking-wider hidden sm:inline">restantes</span>
-        </div>` : ''}
+        </div>` : '')}
       </div>
 
       <div class="flex items-center justify-between pt-2 relative z-10">
@@ -19691,7 +19724,7 @@ function _renderNextMatchBox(elId, boxClass, label, m, navKey) {
         </div>
         <div class="text-right shrink-0 pl-2">
           <div class="inline-block bg-slate-900/60 px-2.5 py-1 rounded-lg border border-slate-800/80">
-            <p class="text-xs font-bold text-slate-100">${metaLine || 'Fecha a confirmar'}</p>
+            <p class="text-xs font-bold text-slate-100">${m.isLive ? (m.final ? 'Finalizado' : 'En vivo') : (metaLine || 'Fecha a confirmar')}</p>
             ${m.lugar ? (_mapsUrlFor(m) ? `
             <a href="${_mapsUrlFor(m)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Cómo llegar" class="text-[11px] ${c.pinText} font-semibold flex items-center justify-end gap-1 mt-0.5">
               <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
@@ -19864,7 +19897,7 @@ const PM_CSB_CREST_HTML = `<span class="pm-crest pm-crest-us"><img src="logo-csb
 function _pmCard(label, labelClass, m, navKey) {
   if (!m) return '';
   const meta = _fmtProximoMeta(m);
-  const cd = m.dt ? _countdownParts(m.dt) : null;
+  const cd = (!m.isLive && m.dt) ? _countdownParts(m.dt) : null;
   const diaCorto = meta.weekday ? meta.weekday.slice(0, 3) : '';
   const metaLine = [diaCorto, meta.diaMes].filter(Boolean).join(' ');
   const cdVal = cd
@@ -19898,8 +19931,12 @@ function _pmCard(label, labelClass, m, navKey) {
     </div>
     <div class="pm-card-center">
       <div class="pm-card-label ${labelClass}">${label}</div>
-      ${cd ? `<div class="pm-card-countdown ${cdClass}">${cdVal}</div>` : `<div class="pm-card-countdown ${cdClass}">VS</div>`}
-      <div class="pm-card-meta">${[metaLine || 'Fecha a confirmar', meta.horaTxt].filter(Boolean).join(' · ')}${meta.localTxt ? ` · <span class="pm-local-tag">${meta.localTxt}</span>` : ''}</div>
+      ${m.isLive
+        ? `<div class="pm-card-countdown ${cdClass}">${m.marcadorTxt || 'VS'}</div>`
+        : (cd ? `<div class="pm-card-countdown ${cdClass}">${cdVal}</div>` : `<div class="pm-card-countdown ${cdClass}">VS</div>`)}
+      <div class="pm-card-meta">${m.isLive
+        ? (m.final ? 'Final' : (m.clockLabel || 'En vivo'))
+        : [metaLine || 'Fecha a confirmar', meta.horaTxt].filter(Boolean).join(' · ') + (meta.localTxt ? ` · <span class="pm-local-tag">${meta.localTxt}</span>` : '')}</div>
     </div>
     <div class="pm-card-team">
       ${rightCrest}
@@ -19914,8 +19951,10 @@ function renderLandingNextMatchCarousel(matchA, matchB) {
   _softSetHtml(el, html);
 }
 function renderLandingNextMatch() {
-  const matchA = _primeraANextMatch();
-  const matchB = _teamNextMatch(DATA_B, 'b');
+  // Partido en seguimiento vivo (si hay uno activo) tapa a la cuenta
+  // regresiva del próximo partido pendiente — ver _liveMatchInfo.
+  const matchA = _liveMatchInfo(DATA_A, 'a') || _primeraANextMatch();
+  const matchB = _liveMatchInfo(DATA_B, 'b') || _teamNextMatch(DATA_B, 'b');
   renderLandingNextMatchCarousel(matchA, matchB);
   _renderNextMatchBox('landing-next-match-a', 'nmb-box-a', 'Primera A', matchA, 'a');
   _renderNextMatchBox('landing-next-match-b', 'nmb-box-b', 'Primera B', matchB, 'b');
