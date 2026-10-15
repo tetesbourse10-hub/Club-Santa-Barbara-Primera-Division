@@ -780,7 +780,7 @@ async function _checkTorneoVivo(store, torneo) {
   const esPrimeraVezEstePartido = !prev || prev.fecha !== fecha;
   const prevJugadores = esPrimeraVezEstePartido ? {} : (prev.jugadores || {});
   const prevEstado = esPrimeraVezEstePartido ? m.estadoVivo : (prev.estadoVivo || '');
-  const prevGolesTotal = esPrimeraVezEstePartido ? (goles ? goles.csb : 0) : (prev.golesTotal ?? (goles ? goles.csb : 0));
+  const prevRivalTotal = esPrimeraVezEstePartido ? (goles ? goles.riv : 0) : (prev.rivalGolesTotal ?? (goles ? goles.riv : 0));
 
   if (!esPrimeraVezEstePartido) {
     // Cambios/goles/rojas — mismo plantel que ya usa el resto de las reglas,
@@ -810,11 +810,17 @@ async function _checkTorneoVivo(store, torneo) {
         }
       }
     }
-    // Gol del rival: el marcador total de CSB no subió respecto a la foto
-    // anterior, pero el marcador cambió igual — solo puede ser un gol en
-    // contra. (Si CSB sí subió, ya se avisó arriba con el nombre real del
-    // goleador — no se manda un segundo push genérico para el mismo gol.)
-    if (goles != null && marcadorTxt !== prev.marcadorTxt && goles.csb === prevGolesTotal) {
+    // Gol del rival: su cantidad de goles (goles.riv) subió de verdad
+    // respecto a la foto anterior. BUG REAL encontrado (reportado: cargar
+    // el "0-0" inicial — el primer valor real del marcador, sin que nadie
+    // haya convertido todavía — disparó "Gol de <rival>"): antes esto
+    // comparaba el TEXTO completo del marcador contra el anterior ("" en la
+    // primera corrida, antes de cargar nada) — pasar de "" a "0-0" ya
+    // contaba como "cambió el marcador" aunque ningún gol subiera de
+    // verdad. Ahora compara el número de goles del rival en sí (0 a 0 no es
+    // un incremento), así que un marcador inicial en blanco/0-0 nunca
+    // dispara este push por error.
+    if (goles != null && goles.riv > prevRivalTotal) {
       await sendPush(`⚽ ${minuto} Santa Bárbara ${marcadorTxt} ${m.rival}`, `Gol de ${m.rival}`, url);
     }
     // Entretiempo / arranca el complemento — por transición de estadoVivo,
@@ -837,7 +843,7 @@ async function _checkTorneoVivo(store, torneo) {
   }
   await store.setJSON(stateKey, {
     fecha, estadoVivo: m.estadoVivo, marcadorTxt,
-    golesTotal: goles ? goles.csb : 0, jugadores: nextJugadores,
+    golesTotal: goles ? goles.csb : 0, rivalGolesTotal: goles ? goles.riv : 0, jugadores: nextJugadores,
   });
 }
 async function runOnceVivo() {
