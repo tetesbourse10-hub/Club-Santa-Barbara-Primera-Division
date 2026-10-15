@@ -9551,14 +9551,9 @@ function formatISOHora(raw) {
 // a mano por quien está en la cancha — ver el tab "Control Vivo") es lo que
 // corrige el reloj: '' = sin seguimiento, '1T' = primer tiempo en curso,
 // 'ET' = entretiempo, '2T' = segundo tiempo en curso.
-function _vivoClockLabel(dia, hora, estadoVivo) {
+function _vivoClockLabel(dia, hora, estadoVivo, segundoTiempoTs) {
   if (!estadoVivo) return null;
   if (estadoVivo === 'ET') return 'Entretiempo';
-  const kickoff = _parseFechaHora(dia, hora);
-  // Sin hora cargada (no debería pasar si ya hay estadoVivo, pero por las
-  // dudas) — mejor mostrar el estado a secas que un reloj roto.
-  if (!kickoff) return estadoVivo === '2T' ? '2T' : '1T';
-  const minutosDesdeKickoff = Math.floor((Date.now() - kickoff.getTime()) / 60000);
   // Tiempo de descuento: en vez de quedarse pegado en "45'"/"90'" mientras
   // el primer/segundo tiempo sigue en curso de verdad, pasa a "45+X'"/
   // "90+X'" (mismo formato que se ve en cualquier transmisión real) una vez
@@ -9566,16 +9561,48 @@ function _vivoClockLabel(dia, hora, estadoVivo) {
   // (lesión, VAR, etc.) mostraba 45' fijo aunque todavía no hubiera llegado
   // el entretiempo real.
   if (estadoVivo === '2T') {
-    // No hay un timestamp real de cuándo arrancó el complemento (la celda
-    // 'Inicio 2T' es un marcador SI/NO, no una hora) — se aproxima asumiendo
-    // que el entretiempo real duró 10', igual que el reloj del 1T de abajo
-    // asume 45' de primer tiempo corrido. No es matemáticamente exacto si el
-    // entretiempo real duró más o menos, pero evita un reloj parado.
-    const minuto2T = Math.max(46, minutosDesdeKickoff - 10);
+    // BUG REAL encontrado (reportado en un partido real: recién marcado el
+    // inicio del 2T, el reloj ya marcaba 51' en vez de ~46'): la celda
+    // 'Inicio 2T' es un marcador SI/NO, no una hora real, así que ANTES se
+    // aproximaba asumiendo que el entretiempo duró 10' fijos desde el
+    // kickoff — si el entretiempo real duró más (common en amateur, nada
+    // raro que sean 15-20'), el reloj arrancaba el 2T adelantado.
+    // `segundoTiempoTs` (si se pasa) es el momento REAL en que ESTE lado
+    // (cliente o server) detectó por primera vez el cambio a '2T' — mucho
+    // más preciso, nunca asume una duración de entretiempo fija. Sin ese
+    // dato (primera carga de una ficha que ya arrancó hace rato, sin haber
+    // visto la transición) se cae al viejo criterio aproximado como último
+    // recurso.
+    let minuto2T;
+    if (segundoTiempoTs) {
+      minuto2T = 45 + Math.max(0, Math.floor((Date.now() - segundoTiempoTs) / 60000));
+    } else {
+      const kickoff = _parseFechaHora(dia, hora);
+      if (!kickoff) return '2T';
+      const minutosDesdeKickoff = Math.floor((Date.now() - kickoff.getTime()) / 60000);
+      minuto2T = Math.max(46, minutosDesdeKickoff - 10);
+    }
     return minuto2T > 90 ? `90+${minuto2T - 90}'` : `${minuto2T}'`;
   }
+  const kickoff = _parseFechaHora(dia, hora);
+  // Sin hora cargada (no debería pasar si ya hay estadoVivo, pero por las
+  // dudas) — mejor mostrar el estado a secas que un reloj roto.
+  if (!kickoff) return '1T';
+  const minutosDesdeKickoff = Math.floor((Date.now() - kickoff.getTime()) / 60000);
   const minuto1T = Math.max(minutosDesdeKickoff, 0);
   return minuto1T > 45 ? `45+${minuto1T - 45}'` : `${minuto1T}'`;
+}
+// Ancla real (timestamp) de cuándo ESTE cliente vio por primera vez que el
+// partido pasó a '2T' — sessionStorage sobrevive mientras la pestaña siga
+// abierta (ver _vivoClockLabel de arriba), clave por dia+hora del partido
+// para no mezclar el ancla de un partido con la del siguiente.
+function _vivo2TAnchorTs(dia, hora) {
+  const key = `_csbVivo2Tts_${dia || ''}_${hora || ''}`;
+  try {
+    let ts = sessionStorage.getItem(key);
+    if (!ts) { ts = String(Date.now()); sessionStorage.setItem(key, ts); }
+    return parseInt(ts, 10);
+  } catch (e) { return Date.now(); }
 }
 // Sección "EN VIVO" de Fecha a Fecha — clock + marcador + goles/cambios/
 // rojas ya cargados hasta el momento (mismo agrupamiento que ya usa
@@ -9593,7 +9620,7 @@ function _vivoSectionHtml(detail, marcadorTxt, marcadorColor) {
   const goleadores = jugadores.filter(j => j.goles > 0);
   const cambios    = jugadores.filter(j => j.entro);
   const rojas      = jugadores.filter(j => j.rojas > 0);
-  const clockLabel = _vivoClockLabel(detail.dia, detail.hora, estadoVivo) || estadoVivo;
+  const clockLabel = _vivoClockLabel(detail.dia, detail.hora, estadoVivo, estadoVivo === '2T' ? _vivo2TAnchorTs(detail.dia, detail.hora) : null) || estadoVivo;
   const row = (icon, label, items, render) => items.length ? `
     <div class="ap-fd-vivo-row">
       <span class="ap-fd-vivo-row-label">${icon} ${label}</span>
@@ -9623,7 +9650,8 @@ function _vivoStartClockTicker() {
   _vivoClockTickerId = setInterval(() => {
     const el = document.getElementById('ap-fd-vivo-clock');
     if (!el) return;
-    const label = _vivoClockLabel(el.dataset.dia, el.dataset.hora, el.dataset.estado);
+    const estado = el.dataset.estado;
+    const label = _vivoClockLabel(el.dataset.dia, el.dataset.hora, estado, estado === '2T' ? _vivo2TAnchorTs(el.dataset.dia, el.dataset.hora) : null);
     if (label) el.textContent = label;
   }, 20000);
 }

@@ -765,12 +765,6 @@ async function _checkTorneoVivo(store, torneo) {
   const marcador = _parseMarcador(m.marcadorVivo);
   const goles = _csbGolesVivo(marcador, m.local);
   const marcadorTxt = goles != null ? `${goles.csb}-${goles.riv}` : (m.marcadorVivo || '');
-  // Minuto en vivo ("23'", "Entretiempo", "46'"...) — mismo reloj sintético
-  // que ya pinta la ficha de Fecha a Fecha del lado del cliente (ver
-  // _vivoClockLabel en index.html), reusado acá vía helpers para que el
-  // texto del push sea corto y vaya al grano (estilo 365Scores: minuto +
-  // marcador, no una oración completa describiendo el evento).
-  const minuto = helpers.vivoClockLabel ? (helpers.vivoClockLabel(m.dia, m.hora, m.estadoVivo) || '') : '';
 
   const prev = (await store.get(stateKey, { type: 'json' })) || null;
   // Primera corrida de ESTE partido en seguimiento (prev es de otro partido,
@@ -781,6 +775,25 @@ async function _checkTorneoVivo(store, torneo) {
   const prevJugadores = esPrimeraVezEstePartido ? {} : (prev.jugadores || {});
   const prevEstado = esPrimeraVezEstePartido ? m.estadoVivo : (prev.estadoVivo || '');
   const prevRivalTotal = esPrimeraVezEstePartido ? (goles ? goles.riv : 0) : (prev.rivalGolesTotal ?? (goles ? goles.riv : 0));
+  // BUG REAL encontrado (reportado en un partido real: el reloj marcaba 51'
+  // recién arrancado el 2T en vez de ~46') — ver el mismo comentario en
+  // _vivoClockLabel (index.html): "Inicio 2T" es un marcador SI/NO, no una
+  // hora real, así que asumir un entretiempo de 10' fijos desde el kickoff
+  // se adelanta si el descanso real duró más. Acá se guarda el momento REAL
+  // (Date.now()) en que ESTA corrida detecta por primera vez el cambio a
+  // '2T', persistido en el propio estado de Blobs — mucho más preciso que
+  // la aproximación, y consistente corrida tras corrida (a diferencia del
+  // cliente, acá no hay sessionStorage: el único lugar donde este dato
+  // puede sobrevivir entre corridas es este mismo store).
+  const segundoTiempoInicioTs = m.estadoVivo === '2T'
+    ? (prev && prev.segundoTiempoInicioTs && prevEstado === '2T' ? prev.segundoTiempoInicioTs : Date.now())
+    : null;
+  // Minuto en vivo ("23'", "Entretiempo", "46'"...) — mismo reloj sintético
+  // que ya pinta la ficha de Fecha a Fecha del lado del cliente (ver
+  // _vivoClockLabel en index.html), reusado acá vía helpers para que el
+  // texto del push sea corto y vaya al grano (estilo 365Scores: minuto +
+  // marcador, no una oración completa describiendo el evento).
+  const minuto = helpers.vivoClockLabel ? (helpers.vivoClockLabel(m.dia, m.hora, m.estadoVivo, segundoTiempoInicioTs) || '') : '';
 
   if (!esPrimeraVezEstePartido) {
     // Cambios/goles/rojas — mismo plantel que ya usa el resto de las reglas,
@@ -842,7 +855,7 @@ async function _checkTorneoVivo(store, torneo) {
     nextJugadores[_cleanNombre(j.nombre)] = _snapshotVivoJugador(j);
   }
   await store.setJSON(stateKey, {
-    fecha, estadoVivo: m.estadoVivo, marcadorTxt,
+    fecha, estadoVivo: m.estadoVivo, marcadorTxt, segundoTiempoInicioTs,
     golesTotal: goles ? goles.csb : 0, rivalGolesTotal: goles ? goles.riv : 0, jugadores: nextJugadores,
   });
 }
