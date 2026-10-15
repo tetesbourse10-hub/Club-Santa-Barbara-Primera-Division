@@ -4143,7 +4143,7 @@
        CSS) — .next-match-row hace lo inverso, así nunca se ven los dos a
        la vez. -->
   <div class="pm-carousel-wrap">
-    <div class="pm-carousel-label">Próximos partidos</div>
+    <div class="pm-carousel-label" id="pm-carousel-label">Próximos partidos</div>
     <div class="pm-carousel" id="landing-next-match-carousel"></div>
   </div>
 
@@ -19689,7 +19689,7 @@ function _liveMatchInfo(d, navKey) {
   if (!detail) return null;
   const basic = (d.partidos || []).find(m => String(m.fecha) === String(detail.fecha));
   const estadoVivo = (detail.estadoVivo || '').toUpperCase();
-  const final = detail.resultado !== null;
+  const final = !!detail.resultado;
   const clockLabel = final ? null : (_vivoClockLabel(detail.dia, detail.hora, estadoVivo, estadoVivo === '2T' ? _vivo2TAnchorTs(detail.dia, detail.hora) : null) || estadoVivo);
   return {
     rival: detail.rival || (basic && basic.rival) || '', fecha: detail.fecha,
@@ -20009,6 +20009,13 @@ function renderLandingNextMatch() {
   renderLandingNextMatchCarousel(matchA, matchB);
   _renderNextMatchBox('landing-next-match-a', 'nmb-box-a', 'Primera A', matchA, 'a');
   _renderNextMatchBox('landing-next-match-b', 'nmb-box-b', 'Primera B', matchB, 'b');
+  // Label del carrusel mobile — "Partidos en vivo" mientras haya al menos
+  // uno en seguimiento (A o B), "Próximos partidos" el resto del tiempo.
+  const labelEl = document.getElementById('pm-carousel-label');
+  if (labelEl) {
+    const hayVivo = (matchA && matchA.isLive && !matchA.final) || (matchB && matchB.isLive && !matchB.final);
+    labelEl.textContent = hayVivo ? 'Partidos en vivo' : 'Próximos partidos';
+  }
 }
 function _posBadgeClass(pos, total) {
   if (!pos || !total) return 'lc-badge-amber';
