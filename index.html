@@ -9604,6 +9604,36 @@ function _vivo2TAnchorTs(dia, hora) {
     return parseInt(ts, 10);
   } catch (e) { return Date.now(); }
 }
+// BUG REAL encontrado (reportado en un partido real: 15' después de
+// arrancar el 2T de verdad, el reloj seguía mostrando 45'): el ancla de
+// arriba (_vivo2TAnchorTs) solo conoce el momento real cuando ESTE cliente
+// estuvo abierto desde que arrancó el 2T — cualquier cliente que recién
+// abre la ficha después (o la reabre; sessionStorage no sobrevive un cierre
+// de pestaña) no tiene forma de saberlo y ancla en "ahora", mostrando 45'
+// fijo aunque el complemento ya lleve minutos reales. El único lugar que SÍ
+// lo sabe es push-scheduler-vivo.js, que lo persiste en Netlify Blobs desde
+// que detecta la transición por primera vez (corre cada minuto). Esta
+// función trae ese dato real vía netlify/functions/vivo-estado.js y
+// corrige el sessionStorage local con él — sin bloquear el primer render
+// (que ya muestra el valor local de entrada mientras esto resuelve en
+// paralelo), y sin romper nada si la función todavía no está desplegada o
+// la red falla (try/catch, no-op).
+async function _vivoSyncServerAnchor(torneo, fecha, dia, hora) {
+  if (!torneo) return;
+  try {
+    const res = await fetch(`/.netlify/functions/vivo-estado?torneo=${torneo}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.estadoVivo !== '2T' || String(data.fecha) !== String(fecha) || !data.segundoTiempoInicioTs) return;
+    const key = `_csbVivo2Tts_${dia || ''}_${hora || ''}`;
+    sessionStorage.setItem(key, String(data.segundoTiempoInicioTs));
+    const el = document.getElementById('ap-fd-vivo-clock');
+    if (el && el.dataset.dia === (dia || '') && el.dataset.hora === (hora || '') && el.dataset.estado === '2T') {
+      const label = _vivoClockLabel(dia, hora, '2T', data.segundoTiempoInicioTs);
+      if (label) el.textContent = label;
+    }
+  } catch (e) { /* sin red o función no desplegada todavía: el reloj sigue con el ancla local, no rompe nada */ }
+}
 // Sección "EN VIVO" de Fecha a Fecha — clock + marcador + goles/cambios/
 // rojas ya cargados hasta el momento (mismo agrupamiento que ya usa
 // incidenciasHtml para partidos TERMINADOS, reusado acá para partidos en
@@ -10269,11 +10299,14 @@ window._apSquadTabM = function(btn, idx) {
   wrap.querySelectorAll('.ap-squad-tabpanel-m').forEach((p, i) => { p.style.display = i === idx ? 'block' : 'none'; });
 };
 
-function renderFechaDetail(basic, detail, targetId = 'ap-fecha-detail', fechaLabelOverride) {
+function renderFechaDetail(basic, detail, targetId = 'ap-fecha-detail', fechaLabelOverride, torneo) {
   const el = document.getElementById(targetId);
   if (!el) return;
   el.innerHTML = buildFechaDetailHTML(basic, detail, fechaLabelOverride);
   if (detail && detail.estadoVivo) _vivoStartClockTicker();
+  // `torneo` ('a'/'b') solo lo pasa selectFecha (la única Fecha a Fecha que
+  // puede tener un partido en seguimiento vivo) — ver _vivoSyncServerAnchor.
+  if (detail && detail.estadoVivo === '2T') _vivoSyncServerAnchor(torneo, detail.fecha, detail.dia, detail.hora);
 }
 
 // Torneos Antiguos puede tener 15-17+ fechas en el selector horizontal — sin esto,
@@ -10311,7 +10344,7 @@ function selectFecha(n) {
   const d = fromAntiguos ? (isA ? DATA_A_APERTURA2026 : DATA_B_APERTURA2026) : currentData;
   const basic  = (d.partidos || []).find(m => String(m.fecha) === String(n));
   const detail = (d.apertura  || []).find(m => String(m.fecha) === String(n));
-  renderFechaDetail(basic, detail);
+  renderFechaDetail(basic, detail, 'ap-fecha-detail', undefined, fromAntiguos ? undefined : (isA ? 'a' : 'b'));
 }
 
 // ──────────────────────────────────────────────

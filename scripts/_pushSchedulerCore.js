@@ -897,4 +897,8 @@ async function runOnce() {
   return { statusCode: 200, body: 'ok' };
 }
 
-module.exports = { runOnce, runOnceVivo };
+// _blobsStoreOptions exportada para netlify/functions/vivo-estado.js
+// (endpoint de solo lectura que expone segundoTiempoInicioTs al cliente) —
+// mismas opciones de store que usa este archivo, para no duplicar el nombre
+// del store en dos lugares y arriesgar que queden desincronizados.
+module.exports = { runOnce, runOnceVivo, _blobsStoreOptions };
