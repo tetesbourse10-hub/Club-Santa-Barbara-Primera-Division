@@ -18572,19 +18572,36 @@ const PROXY_URL = 'https://script.google.com/macros/s/AKfycbzDmI2fgAZEONfC7gwuwa
 // indefinidamente esa respuesta, y como loadLiveData() usa
 // `Promise.allSettled` (espera a que TODAS las promesas terminen, no solo
 // la más rápida), toda la carga quedaba trabada esperando a esa única
-// fuente lenta aunque las otras 33 ya hubieran terminado hace rato. Este
-// wrapper corta cualquier fetch a los `ms` (default 12s — generoso para una
-// conexión normal, bajo como para no sentirse "colgado") vía AbortController
-// y lo deja fallar como cualquier otro error de red, así cada función de
-// fetch sigue su mismo camino de reintento/fallback ya existente en vez de
-// quedarse esperando para siempre.
-async function _fetchConTimeout(url, opts = {}, ms = 12000) {
-  const ctrl = new AbortController();
-  const id = setTimeout(() => ctrl.abort(), ms);
+// fuente lenta aunque las otras 33 ya hubieran terminado hace rato.
+//
+// SEGUNDO BUG REAL encontrado al desplegar el fix de arriba (deploy roto en
+// Netlify, nunca en el navegador real): este mismo index.html también corre
+// dentro de jsdom en build time (scripts/generate-og.js, para las tarjetas
+// de redes sociales) — ahí `fetch` termina siendo el fetch NATIVO de Node
+// (ver `window.fetch = (...args) => fetch(...args)` en
+// scripts/_matchPartidoData.js), pero un `AbortController`/`signal` creado
+// en ESTE contexto es el de jsdom, de otro "realm" — Node rechaza ese
+// signal por no ser una instancia de SU PROPIO AbortSignal, así que TODOS
+// los fetches fallaban en build (nunca en un navegador real, donde
+// AbortController/fetch son siempre del mismo realm). Por eso el wrapper no
+// usa `AbortController`/`signal` para nada — en vez de abortar el fetch de
+// verdad, corre una carrera contra un timeout aparte con Promise.race: el
+// fetch que tarda de más simplemente deja de importarle al que lo llamó
+// (sigue corriendo de fondo, pero no bloquea), y el resultado es el mismo
+// para quien lo usa en cualquiera de los 2 contextos.
+async function _fetchConTimeout(url, opts = {}, ms = 25000) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      const err = new Error('fetch timeout (' + ms + 'ms): ' + url);
+      err.name = 'AbortError';
+      reject(err);
+    }, ms);
+  });
   try {
-    return await fetch(url, { ...opts, signal: ctrl.signal });
+    return await Promise.race([fetch(url, opts), timeout]);
   } finally {
-    clearTimeout(id);
+    clearTimeout(timer);
   }
 }
 
