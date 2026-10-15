@@ -13348,7 +13348,7 @@ async function fetchAifaTabla(slug, isA, copaLegendItems, renderTablaRows) {
 
   try {
     const url = `${PROXY_URL}?action=aifa&slug=${encodeURIComponent(slug)}`;
-    const r = await fetch(url);
+    const r = await _fetchConTimeout(url);
     if (!r.ok) throw new Error(r.status);
     const positions = await r.json();
     if (!Array.isArray(positions) || !positions.length) throw new Error('empty');
@@ -14885,7 +14885,7 @@ function _parseHistorialResumenB(rows) {
 async function _loadHistorialResumenB() {
   try {
     const url = `https://docs.google.com/spreadsheets/d/${GS.B_HIST}/gviz/tq?tqx=out:csv&gid=1711655156`;
-    const r = await fetch(url, { mode: 'cors' });
+    const r = await _fetchConTimeout(url, { mode: 'cors' });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const rows = parseCSV(await r.text());
     const { clubes, total } = _parseHistorialResumenB(rows);
@@ -14937,7 +14937,7 @@ async function _loadPartidosCacheB() {
 async function _loadPartidosCacheBImpl() {
   try {
     const url = `https://docs.google.com/spreadsheets/d/${GS.B_HIST}/gviz/tq?tqx=out:csv&gid=345619863`;
-    const r = await fetch(url, { mode: 'cors' });
+    const r = await _fetchConTimeout(url, { mode: 'cors' });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const rows = parseCSV(await r.text());
     if (!rows || rows.length < 5) throw new Error('empty: ' + (rows ? rows.length : 0));
@@ -18564,6 +18564,30 @@ const GS = {
 
 const PROXY_URL = 'https://script.google.com/macros/s/AKfycbzDmI2fgAZEONfC7gwuwazmR-GVPd4ISVTQiBBEU7324Sn8Pp6YGxnZwsrwe5J8ghE8/exec';
 
+// BUG REAL encontrado (reportado: "la página tarda demasiado en cargar"):
+// ninguno de los ~34 fetches de loadLiveData() tenía timeout — si UNO solo
+// quedaba colgado (el proxy de Apps Script con arranque en frío, o gviz de
+// Google respondiendo lento bajo carga, más probable un día de partido con
+// mucha gente refrescando la página a la vez), `fetch()` esperaba
+// indefinidamente esa respuesta, y como loadLiveData() usa
+// `Promise.allSettled` (espera a que TODAS las promesas terminen, no solo
+// la más rápida), toda la carga quedaba trabada esperando a esa única
+// fuente lenta aunque las otras 33 ya hubieran terminado hace rato. Este
+// wrapper corta cualquier fetch a los `ms` (default 12s — generoso para una
+// conexión normal, bajo como para no sentirse "colgado") vía AbortController
+// y lo deja fallar como cualquier otro error de red, así cada función de
+// fetch sigue su mismo camino de reintento/fallback ya existente en vez de
+// quedarse esperando para siempre.
+async function _fetchConTimeout(url, opts = {}, ms = 12000) {
+  const ctrl = new AbortController();
+  const id = setTimeout(() => ctrl.abort(), ms);
+  try {
+    return await fetch(url, { ...opts, signal: ctrl.signal });
+  } finally {
+    clearTimeout(id);
+  }
+}
+
 // All sheet fetch URLs get a per-call cache-busting param + `no-store`: the
 // browser's HTTP cache keys on the exact URL (including range/gid), so a
 // long-lived cached response for one specific range can keep serving stale
@@ -18573,7 +18597,7 @@ async function fetchProxy(tab, range, sheetId) {
   if (range)   url += `&range=${encodeURIComponent(range)}`;
   if (sheetId) url += `&sheetId=${encodeURIComponent(sheetId)}`;
   url += `&_=${Date.now()}`;
-  const r = await fetch(url, { cache: 'no-store' });
+  const r = await _fetchConTimeout(url, { cache: 'no-store' });
   if (!r.ok) throw new Error(r.status);
   const json = await r.json();
   // Apps Script returns array of arrays; skip empty trailing rows
@@ -18605,7 +18629,7 @@ function csvUrl(id, tab, range) {
 }
 
 async function fetchCSVFallback(id, tab, range) {
-  const r = await fetch(csvUrl(id, tab, range), { mode: 'cors', cache: 'no-store' });
+  const r = await _fetchConTimeout(csvUrl(id, tab, range), { mode: 'cors', cache: 'no-store' });
   if (!r.ok) throw new Error(r.status);
   return parseCSV(await r.text());
 }
@@ -18628,7 +18652,7 @@ async function fetchGvizByGid(sheetId, gid, range, _attempt = 0) {
   let url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`;
   if (range) url += `&range=${encodeURIComponent(range)}`;
   url += `&_=${Date.now()}`;
-  const r = await fetch(url, { mode: 'cors', cache: 'no-store' });
+  const r = await _fetchConTimeout(url, { mode: 'cors', cache: 'no-store' });
   if (r.status === 429 && _attempt < 2) {
     await new Promise(res => setTimeout(res, 600 * (_attempt + 1)));
     return fetchGvizByGid(sheetId, gid, range, _attempt + 1);
