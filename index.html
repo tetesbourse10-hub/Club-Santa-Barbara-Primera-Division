@@ -11491,11 +11491,21 @@ function renderTorneoApertura() {
 
   const partidos = (d.partidos || []).filter(m => /^\d+$/.test(m.fecha));
   const played   = partidos.filter(m => m.resultado !== null);
-  const pending  = partidos.filter(m => m.resultado === null);
   const last     = _ultimoJugadoReal(played, d.apertura);
-  const next     = pending.length ? pending[0] : null;
+  // BUG REAL encontrado (reportado: "lo del próximo partido se solucionó en
+  // todos lados menos en Tabla Completa"): "Último Partido" de esta misma
+  // pestaña ya se arregló para elegir por fecha real (_ultimoJugadoReal,
+  // arriba), pero "Próximo Partido" seguía tomando el primer pendiente EN
+  // ORDEN DE GRILLA (pending[0], número de fecha) — mismo bug, en el otro
+  // extremo: una fecha reprogramada corre su fecha real para adelante sin
+  // cambiar su número, así que el número ya no sirve para decidir cuál es
+  // el próximo de verdad. Se usa el mismo _nextPendingPartido que ya elige
+  // bien esta misma tarjeta en el home (ver _teamNextMatch), una sola
+  // fuente de verdad para "próximo partido" en todo el sitio.
+  const nextCand = _nextPendingPartido(d);
+  const next     = nextCand ? nextCand.m : null;
   const detLast  = last && (d.apertura || []).find(m => String(m.fecha) === String(last.fecha));
-  const detNext  = next && (d.apertura || []).find(m => String(m.fecha) === String(next.fecha));
+  const detNext  = nextCand ? nextCand.det : null;
 
   const rc    = m => { const { csb, riv } = _csbGoles(m); return csb > riv ? 'var(--verde)' : csb < riv ? 'var(--rojo)' : 'var(--dorado)'; };
   const badge = m => { const { csb, riv } = _csbGoles(m); return csb > riv ? '<span class="ap-mc-badge won">Victoria</span>'
