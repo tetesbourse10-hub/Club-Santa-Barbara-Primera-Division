@@ -8014,11 +8014,20 @@ function _ppV2Render() {
     return `<button onclick="_ppV2SetResumenSort('${o.col}')" class="appearance-none border font-black px-3 py-1 rounded-lg shrink-0 flex items-center gap-1" style="${active ? `border-color:${o.color}80;background:${o.color}33;color:${o.color}` : 'border-color:#1e293b;background:#0b0f19;color:#f1f5f9'}"><span>${o.icon}</span><span>${o.label}${dirLabel}</span></button>`;
   }).join('');
   const m2ResumenBtnHtml = `<button onclick="_ppV2ToggleResumen()" class="appearance-none border font-black px-3 py-1 rounded-lg shrink-0 flex items-center gap-1 shadow-sm" style="${viewMode === 'resumen' ? 'border-color:#412402;background:#412402;color:#fac775' : 'border-color:#1e293b;background:#0b0f19;color:#f1f5f9'}"><span>📊</span> Resumen</button>`;
+  // BUG REAL encontrado (reportado: "eliminamos el filtro de capitán en los
+  // perfiles de jugadores en la versión mobile"): el filtro "Capitán"
+  // (window._pp2CapOnly, _ppV2ToggleCap) ya existía para la tabla de
+  // escritorio (ver más arriba, "CAPITÁN" junto a vedCapsuleHtml), pero esta
+  // versión mobile del mismo Historial nunca tuvo su propio botón — mismo
+  // estado global, mismo toggle, solo le faltaba el botón acá.
+  const m2CapBtnHtml = esCapitanEquipo ? `<button onclick="_ppV2ToggleCap()" class="appearance-none active:scale-95 transition-all text-[11px] font-black px-2.5 py-1 rounded-xl shadow-sm flex items-center gap-1 border shrink-0" style="background:${window._pp2CapOnly ? '#412402' : '#0b0f19'};border-color:${window._pp2CapOnly ? '#fac775' : '#1e293b'};color:#fac775">
+    <span class="w-3.5 h-3.5 rounded-full bg-[#fac775]/30 border border-[#fac775]/40 text-[8px] font-black flex items-center justify-center shrink-0">C</span><span>${capCount}</span>
+  </button>` : '';
   const m2FilterBar = `
     <div class="bg-[#121827] border border-slate-800/80 rounded-2xl p-3.5 shadow-xl space-y-3">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
         <h2 class="text-sm font-black text-white flex items-center gap-1.5"><span>📋</span> ${viewMode === 'resumen' ? 'Historial por Rival' : 'Historial'}</h2>
-        <div class="flex items-center gap-1.5">${m2VedBtns}</div>
+        <div class="flex items-center gap-1.5">${m2VedBtns}${m2CapBtnHtml}</div>
       </div>
       ${m2TorneoTabsHtml}
       <div id="pp-m2-aporte-scroll" class="flex items-center gap-1.5 overflow-x-auto text-xs pt-2 no-scrollbar" style="border-top:1px solid rgba(255,255,255,0.06)">
@@ -9958,10 +9967,15 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
 
   // Banco de Suplentes — solo los citados que no son titulares
   const banco = jugadores.filter(j => !j.titular && j.citado);
+  // BUG REAL encontrado (reportado: un suplente que entra Y DESPUÉS sale en
+  // el mismo partido solo mostraba la flecha verde de "entró" — nunca la de
+  // "salió", aunque j.salio también estuviera cargado): el ▲ de entró
+  // siempre se mostró, pero nunca se chequeaba j.salio acá. Se agrega el ▼
+  // de salió al lado, independiente del de entró.
   const suplRows = banco.length > 0
     ? banco.map(j => `<div class="ap-squad-item">
         ${_squadPosBadge(j.pos || '–')}
-        <span style="flex:1">${pl(j.nombre)}${j.entro ? ' <span style="font-size:0.62rem;color:var(--verde)">▲</span>' : ''}</span>
+        <span style="flex:1">${pl(j.nombre)}${j.entro ? ' <span style="font-size:0.62rem;color:var(--verde)" title="Entró">▲</span>' : ''}${j.salio ? ' <span style="font-size:0.62rem;color:var(--rojo)" title="Salió">▼</span>' : ''}</span>
         ${j.goles > 0 ? `<span class="ap-squad-stat gol">⚽${j.goles > 1 ? j.goles : ''}</span>` : ''}
         ${j.asist > 0 ? `<span class="ap-squad-stat" style="color:var(--azul-claro)">🎯${j.asist > 1 ? j.asist : ''}</span>` : ''}
         ${j.rojas > 0 ? `<span class="ap-squad-stat roja">🟥</span>` : ''}
@@ -9994,13 +10008,19 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
   // stroke="currentColor".
   const ARROW_DOWN_SVG = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="7" x2="17" y2="17"></line><polyline points="17 7 17 17 7 17"></polyline></svg>`;
   const ARROW_UP_SVG = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg>`;
+  // BUG REAL encontrado (reportado: un suplente que entra Y DESPUÉS sale en
+  // el mismo partido solo mostraba la flecha verde de "entró"): `state`
+  // (pasado por cada lista — 'salio' para Titulares, 'entro' para
+  // Suplentes) elegía una sola flecha según la LISTA, no según lo que de
+  // verdad le pasó al jugador — un suplente en la lista de Suplentes con
+  // j.entro Y j.salio ambos true solo mostraba la de entró, nunca la de
+  // salió, porque esa rama ni siquiera miraba j.salio. Ahora se muestran
+  // las dos de forma independiente, sin depender de `state` para decidir
+  // cuál mirar (el parámetro queda sin uso, pero se deja para no tocar los
+  // call sites).
   const squadRowMobile = (j, state) => {
     const pc = squadPosColor(j.pos);
-    const stateIco = state === 'salio'
-      ? (j.salio ? `<span class="ap-squad-arrow-out" title="Salió">${ARROW_DOWN_SVG}</span>` : '')
-      : state === 'entro'
-        ? (j.entro ? `<span class="ap-squad-arrow-in" title="Entró">${ARROW_UP_SVG}</span>` : '')
-        : '';
+    const stateIco = `${j.entro ? `<span class="ap-squad-arrow-in" title="Entró">${ARROW_UP_SVG}</span>` : ''}${j.salio ? `<span class="ap-squad-arrow-out" title="Salió">${ARROW_DOWN_SVG}</span>` : ''}`;
     return `<div class="ap-squad-item-m">
       <span class="ap-squad-pos-m" style="color:${pc};background:${pc}33;border-color:${pc}66">${j.pos || '–'}</span>
       <span class="ap-squad-name-m">${pl(j.nombre)}</span>
@@ -11141,15 +11161,38 @@ function _cdEfectividadHtml(pts, pj, isGeneral, label) {
     <div class="cd-eff-bar-sm"><div class="cd-eff-fill" style="width:${pct}%;background:${grad}"></div></div>
   </div>`;
 }
-function _cdSummaryCardHtml(title, list, isGeneral, torneoName) {
+// Posición "actual" para la casilla de Centro de Datos — el partido jugado
+// más reciente CON posCSB cargado, pero por fecha REAL (dia/hora de Fecha a
+// Fecha), no por el orden en que vienen las filas. BUG REAL encontrado
+// (reportado: "la posición que se muestra ahí no está acorde a la posición
+// que se marca antes de entrar a ese torneo" — ej. en la Home): `list` acá
+// ya viene ordenada por NÚMERO de fecha (ver `asc` en buildCentroDatosHtml),
+// no por fecha calendario — mismo bug (y mismo fix) que "Último Partido"/
+// "Próximo Partido" ya tuvieron: una fecha reprogramada corre su fecha real
+// para adelante o atrás sin cambiar su número, así que tomar "la última fila
+// del array" puede agarrar el posCSB de un partido que en el calendario real
+// NO fue el más reciente. Sin `apertura` (detalle de Fecha a Fecha) para
+// resolver fechas reales, se cae al criterio anterior como respaldo.
+function _cdPosActualReal(list, apertura) {
+  const withPos = list.filter(m => m.posCSB);
+  if (!withPos.length) return null;
+  if (!apertura || !apertura.length) return withPos[withPos.length - 1].posCSB;
+  const withDt = withPos.map(m => {
+    const det = apertura.find(a => String(a.fecha) === String(m.fecha));
+    return { m, dt: det ? _parseFechaHora(det.dia, det.hora, true) : null };
+  });
+  withDt.sort((a, b) => a.dt && b.dt ? a.dt.getTime() - b.dt.getTime() : 0);
+  return withDt[withDt.length - 1].m.posCSB;
+}
+function _cdSummaryCardHtml(title, list, isGeneral, torneoName, apertura) {
   const s = _cdSummaryStats(list);
   // Posición en la tabla: solo tiene sentido real en "General" (no existe
-  // una "posición como local/visitante" en la tabla de posiciones) — se
-  // toma del partido jugado más reciente con posCSB cargado, mismo dato
-  // que ya muestra cada fila en "Posición / Instancia". Medalla real
-  // (🥇🥈🥉 solo 1°-3°) — mismo criterio que ya usa la tarjeta mobile
-  // (_cdPosMedal), unificado acá también.
-  const posActual = isGeneral ? [...list].reverse().find(m => m.posCSB)?.posCSB : null;
+  // una "posición como local/visitante" en la tabla de posiciones) — mismo
+  // dato que ya muestra cada fila en "Posición / Instancia", elegido por
+  // fecha real (ver _cdPosActualReal arriba). Medalla real (🥇🥈🥉 solo
+  // 1°-3°) — mismo criterio que ya usa la tarjeta mobile (_cdPosMedal),
+  // unificado acá también.
+  const posActual = isGeneral ? _cdPosActualReal(list, apertura) : null;
   const medal = _cdPosMedal(posActual);
   // Efectividad: mismos 3 tramos de color por umbral que ya usa
   // _cdEfectividadHtml (mobile) — recalculado acá inline porque el layout
@@ -11387,7 +11430,7 @@ function buildCentroDatosHtml(matches, opts) {
   const excludeStatsSet = new Set((opts.excludeStatsFechas || []).map(String));
   const forStats = l => excludeStatsSet.size ? l.filter(m => !excludeStatsSet.has(String(m.fecha))) : l;
   const summaryHtml = `<div class="cd-summary-wrap">
-    ${_cdSummaryCardHtml('Rendimiento General', forStats(rows), true, opts.torneoName)}
+    ${_cdSummaryCardHtml('Rendimiento General', forStats(rows), true, opts.torneoName, opts.apertura)}
     <div class="cd-summary-grid">
       ${_cdSummaryCardHtml('Como Local', forStats(localList), false)}
       ${_cdSummaryCardHtml('Como Visitante', forStats(visitList), false)}
@@ -11778,7 +11821,7 @@ function renderTorneoApertura() {
     </nav>
 
     <div class="ap-tab-panel active" id="ap-tab-datos">
-      ${buildCentroDatosHtml(d.partidos || [], { tabFn: 'apSwitchTab', fechaFn: 'selectFecha', torneoName: name })}
+      ${buildCentroDatosHtml(d.partidos || [], { tabFn: 'apSwitchTab', fechaFn: 'selectFecha', torneoName: name, apertura: d.apertura })}
     </div>
 
     <div class="ap-tab-panel" id="ap-tab-plantel">
@@ -12088,7 +12131,7 @@ function renderTorneoApertura2025A() {
     </nav>
 
     <div class="ap-tab-panel active" id="ap25-tab-datos">
-      ${buildCentroDatosHtml(d.partidos || [], { tabFn: 'ap25SwitchTab', fechaFn: 'ap25SelectFecha', torneoName: name })}
+      ${buildCentroDatosHtml(d.partidos || [], { tabFn: 'ap25SwitchTab', fechaFn: 'ap25SelectFecha', torneoName: name, apertura: d.apertura })}
     </div>
 
     <div class="ap-tab-panel" id="ap25-tab-plantel">
@@ -12385,7 +12428,7 @@ function renderTorneoHistoricoGeneric(d, name, fechaLabels, excludeStatsFechas) 
     </nav>
 
     <div class="ap-tab-panel active" id="gh-tab-datos">
-      ${buildCentroDatosHtml(d.partidos || [], { tabFn: 'ghSwitchTab', fechaFn: 'ghSelectFecha', torneoName: name, fechaLabels, excludeStatsFechas })}
+      ${buildCentroDatosHtml(d.partidos || [], { tabFn: 'ghSwitchTab', fechaFn: 'ghSelectFecha', torneoName: name, fechaLabels, excludeStatsFechas, apertura: d.apertura })}
     </div>
 
     <div class="ap-tab-panel" id="gh-tab-plantel">
@@ -13303,7 +13346,7 @@ function renderTorneoApt2024DB() {
         <button class="ap-tab-btn"        data-tab="detalladas" onclick="ap24dSwitchTab('detalladas')"> <span class="ap-tab-icon">🔍</span> Estadísticas Detalladas</button>
       </nav>
       <div class="ap-tab-panel active" id="ap24d-tab-datos">
-        ${buildCentroDatosHtml(d.partidos || [], { tabFn: 'ap24dSwitchTab', fechaFn: 'ap24dSelectFecha', torneoName: name, fechaLabels: AP24D_FECHA_LABELS, excludeStatsFechas: ['16'] })}
+        ${buildCentroDatosHtml(d.partidos || [], { tabFn: 'ap24dSwitchTab', fechaFn: 'ap24dSelectFecha', torneoName: name, fechaLabels: AP24D_FECHA_LABELS, excludeStatsFechas: ['16'], apertura: d.apertura })}
       </div>
       <div class="ap-tab-panel" id="ap24d-tab-plantel">${buildPlantelTab()}</div>
       <div class="ap-tab-panel" id="ap24d-tab-tabla">
