@@ -154,15 +154,31 @@ function _cleanNombre(n) {
   return String(n || '').replace(/\s*\(c\)\s*/gi, '').trim();
 }
 
-// Primer partido pendiente (sin resultado todavía) por número de fecha —
-// mismo criterio que ya usa _teamNextMatch en index.html para "Próximo
-// Partido" del home, reimplementado acá liviano (sin necesitar el resto de
-// ese helper) porque solo hace falta rival+fecha, no todo el objeto match.
-function proximoPendiente(matches) {
-  const pendientes = matches
-    .filter(m => m.resultado === null && /^\d+$/.test(String(m.fecha)))
-    .sort((a, b) => parseInt(a.fecha) - parseInt(b.fecha));
-  return pendientes[0] || null;
+// Primer partido pendiente (sin resultado todavía), ordenado por fecha
+// CALENDARIO real (dia/hora) — no por número de fecha de grilla. BUG REAL
+// encontrado (reportado: el "próximo rival" del push de Tabla actualizada
+// mostraba uno que en realidad se jugaba DESPUÉS de otro con número de
+// fecha más alto): un partido reprogramado corre su fecha real para
+// adelante o atrás sin cambiar su número de fecha, así que ese número ya
+// no sirve para decidir el orden cronológico real — mismo bug (y mismo
+// fix, ordenar por `helpers.parseFechaHora(m.dia, m.hora)` en vez del
+// número) que _nextPendingPartido ya resuelve en index.html para la
+// casilla de "Próximo Partido" de la Home.
+function proximoPendiente(matches, helpers) {
+  const pendientes = matches.filter(m => m.resultado === null && /^\d+$/.test(String(m.fecha)));
+  if (!pendientes.length) return null;
+  const candidatos = pendientes.map(m => ({
+    m, dt: (helpers && helpers.parseFechaHora && m.dia && m.hora) ? helpers.parseFechaHora(m.dia, m.hora) : null,
+  }));
+  // Mismo criterio de sort estable que _nextPendingPartido: por fecha real
+  // cuando está disponible, los sin fecha/hora confirmada quedan al final.
+  candidatos.sort((a, b) => {
+    if (a.dt && b.dt) return a.dt.getTime() - b.dt.getTime();
+    if (a.dt) return -1;
+    if (b.dt) return 1;
+    return 0;
+  });
+  return candidatos[0].m;
 }
 
 // El sheet guarda gf/gc en orden Local-Visitante, no CSB-Rival fijo — mismo
@@ -311,7 +327,7 @@ async function checkTorneo(store, torneo) {
   // — se lee el último estado guardado (`estado-elnido`, la misma foto
   // que ya usa "Cifra redonda") para saber si el jugador tenía 0 goles de
   // carrera ANTES de este partido.
-  const nidoState = (await store.get('estado-elnido', { type: 'json' })) || { goles: {} };
+  const nidoState = (await store.get('estado-elnido', { type: 'json' })) || { goles: {}, pj: {} };
   const golesCareraPrevios = nidoState.goles || {};
   // Si El Nido todavía nunca guardó un estado propio (checkElNido no corrió
   // ni una vez con éxito todavía), golesCareraPrevios estaría vacío para
@@ -319,24 +335,20 @@ async function checkTorneo(store, torneo) {
   // "Primer gol" por error. Mismo criterio conservador que esSeedInicial:
   // sin base real con qué comparar, no se avisa nada.
   const nidoListo = Object.keys(golesCareraPrevios).length > 0;
-
-  // Logros (Debut/Hat-trick) — "vistos" es el histórico de jugadores que
-  // YA jugaron alguna vez, persistido en Blobs junto al resto del estado
-  // del torneo. Si esta regla nunca corrió antes (prev.jugadoresVistos no
-  // existe), se arma esa base UNA vez a partir de los partidos YA jugados
-  // sin avisar nada — si no, el primer cierre de fecha después de activar
-  // esto "descubriría" como debut a jugadores con años de historia.
-  const esSeedInicial = !prev.jugadoresVistos;
-  const vistos = new Set(prev.jugadoresVistos || []);
-  if (esSeedInicial) {
-    for (const m of matches) {
-      if (m.resultado === null) continue;
-      for (const j of (m.jugadores || [])) {
-        if (!j.nombre) continue;
-        if (j.titular || j.entro) vistos.add(_cleanNombre(j.nombre));
-      }
-    }
-  }
+  // BUG REAL encontrado (reportado: "Debut" se disparó para dos jugadores
+  // que en realidad ya tenían historia en el club — uno porque era su
+  // primera vez jugando en ESTE torneo puntual (Clausura 2026), habiendo
+  // jugado antes en el Apertura/otra temporada; otro con el mismo problema
+  // cruzado entre categorías): la versión anterior guardaba "vistos" en el
+  // propio estado de este torneo (`estado-${torneo}`), así que solo conocía
+  // la historia DENTRO de esta categoría/temporada puntual, no la carrera
+  // real del jugador en el club. El total de partidos jugados (pj) de El
+  // Nido ya es career-wide (suma Primera A + B de todas las temporadas,
+  // vía mergeAB) — mismo criterio que ya usa "Primer gol" con los goles de
+  // carrera (golesCareraPrevios), reusado acá para que "Debut" sea de
+  // verdad la primera vez que el jugador juega en Primera, nunca "la
+  // primera vez en este torneo puntual".
+  const pjCareraPrevios = nidoState.pj || {};
 
   for (const m of matches) {
     const fecha = String(m.fecha);
@@ -504,26 +516,29 @@ async function checkTorneo(store, torneo) {
       );
       huboFinal = true;
 
-      // Logros de este partido. El hat-trick no depende de historial (solo
-      // mira ESTE partido), así que se avisa siempre; debut depende de
-      // "vistos" — en la corrida de seed inicial ese set recién se está
-      // armando, así que no se avisa nada ahí (pasarían como "debut"
-      // jugadores con años de historia). Primer gol depende del total de
-      // carrera de El Nido (golesCareraPrevios), no de este set.
+      // Logros de este partido. Debut y Primer gol dependen del total de
+      // carrera de El Nido (pjCareraPrevios/golesCareraPrevios — career-wide,
+      // Primera A + B, todas las temporadas), no de nada propio de este
+      // torneo: así un jugador con historia en el club nunca se marca como
+      // debut solo porque sea su primera vez en ESTE torneo/temporada
+      // puntual. El hat-trick no depende de historial (solo mira ESTE
+      // partido), se avisa siempre — igual que el resto de este bloque, ya
+      // protegido de la corrida de seed inicial por el `if (!prevM) continue`
+      // de más arriba (prev.matches vacío en la primera corrida = prevM
+      // siempre null = este bloque nunca se alcanza esa vez).
       for (const j of (m.jugadores || [])) {
         if (!j.nombre) continue;
         const nombreJ = _cleanNombre(j.nombre);
         const jugo = j.titular || j.entro;
-        if (!esSeedInicial && jugo && !vistos.has(nombreJ)) {
+        if (nidoListo && jugo && (pjCareraPrevios[nombreJ] || 0) === 0) {
           await sendPush('🆕 Debut', `${nombreJ} debutó en Primera — vs ${m.rival}, Fecha ${fecha}`, url);
         }
         if (nidoListo && j.goles > 0 && (golesCareraPrevios[nombreJ] || 0) === 0) {
           await sendPush('⚽️ Primer gol', `${nombreJ} convirtió su primer gol — vs ${m.rival}, Fecha ${fecha}`, url);
         }
-        if (!esSeedInicial && j.goles >= 3) {
+        if (j.goles >= 3) {
           await sendPush('🎩 Hat-trick', `${nombreJ} convirtió ${j.goles} goles — vs ${m.rival}, Fecha ${fecha}`, url);
         }
-        if (jugo) vistos.add(nombreJ);
       }
     }
   }
@@ -539,7 +554,7 @@ async function checkTorneo(store, torneo) {
       const tabla = await getTabla(torneo);
       const fila = (tabla || []).find(t => t.csb);
       nextTablaPos = fila ? parseInt(fila.pos) : prev.tablaPos;
-      const proximo = proximoPendiente(matches);
+      const proximo = proximoPendiente(matches, helpers);
       const posTxt = fila
         ? (prev.tablaPos && prev.tablaPos !== nextTablaPos
           ? `Posición: ${fila.pos} (antes ${prev.tablaPos}°)`
@@ -602,7 +617,6 @@ async function checkTorneo(store, torneo) {
 
   await store.setJSON(stateKey, {
     matches: nextMatches, tablaPos: nextTablaPos, racha: nextRacha,
-    jugadoresVistos: [...vistos],
     vallasRachaJugador: nextVallasRachaJugador,
     rachaGolJugador: nextRachaGolJugador,
   });
@@ -655,9 +669,13 @@ const GOLES_CLUB_HITOS = [10, 25, 50, 75, 100, 150, 200, 250];
 async function checkElNido(store) {
   const rankings = await getElNidoRankings();
   const stateKey = 'estado-elnido';
-  const prev = (await store.get(stateKey, { type: 'json' })) || { top10: {}, goles: {} };
+  const prev = (await store.get(stateKey, { type: 'json' })) || { top10: {}, goles: {}, pj: {} };
   const nextTop10 = {};
   const nextGoles = {};
+  // pj (partidos jugados career-wide, Primera A + B todas las temporadas)
+  // — usado por checkTorneo para "Debut" (ver pjCareraPrevios ahí), mismo
+  // patrón que ya usa `goles` para "Primer gol".
+  const nextPJ = {};
 
   for (const scope of EL_NIDO_SCOPES) {
     const list = rankings[scope.key] || [];
@@ -699,6 +717,7 @@ async function checkElNido(store) {
   for (const p of rankings.general) {
     if (!p.nombre) continue;
     nextGoles[p.nombre] = p.goles;
+    nextPJ[p.nombre] = p.pj;
     // Primera vez que se ve a este jugador: sin base para comparar, no avisar.
     const prevGoles = prev.goles[p.nombre];
     if (prevGoles == null) continue;
@@ -708,7 +727,7 @@ async function checkElNido(store) {
     }
   }
 
-  await store.setJSON(stateKey, { top10: nextTop10, goles: nextGoles });
+  await store.setJSON(stateKey, { top10: nextTop10, goles: nextGoles, pj: nextPJ });
 }
 
 // ── Seguimiento en vivo minuto a minuto (push-scheduler-vivo.js) ───────────
