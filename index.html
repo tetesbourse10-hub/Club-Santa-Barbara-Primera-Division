@@ -11161,18 +11161,22 @@ function _cdEfectividadHtml(pts, pj, isGeneral, label) {
     <div class="cd-eff-bar-sm"><div class="cd-eff-fill" style="width:${pct}%;background:${grad}"></div></div>
   </div>`;
 }
-// Posición "actual" para la casilla de Centro de Datos — el partido jugado
-// más reciente CON posCSB cargado, pero por fecha REAL (dia/hora de Fecha a
-// Fecha), no por el orden en que vienen las filas. BUG REAL encontrado
-// (reportado: "la posición que se muestra ahí no está acorde a la posición
-// que se marca antes de entrar a ese torneo" — ej. en la Home): `list` acá
-// ya viene ordenada por NÚMERO de fecha (ver `asc` en buildCentroDatosHtml),
-// no por fecha calendario — mismo bug (y mismo fix) que "Último Partido"/
-// "Próximo Partido" ya tuvieron: una fecha reprogramada corre su fecha real
-// para adelante o atrás sin cambiar su número, así que tomar "la última fila
-// del array" puede agarrar el posCSB de un partido que en el calendario real
-// NO fue el más reciente. Sin `apertura` (detalle de Fecha a Fecha) para
-// resolver fechas reales, se cae al criterio anterior como respaldo.
+// Posición "actual" para la casilla de Centro de Datos — respaldo SOLO para
+// cuando el torneo no tiene una Tabla de Posiciones propia cargada
+// (opts.tablaPos, ver buildCentroDatosHtml): el partido jugado más reciente
+// CON posCSB cargado, por fecha REAL (dia/hora de Fecha a Fecha), no por el
+// orden en que vienen las filas.
+// BUG REAL encontrado (reportado con capturas: la tarjeta de "Apertura AIFA
+// A" en Torneos Antiguos mostraba "2°" — la posición REAL, tomada de la
+// Tabla de Posiciones propia del torneo — pero Centro de Datos de ESE MISMO
+// torneo mostraba "1° en la tabla de posiciones"): acá se tomaba el posCSB
+// de un partido puntual de Fecha a Fecha (una foto manual de "cómo quedó
+// parado después de ESE partido", que puede quedar desactualizada o
+// simplemente no coincidir con la Tabla de Posiciones real si nadie la
+// actualizó a la par) — nunca la Tabla de Posiciones de verdad. Ahora
+// Centro de Datos usa la MISMA fuente que ya usa esa tarjeta (d.tabla, la
+// fila de Santa Bárbara) siempre que esté disponible — _cdPosActualReal
+// queda solo como respaldo para los pocos torneos sin tabla propia cargada.
 function _cdPosActualReal(list, apertura) {
   const withPos = list.filter(m => m.posCSB);
   if (!withPos.length) return null;
@@ -11184,15 +11188,15 @@ function _cdPosActualReal(list, apertura) {
   withDt.sort((a, b) => a.dt && b.dt ? a.dt.getTime() - b.dt.getTime() : 0);
   return withDt[withDt.length - 1].m.posCSB;
 }
-function _cdSummaryCardHtml(title, list, isGeneral, torneoName, apertura) {
+function _cdSummaryCardHtml(title, list, isGeneral, torneoName, apertura, tablaPos) {
   const s = _cdSummaryStats(list);
   // Posición en la tabla: solo tiene sentido real en "General" (no existe
   // una "posición como local/visitante" en la tabla de posiciones) — mismo
-  // dato que ya muestra cada fila en "Posición / Instancia", elegido por
-  // fecha real (ver _cdPosActualReal arriba). Medalla real (🥇🥈🥉 solo
+  // dato que ya muestra la tarjeta de Torneos Antiguos (Tabla de Posiciones
+  // real, ver el comentario de _cdPosActualReal arriba). Medalla real (🥇🥈🥉 solo
   // 1°-3°) — mismo criterio que ya usa la tarjeta mobile (_cdPosMedal),
   // unificado acá también.
-  const posActual = isGeneral ? _cdPosActualReal(list, apertura) : null;
+  const posActual = isGeneral ? (tablaPos || _cdPosActualReal(list, apertura)) : null;
   const medal = _cdPosMedal(posActual);
   // Efectividad: mismos 3 tramos de color por umbral que ya usa
   // _cdEfectividadHtml (mobile) — recalculado acá inline porque el layout
@@ -11430,7 +11434,7 @@ function buildCentroDatosHtml(matches, opts) {
   const excludeStatsSet = new Set((opts.excludeStatsFechas || []).map(String));
   const forStats = l => excludeStatsSet.size ? l.filter(m => !excludeStatsSet.has(String(m.fecha))) : l;
   const summaryHtml = `<div class="cd-summary-wrap">
-    ${_cdSummaryCardHtml('Rendimiento General', forStats(rows), true, opts.torneoName, opts.apertura)}
+    ${_cdSummaryCardHtml('Rendimiento General', forStats(rows), true, opts.torneoName, opts.apertura, opts.tablaPos)}
     <div class="cd-summary-grid">
       ${_cdSummaryCardHtml('Como Local', forStats(localList), false)}
       ${_cdSummaryCardHtml('Como Visitante', forStats(visitList), false)}
@@ -11821,7 +11825,7 @@ function renderTorneoApertura() {
     </nav>
 
     <div class="ap-tab-panel active" id="ap-tab-datos">
-      ${buildCentroDatosHtml(d.partidos || [], { tabFn: 'apSwitchTab', fechaFn: 'selectFecha', torneoName: name, apertura: d.apertura })}
+      ${buildCentroDatosHtml(d.partidos || [], { tabFn: 'apSwitchTab', fechaFn: 'selectFecha', torneoName: name, apertura: d.apertura, tablaPos: (d.tabla || []).find(t => t.csb)?.pos })}
     </div>
 
     <div class="ap-tab-panel" id="ap-tab-plantel">
@@ -12131,7 +12135,7 @@ function renderTorneoApertura2025A() {
     </nav>
 
     <div class="ap-tab-panel active" id="ap25-tab-datos">
-      ${buildCentroDatosHtml(d.partidos || [], { tabFn: 'ap25SwitchTab', fechaFn: 'ap25SelectFecha', torneoName: name, apertura: d.apertura })}
+      ${buildCentroDatosHtml(d.partidos || [], { tabFn: 'ap25SwitchTab', fechaFn: 'ap25SelectFecha', torneoName: name, apertura: d.apertura, tablaPos: (d.tabla || []).find(t => t.csb)?.pos })}
     </div>
 
     <div class="ap-tab-panel" id="ap25-tab-plantel">
@@ -12428,7 +12432,7 @@ function renderTorneoHistoricoGeneric(d, name, fechaLabels, excludeStatsFechas) 
     </nav>
 
     <div class="ap-tab-panel active" id="gh-tab-datos">
-      ${buildCentroDatosHtml(d.partidos || [], { tabFn: 'ghSwitchTab', fechaFn: 'ghSelectFecha', torneoName: name, fechaLabels, excludeStatsFechas, apertura: d.apertura })}
+      ${buildCentroDatosHtml(d.partidos || [], { tabFn: 'ghSwitchTab', fechaFn: 'ghSelectFecha', torneoName: name, fechaLabels, excludeStatsFechas, apertura: d.apertura, tablaPos: (d.tabla || []).find(t => t.csb)?.pos })}
     </div>
 
     <div class="ap-tab-panel" id="gh-tab-plantel">
@@ -13346,7 +13350,7 @@ function renderTorneoApt2024DB() {
         <button class="ap-tab-btn"        data-tab="detalladas" onclick="ap24dSwitchTab('detalladas')"> <span class="ap-tab-icon">🔍</span> Estadísticas Detalladas</button>
       </nav>
       <div class="ap-tab-panel active" id="ap24d-tab-datos">
-        ${buildCentroDatosHtml(d.partidos || [], { tabFn: 'ap24dSwitchTab', fechaFn: 'ap24dSelectFecha', torneoName: name, fechaLabels: AP24D_FECHA_LABELS, excludeStatsFechas: ['16'], apertura: d.apertura })}
+        ${buildCentroDatosHtml(d.partidos || [], { tabFn: 'ap24dSwitchTab', fechaFn: 'ap24dSelectFecha', torneoName: name, fechaLabels: AP24D_FECHA_LABELS, excludeStatsFechas: ['16'], apertura: d.apertura, tablaPos: (d.tabla || []).find(t => t.csb)?.pos })}
       </div>
       <div class="ap-tab-panel" id="ap24d-tab-plantel">${buildPlantelTab()}</div>
       <div class="ap-tab-panel" id="ap24d-tab-tabla">
