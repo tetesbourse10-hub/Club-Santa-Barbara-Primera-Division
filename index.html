@@ -18637,11 +18637,32 @@ async function fetchProxy(tab, range, sheetId) {
 // columna ahí y corrompe datos). El arranque en frío de Apps Script (o un
 // glitch puntual de red) suele resolverse solo con un segundo intento
 // pocos segundos después, sin necesitar el fallback a gviz.
+//
+// BUG REAL encontrado (reportado: notificaciones del partido en vivo que no
+// llegaban — Netlify mataba push-scheduler-vivo.js a mitad de camino,
+// "Duration: 60000 ms" en los logs, sin terminar de revisar el partido):
+// este reintento ya existía desde antes de que _fetchConTimeout (arriba)
+// tuviera un timeout real — pensado para un arranque en frío que se resuelve
+// en un par de segundos. Al agregarle timeout a fetchProxy, una fuente
+// genuinamente lenta (no caída, solo lenta bajo carga — justo lo que pasa
+// un día de partido con mucha gente mirando) ahora puede agotar el timeout
+// COMPLETO (25s) y todavía así reintentarse 2 veces más acá (hasta 3
+// intentos × 25s + esperas = 75+ segundos un solo fetch) — mucho más que el
+// límite real de ejecución de la función en Netlify (~60s, confirmado por
+// esos "Duration: 60000 ms"), así que la función entera se corta a la
+// fuerza antes de llegar a revisar goles/cambios de ESA corrida. Reintentar
+// específicamente un TIMEOUT (a diferencia de un error rápido real, que sí
+// suele ser un arranque en frío que se resuelve solo) no ayuda — ya esperó
+// lo más que se le iba a dar, reintentar solo suma más tiempo de espera
+// sobre una fuente que ya está lenta. Por eso un timeout (`e.name ===
+// 'AbortError'`, el que tira _fetchConTimeout) ya no reintenta: falla una
+// sola vez y listo, la corrida de 1 minuto siguiente lo vuelve a intentar
+// fresco de cualquier forma.
 async function fetchProxyConReintento(tab, range, sheetId, intentos = 2, esperaMs = 1500) {
   try {
     return await fetchProxy(tab, range, sheetId);
   } catch (e) {
-    if (intentos <= 0) throw e;
+    if (intentos <= 0 || e.name === 'AbortError') throw e;
     await new Promise(res => setTimeout(res, esperaMs));
     return fetchProxyConReintento(tab, range, sheetId, intentos - 1, esperaMs);
   }
