@@ -6720,8 +6720,14 @@ function _ppRivalGaBreakdown(list) {
 // Primera B category is currently active — reads window._ppDetailLists
 // (already stashed by renderPlayerProfile) filtered through _ppFilterByCat,
 // so it always matches whatever the metric cards above it are showing.
-function _ppComputeFavoritos() {
-  const list = _ppFilterByCat(window._ppDetailLists.partidos || []);
+// `listOverride` (opcional): cuando se pasa, se usa tal cual en vez del
+// stash global filtrado solo por categoría — lo usa _ppV2Render para que
+// el rival favorito de cada casilla respete también el año elegido, sin
+// tocar el comportamiento de los demás callers (ppShowDetail/
+// _ppUpdateDatoCurioso), que siguen sin pasar nada y seguir leyendo el
+// stash global como siempre.
+function _ppComputeFavoritos(listOverride) {
+  const list = listOverride || _ppFilterByCat(window._ppDetailLists.partidos || []);
   return {
     // Clave 'partidos' (no 'pj') a propósito — es el mismo nombre de kind
     // que usan ppShowDetail/PP_DATO_CURIOSO_META/el id de la tarjeta
@@ -7572,23 +7578,22 @@ function _ppV2Render() {
   let cs = s.porCategoria[cat] || s.porCategoria.total;
   const catList = _ppFilterByCat(partidosSource);
   // Mejora pedida: el selector de año solo filtraba el Historial de abajo —
-  // las casillas grandes del dashboard (Partidos/Goles/Asist/G+A/Vallas)
-  // seguían mostrando el total de carrera career-wide de El Nido
-  // (s.porCategoria[cat]) sin importar qué año estuviera elegido, porque esa
-  // fuente es un acumulado de toda la carrera, sin desglose por temporada.
-  // Con un año puntual elegido, se recalculan esas mismas casillas a partir
-  // de los partidos de ESE año (misma lista — y misma salvedad de cobertura
-  // que ya advierte el panel de detalle — que ya usa el resto de esta
-  // pantalla), en vez del total career-wide.
+  // las casillas grandes del dashboard (Partidos/Goles/Asist/G+A/Vallas),
+  // el rival favorito de cada una y el % de victoria seguían mostrando el
+  // total de carrera career-wide sin importar qué año estuviera elegido.
+  // `statsList` es la MISMA lista de partidos (de ESE año si hay uno
+  // elegido, o toda la carrera si no) que alimenta todo lo de acá abajo —
+  // casillas, rivales favoritos y récord V-E-D/% de victoria por igual, en
+  // vez de cada uno mirando una fuente distinta.
+  const statsList = window._pp2Year === 'todos' ? catList : catList.filter(p => p.anio === window._pp2Year);
   if (window._pp2Year !== 'todos') {
-    const yearStatsList = catList.filter(p => p.anio === window._pp2Year);
-    const yPj = yearStatsList.length;
-    const yGoles = yearStatsList.reduce((acc, p) => acc + (p.goles || 0), 0);
-    const yAsist = yearStatsList.reduce((acc, p) => acc + (p.asist || 0), 0);
-    const yRojas = yearStatsList.reduce((acc, p) => acc + (p.rojas || 0), 0);
-    const yVallas = yearStatsList.filter(p => _csbGoles(p).riv === 0).length;
-    const yTitular = yearStatsList.filter(p => p.condCorta === 'Titular').length;
-    const ySup = yearStatsList.filter(p => p.condCorta === 'Suplente').length;
+    const yPj = statsList.length;
+    const yGoles = statsList.reduce((acc, p) => acc + (p.goles || 0), 0);
+    const yAsist = statsList.reduce((acc, p) => acc + (p.asist || 0), 0);
+    const yRojas = statsList.reduce((acc, p) => acc + (p.rojas || 0), 0);
+    const yVallas = statsList.filter(p => _csbGoles(p).riv === 0).length;
+    const yTitular = statsList.filter(p => p.condCorta === 'Titular').length;
+    const ySup = statsList.filter(p => p.condCorta === 'Suplente').length;
     const safeDivYear = (a, b) => (b > 0 ? a / b : 0);
     cs = {
       ...cs, pj: yPj, titular: yTitular, sup: ySup, goles: yGoles, asist: yAsist, rojas: yRojas, vallas: yVallas,
@@ -7597,12 +7602,12 @@ function _ppV2Render() {
       efectividadGA: safeDivYear(yGoles + yAsist, yPj) * 100,
     };
   }
-  const record = _ppRecordVED(catList);
+  const record = _ppRecordVED(statsList);
   const vedTotal = record.v + record.e + record.d || 1;
   const winPct = (record.v / vedTotal * 100);
   window._ppDetailLists = window._ppDetailLists || {};
-  const fav = _ppComputeFavoritos();
-  const favVallas = showVallasSector ? _ppFavoritoRival(catList.filter(p => _csbGoles(p).riv === 0), 'vallas') : null;
+  const fav = _ppComputeFavoritos(statsList);
+  const favVallas = showVallasSector ? _ppFavoritoRival(statsList.filter(p => _csbGoles(p).riv === 0), 'vallas') : null;
   const esCapitanEquipo = catList.some(p => p.esCapitan);
   const posColor = _plantelPosColor(s.pos);
   // Logros (Top 5 histórico del club) — mismos badges icono+texto que ya
