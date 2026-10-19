@@ -7569,8 +7569,34 @@ function _ppV2Render() {
   const { s, initials, posLabel, isArquero, showVallasSector, partidosSource } = st;
   const cat = window._pp2Cat || 'total';
   window._ppActiveCat = cat; // mismo global que ya leen _ppFilterByCat/_ppComputeFavoritos
-  const cs = s.porCategoria[cat] || s.porCategoria.total;
+  let cs = s.porCategoria[cat] || s.porCategoria.total;
   const catList = _ppFilterByCat(partidosSource);
+  // Mejora pedida: el selector de año solo filtraba el Historial de abajo —
+  // las casillas grandes del dashboard (Partidos/Goles/Asist/G+A/Vallas)
+  // seguían mostrando el total de carrera career-wide de El Nido
+  // (s.porCategoria[cat]) sin importar qué año estuviera elegido, porque esa
+  // fuente es un acumulado de toda la carrera, sin desglose por temporada.
+  // Con un año puntual elegido, se recalculan esas mismas casillas a partir
+  // de los partidos de ESE año (misma lista — y misma salvedad de cobertura
+  // que ya advierte el panel de detalle — que ya usa el resto de esta
+  // pantalla), en vez del total career-wide.
+  if (window._pp2Year !== 'todos') {
+    const yearStatsList = catList.filter(p => p.anio === window._pp2Year);
+    const yPj = yearStatsList.length;
+    const yGoles = yearStatsList.reduce((acc, p) => acc + (p.goles || 0), 0);
+    const yAsist = yearStatsList.reduce((acc, p) => acc + (p.asist || 0), 0);
+    const yRojas = yearStatsList.reduce((acc, p) => acc + (p.rojas || 0), 0);
+    const yVallas = yearStatsList.filter(p => _csbGoles(p).riv === 0).length;
+    const yTitular = yearStatsList.filter(p => p.condCorta === 'Titular').length;
+    const ySup = yearStatsList.filter(p => p.condCorta === 'Suplente').length;
+    const safeDivYear = (a, b) => (b > 0 ? a / b : 0);
+    cs = {
+      ...cs, pj: yPj, titular: yTitular, sup: ySup, goles: yGoles, asist: yAsist, rojas: yRojas, vallas: yVallas,
+      vallasProm: safeDivYear(yVallas, yPj),
+      promGol: safeDivYear(yGoles, yPj), promAsist: safeDivYear(yAsist, yPj),
+      efectividadGA: safeDivYear(yGoles + yAsist, yPj) * 100,
+    };
+  }
   const record = _ppRecordVED(catList);
   const vedTotal = record.v + record.e + record.d || 1;
   const winPct = (record.v / vedTotal * 100);
