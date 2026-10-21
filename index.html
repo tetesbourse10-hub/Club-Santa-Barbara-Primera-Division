@@ -199,10 +199,14 @@
     .landing-sub {
       font-size: 0.9rem;
       color: var(--gris-texto);
-      margin-bottom: 56px;
+      margin-bottom: 10px;
       letter-spacing: 0.12em;
       text-transform: uppercase;
     }
+    /* Línea chica debajo de "Estadísticas Generales" (solo desktop — mobile
+       pone el mismo dato en el pie, ver .landing-footer-note). */
+    .landing-sub-meta { font-size: 0.78rem; color: #6b7690; margin-bottom: 46px; }
+    @media (max-width: 768px) { .landing-sub-meta { display: none; } }
 
     /* Solo mobile (ver @media más abajo) — desktop no tenía ni necesita un
        label sobre las 3 tarjetas de torneo. */
@@ -248,6 +252,22 @@
       border-color: rgba(245,158,11,0.3);
     }
     .landing-card:hover::before { opacity: 1; }
+    /* Flecha discreta (atajo interno, nunca <a>) — invisible hasta el hover
+       en desktop; en mobile (sin hover real) queda siempre visible y tenue,
+       mismo criterio que ya usa el resto del sitio para "esto se puede
+       tocar". */
+    .lc-arrow {
+      position: absolute; bottom: 14px; right: 16px; font-size: 1rem;
+      color: rgba(255,255,255,0.25); opacity: 0; transition: opacity .2s, color .2s;
+    }
+    .landing-card:hover .lc-arrow { opacity: 1; color: rgba(255,255,255,0.55); }
+    @media (max-width: 768px) {
+      /* En mobile no hay hover real — se esconde el genérico de la
+         esquina (no aporta nada en el layout compacto de 2 columnas); la
+         única flecha visible en mobile es la del rótulo "Últimos 5 →",
+         ver .lc-racha-arrow más abajo. */
+      .lc-arrow { display: none; }
+    }
 
     /* Mismo recuadro + glow al hover que .landing-card (tiles de Primera
        A/B/El Nido), reutilizado en las cards de "Próximo Partido" del home
@@ -346,52 +366,117 @@
     .nmb-box-b { border-color: rgba(59,130,246,0.35); }
     .nmb-box-b .nmb-label, .nmb-box-b .nmb-rival { color: var(--azul-claro); }
     .nmb-label {
-      font-size: 0.66rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
+      font-size: 0.75rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
       margin-bottom: 6px;
     }
-    .nmb-rival { font-size: 1.05rem; font-weight: 800; margin-bottom: 4px; display: flex; align-items: center; gap: 7px; }
+    .nmb-rival { font-size: 1.05rem; font-weight: 800; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
     .nmb-crest {
       display: inline-flex; align-items: center; justify-content: center;
-      width: 22px; height: 22px; border-radius: 50%; background: #fff;
+      width: 40px; height: 40px; border-radius: 50%; background: #fff;
       overflow: hidden; position: relative; flex-shrink: 0;
-      font-size: 0.5rem; font-weight: 800; color: #334155;
+      font-size: 0.75rem; font-weight: 800; color: #334155;
     }
-    .nmb-meta { font-size: 0.76rem; color: var(--gris-texto); }
+    .nmb-meta { font-size: 0.8rem; color: var(--gris-texto); }
     .nmb-meta .nmb-local { color: var(--texto); font-weight: 600; }
     .nmb-countdown { text-align: right; flex-shrink: 0; }
     .nmb-cd-val { font-size: 1.4rem; font-weight: 900; color: var(--naranja); line-height: 1; }
     .nmb-cd-val .nmb-cd-unit { font-size: 1.4rem; font-weight: 700; margin-right: 6px; }
-    .nmb-cd-label { font-size: 0.65rem; color: var(--gris-texto); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
+    .nmb-cd-label { font-size: 0.75rem; color: var(--gris-texto); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px; }
+    /* Fila inferior de la tarjeta de próximo partido: posiciones CSB/Rival a
+       la izquierda, historial G-E-P a la derecha — ver _renderNextMatchBox.
+       Se omite entera (no líneas vacías) si falta algún dato, por eso no
+       lleva un placeholder "—": ver el JS. */
+    .nmb-foot {
+      width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08);
+      font-size: 0.78rem; color: var(--gris-texto);
+    }
+    .nmb-foot-pos strong { color: var(--texto); font-weight: 800; }
+    .nmb-foot-hist-g { color: var(--verde); font-weight: 800; }
+    .nmb-foot-hist-e { color: var(--dorado); font-weight: 800; }
+    .nmb-foot-hist-p { color: var(--rojo); font-weight: 800; }
 
     /* ── LANDING CARD: position badge + last-5-results/points footer ── */
     .lc-badge { position: absolute; top: 14px; right: 14px; }
     .lc-badge-pill {
-      font-size: 0.66rem; font-weight: 800; padding: 3px 9px; border-radius: 20px; letter-spacing: 0.02em; white-space: nowrap;
+      font-size: 0.75rem; font-weight: 800; padding: 3px 9px; border-radius: 20px; letter-spacing: 0.02em; white-space: nowrap;
     }
-    .lc-badge-green { background: rgba(34,197,94,0.15);  color: #4ade80; }
-    .lc-badge-amber { background: rgba(245,158,11,0.15); color: #fbbf24; }
-    .lc-badge-red   { background: rgba(239,68,68,0.15);  color: #f87171; }
+    .lc-badge-green { background: rgba(34,197,94,0.15);  color: var(--verde); }
+    .lc-badge-amber { background: rgba(245,158,11,0.15); color: var(--dorado); }
+    .lc-badge-red   { background: rgba(239,68,68,0.15);  color: var(--rojo); }
+    /* Insignia neutra (posición, cantidad de jugadores) — ya no en
+       verde/rojo según la posición, siempre el mismo estilo gris claro. */
+    .lc-badge-neutral { background: rgba(255,255,255,0.06); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.14); }
+    /* Línea de color fina arriba de cada tarjeta de plantel (naranja/azul/
+       verde) — separada del borde/glow de hover que ya tenía .landing-card. */
+    .lc-topline { position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 16px 16px 0 0; }
+    .lc-topline-a { background: var(--dorado); }
+    .lc-topline-b { background: var(--azul-claro); }
+    .lc-topline-nido { background: var(--verde); }
+    /* Barra de avance "Fecha N de 15" — se llena con el color del plantel. */
+    .lc-progress-wrap { width: 100%; margin: 10px 0 2px; }
+    .lc-progress-label { font-size: 0.75rem; color: var(--gris-texto); margin-bottom: 4px; }
+    .lc-progress-bar { width: 100%; height: 4px; border-radius: 3px; background: rgba(255,255,255,0.08); overflow: hidden; }
+    .lc-progress-fill { height: 100%; border-radius: 3px; }
+    .lc-progress-fill-a { background: var(--dorado); }
+    .lc-progress-fill-b { background: var(--azul-claro); }
+    /* Línea de objetivo (líder / a N pts del 1° / zona de descenso). */
+    .lc-objetivo { font-size: 0.78rem; font-weight: 700; margin-top: 8px; display: flex; align-items: center; gap: 5px; }
+    .lc-objetivo-up   { color: var(--verde); }
+    .lc-objetivo-down { color: var(--rojo); }
+    .lc-objetivo-lider { color: var(--dorado); }
+    /* "a N pts de salir del descenso" (desktop) vs "a N pts de salir"
+       (mobile, dos columnas angostas — pedido del club si no entra). */
+    .lc-objetivo-short { display: none; }
+    @media (max-width: 768px) {
+      .lc-objetivo-full { display: none; }
+      .lc-objetivo-short { display: inline; }
+    }
     .lc-footer {
       width: 100%;
-      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
       margin-top: 4px; padding-top: 12px;
       border-top: 1px solid rgba(255,255,255,0.08);
-      font-size: 0.72rem; color: var(--gris-texto);
+      font-size: 0.78rem; color: var(--gris-texto);
       transition: opacity .2s;
     }
     .lc-footer.lc-fading { opacity: 0; }
-    .lc-foot-results { display: flex; gap: 5px; align-items: center; }
+    .lc-foot-label { font-size: 0.75rem; color: var(--gris-texto); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; width: 100%; }
+    .lc-foot-results { display: flex; gap: 6px; align-items: flex-end; }
+    .lc-res-item { display: flex; flex-direction: column; align-items: center; gap: 3px; position: relative; cursor: default; }
     .lc-res-pill {
       display: inline-flex; align-items: center; justify-content: center;
-      width: 20px; height: 20px; border-radius: 6px; font-size: 0.68rem; font-weight: 800;
+      width: 22px; height: 22px; border-radius: 6px; font-size: 0.75rem; font-weight: 800;
+      box-sizing: border-box;
     }
-    .lc-res-pill.lc-res-g { background: rgba(34,197,94,0.15);  color: #4ade80; }
-    .lc-res-pill.lc-res-e { background: rgba(245,158,11,0.15); color: #fbbf24; }
-    .lc-res-pill.lc-res-p { background: rgba(239,68,68,0.15); color: #f87171; }
+    .lc-res-item.lc-res-recent .lc-res-pill { box-shadow: 0 0 0 1.5px rgba(255,255,255,0.55); }
+    .lc-res-pill.lc-res-g { background: rgba(34,197,94,0.15);  color: var(--verde); }
+    .lc-res-pill.lc-res-e { background: rgba(245,158,11,0.15); color: var(--dorado); }
+    .lc-res-pill.lc-res-p { background: rgba(239,68,68,0.15); color: var(--rojo); }
+    .lc-res-crest {
+      width: 16px; height: 16px; border-radius: 50%; background: #fff; flex-shrink: 0;
+      display: inline-flex; align-items: center; justify-content: center; overflow: hidden;
+      font-size: 0.75rem; font-weight: 800; color: #334155;
+    }
+    .lc-res-tooltip {
+      position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%) translateY(-6px);
+      background: #0b1220; border: 1px solid rgba(255,255,255,0.14); border-radius: 8px;
+      padding: 4px 9px; font-size: 0.75rem; font-weight: 700; color: var(--texto);
+      white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity .15s;
+      z-index: 5;
+    }
+    .lc-res-item:hover .lc-res-tooltip, .lc-res-item.lc-res-tap .lc-res-tooltip { opacity: 1; }
+    .lc-res-arrow { font-size: 0.9rem; color: var(--gris-texto); margin-left: 2px; align-self: center; }
+    /* Rótulo "Últimos 5 partidos" (desktop) vs "Últimos 5 →" (mobile, con
+       la flecha en la misma línea que el rótulo en vez de después de la
+       última ficha) — mismo HTML, CSS elige qué mostrar. */
+    .lc-foot-label-short, .lc-racha-arrow-mobile { display: none; }
+    @media (max-width: 768px) {
+      .lc-foot-label-full { display: none; }
+      .lc-foot-label-short, .lc-racha-arrow-mobile { display: inline; }
+      .lc-res-arrow { display: none; }
+    }
     .lc-foot-pts { font-weight: 800; color: var(--blanco); }
-    .lc-res-g { color: #4ade80; font-weight: 800; }
-    .lc-res-e { color: #fbbf24; font-weight: 800; }
-    .lc-res-p { color: #f87171; font-weight: 800; }
 
     /* El Nido footer rotator (_paintNidoRotator): desktop se queda con la
        línea de texto plano de siempre ("Vallas Invictas · Primera A: 🧤
@@ -403,16 +488,21 @@
       .lc-nido-flat { display: none; }
       .lc-nido-stack { display: flex; flex-direction: column; width: 100%; }
     }
-    .lc-nido-label { font-size: 9.5px; color: #6b7690; text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 8px; }
+    .lc-nido-label { font-size: 0.75rem; color: #6b7690; text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 8px; }
     .lc-nido-row { display: flex; align-items: center; gap: 10px; }
     .lc-nido-avatar {
       width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700;
     }
     .lc-nido-name { flex: 1; min-width: 0; font-size: 0.82rem; font-weight: 600; color: #f2f4f8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .lc-nido-chip { border-radius: 8px; padding: 5px 12px; text-align: center; flex-shrink: 0; }
     .lc-nido-chip-val { margin: 0; font-size: 1rem; font-weight: 700; line-height: 1; }
-    .lc-nido-chip-unit { margin: 1px 0 0; font-size: 7.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; }
+    .lc-nido-chip-unit { margin: 1px 0 0; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; }
+    /* Puntitos indicando que el dato rota — el activo más largo (pill). */
+    .lc-nido-dots { display: flex; align-items: center; gap: 4px; margin-top: 8px; }
+    .lc-nido-dot { width: 5px; height: 5px; border-radius: 3px; background: rgba(255,255,255,0.18); transition: width .2s, background .2s; }
+    .lc-nido-dot.active { width: 14px; background: var(--verde); }
+    .lc-nido-rota-caption { font-size: 0.75rem; color: var(--gris-texto); margin-top: 6px; }
 
     /* ── Landing widgets: skeleton placeholders (first visit, no SWR cache
        yet) + soft-update fade (avoids a jarring snap when the background
@@ -1310,17 +1400,19 @@
       .lc-card-head-info { display: flex; flex-direction: column; gap: 2px; }
       .landing-card .card-icon { font-size: 1.6rem; filter: none; }
       .landing-card .card-name { font-size: 0.95rem; letter-spacing: normal; text-transform: none; }
-      .landing-card .card-desc { font-size: 0.7rem; line-height: 1.3; }
+      .landing-card .card-desc { font-size: 0.75rem; line-height: 1.3; }
       .landing-card .card-badge { display: inline-block; margin: 10px 0 12px; align-self: flex-start; }
       .lc-badge { position: static; flex-shrink: 0; }
       .lc-footer { margin-top: 0; border-top-color: #1e293b; }
 
-      /* Tarjetas de Primera A/Primera B (1ª y 2ª de .landing-cards): mismo
-         ícono para las dos — antes 🏆/⚽ desequilibraban la tarjeta al
-         quedar una más "pesada" que la otra visualmente. Solo mobile: se
-         apaga el emoji real (font-size:0) y se pinta uno fijo por CSS. */
-      .landing-cards .landing-card:nth-child(-n+2) .card-icon { font-size: 0; }
-      .landing-cards .landing-card:nth-child(-n+2) .card-icon::before { content: '🏆'; font-size: 1.4rem; }
+      /* BUG REAL encontrado (reportado: "mobile usa el mismo trofeo en las
+         dos" — Primera A y B): esta regla apagaba el emoji real de CADA
+         tarjeta (font-size:0) y lo reemplazaba SIEMPRE por 🏆 vía ::before,
+         sin importar cuál tarjeta fuera — Primera B (⚽) terminaba mostrando
+         el trofeo de Primera A igual. Se saca del todo: el ícono real de
+         cada tarjeta (🏆 Primera A / ⚽ Primera B / 🏟️ El Nido) ya se ve
+         bien con el tamaño de la regla de arriba, sin necesitar un ::before
+         que lo pise. */
 
       /* Primera A/B: tarjeta vertical (ícono/nombre/badge centrados,
          racha+puntos al pie) en vez de la fila horizontal compacta de
@@ -1338,18 +1430,22 @@
       .landing-cards .landing-card:nth-child(-n+2) .card-name { font-size: 0.85rem; }
       .landing-cards .landing-card:nth-child(-n+2) .lc-badge { position: static; margin-top: 2px; }
       .landing-cards .landing-card:nth-child(-n+2) > .card-badge {
-        align-self: center; margin: 4px 0 0; font-size: 0.6rem; padding: 2px 8px; white-space: nowrap;
+        align-self: center; margin: 4px 0 0; font-size: 11px; padding: 2px 8px; white-space: nowrap;
       }
+      /* Barra "Fecha N de 15" en mobile: debajo de la insignia del torneo,
+         antes de la racha. */
+      .landing-cards .landing-card:nth-child(-n+2) .lc-progress-wrap { margin: 8px 0 2px; }
       .landing-cards .landing-card:nth-child(-n+2) .lc-footer {
         flex-direction: column; align-items: center; gap: 6px; width: 100%;
         margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08);
       }
-      .landing-cards .landing-card:nth-child(-n+2) .lc-foot-results { justify-content: center; }
-      /* Cuadraditos de racha (G/E/P) más grandes acá — 20px/6px quedaban
-         chicos. */
+      .landing-cards .landing-card:nth-child(-n+2) .lc-foot-results { justify-content: center; gap: 4px; }
+      /* Fichas de racha + escudo del rival más chicas en mobile (22px ficha,
+         14px escudo) para que entren las 5 cómodas en el ancho de columna. */
       .landing-cards .landing-card:nth-child(-n+2) .lc-res-pill {
         width: 22px; height: 22px; border-radius: 6px;
       }
+      .landing-cards .landing-card:nth-child(-n+2) .lc-res-crest { width: 14px; height: 14px; }
 
       /* El Nido (3ra tarjeta): compactada a un solo renglón — ícono +
          nombre a la izquierda, badge "N jugadores" a la derecha (ambos ya
@@ -1366,7 +1462,7 @@
          antes del borde inferior (la landing no comparte el <footer> del
          app shell, ese vive fuera de #landing). */
       .landing-footer-note {
-        display: block; text-align: center; font-size: 0.68rem; color: #4a5268;
+        display: block; text-align: center; font-size: 0.75rem; color: #4a5268;
         margin-top: 18px; padding-bottom: 4px;
       }
     }
@@ -4132,6 +4228,7 @@
   <img src="logo-csb.webp" class="landing-logo" alt="Club Santa Bárbara" />
   <div class="landing-title">Club <span>Santa Bárbara</span></div>
   <div class="landing-sub">Estadísticas Generales</div>
+  <div class="landing-sub-meta" id="landing-sub-meta"></div>
 
   <div class="next-match-row">
     <div id="landing-next-match-a"></div>
@@ -4146,6 +4243,10 @@
     <div class="pm-carousel-label" id="pm-carousel-label">Próximos partidos</div>
     <div class="pm-carousel" id="landing-next-match-carousel"></div>
   </div>
+  <!-- NOTA: las tarjetas de arriba (partido/plantel/El Nido) son atajos
+       internos — nunca <a>, solo <div onclick=...> con una flecha → sumada
+       por CSS (ver .lc-arrow) o un leve resaltado al pasar el mouse. -->
+
 
   <div class="landing-cards-label">Planteles</div>
   <div class="landing-cards">
@@ -4157,6 +4258,7 @@
          y #lc-footer-a/-b/-nido de siempre, sin ningún cambio de JS, solo
          se reordenan visualmente. -->
     <div class="landing-card" onclick="openSection('a')">
+      <div class="lc-topline lc-topline-a"></div>
       <div class="lc-card-head">
         <div class="lc-card-head-left">
           <div class="card-icon">🏆</div>
@@ -4168,10 +4270,14 @@
         <div class="lc-badge" id="lc-badge-a"></div>
       </div>
       <span class="card-badge badge-gold">Clausura AIFA A 2026</span>
+      <div class="lc-progress-wrap" id="lc-progress-a"></div>
+      <div class="lc-objetivo" id="lc-objetivo-a"></div>
       <div class="lc-footer" id="lc-footer-a"></div>
+      <span class="lc-arrow">→</span>
     </div>
 
     <div class="landing-card" onclick="openSection('b')">
+      <div class="lc-topline lc-topline-b"></div>
       <div class="lc-card-head">
         <div class="lc-card-head-left">
           <div class="card-icon">⚽</div>
@@ -4183,12 +4289,16 @@
         <div class="lc-badge" id="lc-badge-b"></div>
       </div>
       <span class="card-badge badge-blue">Clausura AIFA B 2026</span>
+      <div class="lc-progress-wrap" id="lc-progress-b"></div>
+      <div class="lc-objetivo" id="lc-objetivo-b"></div>
       <div class="lc-footer" id="lc-footer-b"></div>
+      <span class="lc-arrow">→</span>
     </div>
 
     <div class="landing-cards-mid-label">Nuestros Jugadores</div>
 
     <div class="landing-card" onclick="openSection('nido')">
+      <div class="lc-topline lc-topline-nido"></div>
       <div class="lc-card-head">
         <div class="lc-card-head-left">
           <div class="card-icon">🏟️</div>
@@ -4201,9 +4311,10 @@
       </div>
       <span class="card-badge badge-green">NUESTROS JUGADORES</span>
       <div class="lc-footer" id="lc-footer-nido"></div>
+      <span class="lc-arrow">→</span>
     </div>
   </div>
-  <div class="landing-footer-note">Temporada 2026</div>
+  <div class="landing-footer-note" id="landing-footer-note">Temporada 2026</div>
 </div>
 
 <!-- ══════════════════════════════════════════
@@ -5421,7 +5532,8 @@ function _rivalAvatarHtml(nombre) {
 // <img> quede bien recortado (mismo patrón onerror de siempre).
 function _crestImgHtml(nombre) {
   const src = RIVAL_CREST_URLS[String(nombre || '').toUpperCase().trim()] || `escudos/${slugify(nombre)}.webp`;
-  return `<img src="${src}" alt="" style="width:100%;height:100%;object-fit:contain" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span style="display:none;width:100%;height:100%;align-items:center;justify-content:center">${_rivalInitials(nombre)}</span>`;
+  const alt = String(nombre || '').replace(/"/g, '&quot;');
+  return `<img src="${src}" alt="${alt}" style="width:100%;height:100%;object-fit:contain" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span style="display:none;width:100%;height:100%;align-items:center;justify-content:center">${_rivalInitials(nombre)}</span>`;
 }
 // Igual que _crestImgHtml, pero para filas de TABLA DE POSICIONES (donde
 // Santa Bárbara es una fila de equipo más, no un "rival") — usa el escudo
@@ -19799,6 +19911,45 @@ function _liveMatchInfo(d, navKey) {
     marcadorTxt: final ? detail.resultado : (detail.marcadorVivo || ''),
   };
 }
+// Fila "CSB N° · Rival N°" de la tarjeta de próximo partido — se arma con
+// la Tabla de Posiciones ya cargada en DATA_A/DATA_B, sin pedir nada nuevo.
+// Se omite ENTERA (no una línea con "—") si falta la posición propia o la
+// del rival (torneo recién arrancado, rival sin fila en la tabla, etc.).
+function _nmbPosLineHtml(navKey, rivalNombre) {
+  const d = navKey === 'a' ? DATA_A : DATA_B;
+  const tabla = (d && d.tabla) || [];
+  const own = tabla.find(t => t.csb);
+  const riv = tabla.find(t => String(t.equipo || '').toUpperCase().trim() === String(rivalNombre || '').toUpperCase().trim());
+  if (!own || !riv) return '';
+  const ownPos = String(own.pos).replace(/[°º]/g, '');
+  const rivPos = String(riv.pos).replace(/[°º]/g, '');
+  return `<span class="nmb-foot-pos">CSB <strong>${ownPos}°</strong> · ${rivalNombre} <strong>${rivPos}°</strong></span>`;
+}
+// Historial G-E-P de Santa Bárbara vs ese rival puntual — se calcula a
+// partir de la misma "Partidos Historial" (match a match) que ya usan el
+// drilldown de Historial vs Clubes y el perfil de jugador (_loadPartidosCache/
+// _loadPartidosCacheB), no un dato nuevo. Es async (fetch a Sheets), así que
+// se pinta aparte una vez resuelto — el target span guarda el rival esperado
+// en data-rival para no pisar la tarjeta si para entonces ya cambió de
+// partido/rival (ej. el usuario volvió a entrar y el próximo rival cambió).
+function _nmbHistLineHtml(navKey, rivalNombre, targetId) {
+  const loadFn = navKey === 'a' ? _loadPartidosCache : _loadPartidosCacheB;
+  if (typeof loadFn !== 'function') return;
+  loadFn().then(all => {
+    const el = document.getElementById(targetId);
+    if (!el || el.dataset.rival !== rivalNombre) return;
+    const rivalUp = String(rivalNombre || '').toUpperCase().trim();
+    const matches = (all || []).filter(mm => String(mm.rival || '').toUpperCase().trim() === rivalUp && mm.resultado !== null);
+    let g = 0, e = 0, p = 0;
+    matches.forEach(mm => {
+      const { csb, riv } = _csbGoles(mm);
+      if (csb == null || riv == null) return;
+      if (csb > riv) g++; else if (csb === riv) e++; else p++;
+    });
+    if (!(g || e || p)) { el.innerHTML = ''; return; }
+    el.innerHTML = `Historial <span class="nmb-foot-hist-g">${g}G</span> <span class="nmb-foot-hist-e">${e}E</span> <span class="nmb-foot-hist-p">${p}P</span>`;
+  }).catch(() => {});
+}
 function _renderNextMatchBox(elId, boxClass, label, m, navKey) {
   const el = document.getElementById(elId);
   if (!el) return;
@@ -19842,6 +19993,9 @@ function _renderNextMatchBox(elId, boxClass, label, m, navKey) {
     badge: 'bg-sky-500/10 text-sky-400 border border-sky-500/20',
     cdText: 'text-sky-400', pinText: 'text-sky-400/80',
   };
+  const histTargetId = elId + '-hist';
+  const posLine = _nmbPosLineHtml(navKey, m.rival);
+  const footHtml = posLine ? `<div class="nmb-foot relative z-10">${posLine}<span class="nmb-foot-hist" id="${histTargetId}" data-rival="${String(m.rival || '').replace(/"/g, '&quot;')}"></span></div>` : '';
   _softSetHtml(el, `
     <div class="pm2-card ${isA ? 'pm2-a' : 'pm2-b'} group p-3${clickAttr ? ' cursor-pointer' : ''}"${clickAttr}>
       <div class="absolute -top-12 -left-12 w-32 h-32 ${c.glow} rounded-full blur-2xl pointer-events-none"></div>
@@ -19854,7 +20008,7 @@ function _renderNextMatchBox(elId, boxClass, label, m, navKey) {
         ${liveBadge || (cd ? `<div class="flex items-center gap-2 bg-slate-900/90 border border-slate-700/60 px-3.5 py-1 rounded-xl text-base font-extrabold ${c.cdText} shadow-inner">
           <svg class="w-5 h-5 ${c.cdText} animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
           <span>${cdVal}</span>
-          <span class="text-[10px] text-slate-500 font-normal uppercase tracking-wider hidden sm:inline">restantes</span>
+          <span class="text-xs text-slate-500 font-normal uppercase tracking-wider hidden sm:inline">restantes</span>
         </div>` : '')}
       </div>
 
@@ -19865,7 +20019,7 @@ function _renderNextMatchBox(elId, boxClass, label, m, navKey) {
           </div>
           <div class="min-w-0">
             ${meta.localTxt ? `<div class="flex items-center gap-2 mb-0.5">
-              <span class="text-[9px] font-bold uppercase tracking-wider text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20">${meta.localTxt}</span>
+              <span class="text-xs font-bold uppercase tracking-wider text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20">${meta.localTxt}</span>
             </div>` : ''}
             <h3 class="text-base font-extrabold text-white truncate tracking-tight">
               <span class="text-slate-400 font-normal text-sm mr-1">vs</span>${m.rival}
@@ -19887,7 +20041,9 @@ function _renderNextMatchBox(elId, boxClass, label, m, navKey) {
           </div>
         </div>
       </div>
+      ${footHtml}
     </div>`);
+  if (footHtml) _nmbHistLineHtml(navKey, m.rival, histTargetId);
 }
 // Escudos reales de rivales, tomados del propio sitio de AIFA (URLs
 // públicas de Supabase Storage que AIFA usa para alojarlos — no hay CORS
@@ -20116,24 +20272,66 @@ function renderLandingNextMatch() {
     labelEl.textContent = hayVivo ? 'Partidos en vivo' : 'Próximos partidos';
   }
 }
-function _posBadgeClass(pos, total) {
-  if (!pos || !total) return 'lc-badge-amber';
-  const third = Math.ceil(total / 3);
-  if (pos <= third) return 'lc-badge-green';
-  if (pos <= third * 2) return 'lc-badge-amber';
-  return 'lc-badge-red';
+// Zona relevante del Home (mensaje "a N pts de salir del descenso"): el
+// puesto de promoción + los 2 de descenso directo son siempre los últimos 3
+// puestos de la tabla, tanto en Primera A (14 promoción, 15-16 descienden)
+// como en Primera B (14 promoción, 15-16 descienden) — ver reglas completas
+// (copas/ascenso/descenso) que dio el club; acá solo importa la zona
+// negativa, las positivas (Supercopa/Recopa/Copa de Honor/ascenso) no tienen
+// mensaje propio en el Home.
+function _lcObjetivoHtml(own, tabla) {
+  if (!own || !tabla.length) return '';
+  const pos = parseInt(own.pos) || 0;
+  const pts = Number(own.pts) || 0;
+  if (!pos) return '';
+  const sorted = [...tabla].sort((a, b) => (parseInt(a.pos) || 0) - (parseInt(b.pos) || 0));
+  const total = sorted.length;
+  const pos1 = sorted[0];
+  if (!pos1) return '';
+  if (pos === 1) {
+    const pos2 = sorted[1];
+    if (!pos2) return '';
+    const n = pts - (Number(pos2.pts) || 0);
+    if (n < 0) return '';
+    return `<span class="lc-objetivo lc-objetivo-lider">Líder · +${n} pts sobre el 2°</span>`;
+  }
+  const zoneStart = total - 2; // últimos 3 puestos (ej. 14/15/16 de 16)
+  if (zoneStart > 1 && pos >= zoneStart) {
+    const safe = sorted.find(t => (parseInt(t.pos) || 0) === zoneStart - 1);
+    if (!safe) return '';
+    const n = (Number(safe.pts) || 0) - pts;
+    if (n <= 0) return '';
+    return `<span class="lc-objetivo lc-objetivo-down">↘ <span class="lc-objetivo-full">a ${n} pts de salir del descenso</span><span class="lc-objetivo-short">a ${n} pts de salir</span></span>`;
+  }
+  const n = (Number(pos1.pts) || 0) - pts;
+  if (n <= 0) return '';
+  return `<span class="lc-objetivo lc-objetivo-up">↗ a ${n} pts del 1°</span>`;
+}
+// Barra "Fecha N de 15" — N = partidos de liga ya jugados por CSB (no
+// cuenta la Recopa, que corre aparte). 15 es la cantidad de fechas del
+// Clausura AIFA, informada por el club.
+const LC_TOTAL_FECHAS = 15;
+function _lcProgressHtml(playedCount, colorClass) {
+  const pct = Math.max(0, Math.min(100, Math.round((playedCount / LC_TOTAL_FECHAS) * 100)));
+  return `<div class="lc-progress-label">Fecha ${playedCount} de ${LC_TOTAL_FECHAS}</div>
+    <div class="lc-progress-bar"><div class="lc-progress-fill ${colorClass}" style="width:${pct}%"></div></div>`;
 }
 function renderLandingCardStats() {
   [['a', DATA_A], ['b', DATA_B]].forEach(([key, d]) => {
     const badgeEl = document.getElementById('lc-badge-' + key);
     const footEl  = document.getElementById('lc-footer-' + key);
+    const progEl  = document.getElementById('lc-progress-' + key);
+    const objEl   = document.getElementById('lc-objetivo-' + key);
     const tabla = d.tabla || [];
     const own = tabla.find(t => t.csb);
     // own.pos ya viene con su propio símbolo ordinal (parseTablaSheet arma
     // "N°", grado — no "º" masculino) — sin el replace de acá quedaba
     // "4°º puesto", dos símbolos de ordinal pegados uno atrás del otro.
+    // Insignia neutra (ya no verde/ámbar/rojo según la posición — ver pedido
+    // del club: "el puesto deja de ser verde/rojo").
     if (badgeEl) _softSetHtml(badgeEl, own
-      ? `<span class="lc-badge-pill ${_posBadgeClass(parseInt(own.pos) || 0, tabla.length)}">${String(own.pos).replace(/[°º]/g, '')}º puesto</span>` : '');
+      ? `<span class="lc-badge-pill lc-badge-neutral">${String(own.pos).replace(/[°º]/g, '')}º puesto</span>` : '');
+    if (objEl) _softSetHtml(objEl, _lcObjetivoHtml(own, tabla));
     if (footEl) {
       const partidos = (d.partidos || []).filter(m => /^\d+$/.test(m.fecha));
       // d.partidos ("básico") no trae día/fecha real, solo el número de
@@ -20157,6 +20355,7 @@ function renderLandingCardStats() {
       // el resto de este bloque arma/lee `_dia` — como nunca se copiaba,
       // _diaKey(undefined) daba null y el comparador de abajo manda
       // cualquier fecha desconocida al principio.
+      if (progEl) _softSetHtml(progEl, _lcProgressHtml(played.length, key === 'a' ? 'lc-progress-fill-a' : 'lc-progress-fill-b'));
       if (key === 'a') played.push({ ...RECOPA_2026_A_ULTIMO_RESULTADO, _dia: RECOPA_2026_A_ULTIMO_RESULTADO.dia });
       const _diaKey = s => { const m2 = String(s || '').match(/(\d{1,2})[\/\-](\d{1,2})/); return m2 ? parseInt(m2[2], 10) * 100 + parseInt(m2[1], 10) : null; };
       played.sort((x, y) => {
@@ -20166,14 +20365,19 @@ function renderLandingCardStats() {
         if (ky == null) return 1;
         return kx - ky;
       });
-      // Últimos 5 partidos, más reciente primero (de izquierda a derecha) —
-      // se ordena por fecha real ascendente arriba y se invierte acá recién
-      // al final, así la Recopa 2026 queda en su lugar cronológico real
-      // (jugada ENTRE dos partidos del Clausura) en vez de siempre al
-      // principio o al final sin importar cuándo se jugó en verdad.
-      const lastFive = played.slice(-5).reverse();
+      // Últimos 5 partidos, del MÁS VIEJO al MÁS RECIENTE (de izquierda a
+      // derecha) — pedido del club: antes quedaba invertido (más reciente
+      // primero). Se ordena por fecha real ascendente arriba y se toman los
+      // últimos 5 tal cual (sin invertir), así la Recopa 2026 queda en su
+      // lugar cronológico real (jugada ENTRE dos partidos del Clausura) y el
+      // partido más nuevo queda al final (derecha).
+      const lastFive = played.slice(-5);
+      const labelHtml = `<span class="lc-foot-label">
+        <span><span class="lc-foot-label-full">Últimos 5 partidos</span><span class="lc-foot-label-short">Últimos 5</span></span>
+        <span class="lc-racha-arrow-mobile">→</span>
+      </span>`;
       if (lastFive.length) {
-        const pills = lastFive.map(m => {
+        const pills = lastFive.map((m, idx) => {
           // BUG REAL encontrado (Primera B marcaba una derrota de visitante
           // como victoria): comparaba gf > gc crudo, sin tener en cuenta la
           // condición Local/Visitante — el gf/gc de la sheet viene en orden
@@ -20181,11 +20385,16 @@ function renderLandingCardStats() {
           const { csb, riv } = _csbGoles(m);
           const r = csb > riv ? 'G' : csb === riv ? 'E' : 'P';
           const cls = r === 'G' ? 'lc-res-g' : r === 'E' ? 'lc-res-e' : 'lc-res-p';
-          return `<span class="lc-res-pill ${cls}" title="vs ${m.rival} (${m.resultado})">${r}</span>`;
+          const isRecent = idx === lastFive.length - 1;
+          return `<span class="lc-res-item${isRecent ? ' lc-res-recent' : ''}" onclick="event.stopPropagation();this.classList.toggle('lc-res-tap')">
+            <span class="lc-res-pill ${cls}">${r}</span>
+            <span class="lc-res-crest">${_crestImgHtml(m.rival)}</span>
+            <span class="lc-res-tooltip">${m.resultado || ''} vs ${m.rival}</span>
+          </span>`;
         }).join('');
-        _softSetHtml(footEl, `<span class="lc-foot-results">${pills}</span>${own ? `<span class="lc-foot-pts">${own.pts} pts</span>` : ''}`);
+        _softSetHtml(footEl, `${labelHtml}<span class="lc-foot-results">${pills}<span class="lc-res-arrow">→</span></span>${own ? `<span class="lc-foot-pts">${own.pts} pts</span>` : ''}`);
       } else {
-        _softSetHtml(footEl, `<span>Sin partidos jugados</span>${own ? `<span class="lc-foot-pts">${own.pts} pts</span>` : ''}`);
+        _softSetHtml(footEl, `${labelHtml}<span>Sin partidos jugados</span>${own ? `<span class="lc-foot-pts">${own.pts} pts</span>` : ''}`);
       }
     }
   });
@@ -20208,14 +20417,14 @@ let _landingNidoRotIdx = 0;
 // para G+A, dorado para títulos, gris para PJ.
 const NIDO_RANK_DISPLAY = {
   pj:         { icon: '📋', unit: 'PJ',           color: '#f1f5f9' },
-  goles:      { icon: '⚽', unit: 'goles',        color: '#22c55e' },
-  asist:      { icon: '🎯', unit: 'asist.',       color: '#3b82f6' },
-  gmas:       { icon: '🔥', unit: 'G+A',          color: '#a855f7' },
+  goles:      { icon: '⚽', unit: 'goles',        color: '#f59e0b' },
+  asist:      { icon: '🎯', unit: 'asist.',       color: '#85b7eb' },
+  gmas:       { icon: '🔥', unit: 'G+A',          color: '#af9ec6' },
   titulos:    { icon: '🏆', unit: 'títulos',      color: '#fbbf24' },
   vallas:     { icon: '🧤', unit: 'vallas',       color: '#85b7eb' },
-  promGol:    { icon: '⚽', unit: 'prom. goles',  color: '#22c55e' },
-  promAsist:  { icon: '🎯', unit: 'prom. asist.', color: '#3b82f6' },
-  promGmas:   { icon: '🔥', unit: 'prom. G+A',    color: '#a855f7' },
+  promGol:    { icon: '⚽', unit: 'prom. goles',  color: '#f59e0b' },
+  promAsist:  { icon: '🎯', unit: 'prom. asist.', color: '#85b7eb' },
+  promGmas:   { icon: '🔥', unit: 'prom. G+A',    color: '#af9ec6' },
   vallasProm: { icon: '🧤', unit: 'prom. vallas', color: '#85b7eb' },
 };
 // Every (ranking × categoría) combination with at least one player above
@@ -20248,13 +20457,24 @@ function _paintNidoRotator(el) {
   const g = groups[_landingNidoRotIdx % groups.length];
   const color = g.disp.color || '#85b7eb';
   const initials = String(g.top.nombre || '').trim().split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase();
-  // Desktop vuelve al formato de línea plana de siempre (label + ícono +
-  // nombre a la izquierda, valor en pill a la derecha) — el rediseño de
-  // label+avatar+chip (ver .lc-nido-stack) quedó pensado para mobile y no
-  // convencía en desktop, así que se muestra solo ≤768px (ver
-  // .lc-nido-flat/.lc-nido-stack en CSS) mientras ambos comparten el mismo
-  // #lc-footer-nido.
-  el.innerHTML = `<span class="lc-nido-flat"><span style="color:var(--gris-texto)">${g.metricLabel} · ${g.catLabel}:</span> ${g.disp.icon} <strong>${g.top.nombre}</strong></span><span class="lc-nido-flat lc-foot-pts">${g.val} ${g.disp.unit}</span>
+  // Puntitos de rotación (3, el activo más largo) — puramente decorativos,
+  // ciclan cada vez que cambia el stat mostrado (no 1 a 1 con `groups`,
+  // que tiene muchas más combinaciones; alcanza como indicador visual de
+  // "esto va rotando").
+  const dots = [0, 1, 2].map(i => `<span class="lc-nido-dot${i === (_landingNidoRotIdx % 3) ? ' active' : ''}"></span>`).join('');
+  // Desktop: más jerarquía que antes (pedido del club) — línea chica de
+  // label arriba, nombre del jugador a la izquierda y el valor grande a la
+  // derecha debajo. Mobile mantiene el formato de siempre (avatar+chip, ver
+  // .lc-nido-stack) sin cambios.
+  el.innerHTML = `<div class="lc-nido-flat" style="width:100%">
+    <p class="lc-nido-label" style="margin-bottom:6px">${g.metricLabel} · ${g.catLabel}</p>
+    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+      <span style="font-weight:700;color:var(--texto)">${g.disp.icon} ${g.top.nombre}</span>
+      <span style="font-size:1.1rem;font-weight:900;color:${color}">${g.val} <span style="font-size:0.75rem;font-weight:700;color:var(--gris-texto)">${g.disp.unit}</span></span>
+    </div>
+    <div class="lc-nido-dots">${dots}</div>
+    <p class="lc-nido-rota-caption">Rota entre goles, asistencias y presencias</p>
+  </div>
   <div class="lc-nido-stack">
     <p class="lc-nido-label">${g.metricLabel} · ${g.catLabel}</p>
     <div class="lc-nido-row">
@@ -20265,6 +20485,7 @@ function _paintNidoRotator(el) {
         <p class="lc-nido-chip-unit" style="color:${color}">${g.disp.unit.toUpperCase()}</p>
       </div>
     </div>
+    <div class="lc-nido-dots">${dots}</div>
   </div>`;
 }
 function renderLandingNidoFooter() {
@@ -20274,7 +20495,7 @@ function renderLandingNidoFooter() {
   window._nidoEnsureLoaded().then(() => {
     const merged = window._nidoGetMerged ? window._nidoGetMerged() : [];
     if (nidoBadge) _softSetHtml(nidoBadge, merged.length
-      ? `<span class="lc-badge-pill lc-badge-green">${merged.length} jugadores</span>` : '');
+      ? `<span class="lc-badge-pill lc-badge-neutral">${merged.length} jugadores</span>` : '');
     if (nidoFoot) _paintNidoRotator(nidoFoot);
   });
 }
@@ -21035,6 +21256,12 @@ async function loadLiveData() {
   const hhmm = now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
   const timeEl = document.getElementById('refresh-time');
   if (timeEl) timeEl.textContent = `Última actualización: ${hhmm}`;
+  // Línea chica del Home bajo "Estadísticas Generales" (desktop) y en el pie
+  // (mobile) — reusan el mismo hhmm recién calculado, no un segundo reloj.
+  const subMetaEl = document.getElementById('landing-sub-meta');
+  if (subMetaEl) subMetaEl.textContent = `Temporada 2026 · Clausura AIFA · Actualizado hoy ${hhmm}`;
+  const footerNoteEl = document.getElementById('landing-footer-note');
+  if (footerNoteEl) footerNoteEl.textContent = `Temporada 2026 · Actualizado hoy ${hhmm}`;
   if (statusEl) { statusEl.textContent = ''; statusEl.className = ''; }
   _swrSave();
   // El índice de partidos por jugador y las caches derivadas (partidos
