@@ -14596,15 +14596,18 @@ function renderResumen() {
               <div class="grid grid-cols-3 gap-2">
                 <div class="text-center">
                   <div class="text-xl font-black text-emerald-400">${h.pg}</div>
-                  <div class="text-xs text-slate-500 font-semibold mt-1">Ganados · ${_pctOfPJ(h.pg)}%</div>
+                  <div style="font-size:12px;color:#b4c0d1;margin-top:4px">Ganados</div>
+                  <div style="font-size:12px;color:#7d8aa0">${_pctOfPJ(h.pg)}%</div>
                 </div>
                 <div class="text-center">
                   <div class="text-xl font-black text-amber-400">${h.pe}</div>
-                  <div class="text-xs text-slate-500 font-semibold mt-1">Empatados · ${_pctOfPJ(h.pe)}%</div>
+                  <div style="font-size:12px;color:#b4c0d1;margin-top:4px">Empatados</div>
+                  <div style="font-size:12px;color:#7d8aa0">${_pctOfPJ(h.pe)}%</div>
                 </div>
                 <div class="text-center">
                   <div class="text-xl font-black text-red-400">${h.pp}</div>
-                  <div class="text-xs text-slate-500 font-semibold mt-1">Perdidos · ${_pctOfPJ(h.pp)}%</div>
+                  <div style="font-size:12px;color:#b4c0d1;margin-top:4px">Perdidos</div>
+                  <div style="font-size:12px;color:#7d8aa0">${_pctOfPJ(h.pp)}%</div>
                 </div>
               </div>
             </div>
