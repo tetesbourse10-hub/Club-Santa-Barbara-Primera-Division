@@ -236,6 +236,21 @@
       text-align: center;
       position: relative;
       overflow: hidden;
+      animation: lc-fade-in .45s ease both;
+    }
+    /* Entrada suave al cargar la Home (pedido del club) — estos elementos
+       son fijos en el HTML (nunca se recrean), así que la animación corre
+       una sola vez al entrar a la pantalla, no en cada refresco de datos. */
+    @keyframes lc-fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .landing-cards .landing-card:nth-child(1) { animation-delay: .04s; }
+    .landing-cards .landing-card:nth-child(2) { animation-delay: .1s; }
+    .landing-cards .landing-card:nth-child(3) { animation-delay: .16s; }
+    .next-match-row > div, .pm-carousel-wrap {
+      animation: lc-fade-in .45s ease both;
+    }
+    .next-match-row > div:nth-child(2) { animation-delay: .06s; }
+    @media (prefers-reduced-motion: reduce) {
+      .landing-card, .next-match-row > div, .pm-carousel-wrap { animation: none; }
     }
     .landing-card::before {
       content: '';
@@ -19859,6 +19874,9 @@ function _softSetHtml(el, html) {
 // cache hydration or the real fetch produces actual content.
 function _paintLandingSkeletons() {
   const bar = (w, h) => `<span class="sk-bar" style="width:${w};height:${h}"></span>`;
+  // Fila de posición+historial de la ficha de próximo partido (nmb-foot) —
+  // mismo alto que el real, para que no "salte" el layout cuando el fetch
+  // de historial resuelve (ver _nmbHistLineHtml).
   const box = cls => `<div class="next-match-box ${cls}">
     <div class="nmb-main">
       <div>${bar('90px', '10px')}</div>
@@ -19866,6 +19884,7 @@ function _paintLandingSkeletons() {
       <div style="margin-top:8px">${bar('190px', '10px')}</div>
     </div>
     <div class="nmb-countdown">${bar('54px', '24px')}</div>
+    <div style="width:100%;display:flex;justify-content:space-between;margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.08)">${bar('110px', '11px')}${bar('90px', '11px')}</div>
   </div>`;
   const a = document.getElementById('landing-next-match-a');
   const b = document.getElementById('landing-next-match-b');
@@ -19881,11 +19900,25 @@ function _paintLandingSkeletons() {
     </div>`;
     carousel.innerHTML = pmCard + pmCard;
   }
+  ['a', 'b'].forEach(key => {
+    const progEl = document.getElementById('lc-progress-' + key);
+    const objEl  = document.getElementById('lc-objetivo-' + key);
+    if (progEl && !progEl.innerHTML) progEl.innerHTML = bar('50px', '16px') + bar('100%', '4px');
+    if (objEl && !objEl.innerHTML) objEl.innerHTML = bar('140px', '15px');
+  });
+  // Racha de últimos 5 (label + 5 fichas con escudo debajo + puntos) — se
+  // aproxima la forma real (no solo una barra) para que la altura final no
+  // salte al llegar el dato real (ver renderLandingCardStats).
+  const footSkeleton = `${bar('100px', '11px')}
+    <div style="width:100%;display:flex;align-items:flex-end;gap:6px;margin-top:6px">
+      ${Array(5).fill(0).map(() => `<span style="display:inline-flex;flex-direction:column;align-items:center;gap:3px">${bar('22px', '22px')}${bar('14px', '14px')}</span>`).join('')}
+      <span style="margin-left:auto">${bar('40px', '14px')}</span>
+    </div>`;
   ['a', 'b', 'nido'].forEach(key => {
     const badgeEl = document.getElementById('lc-badge-' + key);
     const footEl  = document.getElementById('lc-footer-' + key);
-    if (badgeEl && !badgeEl.innerHTML) badgeEl.innerHTML = bar('70px', '16px');
-    if (footEl && !footEl.innerHTML) footEl.innerHTML = bar('120px', '12px');
+    if (badgeEl && !badgeEl.innerHTML) badgeEl.innerHTML = bar('70px', '22px');
+    if (footEl && !footEl.innerHTML) footEl.innerHTML = key === 'nido' ? bar('100%', '40px') : footSkeleton;
   });
 }
 // Partido en seguimiento vivo (Estado Vivo cargado a mano, ver
