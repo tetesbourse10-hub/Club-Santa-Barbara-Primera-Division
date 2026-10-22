@@ -13926,11 +13926,6 @@ function renderResumen() {
   const tablaIdx = (d.tabla || []).findIndex(t => t.csb);
   let tablaCorta = null;
   let tablaZonaInfo = null;
-  // Umbral de zona de descenso/promoción (últimos 3 puestos) — se usa para
-  // pintar en rojo suave el número de posición de los rivales de Primera B
-  // que están en esa zona (nunca para Primera A, no pedido para esa mini
-  // tabla este round).
-  const _tablaZoneStart = d.tabla && d.tabla.length ? d.tabla.length - 2 : null;
   if (tablaIdx !== -1 && d.tabla.length) {
     const tabla = d.tabla, total = tabla.length;
     if (isA) {
@@ -13956,16 +13951,24 @@ function renderResumen() {
     } else {
       const start = Math.max(0, tablaIdx - 3);
       tablaCorta = tabla.slice(start, tablaIdx + 1);
-      // "A N pts de salir del descenso · Xº Equipo (M pts)" — solo si CSB
-      // está en zona (últimos 3 puestos, mismo criterio que _lcObjetivoHtml
-      // de la Home); Xº Equipo = el mejor ubicado FUERA de esa zona, N =
-      // sus puntos menos los de CSB. Se recalcula solo con cada fecha, no
-      // hay nada hardcodeado.
-      const zoneStart = total - 2;
-      const ownPos = parseInt(tabla[tablaIdx].pos) || 0;
-      if (zoneStart > 1 && ownPos >= zoneStart) {
-        const safe = tabla.find(t => (parseInt(t.pos) || 0) === zoneStart - 1);
-        if (safe) {
+      // "A N pts de salir del descenso · Xº Equipo (M pts)" — la zona de
+      // "Descenso" sale de la propia etiqueta de la tabla (columna "copas"
+      // del sheet, la misma que usan Torneos Antiguos/Centro de Datos para
+      // los badges "Promoción"/"Descenso"), nunca de una posición fija —
+      // BUG REAL encontrado (reportado: con CSB en zona, el sitio tomaba
+      // como referencia el 13° en vez del 14°, porque calculaba el límite
+      // de la zona como "últimos 3 puestos" a ojo en vez de mirar qué
+      // equipos están realmente etiquetados "Descenso" en la tabla — el
+      // 14° estaba en "Promoción", una zona distinta que no cuenta para
+      // esta cuenta). Referencia = el equipo inmediatamente arriba del
+      // primero etiquetado "Descenso" (el mejor ubicado fuera de esa
+      // zona); solo se muestra si la propia fila de CSB está etiquetada
+      // "Descenso".
+      const ownEnDescenso = /descenso/i.test(tabla[tablaIdx].copas || '');
+      if (ownEnDescenso) {
+        const firstDescIdx = tabla.findIndex(t => /descenso/i.test(t.copas || ''));
+        if (firstDescIdx > 0) {
+          const safe = tabla[firstDescIdx - 1];
           const n = (Number(safe.pts) || 0) - (Number(tabla[tablaIdx].pts) || 0);
           if (n > 0) tablaZonaInfo = { n, pos: String(safe.pos).replace(/[°º]/g, ''), equipo: safe.equipo, pts: safe.pts };
         }
@@ -14454,10 +14457,12 @@ function renderResumen() {
               </div>
               ${tablaCorta.map(t => {
                 if (t._gap) return `<div class="flex items-center justify-center py-0.5 text-slate-600 text-xs font-bold tracking-widest">···</div>`;
-                // Zona de descenso/promoción (solo Primera B, nunca la
-                // propia fila de CSB — esa ya se resalta entera en verde):
-                // número de posición en rojo suave.
-                const enZona = !isA && !t.csb && _tablaZoneStart && (parseInt(t.pos) || 0) >= _tablaZoneStart;
+                // Zona de "Descenso" (solo Primera B, nunca la propia fila
+                // de CSB — esa ya se resalta entera en verde): número de
+                // posición en rojo suave SOLO si la tabla etiqueta a ese
+                // equipo como "Descenso" — "Promoción" es otra zona y no
+                // lleva este color (mismo criterio que tablaZonaInfo).
+                const enZona = !isA && !t.csb && /descenso/i.test(t.copas || '');
                 const posColor = t.csb ? 'text-emerald-400' : (enZona ? 'text-red-400' : 'text-slate-500');
                 return `
                 <div class="flex items-center gap-2.5 px-2.5 py-2 rounded-xl ${t.csb ? 'bg-emerald-950/40 border border-emerald-500/50' : ''}">
