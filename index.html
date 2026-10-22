@@ -14572,7 +14572,7 @@ function renderResumen() {
 
           <!-- Totales Históricos (~70%), 3 sub-bloques separados por líneas -->
           <div style="flex:1 1 0%;min-width:0" class="flex items-stretch flex-wrap">
-            <div style="flex:1 1 0%;min-width:200px;padding:22px 24px" class="border-r border-slate-800 flex flex-col justify-center">
+            <div style="flex:1 1 0%;min-width:200px;padding:22px 24px" class="border-r border-slate-800 flex flex-col justify-start">
               <div class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Partidos y Efectividad</div>
               <div class="text-3xl font-black text-white">${h.pj}</div>
               <div class="text-xs text-slate-500 font-semibold" style="margin-bottom:18px">partidos jugados</div>
@@ -14586,7 +14586,7 @@ function renderResumen() {
               </div>
               <div class="text-xs text-slate-600 font-semibold" style="margin-top:6px">Puntos obtenidos sobre los posibles: ${_histPts} de ${3 * h.pj}</div>` : ''}
             </div>
-            <div style="flex:1 1 0%;min-width:200px;padding:22px 24px" class="border-r border-slate-800 flex flex-col justify-center">
+            <div style="flex:1 1 0%;min-width:200px;padding:22px 24px" class="border-r border-slate-800 flex flex-col justify-start">
               <div class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Resultados</div>
               <div class="w-full rounded-full overflow-hidden flex bg-slate-800" style="height:8px;margin-bottom:14px">
                 <div style="width:${_pctOfPJ(h.pg)}%;background:#22c55e"></div>
@@ -14608,7 +14608,7 @@ function renderResumen() {
                 </div>
               </div>
             </div>
-            <div style="flex:1 1 0%;min-width:200px;padding:22px 24px" class="flex flex-col justify-center">
+            <div style="flex:1 1 0%;min-width:200px;padding:22px 24px" class="flex flex-col justify-start">
               <div class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Goles y Vallas</div>
               <div class="flex flex-col">
                 ${totalesHistItems.map((it, i) => `
