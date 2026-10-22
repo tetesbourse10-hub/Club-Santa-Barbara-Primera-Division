@@ -14349,17 +14349,17 @@ function renderResumen() {
       ${(_rsmOwn || _rsmRachaPills) ? `
       <div class="bg-slate-900/90 border border-slate-800 rounded-2xl mb-5 flex items-stretch flex-wrap overflow-hidden">
         ${_rsmOwn ? `
-        <div style="padding:18px 22px" class="flex flex-col items-center justify-center text-center border-r border-slate-800">
+        <div style="padding:18px 22px;border-color:#1f2b42" class="flex flex-col items-center justify-center text-center border-r">
           <span class="text-xs text-slate-500 font-semibold uppercase tracking-wide">Posición</span>
           <span class="text-white font-extrabold" style="font-size:32px;line-height:1.1;margin-top:4px">${String(_rsmOwn.pos).replace(/[°º]/g, '')}°</span>
           <span class="text-slate-500 font-semibold" style="font-size:12.5px;margin-top:4px">en la tabla</span>
         </div>
-        <div style="padding:18px 22px" class="flex flex-col items-center justify-center text-center border-r border-slate-800">
+        <div style="padding:18px 22px;border-color:#1f2b42" class="flex flex-col items-center justify-center text-center border-r">
           <span class="text-xs text-slate-500 font-semibold uppercase tracking-wide">Puntos</span>
           <span class="text-white font-extrabold" style="font-size:32px;line-height:1.1;margin-top:4px">${_rsmOwn.pts}</span>
           <span class="text-slate-500 font-semibold" style="font-size:12.5px;margin-top:4px">${_rsmOwn.pj} partidos jugados</span>
         </div>
-        <div style="padding:18px 22px" class="flex items-center justify-center gap-5 border-r border-slate-800">
+        <div style="padding:18px 22px;border-color:#1f2b42" class="flex items-center justify-center gap-5 border-r">
           <div class="flex flex-col items-center">
             <span class="text-emerald-400 font-extrabold" style="font-size:28px;line-height:1">${_rsmOwn.pg}</span>
             <span class="text-slate-500 font-semibold" style="font-size:12.5px;margin-top:3px">Ganados</span>
@@ -14373,7 +14373,7 @@ function renderResumen() {
             <span class="text-slate-500 font-semibold" style="font-size:12.5px;margin-top:3px">Perdidos</span>
           </div>
         </div>
-        <div style="padding:18px 22px" class="flex items-center justify-center gap-5 border-r border-slate-800">
+        <div style="padding:18px 22px;border-color:#1f2b42" class="flex items-center justify-center gap-5 border-r">
           <div class="flex flex-col items-center">
             <span class="font-extrabold" style="font-size:28px;line-height:1;color:#f59e0b">${_rsmOwn.gf}</span>
             <span class="text-slate-500 font-semibold" style="font-size:12.5px;margin-top:3px">A favor</span>
@@ -14530,7 +14530,7 @@ function renderResumen() {
         </div>
         <div class="flex items-stretch flex-wrap">
           <!-- Palmarés (~30%) -->
-          <div style="flex:0 0 30%;min-width:260px;padding:22px 24px" class="border-r border-slate-800 flex flex-col">
+          <div style="flex:0 0 30%;min-width:260px;padding:22px 24px;border-color:#1f2b42;padding-right:20px" class="border-r flex flex-col">
             <div>
             <div class="inline-block text-xs font-bold uppercase tracking-wider text-white bg-slate-800/80 px-2.5 py-1 rounded-lg mb-3">🏅 Palmarés Oficial</div>
             <div class="flex flex-col gap-2.5 mb-2.5">
@@ -14572,7 +14572,7 @@ function renderResumen() {
 
           <!-- Totales Históricos (~70%), 3 sub-bloques separados por líneas -->
           <div style="flex:1 1 0%;min-width:0" class="flex items-stretch flex-wrap">
-            <div style="flex:1 1 0%;min-width:200px;padding:22px 24px" class="border-r border-slate-800 flex flex-col justify-start">
+            <div style="flex:1 1 0%;min-width:200px;padding:6px 26px;border-color:#1f2b42" class="border-r flex flex-col justify-start">
               <div class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Partidos y Efectividad</div>
               <div class="text-3xl font-black text-white">${h.pj}</div>
               <div class="text-xs text-slate-500 font-semibold" style="margin-bottom:18px">partidos jugados</div>
@@ -14586,7 +14586,7 @@ function renderResumen() {
               </div>
               <div class="text-xs text-slate-600 font-semibold" style="margin-top:6px">Puntos obtenidos sobre los posibles: ${_histPts} de ${3 * h.pj}</div>` : ''}
             </div>
-            <div style="flex:1 1 0%;min-width:200px;padding:22px 24px" class="border-r border-slate-800 flex flex-col justify-start">
+            <div style="flex:1 1 0%;min-width:200px;padding:6px 26px;border-color:#1f2b42" class="border-r flex flex-col justify-start">
               <div class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Resultados</div>
               <div class="w-full rounded-full overflow-hidden flex bg-slate-800" style="height:8px;margin-bottom:14px">
                 <div style="width:${_pctOfPJ(h.pg)}%;background:#22c55e"></div>
@@ -14608,7 +14608,7 @@ function renderResumen() {
                 </div>
               </div>
             </div>
-            <div style="flex:1 1 0%;min-width:200px;padding:22px 24px" class="flex flex-col justify-start">
+            <div style="flex:1 1 0%;min-width:200px;padding:6px 26px" class="flex flex-col justify-start">
               <div class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Goles y Vallas</div>
               <div class="flex flex-col">
                 ${totalesHistItems.map((it, i) => `
@@ -14631,19 +14631,19 @@ function renderResumen() {
            columnas separadas por líneas verticales (sin fondo propio por
            columna), igual criterio que "Historia y Récords del Club". -->
       <div class="bg-slate-900/90 border border-slate-800 rounded-3xl mb-6 overflow-hidden">
-        <div class="flex items-center justify-between px-5 py-4 border-b border-slate-800">
+        <div style="border-color:#1f2b42" class="flex items-center justify-between px-5 py-4 border-b">
           <span class="text-sm font-bold text-white">Top 5 históricos</span>
           <span class="text-xs font-bold text-slate-400 hover:text-white cursor-pointer transition" onclick="_navGoTab('jugadores', document.querySelectorAll('#main-nav button')[2])">Ver ranking completo →</span>
         </div>
         <div class="flex items-stretch flex-wrap">
-          <div style="flex:1 1 0%;min-width:220px;padding:18px 22px" class="border-r border-slate-800">
+          <div style="flex:1 1 0%;min-width:220px;padding:18px 22px;border-color:#1f2b42" class="border-r">
             <div class="flex items-center gap-2 mb-2">
               <span class="text-base shrink-0">⚽</span>
               <span class="text-xs font-bold uppercase tracking-wide" style="color:#f59e0b">Goleadores</span>
             </div>
             ${byGoles.map((j, i) => top10RowTw(j, i, _golesRanks[i], { color: '#f59e0b' })).join('')}
           </div>
-          <div style="flex:1 1 0%;min-width:220px;padding:18px 22px" class="border-r border-slate-800">
+          <div style="flex:1 1 0%;min-width:220px;padding:18px 22px;border-color:#1f2b42" class="border-r">
             <div class="flex items-center gap-2 mb-2">
               <span class="text-base shrink-0">🎯</span>
               <span class="text-xs font-bold uppercase tracking-wide" style="color:#85b7eb">Asistidores</span>
