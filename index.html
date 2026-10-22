@@ -8791,6 +8791,34 @@ const _ROUTE_MAIN_TABS = ['resumen', 'posiciones', 'jugadores', 'historial', 'gr
 // carga inicial (si el hash no es #jugador/... ni #partido/...) y en cada
 // popstate (Atrás/Adelante del navegador). Devuelve true si reconoció el
 // formato y lo aplicó.
+// BUG REAL encontrado (reportado: entrar directo por #a/tab/resumen o
+// #b/tab/resumen mostraba primero la Home con skeletons y recién después
+// saltaba a Resumen): _tryRestoreRouteFromHash (abajo) es puramente
+// síncrona, pero el único call site la dispara recién DESPUÉS de esperar
+// _initialLoadLiveDataPromise (adrede, para que el drilldown de
+// torneo/fecha no corra contra datos todavía vacíos) — así que durante esa
+// espera la landing seguía siendo lo único visible. Esta versión mínima
+// solo abre la sección/pestaña correcta (sin tocar torneo/subtab/fecha,
+// que si dependen de datos reales) y corre SÍNCRONA, antes de esperar nada
+// — mismo criterio que ya usa el resto del sitio (Resumen ya sabe pintar
+// sus propios estados vacíos con los datos semilla, igual que si se
+// entrara por el botón 🏠 y se tocara el plantel a mano). La función
+// completa de abajo se sigue llamando igual después del fetch, para
+// terminar de aplicar torneo/subtab/fecha.
+function _trySyncOpenSectionFromHash() {
+  const raw = location.hash.replace(/^#/, '');
+  if (!raw || /^jugador\//.test(raw) || /^partido\//.test(raw)) return false;
+  const parts = raw.split('/').filter(Boolean).map(decodeURIComponent);
+  const section = parts[0];
+  if (section !== 'a' && section !== 'b' && section !== 'nido') return false;
+  openSection(section);
+  if (section !== 'nido' && parts[1] === 'tab' && parts[2]) {
+    const tabName = parts[2];
+    const idx = _ROUTE_MAIN_TABS.indexOf(tabName);
+    _navGoTab(tabName, idx >= 0 ? document.querySelectorAll('#main-nav button')[idx] : null);
+  }
+  return true;
+}
 function _tryRestoreRouteFromHash() {
   const raw = location.hash.replace(/^#/, '');
   if (!raw || /^jugador\//.test(raw) || /^partido\//.test(raw)) return false;
@@ -13767,12 +13795,11 @@ function renderResumen() {
   const _plNm = nm => (nm || '').replace(/\s*\(c\)/i, '').trim();
   const ultimoGoleadores = ultimoJugadoresSrc ? (ultimoJugadoresSrc.jugadores || []).filter(j => j.goles > 0).map(j => `${_plNm(j.nombre)}${j.goles > 1 ? ' (' + j.goles + ')' : ''}`) : [];
   const ultimoAsistidores = ultimoJugadoresSrc ? (ultimoJugadoresSrc.jugadores || []).filter(j => j.asist > 0).map(j => `${_plNm(j.nombre)}${j.asist > 1 ? ' (' + j.asist + ')' : ''}`) : [];
-  // Sin goleadores cargados todavía (fetch en curso o partido sin lineup
-  // detallado): se cae a las primeras 2 oraciones de la crónica/obs del
-  // partido (misma columna "obs" que ya usa Centro de Datos) en vez de
-  // dejar el bloque vacío con un texto de "sin datos".
-  const ultimoCronicaSentences = (!ultimoGoleadores.length && !ultimoAsistidores.length && ultimoJugadoresSrc?.obs)
-    ? String(ultimoJugadoresSrc.obs).split(/(?<=\.)\s+/).filter(Boolean).slice(0, 2).join(' ')
+  // Sin goleadores (ni asistencias) cargados: se cae a la crónica/obs del
+  // partido (misma columna "obs" que ya usa Centro de Datos), recortada a 2
+  // renglones visuales con line-clamp (no un corte manual por oraciones).
+  const ultimoCronicaTexto = (!ultimoGoleadores.length && !ultimoAsistidores.length && ultimoJugadoresSrc?.obs)
+    ? String(ultimoJugadoresSrc.obs).trim()
     : '';
   // Fecha/hora del último partido — mismo par dia/hora + formatters que usa
   // Fecha a Fecha (formatISODia/formatISOHora).
@@ -13992,18 +14019,19 @@ function renderResumen() {
   }
   function top10RowTw(jug, i, rank, accent) {
     const medalBg = ['bg-amber-400 text-slate-950', 'bg-slate-300 text-slate-950', 'bg-orange-400 text-slate-950'];
-    const medalText = ['text-amber-400', 'text-slate-300', 'text-orange-400'];
     const rowTint = ['bg-amber-500/5', 'bg-slate-400/5', 'bg-orange-500/5'];
     const onPodium = rank <= 3;
     const podiumIdx = rank - 1;
     const rankBadge = onPodium ? medalBg[podiumIdx] : 'bg-slate-800 text-slate-400';
     const tint = onPodium ? rowTint[podiumIdx] : '';
-    const valText = onPodium ? medalText[podiumIdx] : 'text-white';
+    // El valor SIEMPRE lleva el color de su propia categoría (naranja
+    // goleadores / celeste asistidores / ámbar presencias) — antes tomaba
+    // el color de la medalla en el podio, que pisaba el color de columna.
     return `<div class="flex items-center gap-3 py-2.5 px-2 rounded-xl${i > 0 ? ' mt-1' : ''} ${tint}">
       <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-extrabold shrink-0 ${rankBadge}">${rank}</span>
       <span class="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-extrabold text-slate-300 shrink-0">${_rivalInitials(jug.nombre)}</span>
       <span class="flex-1 text-sm text-white font-semibold truncate">${pl(jug.nombre)}</span>
-      <span class="text-sm font-extrabold ${valText} px-2.5 py-1 rounded-full shrink-0 min-w-[2.75rem] text-center" style="background:${accent.color}1a">${jug.valor}</span>
+      <span class="text-sm font-extrabold px-2.5 py-1 rounded-full shrink-0 min-w-[2.75rem] text-center" style="background:${accent.color}1a;color:${accent.color}">${jug.valor}</span>
     </div>`;
   }
   const _golesRanks = _tieRanks(byGoles), _asistRanks = _tieRanks(byAsist), _partidosRanks = _tieRanks(byPartidos);
@@ -14266,24 +14294,24 @@ function renderResumen() {
            dato se omite si no hay fila propia en la tabla o no hay
            partidos jugados, nunca un "—". -->
       ${(_rsmOwn || _rsmRachaPills) ? `
-      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl px-6 py-3.5 mb-5 flex items-center justify-between gap-6 flex-wrap">
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl px-6 py-4 mb-5 flex items-center justify-between gap-6 flex-wrap">
         ${_rsmOwn ? `
         <div class="flex items-center gap-2">
-          <span class="text-[11px] text-slate-500 font-semibold uppercase tracking-wide">Posición</span>
-          <span class="text-base font-extrabold text-white">${String(_rsmOwn.pos).replace(/[°º]/g, '')}°</span>
+          <span class="text-xs text-slate-500 font-semibold uppercase tracking-wide">Posición</span>
+          <span class="text-xl font-extrabold text-white">${String(_rsmOwn.pos).replace(/[°º]/g, '')}°</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="text-[11px] text-slate-500 font-semibold uppercase tracking-wide">Puntos</span>
-          <span class="text-base font-extrabold text-white">${_rsmOwn.pts}</span>
+          <span class="text-xs text-slate-500 font-semibold uppercase tracking-wide">Puntos</span>
+          <span class="text-xl font-extrabold text-white">${_rsmOwn.pts}</span>
         </div>
         <div class="flex items-center gap-1.5">
-          <span class="text-base font-extrabold text-emerald-400">${_rsmOwn.pg}G</span>
-          <span class="text-base font-extrabold text-amber-400">${_rsmOwn.pe}E</span>
-          <span class="text-base font-extrabold text-red-400">${_rsmOwn.pp}P</span>
+          <span class="text-xl font-extrabold text-emerald-400">${_rsmOwn.pg}G</span>
+          <span class="text-xl font-extrabold text-amber-400">${_rsmOwn.pe}E</span>
+          <span class="text-xl font-extrabold text-red-400">${_rsmOwn.pp}P</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="text-[11px] text-slate-500 font-semibold uppercase tracking-wide">Goles</span>
-          <span class="text-base font-extrabold text-white">${_rsmOwn.gf}:${_rsmOwn.gc}</span>
+          <span class="text-xs text-slate-500 font-semibold uppercase tracking-wide">Goles</span>
+          <span class="text-xl font-extrabold text-white">${_rsmOwn.gf}:${_rsmOwn.gc}</span>
         </div>` : ''}
         ${_rsmRachaPills ? `
         <div class="flex items-center gap-2.5 ml-auto">
@@ -14295,8 +14323,19 @@ function renderResumen() {
       <!-- Bloque 1: Actualidad del Torneo — 3 columnas simétricas, misma
            altura garantizada por items-stretch + h-full en cada card. -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 items-stretch">
-        <!-- Columna 1: Último Partido -->
-        <div class="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 flex flex-col justify-between h-full">
+        <!-- Columna 1: Último Partido — BUG REAL encontrado (reportado:
+             "cuando no hay goleadores la tarjeta queda con un espacio
+             grande vacío"): este contenedor usaba justify-between dentro
+             de un h-full (la fila entera estira las 3 columnas a la misma
+             altura, ver items-stretch arriba) — con solo 2 hijos (el
+             contenido y el botón), justify-between siempre separa el
+             botón al fondo, así que cuando el contenido se achicaba (sin
+             el bloque de goleadores/crónica) el hueco quedaba ANTES del
+             botón, no después. Sin justify-between el botón sigue al
+             contenido de forma natural y el espacio sobrante (si lo hay,
+             por el stretch con las otras columnas) queda al final, no en
+             el medio. -->
+        <div class="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 flex flex-col h-full">
           ${ultimo ? `
             <div>
               <div class="flex items-center justify-between mb-2">
@@ -14316,11 +14355,11 @@ function renderResumen() {
                 ${ultimoLugar ? `<span class="truncate">📍 ${_rsmCanonEstadio(ultimoLugar)}</span>` : ''}
                 ${ultimoCategoriaRival ? `<span class="px-2 py-0.5 rounded-full bg-slate-800/60 text-slate-400">🏷️ ${ultimoCategoriaRival}</span>` : ''}
               </div>` : ''}
-              ${(ultimoGoleadores.length || ultimoAsistidores.length || ultimoCronicaSentences) ? `
+              ${(ultimoGoleadores.length || ultimoAsistidores.length || ultimoCronicaTexto) ? `
               <div class="w-full bg-slate-950/50 p-3 rounded-xl border border-slate-800/60 text-xs text-slate-400 space-y-1 mt-3">
                 ${ultimoGoleadores.length ? `<div><span class="text-slate-500">⚽ Goles:</span> ${ultimoGoleadores.join(', ')}</div>` : ''}
                 ${ultimoAsistidores.length ? `<div><span class="text-slate-500">🎯 Asistencias:</span> ${ultimoAsistidores.join(', ')}</div>` : ''}
-                ${!ultimoGoleadores.length && !ultimoAsistidores.length && ultimoCronicaSentences ? `<div class="text-slate-400">${ultimoCronicaSentences}</div>` : ''}
+                ${!ultimoGoleadores.length && !ultimoAsistidores.length && ultimoCronicaTexto ? `<div class="text-slate-400" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${ultimoCronicaTexto}</div>` : ''}
               </div>` : ''}
             </div>
             <button onclick="goToMatchFecha('${ultimo._navKey}', '${ultimoNavFecha.replace(/'/g, "\\'")}')" class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold border border-slate-600/60 text-xs transition flex items-center justify-center gap-1 mt-3 appearance-none cursor-pointer">Ver Ficha Completa →</button>
@@ -14365,22 +14404,35 @@ function renderResumen() {
              ámbar), avatar con iniciales + nombre clickeable (mismo pl()
              que ya usa el Top 5 histórico), y la fila entera se oculta si
              esa categoría todavía no tiene datos (nunca un "—" suelto). -->
-        <div class="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 flex flex-col justify-between h-full">
+        <div class="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 flex flex-col h-full">
           <div>
             <div class="inline-block text-xs font-bold uppercase tracking-wider text-amber-300 bg-amber-500/15 border border-amber-500/25 px-2.5 py-1 rounded-lg mb-4">Destacados ${clausuraLabel}</div>
             <div class="flex flex-col gap-3.5">
               ${[
-                { leader: golLeader,         icon: '⚽', label: 'Goleador',       color: '#f59e0b' },
-                { leader: asistLeader,       icon: '🎯', label: 'Asistidor',      color: '#85b7eb' },
-                { leader: vallaLeader,       icon: '🧤', label: 'Valla Invicta',  color: '#af9ec6' },
-                { leader: presenciasLeader,  icon: '👕', label: 'Más Presencias', color: '#fac775' },
-              ].map(({ leader, icon, label, color }) => !leader ? '' : `
+                { leader: golLeader,         icon: '⚽', label: 'Goleador',       color: '#f59e0b', alwaysShow: false },
+                { leader: asistLeader,       icon: '🎯', label: 'Asistidor',      color: '#85b7eb', alwaysShow: false },
+                // Valla Invicta SIEMPRE se muestra (a diferencia de las otras
+                // 3) — en Primera B hoy puede no haber ningún arquero con
+                // vallas todavía, pero puede sumarse en cualquier fecha; sin
+                // esto la fila directamente desaparecía y las 3 tarjetas de
+                // la fila (Último Partido/Tabla/Destacados) quedaban con
+                // distinta cantidad de filas.
+                { leader: vallaLeader,       icon: '🧤', label: 'Valla Invicta',  color: '#af9ec6', alwaysShow: true },
+                { leader: presenciasLeader,  icon: '👕', label: 'Más Presencias', color: '#fac775', alwaysShow: false },
+              ].map(({ leader, icon, label, color, alwaysShow }) => {
+                if (!leader && !alwaysShow) return '';
+                const nombre = leader ? pl(leader[0]) : '<span class="text-slate-500">—</span>';
+                const iniciales = leader ? _rivalInitials(leader[0]) : '—';
+                const valor = leader ? leader[1] : '0';
+                const valColor = leader ? color : '#64748b';
+                return `
               <div class="flex items-center gap-3">
                 <span class="w-9 h-9 rounded-xl flex items-center justify-center text-base shrink-0" style="background:${color}1a">${icon}</span>
-                <span class="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-extrabold text-slate-300 shrink-0">${_rivalInitials(leader[0])}</span>
-                <div class="flex-1 min-w-0"><div class="text-xs text-slate-500 font-semibold">${label}</div><div class="text-white text-sm font-bold truncate">${pl(leader[0])}</div></div>
-                <div class="font-extrabold text-lg shrink-0" style="color:${color}">${leader[1]}</div>
-              </div>`).join('')}
+                <span class="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-extrabold text-slate-300 shrink-0">${iniciales}</span>
+                <div class="flex-1 min-w-0"><div class="text-xs text-slate-500 font-semibold">${label}</div><div class="text-white text-sm font-bold truncate">${nombre}</div></div>
+                <div class="font-extrabold text-lg shrink-0" style="color:${valColor}">${valor}</div>
+              </div>`;
+              }).join('')}
             </div>
           </div>
           <button onclick="${verEstadisticasAttr}" class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold border border-slate-600/60 text-xs transition flex items-center justify-center gap-1 mt-3 appearance-none cursor-pointer">Ver Plantel →</button>
@@ -14408,16 +14460,10 @@ function renderResumen() {
               // la vez), con fallback a la clave sin equipo.
               const tCompetencia = t.nombre.replace(/^Campeón\s+/i, '');
               const tNav = TORNEO_NAV_MAP[`${t.anio}|${tCompetencia}|${isA ? 'A' : 'B'}`] || TORNEO_NAV_MAP[`${t.anio}|${tCompetencia}`];
-              // Aclaración de categoría histórica — solo donde el sitio sabe
-              // con certeza qué división era el plantel en ese momento (ej.
-              // el título de 2019 en Primera A se jugó en AIFA B, cuando
-              // este plantel todavía se llamaba "Primera B"). Si no hay
-              // certeza del nombre de esa época, se deja el texto tal cual.
-              const tAclaracion = (isA && t.nombre === 'Campeón Apertura AIFA B') ? ' (entonces Primera B)' : '';
               return `
               <div class="flex items-center gap-3 bg-slate-950/40 rounded-xl px-3.5 py-2.5${tNav ? ' cursor-pointer hover:bg-slate-900/60 transition' : ''}"${tNav ? ` onclick="_navPush('Resumen', () => renderResumen()); _navPushTorneosAntiguos(); ${tNav.fn.replace(/"/g, '&quot;')}" title="Ver campeonato"` : ''}>
                 <span class="w-8 h-8 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-base shrink-0 shadow-[0_0_10px_rgba(245,158,11,0.35)]">🏆</span>
-                <span class="flex-1 text-white text-sm font-semibold truncate">${t.nombre}<span class="text-slate-400 font-normal">${tAclaracion}</span></span>
+                <span class="flex-1 text-white text-sm font-semibold truncate">${t.nombre}</span>
                 <span class="text-slate-950 text-xs font-extrabold bg-[linear-gradient(135deg,#fbbf24,#f59e0b)] px-2.5 py-1 rounded-full shrink-0 shadow-[0_0_10px_rgba(245,158,11,0.45)]">${t.anio}</span>
               </div>`;
             }).join('')}
@@ -14439,11 +14485,17 @@ function renderResumen() {
           <button onclick="_navPush('Resumen', () => renderResumen()); _navPushTorneosAntiguos();" class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold border border-slate-600/60 text-xs transition flex items-center justify-center gap-1 mt-auto pt-3 appearance-none cursor-pointer" style="margin-top:auto">Ver Torneos Antiguos →</button>
         </div>
 
-        <div class="col-span-8 bg-slate-900/90 border border-slate-700/70 rounded-2xl p-5 flex flex-col h-full">
+        <div class="col-span-8 bg-slate-900/90 border border-slate-700/70 rounded-2xl p-5 flex flex-col justify-center h-full">
           <div class="inline-block text-xs font-bold uppercase tracking-wider text-white bg-slate-800/80 px-2.5 py-1 rounded-lg mb-3">📊 Totales Históricos</div>
-          <div class="flex items-end gap-8 mb-4">
+          <!-- BUG REAL encontrado (reportado: "Partidos JugadosEfectividad"
+               pegados): gap-8 es una clase de Tailwind que no aparecía en
+               ningún otro lugar del archivo — el build la purga del CSS
+               final (compila solo las clases que detecta como substring en
+               algún lado), así que el gap se perdía del todo. Separado con
+               margin inline, que no depende de esa purga. -->
+          <div class="flex items-end mb-4">
             <div><div class="text-3xl font-black text-white">${h.pj}</div><div class="text-xs text-slate-500 font-semibold mt-0.5">Partidos Jugados</div></div>
-            ${efectividad != null ? `<div><div class="text-3xl font-black text-emerald-400">${efectividad}%</div><div class="text-xs text-slate-500 font-semibold mt-0.5">Efectividad</div></div>` : ''}
+            ${efectividad != null ? `<div style="margin-left:32px"><div class="text-3xl font-black text-emerald-400">${efectividad}%</div><div class="text-xs text-slate-500 font-semibold mt-0.5">Efectividad</div></div>` : ''}
           </div>
           <div class="w-full h-3 rounded-full overflow-hidden flex bg-slate-800 mb-2">
             <div style="width:${_pctOfPJ(h.pg)}%;background:#22c55e"></div>
@@ -22494,6 +22546,9 @@ if (window.__OG_BUILD__) {
     if (Number.isFinite(y) && y > 0) setTimeout(() => window.scrollTo(0, y), 0);
   }
   if (location.hash) {
+    // Resuelve la sección/pestaña ANTES de esperar el fetch (ver comentario
+    // de _trySyncOpenSectionFromHash) — evita el salto visual Home→Resumen.
+    _trySyncOpenSectionFromHash();
     // Deep link directo: alguien entra por /jugador/:slug, que redirige acá
     // con el hash ya puesto (ver scripts/generate-og.js). El listener de
     // popstate de arriba NO alcanza a correr en este caso — popstate solo
