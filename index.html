@@ -221,18 +221,24 @@
       max-width: 900px;
     }
 
+    /* Las 3 tarjetas (Primera A/B/El Nido) comparten exactamente el mismo
+       eje y el mismo orden de filas — ver .lc-row-* más abajo — así título,
+       insignias, número grande, barra/objetivo y racha quedan a la misma
+       altura en las tres, sin valores sueltos por tarjeta. Por defecto solo
+       llevan la línea de color de arriba (.lc-topline); el borde de color +
+       elevación se agregan SOLO en :hover/:focus-visible, igual en las 3
+       (ver .lc-card-a/-b/-nido más abajo), nunca de forma estática. */
     .landing-card {
       width: 220px;
       background: var(--azul-card);
       border: 1px solid rgba(255,255,255,0.07);
       border-radius: 20px;
-      padding: 30px 24px 24px;
+      padding: 26px 20px 20px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 9px;
       cursor: pointer;
-      transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
+      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
       text-align: center;
       position: relative;
       overflow: hidden;
@@ -252,37 +258,37 @@
     @media (prefers-reduced-motion: reduce) {
       .landing-card, .next-match-row > div, .pm-carousel-wrap { animation: none; }
     }
-    .landing-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 3px;
-      background: linear-gradient(90deg, transparent, var(--dorado), transparent);
-      opacity: 0;
-      transition: opacity 0.3s;
+    /* Borde + elevación coloreados por tarjeta — SOLO al pasar el mouse o
+       con foco de teclado, igual en las tres (antes Primera A los tenía
+       también en reposo). */
+    .landing-card:hover, .landing-card:focus-visible {
+      transform: translateY(-6px);
+      outline: none;
     }
-    .landing-card:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(245,158,11,0.3);
-      border-color: rgba(245,158,11,0.3);
+    .lc-card-a:hover, .lc-card-a:focus-visible { box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(245,158,11,0.3); border-color: rgba(245,158,11,0.3); }
+    .lc-card-b:hover, .lc-card-b:focus-visible { box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(59,130,246,0.3); border-color: rgba(59,130,246,0.3); }
+    .lc-card-nido:hover, .lc-card-nido:focus-visible { box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(34,197,94,0.3); border-color: rgba(34,197,94,0.3); }
+    /* Flecha chica junto al título — único indicio de "esto se puede
+       tocar" (antes había además una flecha suelta abajo a la derecha de
+       Primera A; se saca, queda solo esta, igual en las tres). */
+    .lc-title-arrow { font-size: 0.85rem; color: rgba(255,255,255,0.3); transition: color .2s, transform .2s; }
+    .landing-card:hover .lc-title-arrow, .landing-card:focus-visible .lc-title-arrow { color: rgba(255,255,255,0.65); transform: translateX(2px); }
+    /* Filas compartidas: mismo min-height por fila en las 3 tarjetas, todo
+       centrado (nunca mezclar con contenido alineado a la izquierda). */
+    .lc-row {
+      width: 100%; display: flex; align-items: center; justify-content: center;
+      gap: 6px; box-sizing: border-box;
     }
-    .landing-card:hover::before { opacity: 1; }
-    /* Flecha discreta (atajo interno, nunca <a>) — invisible hasta el hover
-       en desktop; en mobile (sin hover real) queda siempre visible y tenue,
-       mismo criterio que ya usa el resto del sitio para "esto se puede
-       tocar". */
-    .lc-arrow {
-      position: absolute; bottom: 14px; right: 16px; font-size: 1rem;
-      color: rgba(255,255,255,0.25); opacity: 0; transition: opacity .2s, color .2s;
-    }
-    .landing-card:hover .lc-arrow { opacity: 1; color: rgba(255,255,255,0.55); }
-    @media (max-width: 768px) {
-      /* En mobile no hay hover real — se esconde el genérico de la
-         esquina (no aporta nada en el layout compacto de 2 columnas); la
-         única flecha visible en mobile es la del rótulo "Últimos 5 →",
-         ver .lc-racha-arrow más abajo. */
-      .lc-arrow { display: none; }
-    }
+    .lc-row-icon { min-height: 44px; }
+    .lc-row-title { min-height: 24px; }
+    .lc-row-badge { min-height: 26px; }
+    .lc-row-torneo { min-height: 26px; margin-top: 4px; }
+    .lc-row-bignum { min-height: 46px; margin-top: 10px; }
+    .lc-fading { opacity: 0; transition: opacity .2s; }
+    .lc-row-progress { min-height: 30px; margin-top: 8px; flex-direction: column; gap: 5px; }
+    .lc-row-objetivo { min-height: 36px; }
+    .lc-row-racha { min-height: 0; margin-top: 4px; flex-direction: column; align-items: center; }
+    .lc-divider { width: 100%; height: 1px; background: rgba(255,255,255,0.08); margin: 8px 0; }
 
     /* Mismo recuadro + glow al hover que .landing-card (tiles de Primera
        A/B/El Nido), reutilizado en las cards de "Próximo Partido" del home
@@ -312,37 +318,31 @@
     .pm2-b:hover { box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(56,189,248,0.3); border-color: rgba(56,189,248,0.3); }
 
     .landing-card .card-icon {
-      font-size: 3.2rem;
+      font-size: 2.4rem;
       line-height: 1;
-      filter: drop-shadow(0 0 12px rgba(245,158,11,0.5));
+      filter: drop-shadow(0 0 10px rgba(245,158,11,0.4));
     }
+    .lc-card-b .card-icon { filter: drop-shadow(0 0 10px rgba(59,130,246,0.4)); }
+    .lc-card-nido .card-icon { filter: drop-shadow(0 0 10px rgba(34,197,94,0.4)); }
     .landing-card .card-name {
       font-size: 1rem;
       font-weight: 800;
-      letter-spacing: 0.1em;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
       color: var(--blanco);
-    }
-    .landing-card .card-desc {
-      font-size: 0.75rem;
-      color: var(--gris-texto);
-      line-height: 1.4;
     }
     .landing-card .card-badge {
       font-size: 0.7rem;
       padding: 3px 10px;
       border-radius: 20px;
       font-weight: 700;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
     }
     .badge-gold  { background: rgba(245,158,11,0.15); color: var(--dorado); }
     .badge-blue  { background: rgba(59,130,246,0.15); color: var(--azul-claro); }
     .badge-green { background: rgba(34,197,94,0.15);  color: var(--verde); }
 
-    /* Invisibles en desktop (sus hijos quedan en el flujo de .landing-card
-       como si el wrapper no existiera) — solo se activan como layout de
-       fila real bajo 768px, ver el bloque @media más abajo. */
-    .lc-card-head, .lc-card-head-left, .lc-card-head-info { display: contents; }
     /* Carrusel de "Próximos Partidos" mobile — reemplaza a .next-match-row
        bajo 768px (ver @media), oculto en desktop. */
     .pm-carousel-wrap { display: none; }
@@ -412,56 +412,51 @@
     .nmb-foot-hist-p { color: var(--rojo); font-weight: 800; }
     .nmb-foot-hist-none { font-style: italic; }
 
-    /* ── LANDING CARD: position badge + last-5-results/points footer ── */
-    .lc-badge { position: absolute; top: 14px; right: 14px; }
+    /* ── LANDING CARD: insignia de posición (fila propia, ya no superpuesta
+       al borde) ── */
     .lc-badge-pill {
       font-size: 0.75rem; font-weight: 800; padding: 3px 9px; border-radius: 20px; letter-spacing: 0.02em; white-space: nowrap;
     }
-    .lc-badge-green { background: rgba(34,197,94,0.15);  color: var(--verde); }
-    .lc-badge-amber { background: rgba(245,158,11,0.15); color: var(--dorado); }
-    .lc-badge-red   { background: rgba(239,68,68,0.15);  color: var(--rojo); }
-    /* Insignia neutra (posición, cantidad de jugadores) — ya no en
-       verde/rojo según la posición, siempre el mismo estilo gris claro. */
+    /* Insignia neutra (posición, cantidad de jugadores) — nunca verde/rojo
+       según la posición, siempre el mismo estilo gris claro. */
     .lc-badge-neutral { background: rgba(255,255,255,0.06); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.14); }
     /* Línea de color fina arriba de cada tarjeta de plantel (naranja/azul/
-       verde) — separada del borde/glow de hover que ya tenía .landing-card. */
+       verde) — es la ÚNICA marca de color en reposo; el borde completo +
+       elevación quedan solo para :hover/:focus-visible (ver más arriba). */
     .lc-topline { position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 16px 16px 0 0; }
     .lc-topline-a { background: var(--dorado); }
     .lc-topline-b { background: var(--azul-claro); }
     .lc-topline-nido { background: var(--verde); }
-    /* Barra de avance "Fecha N de 15" — se llena con el color del plantel. */
-    /* Una sola fila (label corto + barra) en vez de 2 renglones apilados —
-       pedido del club: la versión anterior ("Fecha N de 15" en su propia
-       línea arriba de la barra) hacía la tarjeta demasiado larga. */
-    .lc-progress-wrap { width: 100%; margin: 0; display: flex; align-items: center; gap: 8px; }
-    .lc-progress-label { font-size: 0.76rem; color: var(--gris-texto); flex-shrink: 0; white-space: nowrap; }
-    .lc-progress-bar { flex: 1; height: 4px; border-radius: 3px; background: rgba(255,255,255,0.08); overflow: hidden; }
+    /* Número grande (puntos de Primera A/B, valor de El Nido) + unidad
+       chica al lado ("pts"). */
+    .lc-bignum-val { font-size: 1.9rem; font-weight: 900; line-height: 1; color: var(--blanco); }
+    .lc-bignum-unit { font-size: 0.8rem; font-weight: 700; color: var(--gris-texto); margin-left: 2px; }
+    /* Barra de avance, con el texto DEBAJO (no al lado) — llena con el
+       color del plantel. Se inyecta directo en .lc-row-progress (ya es
+       flex-direction:column, ver arriba), sin wrapper propio. */
+    .lc-progress-bar { width: 100%; height: 4px; border-radius: 3px; background: rgba(255,255,255,0.08); overflow: hidden; }
     .lc-progress-fill { height: 100%; border-radius: 3px; }
     .lc-progress-fill-a { background: var(--dorado); }
     .lc-progress-fill-b { background: var(--azul-claro); }
-    /* Línea de objetivo (líder / a N pts del 1° / zona de descenso). */
-    .lc-objetivo { font-size: 0.75rem; font-weight: 700; margin-top: 0; display: flex; align-items: center; gap: 5px; }
+    .lc-progress-label { font-size: 0.76rem; color: var(--gris-texto); white-space: nowrap; }
+    /* Línea de objetivo: una sola línea, sin negrita, flecha pegada al
+       texto — se reserva siempre la altura de esta fila (.lc-row-objetivo)
+       aunque no haya objetivo para mostrar. */
+    .lc-objetivo {
+      font-size: 0.78rem; font-weight: 500; display: flex; align-items: center; gap: 3px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+    }
     .lc-objetivo-up   { color: var(--verde); }
     .lc-objetivo-down { color: var(--rojo); }
     .lc-objetivo-lider { color: var(--dorado); }
-    /* "a N pts de salir del descenso" (desktop) vs "a N pts de salir"
-       (mobile, dos columnas angostas — pedido del club si no entra). */
-    .lc-objetivo-short { display: none; }
-    @media (max-width: 768px) {
-      .lc-objetivo-full { display: none; }
-      .lc-objetivo-short { display: inline; }
+    /* Racha de últimos 5 — mismo orden/componente que el resto del sitio:
+       más reciente a la IZQUIERDA (con contorno claro), más antiguo a la
+       derecha. */
+    .lc-foot-label {
+      font-size: 0.78rem; color: var(--gris-texto); margin-bottom: 8px;
+      display: flex; align-items: center; justify-content: space-between; width: 100%;
     }
-    .lc-footer {
-      width: 100%;
-      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
-      margin-top: 0; padding-top: 9px;
-      border-top: 1px solid rgba(255,255,255,0.08);
-      font-size: 0.78rem; color: var(--gris-texto);
-      transition: opacity .2s;
-    }
-    .lc-footer.lc-fading { opacity: 0; }
-    .lc-foot-label { font-size: 0.75rem; color: var(--gris-texto); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; width: 100%; }
-    .lc-foot-results { display: flex; gap: 6px; align-items: flex-end; }
+    .lc-foot-results { display: flex; gap: 6px; align-items: flex-start; justify-content: center; }
     .lc-res-item { display: flex; flex-direction: column; align-items: center; gap: 3px; position: relative; cursor: default; }
     .lc-res-pill {
       display: inline-flex; align-items: center; justify-content: center;
@@ -473,7 +468,7 @@
     .lc-res-pill.lc-res-e { background: rgba(245,158,11,0.15); color: var(--dorado); }
     .lc-res-pill.lc-res-p { background: rgba(239,68,68,0.15); color: var(--rojo); }
     .lc-res-crest {
-      width: 16px; height: 16px; border-radius: 50%; background: #fff; flex-shrink: 0;
+      width: 14px; height: 14px; border-radius: 50%; background: #fff; flex-shrink: 0;
       display: inline-flex; align-items: center; justify-content: center; overflow: hidden;
       font-size: 0.75rem; font-weight: 800; color: #334155;
     }
@@ -485,40 +480,25 @@
       z-index: 5;
     }
     .lc-res-item:hover .lc-res-tooltip, .lc-res-item.lc-res-tap .lc-res-tooltip { opacity: 1; }
-    .lc-res-arrow { font-size: 0.9rem; color: var(--gris-texto); margin-left: 2px; align-self: center; }
-    /* Rótulo "Últimos 5 partidos" (desktop) vs "Últimos 5 →" (mobile, con
-       la flecha en la misma línea que el rótulo en vez de después de la
-       última ficha) — mismo HTML, CSS elige qué mostrar. */
-    .lc-foot-label-short, .lc-racha-arrow-mobile { display: none; }
-    @media (max-width: 768px) {
-      .lc-foot-label-full { display: none; }
-      .lc-foot-label-short, .lc-racha-arrow-mobile { display: inline; }
-      .lc-res-arrow { display: none; }
-    }
-    .lc-foot-pts { font-weight: 800; color: var(--blanco); }
+    .lc-res-arrow { font-size: 0.85rem; color: var(--gris-texto); }
 
-    /* El Nido footer rotator (_paintNidoRotator): desktop se queda con la
-       línea de texto plano de siempre ("Vallas Invictas · Primera A: 🧤
-       Theo Jurs — 35 vallas", ver .lc-nido-flat); el rediseño label+avatar+
-       chip (.lc-nido-stack) solo se usa en mobile ≤768px, no convencía en
-       desktop. Ambos formatos se arman siempre y CSS elige cuál mostrar. */
-    .lc-nido-stack { display: none; }
-    @media (max-width: 768px) {
-      .lc-nido-flat { display: none; }
-      .lc-nido-stack { display: flex; flex-direction: column; width: 100%; }
+    /* El Nido: misma estructura de filas que Primera A/B — número grande +
+       leyenda de categoría en una sola línea, avatar+nombre en una sola
+       línea, puntitos de rotación abajo. */
+    .lc-nido-caption {
+      font-size: 0.78rem; color: var(--gris-texto);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
     }
-    .lc-nido-label { font-size: 0.75rem; color: #6b7690; text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 8px; }
-    .lc-nido-row { display: flex; align-items: center; gap: 10px; }
+    .lc-nido-player-row { display: flex; align-items: center; gap: 8px; max-width: 100%; }
     .lc-nido-avatar {
-      width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700;
+      width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 700;
     }
-    .lc-nido-name { flex: 1; min-width: 0; font-size: 0.82rem; font-weight: 600; color: #f2f4f8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .lc-nido-chip { border-radius: 8px; padding: 5px 12px; text-align: center; flex-shrink: 0; }
-    .lc-nido-chip-val { margin: 0; font-size: 1rem; font-weight: 700; line-height: 1; }
-    .lc-nido-chip-unit { margin: 1px 0 0; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; }
-    /* Puntitos indicando que el dato rota — el activo más largo (pill). */
-    .lc-nido-dots { display: flex; align-items: center; gap: 4px; margin-top: 8px; }
+    .lc-nido-name {
+      min-width: 0; font-size: 0.85rem; font-weight: 700; color: #f2f4f8;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .lc-nido-dots { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 4px; }
     .lc-nido-dot { width: 5px; height: 5px; border-radius: 3px; background: rgba(255,255,255,0.18); transition: width .2s, background .2s; }
     .lc-nido-dot.active { width: 14px; background: var(--verde); }
 
@@ -1396,11 +1376,10 @@
         box-shadow: 0 6px 16px -4px rgba(133,183,235,0.5);
       }
 
-      /* Cards principales: Primera A/B en 2 columnas lado a lado (tarjeta
-         vertical, ver más abajo) + El Nido a ancho completo debajo — antes
-         las 3 iban apiladas en una sola columna, todas con el mismo
-         tratamiento. El label "Nuestros Jugadores" (nuevo, entre medio) es
-         su propio ítem de grid a ancho completo. */
+      /* Cards principales: Primera A/B en 2 columnas lado a lado + El Nido a
+         ancho completo debajo. Misma estructura de filas centradas que
+         desktop (ver .lc-row-*) — ningún reordenamiento propio de mobile,
+         solo tamaños más chicos para que entre en columnas angostas. */
       .landing-cards { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; width: 100%; max-width: none; }
       .landing-cards .landing-card:last-child { grid-column: 1 / -1; }
       .landing-cards-mid-label {
@@ -1410,79 +1389,11 @@
       .landing-card {
         width: 100%; max-width: none; background: #141d2e;
         border: 1px solid rgba(255,255,255,0.08); border-radius: 14px;
-        padding: 16px; align-items: stretch; text-align: left; gap: 0;
+        padding: 18px 12px 14px;
       }
-      .lc-card-head, .lc-card-head-left { display: flex; }
-      .lc-card-head { align-items: flex-start; justify-content: space-between; width: 100%; }
-      .lc-card-head-left { align-items: center; gap: 10px; }
-      .lc-card-head-info { display: flex; flex-direction: column; gap: 2px; }
-      .landing-card .card-icon { font-size: 1.6rem; filter: none; }
-      .landing-card .card-name { font-size: 0.95rem; letter-spacing: normal; text-transform: none; }
-      .landing-card .card-desc { font-size: 0.75rem; line-height: 1.3; }
-      .landing-card .card-badge { display: inline-block; margin: 10px 0 12px; align-self: flex-start; }
-      .lc-badge { position: static; flex-shrink: 0; }
-      .lc-footer { margin-top: 0; border-top-color: #1e293b; }
-
-      /* BUG REAL encontrado (reportado: "mobile usa el mismo trofeo en las
-         dos" — Primera A y B): esta regla apagaba el emoji real de CADA
-         tarjeta (font-size:0) y lo reemplazaba SIEMPRE por 🏆 vía ::before,
-         sin importar cuál tarjeta fuera — Primera B (⚽) terminaba mostrando
-         el trofeo de Primera A igual. Se saca del todo: el ícono real de
-         cada tarjeta (🏆 Primera A / ⚽ Primera B / 🏟️ El Nido) ya se ve
-         bien con el tamaño de la regla de arriba, sin necesitar un ::before
-         que lo pise. */
-
-      /* Primera A/B: tarjeta vertical (ícono/nombre/badge centrados,
-         racha+puntos al pie) en vez de la fila horizontal compacta de
-         antes — ahora que van lado a lado en 2 columnas angostas, apilar
-         todo centrado da más variación de layout y entra mejor que una
-         fila. */
-      .landing-cards .landing-card:nth-child(-n+2) {
-        display: flex; flex-direction: column; align-items: center; text-align: center;
-        gap: 4px; padding: 16px 10px 14px;
-      }
-      .landing-cards .landing-card:nth-child(-n+2) .lc-card-head { flex-direction: column; align-items: center; gap: 4px; }
-      .landing-cards .landing-card:nth-child(-n+2) .lc-card-head-left { flex-direction: column; gap: 4px; }
-      .landing-cards .landing-card:nth-child(-n+2) .lc-card-head-info { align-items: center; }
-      .landing-cards .landing-card:nth-child(-n+2) .card-desc { display: none; }
-      .landing-cards .landing-card:nth-child(-n+2) .card-name { font-size: 0.85rem; }
-      .landing-cards .landing-card:nth-child(-n+2) .lc-badge { position: static; margin-top: 2px; }
-      .landing-cards .landing-card:nth-child(-n+2) > .card-badge {
-        align-self: center; margin: 4px 0 0; font-size: 11px; padding: 2px 8px; white-space: nowrap;
-      }
-      /* Barra "Fecha N de 15" en mobile: debajo de la insignia del torneo,
-         antes de la racha. */
-      .landing-cards .landing-card:nth-child(-n+2) .lc-progress-wrap { margin: 6px 0 0; justify-content: center; }
-      .landing-cards .landing-card:nth-child(-n+2) .lc-footer {
-        flex-direction: column; align-items: center; gap: 6px; width: 100%;
-        margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08);
-      }
-      .landing-cards .landing-card:nth-child(-n+2) .lc-foot-results { justify-content: center; gap: 4px; }
-      /* Fichas de racha + escudo del rival más chicas en mobile (22px ficha,
-         14px escudo) para que entren las 5 cómodas en el ancho de columna. */
-      .landing-cards .landing-card:nth-child(-n+2) .lc-res-pill {
-        width: 22px; height: 22px; border-radius: 6px;
-      }
-      .landing-cards .landing-card:nth-child(-n+2) .lc-res-crest { width: 14px; height: 14px; }
-
-      /* El Nido (3ra tarjeta): compactada a un solo renglón — ícono +
-         nombre a la izquierda, badge "N jugadores" a la derecha (ambos ya
-         vienen así de .lc-card-head, sin cambios); se esconde la bajada
-         ("Jugadores de la Primera...") y el badge estático "NUESTROS
-         JUGADORES" (redundante con la badge de jugadores) para que ese
-         renglón sea lo único arriba, dejando el rotador de rankings
-         (.lc-footer-nido, ver _paintNidoRotator) como bloque de cierre. */
-      .landing-cards .landing-card:last-child .card-desc { display: none; }
-      .landing-cards .landing-card:last-child > .card-badge { display: none; }
-      .landing-cards .landing-card:last-child .lc-footer { margin-top: 10px; padding-top: 10px; }
-
-      /* Footer discreto de cierre — antes quedaba un espacio vacío grande
-         antes del borde inferior (la landing no comparte el <footer> del
-         app shell, ese vive fuera de #landing). */
-      .landing-footer-note {
-        display: block; text-align: center; font-size: 0.75rem; color: #4a5268;
-        margin-top: 18px; padding-bottom: 4px;
-      }
+      .landing-card .card-icon { font-size: 1.8rem; filter: none; }
+      .landing-card .card-name { font-size: 0.85rem; }
+      .lc-bignum-val { font-size: 1.5rem; }
     }
 
     footer { text-align: center; padding: 24px; font-size: 0.72rem; color: var(--gris-texto); border-top: 1px solid var(--gris); margin-top: 40px; }
@@ -4261,75 +4172,58 @@
     <div class="pm-carousel-label" id="pm-carousel-label">Próximos partidos</div>
     <div class="pm-carousel" id="landing-next-match-carousel"></div>
   </div>
-  <!-- NOTA: las tarjetas de arriba (partido/plantel/El Nido) son atajos
-       internos — nunca <a>, solo <div onclick=...> con una flecha → sumada
-       por CSS (ver .lc-arrow) o un leve resaltado al pasar el mouse. -->
+  <!-- NOTA: las tarjetas de abajo (planteles/El Nido) son atajos internos
+       — nunca <a>, solo <div onclick=...> con una flechita chica junto al
+       título (ver .lc-title-arrow) + resaltado al pasar el mouse/foco. -->
 
 
   <div class="landing-cards-label">Planteles</div>
   <div class="landing-cards">
-    <!-- Los wrapper .lc-card-head/-left/-info de acá abajo son
-         display:contents en desktop (no existen para el layout — el ícono,
-         nombre, subtítulo y badge de posición quedan hijos directos de
-         .landing-card exactamente como antes) y pasan a un layout de fila
-         compacto recién bajo 768px (ver CSS) — el mismo #lc-badge-a/-b/-nido
-         y #lc-footer-a/-b/-nido de siempre, sin ningún cambio de JS, solo
-         se reordenan visualmente. -->
-    <div class="landing-card" onclick="openSection('a')">
+    <!-- Las 3 tarjetas comparten el mismo orden de filas (.lc-row-*), todo
+         centrado — ver CSS .lc-row-icon/-title/-badge/-torneo/-bignum/
+         -progress/-objetivo y .lc-divider. Mismo markup en desktop y
+         mobile, solo cambian tamaños (ver @media). Atajos internos — nunca
+         <a>, la única señal de "clickeable" es la flechita junto al
+         título (.lc-title-arrow) + el hover/foco de la tarjeta. -->
+    <div class="landing-card lc-card-a" onclick="openSection('a')" tabindex="0" role="button">
       <div class="lc-topline lc-topline-a"></div>
-      <div class="lc-card-head">
-        <div class="lc-card-head-left">
-          <div class="card-icon">🏆</div>
-          <div class="lc-card-head-info">
-            <div class="card-name">Primera A</div>
-            <div class="card-desc">1ª División<br>Temporada 2026</div>
-          </div>
-        </div>
-        <div class="lc-badge" id="lc-badge-a"></div>
-      </div>
-      <span class="card-badge badge-gold">Clausura AIFA A 2026</span>
-      <div class="lc-progress-wrap" id="lc-progress-a"></div>
-      <div class="lc-objetivo" id="lc-objetivo-a"></div>
-      <div class="lc-footer" id="lc-footer-a"></div>
-      <span class="lc-arrow">→</span>
+      <div class="lc-row lc-row-icon"><span class="card-icon">🏆</span></div>
+      <div class="lc-row lc-row-title"><span class="card-name">Primera A</span><span class="lc-title-arrow">›</span></div>
+      <div class="lc-row lc-row-badge" id="lc-badge-a"></div>
+      <div class="lc-row lc-row-torneo"><span class="card-badge badge-gold">Clausura AIFA A 2026</span></div>
+      <div class="lc-row lc-row-bignum" id="lc-bignum-a"></div>
+      <div class="lc-row lc-row-progress" id="lc-progress-a"></div>
+      <div class="lc-row lc-row-objetivo" id="lc-objetivo-a"></div>
+      <div class="lc-divider"></div>
+      <div class="lc-row lc-row-racha" id="lc-footer-a"></div>
     </div>
 
-    <div class="landing-card" onclick="openSection('b')">
+    <div class="landing-card lc-card-b" onclick="openSection('b')" tabindex="0" role="button">
       <div class="lc-topline lc-topline-b"></div>
-      <div class="lc-card-head">
-        <div class="lc-card-head-left">
-          <div class="card-icon">⚽</div>
-          <div class="lc-card-head-info">
-            <div class="card-name">Primera B</div>
-            <div class="card-desc">1ª División B<br>Temporada 2026</div>
-          </div>
-        </div>
-        <div class="lc-badge" id="lc-badge-b"></div>
-      </div>
-      <span class="card-badge badge-blue">Clausura AIFA B 2026</span>
-      <div class="lc-progress-wrap" id="lc-progress-b"></div>
-      <div class="lc-objetivo" id="lc-objetivo-b"></div>
-      <div class="lc-footer" id="lc-footer-b"></div>
-      <span class="lc-arrow">→</span>
+      <div class="lc-row lc-row-icon"><span class="card-icon">⚽</span></div>
+      <div class="lc-row lc-row-title"><span class="card-name">Primera B</span><span class="lc-title-arrow">›</span></div>
+      <div class="lc-row lc-row-badge" id="lc-badge-b"></div>
+      <div class="lc-row lc-row-torneo"><span class="card-badge badge-blue">Clausura AIFA B 2026</span></div>
+      <div class="lc-row lc-row-bignum" id="lc-bignum-b"></div>
+      <div class="lc-row lc-row-progress" id="lc-progress-b"></div>
+      <div class="lc-row lc-row-objetivo" id="lc-objetivo-b"></div>
+      <div class="lc-divider"></div>
+      <div class="lc-row lc-row-racha" id="lc-footer-b"></div>
     </div>
 
     <div class="landing-cards-mid-label">Nuestros Jugadores</div>
 
-    <div class="landing-card" onclick="openSection('nido')">
+    <div class="landing-card lc-card-nido" onclick="openSection('nido')" tabindex="0" role="button">
       <div class="lc-topline lc-topline-nido"></div>
-      <div class="lc-card-head">
-        <div class="lc-card-head-left">
-          <div class="card-icon">🏟️</div>
-          <div class="lc-card-head-info">
-            <div class="card-name">El Nido</div>
-            <div class="card-desc">Jugadores de la Primera División A y B del club</div>
-          </div>
-        </div>
-        <div class="lc-badge" id="lc-badge-nido"></div>
-      </div>
-      <span class="card-badge badge-green">NUESTROS JUGADORES</span>
-      <div class="lc-footer" id="lc-footer-nido"></div>
-      <span class="lc-arrow">→</span>
+      <div class="lc-row lc-row-icon"><span class="card-icon">🏟️</span></div>
+      <div class="lc-row lc-row-title"><span class="card-name">El Nido</span><span class="lc-title-arrow">›</span></div>
+      <div class="lc-row lc-row-badge" id="lc-badge-nido"></div>
+      <div class="lc-row lc-row-torneo"><span class="card-badge badge-green">Nuestros jugadores</span></div>
+      <div class="lc-row lc-row-bignum" id="lc-nido-bignum"></div>
+      <div class="lc-row lc-row-progress" id="lc-nido-caption"></div>
+      <div class="lc-row lc-row-objetivo" id="lc-nido-player"></div>
+      <div class="lc-divider"></div>
+      <div class="lc-row lc-row-racha lc-nido-dots" id="lc-nido-dots"></div>
     </div>
   </div>
   <div class="landing-footer-note" id="landing-footer-note">Temporada 2026</div>
@@ -19901,25 +19795,39 @@ function _paintLandingSkeletons() {
     carousel.innerHTML = pmCard + pmCard;
   }
   ['a', 'b'].forEach(key => {
-    const progEl = document.getElementById('lc-progress-' + key);
-    const objEl  = document.getElementById('lc-objetivo-' + key);
-    if (progEl && !progEl.innerHTML) progEl.innerHTML = bar('50px', '16px') + bar('100%', '4px');
-    if (objEl && !objEl.innerHTML) objEl.innerHTML = bar('140px', '15px');
+    const progEl   = document.getElementById('lc-progress-' + key);
+    const objEl    = document.getElementById('lc-objetivo-' + key);
+    const bignumEl = document.getElementById('lc-bignum-' + key);
+    if (bignumEl && !bignumEl.innerHTML) bignumEl.innerHTML = bar('54px', '30px');
+    if (progEl && !progEl.innerHTML) progEl.innerHTML = bar('100%', '4px') + bar('90px', '12px');
+    if (objEl && !objEl.innerHTML) objEl.innerHTML = bar('140px', '14px');
   });
-  // Racha de últimos 5 (label + 5 fichas con escudo debajo + puntos) — se
-  // aproxima la forma real (no solo una barra) para que la altura final no
-  // salte al llegar el dato real (ver renderLandingCardStats).
-  const footSkeleton = `${bar('100px', '11px')}
-    <div style="width:100%;display:flex;align-items:flex-end;gap:6px;margin-top:6px">
+  if (!document.getElementById('lc-nido-bignum')?.innerHTML) {
+    const b1 = document.getElementById('lc-nido-bignum'); if (b1) b1.innerHTML = bar('54px', '30px');
+  }
+  if (!document.getElementById('lc-nido-caption')?.innerHTML) {
+    const b2 = document.getElementById('lc-nido-caption'); if (b2) b2.innerHTML = bar('150px', '12px');
+  }
+  if (!document.getElementById('lc-nido-player')?.innerHTML) {
+    const b3 = document.getElementById('lc-nido-player'); if (b3) b3.innerHTML = bar('130px', '28px');
+  }
+  // Racha de últimos 5 (label + 5 fichas con escudo debajo) — se aproxima
+  // la forma real (no solo una barra) para que la altura final no salte al
+  // llegar el dato real (ver renderLandingCardStats).
+  const footSkeleton = `${bar('80px', '11px')}
+    <div style="width:100%;display:flex;align-items:flex-start;justify-content:center;gap:6px;margin-top:8px">
       ${Array(5).fill(0).map(() => `<span style="display:inline-flex;flex-direction:column;align-items:center;gap:3px">${bar('22px', '22px')}${bar('14px', '14px')}</span>`).join('')}
-      <span style="margin-left:auto">${bar('40px', '14px')}</span>
     </div>`;
-  ['a', 'b', 'nido'].forEach(key => {
+  ['a', 'b'].forEach(key => {
     const badgeEl = document.getElementById('lc-badge-' + key);
     const footEl  = document.getElementById('lc-footer-' + key);
     if (badgeEl && !badgeEl.innerHTML) badgeEl.innerHTML = bar('70px', '22px');
-    if (footEl && !footEl.innerHTML) footEl.innerHTML = key === 'nido' ? bar('100%', '40px') : footSkeleton;
+    if (footEl && !footEl.innerHTML) footEl.innerHTML = footSkeleton;
   });
+  const nidoBadgeEl = document.getElementById('lc-badge-nido');
+  if (nidoBadgeEl && !nidoBadgeEl.innerHTML) nidoBadgeEl.innerHTML = bar('70px', '22px');
+  const nidoDotsEl = document.getElementById('lc-nido-dots');
+  if (nidoDotsEl && !nidoDotsEl.innerHTML) nidoDotsEl.innerHTML = bar('40px', '6px');
 }
 // Partido en seguimiento vivo (Estado Vivo cargado a mano, ver
 // _vivoSectionHtml) de un equipo — se usa en la Home para mostrar el
@@ -20358,7 +20266,7 @@ function _lcObjetivoHtml(own, tabla) {
     if (!safe) return '';
     const n = (Number(safe.pts) || 0) - pts;
     if (n <= 0) return '';
-    return `<span class="lc-objetivo lc-objetivo-down">↘ <span class="lc-objetivo-full">a ${n} pts de salir del descenso</span><span class="lc-objetivo-short">a ${n} pts de salir</span></span>`;
+    return `<span class="lc-objetivo lc-objetivo-down">↘ a ${n} pts de salvarse</span>`;
   }
   const n = (Number(pos1.pts) || 0) - pts;
   if (n <= 0) return '';
@@ -20366,26 +20274,23 @@ function _lcObjetivoHtml(own, tabla) {
 }
 // Barra de avance — N = partidos de liga ya jugados por CSB (no cuenta la
 // Recopa, que corre aparte). 15 es la cantidad de fechas del Clausura AIFA,
-// informada por el club. BUG REAL encontrado (reportado: decía "Fecha 9 de
-// 15" pero ya se iba a jugar la fecha 11): Primera A tiene una fecha
-// reprogramada, así que el NÚMERO de fecha del próximo partido y la
-// CANTIDAD de partidos ya jugados se desalinean — "Fecha N" invitaba a leer
-// eso como el número de fecha. Rotulado como "PJ" (partidos jugados), no
-// "Fecha", para que no se confunda con el número de fecha real. También se
-// acorta a una sola línea compacta (antes "Fecha N de 15" ocupaba un
-// renglón propio encima de la barra).
+// informada por el club. Primera A tiene una fecha reprogramada, así que
+// puede mostrar un N distinto al de Primera B aunque vaya por la misma
+// fecha de calendario — por eso el texto dice "partidos jugados", nunca
+// "fecha N" (se podría confundir con el número de fecha real).
 const LC_TOTAL_FECHAS = 15;
 function _lcProgressHtml(playedCount, colorClass) {
   const pct = Math.max(0, Math.min(100, Math.round((playedCount / LC_TOTAL_FECHAS) * 100)));
-  return `<span class="lc-progress-label">PJ ${playedCount}/${LC_TOTAL_FECHAS}</span>
-    <div class="lc-progress-bar"><div class="lc-progress-fill ${colorClass}" style="width:${pct}%"></div></div>`;
+  return `<div class="lc-progress-bar"><div class="lc-progress-fill ${colorClass}" style="width:${pct}%"></div></div>
+    <span class="lc-progress-label">${playedCount} de ${LC_TOTAL_FECHAS} partidos</span>`;
 }
 function renderLandingCardStats() {
   [['a', DATA_A], ['b', DATA_B]].forEach(([key, d]) => {
-    const badgeEl = document.getElementById('lc-badge-' + key);
-    const footEl  = document.getElementById('lc-footer-' + key);
-    const progEl  = document.getElementById('lc-progress-' + key);
-    const objEl   = document.getElementById('lc-objetivo-' + key);
+    const badgeEl  = document.getElementById('lc-badge-' + key);
+    const footEl   = document.getElementById('lc-footer-' + key);
+    const progEl   = document.getElementById('lc-progress-' + key);
+    const objEl    = document.getElementById('lc-objetivo-' + key);
+    const bignumEl = document.getElementById('lc-bignum-' + key);
     const tabla = d.tabla || [];
     const own = tabla.find(t => t.csb);
     // own.pos ya viene con su propio símbolo ordinal (parseTablaSheet arma
@@ -20395,6 +20300,8 @@ function renderLandingCardStats() {
     // del club: "el puesto deja de ser verde/rojo").
     if (badgeEl) _softSetHtml(badgeEl, own
       ? `<span class="lc-badge-pill lc-badge-neutral">${String(own.pos).replace(/[°º]/g, '')}º puesto</span>` : '');
+    if (bignumEl) _softSetHtml(bignumEl, own
+      ? `<span class="lc-bignum-val">${own.pts}</span><span class="lc-bignum-unit">pts</span>` : '');
     if (objEl) _softSetHtml(objEl, _lcObjetivoHtml(own, tabla));
     if (footEl) {
       const partidos = (d.partidos || []).filter(m => /^\d+$/.test(m.fecha));
@@ -20429,17 +20336,15 @@ function renderLandingCardStats() {
         if (ky == null) return 1;
         return kx - ky;
       });
-      // Últimos 5 partidos, del MÁS VIEJO al MÁS RECIENTE (de izquierda a
-      // derecha) — pedido del club: antes quedaba invertido (más reciente
-      // primero). Se ordena por fecha real ascendente arriba y se toman los
-      // últimos 5 tal cual (sin invertir), así la Recopa 2026 queda en su
-      // lugar cronológico real (jugada ENTRE dos partidos del Clausura) y el
-      // partido más nuevo queda al final (derecha).
-      const lastFive = played.slice(-5);
-      const labelHtml = `<span class="lc-foot-label">
-        <span><span class="lc-foot-label-full">Últimos 5 partidos</span><span class="lc-foot-label-short">Últimos 5</span></span>
-        <span class="lc-racha-arrow-mobile">→</span>
-      </span>`;
+      // Últimos 5 partidos, del MÁS RECIENTE al MÁS VIEJO (de izquierda a
+      // derecha) — mismo orden que el resto del sitio (ver `ultimos` en
+      // renderResumen: `combinadoUltimos.slice(-5).reverse()`, índice 0 =
+      // partido más reciente). BUG REAL encontrado (reportado: "la racha
+      // quedó invertida, el partido más reciente a la derecha"): una
+      // versión anterior de este bloque había puesto el más viejo primero
+      // — se revierte acá para volver a coincidir con Resumen.
+      const lastFive = played.slice(-5).reverse();
+      const labelHtml = `<span class="lc-foot-label"><span>Últimos 5</span><span class="lc-res-arrow">→</span></span>`;
       if (lastFive.length) {
         const pills = lastFive.map((m, idx) => {
           // BUG REAL encontrado (Primera B marcaba una derrota de visitante
@@ -20449,16 +20354,16 @@ function renderLandingCardStats() {
           const { csb, riv } = _csbGoles(m);
           const r = csb > riv ? 'G' : csb === riv ? 'E' : 'P';
           const cls = r === 'G' ? 'lc-res-g' : r === 'E' ? 'lc-res-e' : 'lc-res-p';
-          const isRecent = idx === lastFive.length - 1;
+          const isRecent = idx === 0; // más reciente = primera ficha = izquierda
           return `<span class="lc-res-item${isRecent ? ' lc-res-recent' : ''}" onclick="event.stopPropagation();this.classList.toggle('lc-res-tap')">
             <span class="lc-res-pill ${cls}">${r}</span>
             <span class="lc-res-crest">${_crestImgHtml(m.rival)}</span>
             <span class="lc-res-tooltip">${m.resultado || ''} vs ${m.rival}</span>
           </span>`;
         }).join('');
-        _softSetHtml(footEl, `${labelHtml}<span class="lc-foot-results">${pills}<span class="lc-res-arrow">→</span></span>${own ? `<span class="lc-foot-pts">${own.pts} pts</span>` : ''}`);
+        _softSetHtml(footEl, `${labelHtml}<span class="lc-foot-results">${pills}</span>`);
       } else {
-        _softSetHtml(footEl, `${labelHtml}<span>Sin partidos jugados</span>${own ? `<span class="lc-foot-pts">${own.pts} pts</span>` : ''}`);
+        _softSetHtml(footEl, `${labelHtml}<span>Sin partidos jugados</span>`);
       }
     }
   });
@@ -20515,51 +20420,50 @@ function _landingNidoRankGroups() {
   });
   return groups;
 }
-function _paintNidoRotator(el) {
+// El Nido comparte el mismo esquema de filas que Primera A/B (ver
+// .lc-row-bignum/-progress/-objetivo/-racha): el VALOR va en la fila de
+// número grande, la leyenda de categoría ("Goleadores · General") en la
+// fila de la barra (una sola línea, nunca "prom." cortado en dos), el
+// jugador (avatar + nombre en una sola línea, se acorta con ellipsis si no
+// entra) en la fila de objetivo, y los puntitos de rotación al final — sin
+// selector de categoría ni rotación manual, igual que antes.
+function _paintNidoRotator() {
+  const bignumEl  = document.getElementById('lc-nido-bignum');
+  const captionEl = document.getElementById('lc-nido-caption');
+  const playerEl  = document.getElementById('lc-nido-player');
+  const dotsEl    = document.getElementById('lc-nido-dots');
+  if (!bignumEl && !captionEl && !playerEl && !dotsEl) return;
   const groups = _landingNidoRankGroups();
-  if (!groups.length) { el.innerHTML = `<span>Sin registros aún</span>`; return; }
+  if (!groups.length) {
+    if (bignumEl) _softSetHtml(bignumEl, '');
+    if (captionEl) _softSetHtml(captionEl, `<span class="lc-nido-caption">Sin registros aún</span>`);
+    if (playerEl) _softSetHtml(playerEl, '');
+    if (dotsEl) _softSetHtml(dotsEl, '');
+    return;
+  }
   const g = groups[_landingNidoRotIdx % groups.length];
   const color = g.disp.color || '#85b7eb';
   const initials = String(g.top.nombre || '').trim().split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+  if (bignumEl) _softSetHtml(bignumEl, `<span class="lc-bignum-val" style="color:${color}">${g.val}</span>`);
+  if (captionEl) _softSetHtml(captionEl, `<span class="lc-nido-caption">${g.metricLabel} · ${g.catLabel}</span>`);
+  if (playerEl) _softSetHtml(playerEl, `<span class="lc-nido-player-row">
+    <span class="lc-nido-avatar" style="background:${color}26;color:${color}">${initials}</span>
+    <span class="lc-nido-name">${g.top.nombre}</span>
+  </span>`);
   // Puntitos de rotación (3, el activo más largo) — puramente decorativos,
-  // ciclan cada vez que cambia el stat mostrado (no 1 a 1 con `groups`,
-  // que tiene muchas más combinaciones; alcanza como indicador visual de
-  // "esto va rotando").
-  const dots = [0, 1, 2].map(i => `<span class="lc-nido-dot${i === (_landingNidoRotIdx % 3) ? ' active' : ''}"></span>`).join('');
-  // Desktop: más jerarquía que antes (pedido del club) — línea chica de
-  // label arriba, nombre del jugador a la izquierda y el valor grande a la
-  // derecha debajo. Mobile mantiene el formato de siempre (avatar+chip, ver
-  // .lc-nido-stack) sin cambios.
-  el.innerHTML = `<div class="lc-nido-flat" style="width:100%">
-    <p class="lc-nido-label" style="margin-bottom:6px">${g.metricLabel} · ${g.catLabel}</p>
-    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
-      <span style="font-weight:700;color:var(--texto)">${g.disp.icon} ${g.top.nombre}</span>
-      <span style="font-size:1.1rem;font-weight:900;color:${color}">${g.val} <span style="font-size:0.75rem;font-weight:700;color:var(--gris-texto)">${g.disp.unit}</span></span>
-    </div>
-    <div class="lc-nido-dots">${dots}</div>
-  </div>
-  <div class="lc-nido-stack">
-    <p class="lc-nido-label">${g.metricLabel} · ${g.catLabel}</p>
-    <div class="lc-nido-row">
-      <div class="lc-nido-avatar" style="background:${color}26;color:${color}">${initials}</div>
-      <span class="lc-nido-name">${g.top.nombre}</span>
-      <div class="lc-nido-chip" style="background:${color}1f">
-        <p class="lc-nido-chip-val" style="color:${color}">${g.val}</p>
-        <p class="lc-nido-chip-unit" style="color:${color}">${g.disp.unit.toUpperCase()}</p>
-      </div>
-    </div>
-    <div class="lc-nido-dots">${dots}</div>
-  </div>`;
+  // ciclan cada vez que cambia el stat mostrado (no 1 a 1 con `groups`, que
+  // tiene muchas más combinaciones; alcanza como indicador visual de "esto
+  // va rotando").
+  if (dotsEl) _softSetHtml(dotsEl, [0, 1, 2].map(i => `<span class="lc-nido-dot${i === (_landingNidoRotIdx % 3) ? ' active' : ''}"></span>`).join(''));
 }
 function renderLandingNidoFooter() {
   const nidoBadge = document.getElementById('lc-badge-nido');
-  const nidoFoot  = document.getElementById('lc-footer-nido');
-  if ((!nidoBadge && !nidoFoot) || !window._nidoEnsureLoaded) return;
+  if ((!nidoBadge && !document.getElementById('lc-nido-bignum')) || !window._nidoEnsureLoaded) return;
   window._nidoEnsureLoaded().then(() => {
     const merged = window._nidoGetMerged ? window._nidoGetMerged() : [];
     if (nidoBadge) _softSetHtml(nidoBadge, merged.length
       ? `<span class="lc-badge-pill lc-badge-neutral">${merged.length} jugadores</span>` : '');
-    if (nidoFoot) _paintNidoRotator(nidoFoot);
+    _paintNidoRotator();
   });
 }
 function renderLandingWidgets() {
@@ -20571,13 +20475,14 @@ setInterval(renderLandingNextMatch, 60000);
 // Partidos Jugados, Títulos, ...) × categoría (General/Primera A/Primera B)
 // every few seconds, with a brief fade instead of snapping the text.
 setInterval(() => {
-  const el = document.getElementById('lc-footer-nido');
-  if (!el || !window._nidoGetMerged || !window._nidoGetMerged().length) return;
-  el.classList.add('lc-fading');
+  const els = ['lc-nido-bignum', 'lc-nido-caption', 'lc-nido-player', 'lc-nido-dots']
+    .map(id => document.getElementById(id)).filter(Boolean);
+  if (!els.length || !window._nidoGetMerged || !window._nidoGetMerged().length) return;
+  els.forEach(el => el.classList.add('lc-fading'));
   setTimeout(() => {
     _landingNidoRotIdx++;
-    _paintNidoRotator(el);
-    el.classList.remove('lc-fading');
+    _paintNidoRotator();
+    els.forEach(el => el.classList.remove('lc-fading'));
   }, 250);
 }, 4000);
 
