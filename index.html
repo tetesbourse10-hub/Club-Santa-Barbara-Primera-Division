@@ -14426,10 +14426,10 @@ function renderResumen() {
                 ${ultimoCategoriaRival ? `<span class="px-2 py-0.5 rounded-full bg-slate-800/60 text-slate-400">🏷️ ${ultimoCategoriaRival}</span>` : ''}
               </div>` : ''}
               ${(ultimoCronicaTexto || ultimoGoleadores.length) ? `
-              <div class="w-full bg-slate-950/50 p-3 rounded-xl border border-slate-800/60 text-xs text-slate-400 mt-3" style="display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">
+              <div class="w-full mt-3" style="background:#0f1729;border-radius:10px;padding:12px 14px;color:#b4c0d1;font-size:13.5px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">
                 ${ultimoCronicaTexto
-                  ? `<span class="text-white font-bold">Crónica:</span> ${ultimoCronicaTexto}`
-                  : `<span class="text-white font-bold">Goles:</span> ${ultimoGoleadores.join(', ')}`}
+                  ? `<b class="text-white">Crónica:</b> ${ultimoCronicaTexto}`
+                  : `<b class="text-white">Goles:</b> ${ultimoGoleadores.join(', ')}`}
               </div>` : ''}
             </div>
             <button onclick="goToMatchFecha('${ultimo._navKey}', '${ultimoNavFecha.replace(/'/g, "\\'")}')" class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold border border-slate-600/60 text-xs transition flex items-center justify-center gap-1 mt-auto appearance-none cursor-pointer" style="margin-top:auto">Ver Ficha Completa →</button>
