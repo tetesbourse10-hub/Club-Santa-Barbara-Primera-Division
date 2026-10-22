@@ -14347,7 +14347,7 @@ function renderResumen() {
            Cada bloque se omite si no hay fila propia en la tabla o no hay
            partidos jugados, nunca un "—". -->
       ${(_rsmOwn || _rsmRachaPills) ? `
-      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl mb-5 flex items-stretch flex-wrap overflow-hidden">
+      <div style="display:grid;grid-template-columns:.8fr .8fr 1.5fr 1.2fr 1.5fr" class="bg-slate-900/90 border border-slate-800 rounded-2xl mb-5 overflow-hidden">
         ${_rsmOwn ? `
         <div style="padding:18px 22px;border-color:#1f2b42" class="flex flex-col items-center justify-center text-center border-r">
           <span class="text-xs text-slate-500 font-semibold uppercase tracking-wide">Posición</span>
@@ -14384,7 +14384,7 @@ function renderResumen() {
           </div>
         </div>` : ''}
         ${_rsmRachaPills ? `
-        <div style="padding:18px 22px;min-width:220px" class="flex-1 flex flex-col items-center justify-center gap-2">
+        <div style="padding:18px 22px${_rsmOwn ? '' : ';grid-column:1/-1'}" class="flex flex-col items-center justify-center gap-2">
           <span class="text-xs text-slate-500 font-semibold uppercase tracking-wide">Últimos 5</span>
           <span class="lc-foot-results">${_rsmRachaPills}</span>
         </div>` : ''}
