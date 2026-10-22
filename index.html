@@ -226,11 +226,11 @@
       background: var(--azul-card);
       border: 1px solid rgba(255,255,255,0.07);
       border-radius: 20px;
-      padding: 36px 24px 28px;
+      padding: 30px 24px 24px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 14px;
+      gap: 9px;
       cursor: pointer;
       transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
       text-align: center;
@@ -395,6 +395,7 @@
     .nmb-foot-hist-g { color: var(--verde); font-weight: 800; }
     .nmb-foot-hist-e { color: var(--dorado); font-weight: 800; }
     .nmb-foot-hist-p { color: var(--rojo); font-weight: 800; }
+    .nmb-foot-hist-none { font-style: italic; }
 
     /* ── LANDING CARD: position badge + last-5-results/points footer ── */
     .lc-badge { position: absolute; top: 14px; right: 14px; }
@@ -414,14 +415,17 @@
     .lc-topline-b { background: var(--azul-claro); }
     .lc-topline-nido { background: var(--verde); }
     /* Barra de avance "Fecha N de 15" — se llena con el color del plantel. */
-    .lc-progress-wrap { width: 100%; margin: 10px 0 2px; }
-    .lc-progress-label { font-size: 0.75rem; color: var(--gris-texto); margin-bottom: 4px; }
-    .lc-progress-bar { width: 100%; height: 4px; border-radius: 3px; background: rgba(255,255,255,0.08); overflow: hidden; }
+    /* Una sola fila (label corto + barra) en vez de 2 renglones apilados —
+       pedido del club: la versión anterior ("Fecha N de 15" en su propia
+       línea arriba de la barra) hacía la tarjeta demasiado larga. */
+    .lc-progress-wrap { width: 100%; margin: 0; display: flex; align-items: center; gap: 8px; }
+    .lc-progress-label { font-size: 0.76rem; color: var(--gris-texto); flex-shrink: 0; white-space: nowrap; }
+    .lc-progress-bar { flex: 1; height: 4px; border-radius: 3px; background: rgba(255,255,255,0.08); overflow: hidden; }
     .lc-progress-fill { height: 100%; border-radius: 3px; }
     .lc-progress-fill-a { background: var(--dorado); }
     .lc-progress-fill-b { background: var(--azul-claro); }
     /* Línea de objetivo (líder / a N pts del 1° / zona de descenso). */
-    .lc-objetivo { font-size: 0.78rem; font-weight: 700; margin-top: 8px; display: flex; align-items: center; gap: 5px; }
+    .lc-objetivo { font-size: 0.75rem; font-weight: 700; margin-top: 0; display: flex; align-items: center; gap: 5px; }
     .lc-objetivo-up   { color: var(--verde); }
     .lc-objetivo-down { color: var(--rojo); }
     .lc-objetivo-lider { color: var(--dorado); }
@@ -435,7 +439,7 @@
     .lc-footer {
       width: 100%;
       display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
-      margin-top: 4px; padding-top: 12px;
+      margin-top: 0; padding-top: 9px;
       border-top: 1px solid rgba(255,255,255,0.08);
       font-size: 0.78rem; color: var(--gris-texto);
       transition: opacity .2s;
@@ -502,7 +506,6 @@
     .lc-nido-dots { display: flex; align-items: center; gap: 4px; margin-top: 8px; }
     .lc-nido-dot { width: 5px; height: 5px; border-radius: 3px; background: rgba(255,255,255,0.18); transition: width .2s, background .2s; }
     .lc-nido-dot.active { width: 14px; background: var(--verde); }
-    .lc-nido-rota-caption { font-size: 0.75rem; color: var(--gris-texto); margin-top: 6px; }
 
     /* ── Landing widgets: skeleton placeholders (first visit, no SWR cache
        yet) + soft-update fade (avoids a jarring snap when the background
@@ -1434,7 +1437,7 @@
       }
       /* Barra "Fecha N de 15" en mobile: debajo de la insignia del torneo,
          antes de la racha. */
-      .landing-cards .landing-card:nth-child(-n+2) .lc-progress-wrap { margin: 8px 0 2px; }
+      .landing-cards .landing-card:nth-child(-n+2) .lc-progress-wrap { margin: 6px 0 0; justify-content: center; }
       .landing-cards .landing-card:nth-child(-n+2) .lc-footer {
         flex-direction: column; align-items: center; gap: 6px; width: 100%;
         margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08);
@@ -19925,29 +19928,30 @@ function _nmbPosLineHtml(navKey, rivalNombre) {
   const rivPos = String(riv.pos).replace(/[°º]/g, '');
   return `<span class="nmb-foot-pos">CSB <strong>${ownPos}°</strong> · ${rivalNombre} <strong>${rivPos}°</strong></span>`;
 }
-// Historial G-E-P de Santa Bárbara vs ese rival puntual — se calcula a
-// partir de la misma "Partidos Historial" (match a match) que ya usan el
-// drilldown de Historial vs Clubes y el perfil de jugador (_loadPartidosCache/
-// _loadPartidosCacheB), no un dato nuevo. Es async (fetch a Sheets), así que
-// se pinta aparte una vez resuelto — el target span guarda el rival esperado
-// en data-rival para no pisar la tarjeta si para entonces ya cambió de
-// partido/rival (ej. el usuario volvió a entrar y el próximo rival cambió).
+// Historial G-E-P de Santa Bárbara vs ese rival puntual. BUG REAL encontrado
+// (reportado: "el historial no es acorde al que aparece en Historial vs
+// Clubes"): la primera versión recalculaba G/E/P acá mismo con _csbGoles
+// (que corrige gf/gc según Local/Visitante), pero la hoja "Partidos
+// Historial" que carga _loadPartidosCache/_loadPartidosCacheB YA trae gf/gc
+// en orden fijo CSB-Rival (no Local-Visitante) — exactamente lo que usa
+// _buildSummaryFromCache (Primera A) y _loadHistorialResumenB (Primera B,
+// hoja agregada aparte) para la pantalla real de Historial vs Clubes. Aplicar
+// _csbGoles encima invertía el resultado de cada partido de visitante,
+// dando un G-E-P distinto al de esa pantalla. Ahora se reusan esas DOS
+// mismas fuentes (una por división) en vez de recalcular nada acá, así los
+// dos lugares siempre muestran exactamente lo mismo.
 function _nmbHistLineHtml(navKey, rivalNombre, targetId) {
-  const loadFn = navKey === 'a' ? _loadPartidosCache : _loadPartidosCacheB;
-  if (typeof loadFn !== 'function') return;
-  loadFn().then(all => {
+  const rivalUp = String(rivalNombre || '').toUpperCase().trim();
+  const summaryPromise = navKey === 'a'
+    ? (typeof _loadPartidosCache === 'function' ? _loadPartidosCache().then(all => _buildSummaryFromCache(all || [])) : null)
+    : (typeof _loadHistorialResumenB === 'function' ? _loadHistorialResumenB().then(({ clubes }) => clubes || []) : null);
+  if (!summaryPromise) return;
+  summaryPromise.then(rows => {
     const el = document.getElementById(targetId);
     if (!el || el.dataset.rival !== rivalNombre) return;
-    const rivalUp = String(rivalNombre || '').toUpperCase().trim();
-    const matches = (all || []).filter(mm => String(mm.rival || '').toUpperCase().trim() === rivalUp && mm.resultado !== null);
-    let g = 0, e = 0, p = 0;
-    matches.forEach(mm => {
-      const { csb, riv } = _csbGoles(mm);
-      if (csb == null || riv == null) return;
-      if (csb > riv) g++; else if (csb === riv) e++; else p++;
-    });
-    if (!(g || e || p)) { el.innerHTML = ''; return; }
-    el.innerHTML = `Historial <span class="nmb-foot-hist-g">${g}G</span> <span class="nmb-foot-hist-e">${e}E</span> <span class="nmb-foot-hist-p">${p}P</span>`;
+    const r = (rows || []).find(row => String(row.rival || '').toUpperCase().trim() === rivalUp);
+    if (!r || !r.pj) { el.innerHTML = `<span class="nmb-foot-hist-none">Primer partido entre ambos</span>`; return; }
+    el.innerHTML = `Historial <span class="nmb-foot-hist-g">${r.pg}G</span> <span class="nmb-foot-hist-e">${r.pe}E</span> <span class="nmb-foot-hist-p">${r.pp}P</span>`;
   }).catch(() => {});
 }
 function _renderNextMatchBox(elId, boxClass, label, m, navKey) {
@@ -19995,7 +19999,10 @@ function _renderNextMatchBox(elId, boxClass, label, m, navKey) {
   };
   const histTargetId = elId + '-hist';
   const posLine = _nmbPosLineHtml(navKey, m.rival);
-  const footHtml = posLine ? `<div class="nmb-foot relative z-10">${posLine}<span class="nmb-foot-hist" id="${histTargetId}" data-rival="${String(m.rival || '').replace(/"/g, '&quot;')}"></span></div>` : '';
+  // La fila se arma siempre que haya rival (la posición puede faltar — ver
+  // _nmbPosLineHtml — pero el historial siempre tiene algo para mostrar,
+  // aunque sea "Primer partido entre ambos").
+  const footHtml = m.rival ? `<div class="nmb-foot relative z-10">${posLine}<span class="nmb-foot-hist" id="${histTargetId}" data-rival="${String(m.rival || '').replace(/"/g, '&quot;')}"></span></div>` : '';
   _softSetHtml(el, `
     <div class="pm2-card ${isA ? 'pm2-a' : 'pm2-b'} group p-3${clickAttr ? ' cursor-pointer' : ''}"${clickAttr}>
       <div class="absolute -top-12 -left-12 w-32 h-32 ${c.glow} rounded-full blur-2xl pointer-events-none"></div>
@@ -20012,7 +20019,15 @@ function _renderNextMatchBox(elId, boxClass, label, m, navKey) {
         </div>` : '')}
       </div>
 
-      <div class="flex items-center justify-between pt-2 relative z-10">
+      ${(() => {
+        // Si Santa Bárbara juega de visitante, este bloque (escudo+"vs
+        // Rival") pasa al lado derecho y el recuadro de fecha/cancha al
+        // izquierdo — mismo criterio Local-izquierda/Visitante-derecha que
+        // ya usa el carrusel mobile (ver _pmCard), ahora también en
+        // desktop (antes quedaba siempre fijo a la izquierda sin importar
+        // la localía real).
+        const isVisitante = /visit/i.test(m.local || '');
+        return `<div class="flex items-center justify-between pt-2 relative z-10${isVisitante ? ' flex-row-reverse' : ''}">
         <div class="flex items-center gap-3.5 min-w-0">
           <div class="relative group-hover:scale-105 transition-transform duration-300 shrink-0">
             <div class="w-12 h-12 rounded-2xl bg-gradient-to-b from-slate-800 to-slate-900 p-2 border border-slate-700/80 shadow-md flex items-center justify-center overflow-hidden">${_crestImgHtml(m.rival)}</div>
@@ -20030,20 +20045,29 @@ function _renderNextMatchBox(elId, boxClass, label, m, navKey) {
           <div class="inline-block bg-slate-900/60 px-2.5 py-1 rounded-lg border border-slate-800/80">
             <p class="text-xs font-bold text-slate-100">${m.isLive ? (m.final ? 'Finalizado' : 'En vivo') : (metaLine || 'Fecha a confirmar')}</p>
             ${m.lugar ? (_mapsUrlFor(m) ? `
-            <a href="${_mapsUrlFor(m)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Cómo llegar" class="text-[11px] ${c.pinText} font-semibold flex items-center justify-end gap-1 mt-0.5">
+            <a href="${_mapsUrlFor(m)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Cómo llegar" class="text-xs ${c.pinText} font-semibold flex items-center justify-end gap-1 mt-0.5">
               <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
               ${m.lugar}
             </a>` : `
-            <p class="text-[11px] text-slate-400 font-medium flex items-center justify-end gap-1 mt-0.5">
+            <p class="text-xs text-slate-400 font-medium flex items-center justify-end gap-1 mt-0.5">
               <svg class="w-3 h-3 ${c.pinText}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
               ${m.lugar}
             </p>`) : ''}
           </div>
         </div>
-      </div>
+      </div>`;
+      })()}
       ${footHtml}
     </div>`);
-  if (footHtml) _nmbHistLineHtml(navKey, m.rival, histTargetId);
+  // BUG REAL encontrado (el historial nunca pintaba con datos que resuelven
+  // rápido): _softSetHtml recién escribe el innerHTML real en el próximo
+  // frame (requestAnimationFrame), pero esta llamada se disparaba en el
+  // mismo tick — si la promesa de historial resolvía por un microtask (ej.
+  // una caché ya tibia) terminaba buscando el span por id ANTES de que
+  // existiera en el DOM. Encolar esto también con requestAnimationFrame lo
+  // sincroniza con el mismo frame en el que _softSetHtml ya escribió el
+  // nuevo HTML.
+  if (footHtml) requestAnimationFrame(() => _nmbHistLineHtml(navKey, m.rival, histTargetId));
 }
 // Escudos reales de rivales, tomados del propio sitio de AIFA (URLs
 // públicas de Supabase Storage que AIFA usa para alojarlos — no hay CORS
@@ -20307,13 +20331,20 @@ function _lcObjetivoHtml(own, tabla) {
   if (n <= 0) return '';
   return `<span class="lc-objetivo lc-objetivo-up">↗ a ${n} pts del 1°</span>`;
 }
-// Barra "Fecha N de 15" — N = partidos de liga ya jugados por CSB (no
-// cuenta la Recopa, que corre aparte). 15 es la cantidad de fechas del
-// Clausura AIFA, informada por el club.
+// Barra de avance — N = partidos de liga ya jugados por CSB (no cuenta la
+// Recopa, que corre aparte). 15 es la cantidad de fechas del Clausura AIFA,
+// informada por el club. BUG REAL encontrado (reportado: decía "Fecha 9 de
+// 15" pero ya se iba a jugar la fecha 11): Primera A tiene una fecha
+// reprogramada, así que el NÚMERO de fecha del próximo partido y la
+// CANTIDAD de partidos ya jugados se desalinean — "Fecha N" invitaba a leer
+// eso como el número de fecha. Rotulado como "PJ" (partidos jugados), no
+// "Fecha", para que no se confunda con el número de fecha real. También se
+// acorta a una sola línea compacta (antes "Fecha N de 15" ocupaba un
+// renglón propio encima de la barra).
 const LC_TOTAL_FECHAS = 15;
 function _lcProgressHtml(playedCount, colorClass) {
   const pct = Math.max(0, Math.min(100, Math.round((playedCount / LC_TOTAL_FECHAS) * 100)));
-  return `<div class="lc-progress-label">Fecha ${playedCount} de ${LC_TOTAL_FECHAS}</div>
+  return `<span class="lc-progress-label">PJ ${playedCount}/${LC_TOTAL_FECHAS}</span>
     <div class="lc-progress-bar"><div class="lc-progress-fill ${colorClass}" style="width:${pct}%"></div></div>`;
 }
 function renderLandingCardStats() {
@@ -20473,7 +20504,6 @@ function _paintNidoRotator(el) {
       <span style="font-size:1.1rem;font-weight:900;color:${color}">${g.val} <span style="font-size:0.75rem;font-weight:700;color:var(--gris-texto)">${g.disp.unit}</span></span>
     </div>
     <div class="lc-nido-dots">${dots}</div>
-    <p class="lc-nido-rota-caption">Rota entre goles, asistencias y presencias</p>
   </div>
   <div class="lc-nido-stack">
     <p class="lc-nido-label">${g.metricLabel} · ${g.catLabel}</p>
