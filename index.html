@@ -14073,13 +14073,12 @@ function renderResumen() {
   function top10RowTw(jug, i, rank, accent) {
     // Filas simples con línea fina abajo, sin tarjeta/fondo propio (ahora
     // viven dentro de una sola tarjeta "Top 5 Históricos" con columnas
-    // separadas por líneas verticales). Medalla 🥇🥈🥉 para 1°-3°, círculo
-    // gris con el número para 4°-5°; los empates comparten posición+medalla.
-    const medals = ['🥇', '🥈', '🥉'];
+    // separadas por líneas verticales). Círculo de color con el número de
+    // posición (oro/plata/bronce para 1°-3°, gris para el resto) — los
+    // empates comparten posición+color.
+    const medalColors = ['background:#facc15;color:#2a2000', 'background:#cbd5e1;color:#1e293b', 'background:#fb923c;color:#2a1200'];
     const onPodium = rank <= 3;
-    const rankEl = onPodium
-      ? `<span class="w-7 h-7 flex items-center justify-center text-base shrink-0">${medals[rank - 1]}</span>`
-      : `<span class="w-7 h-7 rounded-full bg-slate-800 flex items-center justify-center text-xs font-extrabold text-slate-400 shrink-0">${rank}</span>`;
+    const rankEl = `<span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-extrabold shrink-0" style="${onPodium ? medalColors[rank - 1] : 'background:#232e45;color:#94a3b8'}">${rank}</span>`;
     return `<div class="flex items-center gap-2.5 py-2.5${i > 0 ? ' border-t border-slate-800' : ''}">
       ${rankEl}
       <span class="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-extrabold text-slate-300 shrink-0">${_rivalInitials(jug.nombre)}</span>
@@ -14426,11 +14425,11 @@ function renderResumen() {
                 ${ultimoLugar ? `<span class="truncate">📍 ${_rsmCanonEstadio(ultimoLugar)}</span>` : ''}
                 ${ultimoCategoriaRival ? `<span class="px-2 py-0.5 rounded-full bg-slate-800/60 text-slate-400">🏷️ ${ultimoCategoriaRival}</span>` : ''}
               </div>` : ''}
-              ${(ultimoCronicaTexto || ultimoGoleadores.length || ultimoAsistidores.length) ? `
-              <div class="w-full bg-slate-950/50 p-3 rounded-xl border border-slate-800/60 text-xs text-slate-400 space-y-1 mt-3">
+              ${(ultimoCronicaTexto || ultimoGoleadores.length) ? `
+              <div class="w-full bg-slate-950/50 p-3 rounded-xl border border-slate-800/60 text-xs text-slate-400 mt-3" style="display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">
                 ${ultimoCronicaTexto
-                  ? `<div class="text-slate-400" style="display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">${ultimoCronicaTexto}</div>`
-                  : `${ultimoGoleadores.length ? `<div><span class="text-slate-500">⚽ Goles:</span> ${ultimoGoleadores.join(', ')}</div>` : ''}${ultimoAsistidores.length ? `<div><span class="text-slate-500">🎯 Asistencias:</span> ${ultimoAsistidores.join(', ')}</div>` : ''}`}
+                  ? `<span class="text-white font-bold">Crónica:</span> ${ultimoCronicaTexto}`
+                  : `<span class="text-white font-bold">Goles:</span> ${ultimoGoleadores.join(', ')}`}
               </div>` : ''}
             </div>
             <button onclick="goToMatchFecha('${ultimo._navKey}', '${ultimoNavFecha.replace(/'/g, "\\'")}')" class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold border border-slate-600/60 text-xs transition flex items-center justify-center gap-1 mt-auto appearance-none cursor-pointer" style="margin-top:auto">Ver Ficha Completa →</button>
