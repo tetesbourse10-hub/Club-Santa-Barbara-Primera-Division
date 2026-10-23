@@ -275,6 +275,98 @@
       .landing-card, .next-match-row > div, .pm-carousel-wrap,
       .resumen-desktop-only > * { animation: none; }
     }
+    /* ══════════════════════════════════════════════════════════════════
+       Resumen v3 (desktop) — CSS copiado tal cual de resumen_v3_mockup.html,
+       con todas las clases prefijadas "rv3-" (y las variables :root
+       escopadas a .resumen-desktop-only) para no pisar ninguna clase ya
+       usada en el resto del sitio (".card", ".tr", ".btn", ".g"/".r"/".a"
+       etc. son nombres genéricos que sí existen en otras partes). Ningún
+       valor de propiedad fue reinterpretado — son los mismos px/colores
+       del mockup. */
+    .resumen-desktop-only {
+      --rv3-card:#141d2e; --rv3-tile:#0f1729; --rv3-wrap:#101827; --rv3-line:#1f2b42;
+      --rv3-tx:#f1f5f9; --rv3-mut:#b4c0d1; --rv3-dim:#7d8aa0;
+      --rv3-or:#fb923c; --rv3-am:#fac775; --rv3-ce:#85b7eb; --rv3-vi:#af9ec6; --rv3-gr:#34d399; --rv3-rd:#f87171; --rv3-bl:#60a5fa;
+    }
+    .rv3-card{background:var(--rv3-card);border:1px solid var(--rv3-line);border-radius:16px;padding:20px}
+    .rv3-lab{font-size:12px;color:var(--rv3-mut);letter-spacing:.05em;text-transform:uppercase;font-weight:600}
+    .rv3-g{color:var(--rv3-gr)}.rv3-r{color:var(--rv3-rd)}.rv3-a{color:var(--rv3-am)}.rv3-o{color:var(--rv3-or)}.rv3-c{color:var(--rv3-ce)}.rv3-v{color:var(--rv3-vi)}
+    .rv3-tt{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:5px 12px;border-radius:99px;display:inline-block}
+    .rv3-tt.rv3-gn{background:#0e3b2b;color:var(--rv3-gr)}.rv3-tt.rv3-bl{background:#142a4a;color:var(--rv3-bl)}.rv3-tt.rv3-am{background:#412402;color:var(--rv3-am)}.rv3-tt.rv3-or{background:#3a1d08;color:var(--rv3-or)}.rv3-tt.rv3-ce{background:#112a45;color:var(--rv3-ce)}.rv3-tt.rv3-vi{background:#2a1f45;color:#c4b5fd}
+    /* ===== 1. RESUMEN DEL TORNEO ===== */
+    .rv3-sum{padding:16px;margin-bottom:16px}
+    .rv3-sum-h{display:flex;align-items:center;gap:12px;margin:2px 4px 14px}
+    .rv3-sum-h h3{margin:0;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--rv3-mut)}
+    .rv3-sum-h i{flex:1;height:1px;background:var(--rv3-line)}
+    .rv3-sum-g{display:grid;grid-template-columns:1fr 1fr 1.7fr 1.5fr 1.5fr;gap:12px}
+    .rv3-st{background:var(--rv3-tile);border:1px solid var(--rv3-line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;min-height:112px}
+    .rv3-st .rv3-lab{margin-bottom:10px}
+    .rv3-st .rv3-big{font-size:38px;font-weight:800;line-height:1}
+    .rv3-st .rv3-sub{font-size:12.5px;color:var(--rv3-mut);margin-top:auto;padding-top:8px}
+    .rv3-sp{display:flex;gap:8px;margin-top:auto}
+    .rv3-sp div{flex:1;border-radius:10px;padding:8px 4px;text-align:center}
+    .rv3-sp b{display:block;font-size:24px;line-height:1.1}.rv3-sp span{font-size:11.5px}
+    .rv3-sp .rv3-G{background:#0e3b2b;color:var(--rv3-gr)}.rv3-sp .rv3-E{background:#3a2608;color:var(--rv3-am)}.rv3-sp .rv3-P{background:#3f1a1d;color:var(--rv3-rd)}
+    .rv3-sp .rv3-F{background:#3a1d08;color:var(--rv3-or)}.rv3-sp .rv3-C{background:#3f1a1d;color:var(--rv3-rd)}
+    .rv3-racha{display:flex;gap:10px;margin:auto 0;justify-content:center;align-items:center;flex:1}.rv3-rc{display:flex;flex-direction:column;align-items:center;gap:5px}
+    .rv3-rc i{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-style:normal;font-weight:800;font-size:13px}
+    .rv3-rc u{width:18px;height:18px;border-radius:50%;background:#2a3650;display:block}
+    .rv3-rG i{background:#0e3b2b;color:var(--rv3-gr)}.rv3-rE i{background:#412402;color:var(--rv3-am)}.rv3-rP i{background:#4a1d1d;color:var(--rv3-rd)}
+    .rv3-rc.rv3-first i{outline:2px solid #94a3b8;outline-offset:2px}
+    /* ===== 2. FILA DE TRES ===== */
+    .rv3-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;align-items:stretch;margin-bottom:22px}
+    .rv3-col{display:flex;flex-direction:column}
+    .rv3-col .rv3-body{flex:1;display:flex;flex-direction:column;justify-content:center}
+    .rv3-btn{display:block;text-align:center;padding:11px;border-radius:10px;background:#1c2740;border:1px solid var(--rv3-line);font-weight:700;font-size:13px;color:var(--rv3-tx);margin-top:16px;appearance:none;cursor:pointer;width:100%}
+    .rv3-score{display:flex;justify-content:space-around;align-items:center;margin:14px 0}
+    .rv3-score .rv3-t{text-align:center;font-weight:700;font-size:13px}.rv3-score .rv3-sh{width:54px;height:54px;border-radius:50%;background:#e2e8f0;margin:0 auto 6px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+    .rv3-score .rv3-sc{font-size:34px;font-weight:800;padding:10px 20px;border-radius:14px;text-align:center}
+    .rv3-sc.rv3-lose{color:var(--rv3-rd);background:#2a1519}.rv3-sc.rv3-draw{color:var(--rv3-am);background:#2a1d0a}
+    .rv3-obs{flex:1;background:var(--rv3-tile);border:1px solid var(--rv3-line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;min-height:0;flex:0 0 auto}
+    .rv3-obs p{margin:0;color:var(--rv3-mut);font-size:13.5px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+    .rv3-obs b.rv3-l{font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--rv3-dim)}
+    table.rv3-mt{width:100%;border-collapse:collapse}
+    .rv3-mt th{font-size:12px;color:var(--rv3-mut);text-align:right;padding:6px 8px;font-weight:600;text-transform:uppercase}.rv3-mt th:nth-child(2){text-align:left}
+    .rv3-mt td{padding:11px 8px;text-align:right;border-bottom:1px solid #18233a}.rv3-mt td:nth-child(2){text-align:left;font-weight:600}.rv3-mt td:first-child{color:var(--rv3-mut);text-align:left}
+    .rv3-mt tr.rv3-me td{background:#0e2e24;color:var(--rv3-gr);font-weight:700;border-bottom-color:#0e2e24}
+    .rv3-mt tr.rv3-dz td:first-child{color:var(--rv3-rd)}
+    .rv3-ob{margin-top:10px;background:var(--rv3-tile);border:1px solid var(--rv3-line);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--rv3-mut)}.rv3-ob b{color:var(--rv3-tx)}
+    .rv3-dr{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid #18233a}.rv3-dr:last-child{border-bottom:0}
+    .rv3-dr .rv3-ic{width:38px;height:38px;border-radius:10px;background:var(--rv3-tile);display:grid;place-items:center}
+    .rv3-dr .rv3-nm{flex:1}.rv3-dr .rv3-nm span{display:block;font-size:12px;color:var(--rv3-mut)}.rv3-dr .rv3-nm b{font-size:15px;font-weight:700}.rv3-dr .rv3-n{font-size:24px;font-weight:800}
+    /* ===== 3/4. SECCIONES CON ENCABEZADO + TARJETAS ===== */
+    .rv3-secw{background:var(--rv3-wrap);border:1px solid var(--rv3-line);border-radius:20px;padding:18px;margin-bottom:22px}
+    .rv3-secw-h{display:flex;align-items:center;gap:12px;margin:0 4px 16px}
+    .rv3-secw-h h2{margin:0;font-size:15px;letter-spacing:.06em;text-transform:uppercase;color:var(--rv3-tx)}
+    .rv3-secw-h i{flex:1;height:1px;background:var(--rv3-line)}
+    .rv3-secw-h a{color:var(--rv3-mut);font-weight:700;font-size:13px;cursor:pointer}
+    .rv3-hist{display:grid;grid-template-columns:.9fr 2.1fr;gap:16px;align-items:stretch}
+    .rv3-pal{display:flex;flex-direction:column;gap:10px}
+    .rv3-tr{display:flex;align-items:center;gap:12px;background:var(--rv3-tile);border:1px solid var(--rv3-line);border-radius:12px;padding:12px 14px}
+    .rv3-tr b{flex:1;font-size:14px;font-weight:700}.rv3-yr{background:#facc15;color:#2a2000;font-weight:800;font-size:12px;padding:3px 10px;border-radius:99px}
+    .rv3-rec2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .rv3-rec2 div{background:var(--rv3-tile);border:1px solid var(--rv3-line);border-radius:12px;padding:12px;text-align:center}
+    .rv3-rec2 small{display:block;color:var(--rv3-mut);font-size:11.5px;letter-spacing:.04em;text-transform:uppercase}.rv3-rec2 b{display:block;font-size:16px;margin:4px 0}.rv3-rec2 em{font-style:normal;color:var(--rv3-dim);font-size:12px}
+    .rv3-pal .rv3-btn{margin-top:auto}
+    .rv3-tot{display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:auto auto;gap:12px}
+    .rv3-tt2{background:var(--rv3-tile);border:1px solid var(--rv3-line);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column}
+    .rv3-tt2 .rv3-lab{margin-bottom:8px}
+    .rv3-tt2 .rv3-big{font-size:36px;font-weight:800;line-height:1.05}
+    .rv3-tt2 small{color:var(--rv3-dim);font-size:12.5px;margin-top:auto;padding-top:6px}
+    .rv3-span2{grid-column:span 2}
+    .rv3-bar2{height:10px;border-radius:99px;background:#223049;overflow:hidden;margin:10px 0 6px}.rv3-bar2 i{display:block;height:100%;background:var(--rv3-gr);border-radius:99px}
+    .rv3-stack{display:flex;height:12px;border-radius:99px;overflow:hidden;margin:4px 0 12px}
+    .rv3-res{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:auto}
+    .rv3-res div{background:var(--rv3-card);border:1px solid var(--rv3-line);border-radius:10px;padding:8px;text-align:center}.rv3-res b{font-size:22px;display:block;line-height:1.1}.rv3-res span{font-size:12px;color:var(--rv3-mut);display:block}.rv3-res em{font-style:normal;font-size:12px;color:var(--rv3-dim)}
+    .rv3-t3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+    .rv3-tc{background:var(--rv3-card);border:1px solid var(--rv3-line);border-radius:16px;padding:16px 18px}
+    .rv3-tc .rv3-tth{display:flex;align-items:center;margin-bottom:6px}
+    .rv3-tr5{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #18233a}.rv3-tr5:last-child{border-bottom:0}
+    .rv3-rk{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:800;background:#232e45;color:var(--rv3-mut);flex:none}
+    .rv3-rk.rv3-m1{background:#facc15;color:#2a2000}.rv3-rk.rv3-m2{background:#cbd5e1;color:#1e293b}.rv3-rk.rv3-m3{background:#fb923c;color:#2a1200}
+    .rv3-av{width:32px;height:32px;border-radius:50%;background:#232e45;display:grid;place-items:center;font-size:11px;font-weight:700;flex:none}
+    .rv3-tr5 .rv3-nm{flex:1;font-weight:600}.rv3-tr5 .rv3-v2{font-weight:800;font-size:18px}
+    .rv3-tr5.rv3-p1{background:linear-gradient(90deg,rgba(250,204,21,.07),transparent);margin:0 -10px;padding-left:10px;padding-right:10px;border-radius:10px}
     /* Borde + elevación coloreados por tarjeta — SOLO al pasar el mouse o
        con foco de teclado, igual en las tres (antes Primera A los tenía
        también en reposo). */
@@ -13983,16 +14075,19 @@ function renderResumen() {
   // el MISMO orden (más reciente primero/izquierda, ver `ultimos` arriba —
   // ya viene así por el `.reverse()` de esa misma línea).
   const _rsmOwn = (d.tabla || []).find(t => t.csb) || null;
+  // Resumen v3 (resumen_v3_mockup.html, bloque 1): letra G/E/P + círculo
+  // con el escudo real del rival debajo (el mockup usa un punto liso de
+  // relleno porque es estático — acá va el crest real, mismo helper que ya
+  // usa Fecha a Fecha/Home para esos escudos).
   const _rsmRachaPills = ultimos.map((m, idx) => {
     const { csb, riv } = _csbGoles(m);
     const r = csb > riv ? 'G' : csb === riv ? 'E' : 'P';
-    const cls = r === 'G' ? 'lc-res-g' : r === 'E' ? 'lc-res-e' : 'lc-res-p';
+    const cls = r === 'G' ? 'rv3-rG' : r === 'E' ? 'rv3-rE' : 'rv3-rP';
     const isRecent = idx === 0;
-    return `<span class="lc-res-item${isRecent ? ' lc-res-recent' : ''}" onclick="event.stopPropagation();this.classList.toggle('lc-res-tap')">
-      <span class="lc-res-pill ${cls}">${r}</span>
-      <span class="lc-res-crest">${_crestImgHtml(m.rival)}</span>
-      <span class="lc-res-tooltip">${m.resultado || ''} vs ${m.rival}</span>
-    </span>`;
+    return `<div class="rv3-rc ${cls}${isRecent ? ' rv3-first' : ''}" title="${m.resultado || ''} vs ${m.rival}">
+      <i>${r}</i>
+      <u style="overflow:hidden;position:relative">${_crestImgHtml(m.rival)}</u>
+    </div>`;
   }).join('');
 
   // Tabla recortada para el widget "Tabla de Posiciones" del Resumen mobile
@@ -14344,53 +14439,20 @@ function renderResumen() {
         </div>
       </div>
 
-      <!-- Franja de resumen: 5 bloques separados por líneas finas
-           (posición / puntos / resultados / goles / últimos 5), mismo
-           componente de racha que la Home (ver _rsmRachaPills arriba).
-           Cada bloque se omite si no hay fila propia en la tabla o no hay
-           partidos jugados, nunca un "—". -->
-      ${(_rsmOwn || _rsmRachaPills) ? `
-      <div style="display:grid;grid-template-columns:.8fr .8fr 1.5fr 1.2fr 1.5fr" class="bg-slate-900/90 border border-slate-800 rounded-2xl mb-5 overflow-hidden">
-        ${_rsmOwn ? `
-        <div style="padding:18px 22px;border-color:#1f2b42" class="flex flex-col items-center justify-center text-center border-r">
-          <span class="text-xs text-slate-500 font-semibold uppercase tracking-wide">Posición</span>
-          <span class="text-white font-extrabold" style="font-size:32px;line-height:1.1;margin-top:4px">${String(_rsmOwn.pos).replace(/[°º]/g, '')}°</span>
-          <span class="text-slate-500 font-semibold" style="font-size:12.5px;margin-top:4px">en la tabla</span>
+      <!-- Resumen v3, bloque 1 "Resumen del torneo" — copiado tal cual de
+           resumen_v3_mockup.html (.card.sum > .sum-h + .sum-g), clases
+           prefijadas rv3- (ver CSS arriba). Se omite entero si no hay fila
+           propia en la tabla (torneo sin datos todavía). -->
+      ${_rsmOwn ? `
+      <div class="rv3-card rv3-sum">
+        <div class="rv3-sum-h"><h3>Resumen del torneo · ${d.badge.replace(/ \d{4}$/, '')}</h3><i></i></div>
+        <div class="rv3-sum-g">
+          <div class="rv3-st"><span class="rv3-lab">Posición</span><span class="rv3-big">${String(_rsmOwn.pos).replace(/[°º]/g, '')}°</span><span class="rv3-sub">en la tabla</span></div>
+          <div class="rv3-st"><span class="rv3-lab">Puntos</span><span class="rv3-big rv3-a">${_rsmOwn.pts}</span><span class="rv3-sub">${_rsmOwn.pj} partidos jugados</span></div>
+          <div class="rv3-st"><span class="rv3-lab">Resultados</span><div class="rv3-sp"><div class="rv3-G"><b>${_rsmOwn.pg}</b><span>Ganados</span></div><div class="rv3-E"><b>${_rsmOwn.pe}</b><span>Empatados</span></div><div class="rv3-P"><b>${_rsmOwn.pp}</b><span>Perdidos</span></div></div></div>
+          <div class="rv3-st"><span class="rv3-lab">Goles</span><div class="rv3-sp"><div class="rv3-F"><b>${_rsmOwn.gf}</b><span>A favor</span></div><div class="rv3-C"><b>${_rsmOwn.gc}</b><span>En contra</span></div></div></div>
+          <div class="rv3-st"><span class="rv3-lab">Últimos 5 partidos</span><div class="rv3-racha">${_rsmRachaPills}</div></div>
         </div>
-        <div style="padding:18px 22px;border-color:#1f2b42" class="flex flex-col items-center justify-center text-center border-r">
-          <span class="text-xs text-slate-500 font-semibold uppercase tracking-wide">Puntos</span>
-          <span class="text-white font-extrabold" style="font-size:32px;line-height:1.1;margin-top:4px">${_rsmOwn.pts}</span>
-          <span class="text-slate-500 font-semibold" style="font-size:12.5px;margin-top:4px">${_rsmOwn.pj} partidos jugados</span>
-        </div>
-        <div style="padding:18px 22px;border-color:#1f2b42" class="flex items-center justify-center gap-5 border-r">
-          <div class="flex flex-col items-center">
-            <span class="text-emerald-400 font-extrabold" style="font-size:28px;line-height:1">${_rsmOwn.pg}</span>
-            <span class="text-slate-500 font-semibold" style="font-size:12.5px;margin-top:3px">Ganados</span>
-          </div>
-          <div class="flex flex-col items-center">
-            <span class="text-amber-400 font-extrabold" style="font-size:28px;line-height:1">${_rsmOwn.pe}</span>
-            <span class="text-slate-500 font-semibold" style="font-size:12.5px;margin-top:3px">Empatados</span>
-          </div>
-          <div class="flex flex-col items-center">
-            <span class="text-red-400 font-extrabold" style="font-size:28px;line-height:1">${_rsmOwn.pp}</span>
-            <span class="text-slate-500 font-semibold" style="font-size:12.5px;margin-top:3px">Perdidos</span>
-          </div>
-        </div>
-        <div style="padding:18px 22px;border-color:#1f2b42" class="flex items-center justify-center gap-5 border-r">
-          <div class="flex flex-col items-center">
-            <span class="font-extrabold" style="font-size:28px;line-height:1;color:#f59e0b">${_rsmOwn.gf}</span>
-            <span class="text-slate-500 font-semibold" style="font-size:12.5px;margin-top:3px">A favor</span>
-          </div>
-          <div class="flex flex-col items-center">
-            <span class="text-red-400 font-extrabold" style="font-size:28px;line-height:1">${_rsmOwn.gc}</span>
-            <span class="text-slate-500 font-semibold" style="font-size:12.5px;margin-top:3px">En contra</span>
-          </div>
-        </div>` : ''}
-        ${_rsmRachaPills ? `
-        <div style="padding:18px 22px${_rsmOwn ? '' : ';grid-column:1/-1'}" class="flex flex-col items-center justify-center gap-2">
-          <span class="text-xs text-slate-500 font-semibold uppercase tracking-wide">Últimos 5</span>
-          <span class="lc-foot-results">${_rsmRachaPills}</span>
-        </div>` : ''}
       </div>` : ''}
 
       <!-- Bloque 1: Actualidad del Torneo — 3 columnas simétricas, misma
