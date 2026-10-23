@@ -426,6 +426,20 @@
     #ap-tab-datos .fp .nx, #ap-tab-plantel .fp .nx, #ap-tab-tabla .fp .nx{border-color:#2563eb;color:#60a5fa;background:#0f1f3d}
     #ap-tab-datos .ann, #ap-tab-plantel .ann, #ap-tab-tabla .ann{font-size:12.5px;color:#fac775;margin:6px 0 14px}
     #ap-tab-tabla .ap-tabla-grid{display:grid;grid-template-columns:1fr 300px;gap:16px}
+    /* Pestaña 4 "Fecha a Fecha" — pastillas .fp .p del mockup, reusando
+       .ap-fecha-btn/selectFecha (compartida con Recopa/Torneos Antiguos)
+       sin tocar esa función: solo se le da el look nuevo acá, escopeado a
+       esta pestaña. Esta fila no tenía antes una versión mobile separada
+       (mismo markup en todos los anchos) — el cambio de color se limita a
+       ≥769px con un media query propio para que mobile seguya exactamente
+       igual que antes (ver "móvil sin cambios" en todo este round). */
+    @media (min-width:769px) {
+      #ap-tab-fechas .ap-fecha-btn{padding:7px 12px;border-radius:9px;font-size:13px;font-weight:700;border:1px solid;white-space:nowrap}
+      #ap-tab-fechas .ap-fecha-btn.ok{border-color:#14573f;color:#34d399;background:#0b2a20}
+      #ap-tab-fechas .ap-fecha-btn.pe{border-color:#6b4210;color:#fac775;background:#2a1a08}
+      #ap-tab-fechas .ap-fecha-btn.nx{border-color:#2563eb;color:#60a5fa;background:#0f1f3d}
+      #ap-tab-fechas .ap-fecha-btn.active{background:#2563eb;border-color:#2563eb;color:#fff}
+    }
     #cd .seg{display:inline-flex;background:#0f1729;border:1px solid #1f2b42;border-radius:12px;padding:4px;gap:2px;margin-bottom:18px}
     #cd .seg button{border:0;background:none;color:#b4c0d1;padding:9px 22px;border-radius:9px;font-weight:700;cursor:pointer;font-size:14px}
     #cd .seg button.on{background:#412402;color:#fac775}
@@ -12359,13 +12373,18 @@ function renderTorneoApertura() {
       </div>
     </div>` : `<div class="card"><h3 class="lab">📊 Tabla de posiciones</h3><div style="color:#7d8aa0;font-size:0.82rem">Cargando…</div></div>`;
 
-  // ── Tab 3: Fecha a Fecha ────────────────────────────────────────────────
+  // ── En Vivo v2, pestaña 4 "Fecha a Fecha" — pastillas copiadas tal cual
+  // del mockup (.fp .p): jugadas verde, pendientes ámbar, próxima azul con
+  // borde, seleccionada rellena. Sigue usando .ap-fecha-btn/selectFecha sin
+  // tocar (función global compartida con Recopa/Torneos Antiguos) — el
+  // estado "seleccionada" lo sigue marcando esa misma función (.active),
+  // acá solo se le da el look nuevo vía CSS escopeado a #ap-tab-fechas.
   const allFechas = partidos.map(m => ({ n: parseInt(m.fecha), played: m.resultado !== null, rival: m.rival })).sort((a,b) => a.n - b.n);
-  const fechaBtns = allFechas.map(f => `<div class="ap-fecha-btn-wrap">
-    <button class="ap-fecha-btn ${f.played ? 'played' : 'pending'}" data-fecha="${f.n}" onclick="selectFecha(${f.n})">Fecha ${f.n}</button>
-    <div class="ap-fecha-rival">${f.rival ? 'vs ' + f.rival : ''}</div>
-  </div>`
-  ).join('');
+  const nextFechaNum = next ? parseInt(next.fecha) : null;
+  const fechaBtns = allFechas.map(f => {
+    const isNext = nextFechaNum !== null && f.n === nextFechaNum;
+    return `<button class="ap-fecha-btn ${f.played ? 'played' : 'pending'} p ${f.played ? 'ok' : isNext ? 'nx' : 'pe'}" data-fecha="${f.n}" onclick="selectFecha(${f.n})" title="${f.rival ? 'vs ' + f.rival : ''}">F${f.n}${isNext ? ' ⏱' : ''}</button>`;
+  }).join('');
 
   document.getElementById('torneo-apertura-content').innerHTML = `
     ${_volverBtnHtml()}
