@@ -14155,20 +14155,16 @@ function renderResumen() {
     list.forEach((j, i) => { ranks.push(i > 0 && j.valor === list[i - 1].valor ? ranks[i - 1] : i + 1); });
     return ranks;
   }
+  // Resumen v3, bloque 4 (.tr5/.rk/.av del mockup) — círculo de posición
+  // oro/plata/bronce para 1°-3° (empates comparten posición+color), fondo
+  // degradado suave en la fila 1° (.p1).
   function top10RowTw(jug, i, rank, accent) {
-    // Filas simples con línea fina abajo, sin tarjeta/fondo propio (ahora
-    // viven dentro de una sola tarjeta "Top 5 Históricos" con columnas
-    // separadas por líneas verticales). Círculo de color con el número de
-    // posición (oro/plata/bronce para 1°-3°, gris para el resto) — los
-    // empates comparten posición+color.
-    const medalColors = ['background:#facc15;color:#2a2000', 'background:#cbd5e1;color:#1e293b', 'background:#fb923c;color:#2a1200'];
     const onPodium = rank <= 3;
-    const rankEl = `<span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-extrabold shrink-0" style="${onPodium ? medalColors[rank - 1] : 'background:#232e45;color:#94a3b8'}">${rank}</span>`;
-    return `<div class="flex items-center gap-2.5 py-2.5${i > 0 ? ' border-t border-slate-800' : ''}">
-      ${rankEl}
-      <span class="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-extrabold text-slate-300 shrink-0">${_rivalInitials(jug.nombre)}</span>
-      <span class="flex-1 text-xs text-white font-semibold truncate">${pl(jug.nombre)}</span>
-      <span class="text-sm font-extrabold shrink-0" style="color:${accent.color}">${jug.valor}</span>
+    return `<div class="rv3-tr5${rank === 1 ? ' rv3-p1' : ''}">
+      <span class="rv3-rk${onPodium ? ' rv3-m' + rank : ''}">${rank}</span>
+      <span class="rv3-av">${_rivalInitials(jug.nombre)}</span>
+      <span class="rv3-nm">${pl(jug.nombre)}</span>
+      <span class="rv3-v2" style="color:${accent.color}">${jug.valor}</span>
     </div>`;
   }
   const _golesRanks = _tieRanks(byGoles), _asistRanks = _tieRanks(byAsist), _partidosRanks = _tieRanks(byPartidos);
@@ -14599,36 +14595,22 @@ function renderResumen() {
         </div>
       </div>
 
-      <!-- Bloque 2, Fila 2: Rankings Históricos — UNA sola tarjeta (antes
-           eran 3 cards separadas, cada una con su propio fondo/borde);
-           encabezado interno con título + link, línea inferior, y 3
-           columnas separadas por líneas verticales (sin fondo propio por
-           columna), igual criterio que "Historia y Récords del Club". -->
-      <div class="bg-slate-900/90 border border-slate-800 rounded-3xl mb-6 overflow-hidden">
-        <div style="border-color:#1f2b42" class="flex items-center justify-between px-5 py-4 border-b">
-          <span class="text-sm font-bold text-white">Top 5 históricos</span>
-          <span class="text-xs font-bold text-slate-400 hover:text-white cursor-pointer transition" onclick="_navGoTab('jugadores', document.querySelectorAll('#main-nav button')[2])">Ver ranking completo →</span>
-        </div>
-        <div class="flex items-stretch flex-wrap">
-          <div style="flex:1 1 0%;min-width:220px;padding:18px 22px;border-color:#1f2b42" class="border-r">
-            <div class="flex items-center gap-2 mb-2">
-              <span class="text-base shrink-0">⚽</span>
-              <span class="text-xs font-bold uppercase tracking-wide" style="color:#f59e0b">Goleadores</span>
-            </div>
+      <!-- Resumen v3, bloque 4 "Top 5 históricos" — copiado tal cual del
+           mockup (.secw > .secw-h (+ link "Ver ranking completo →") +
+           .t3 > .tc por categoría, cada una con su propio borde). -->
+      <div class="rv3-secw">
+        <div class="rv3-secw-h"><h2>🏆 Top 5 históricos</h2><i></i><a onclick="_navGoTab('jugadores', document.querySelectorAll('#main-nav button')[2])">Ver ranking completo →</a></div>
+        <div class="rv3-t3">
+          <div class="rv3-tc">
+            <div class="rv3-tth"><span class="rv3-tt rv3-or">⚽ Goleadores</span></div>
             ${byGoles.map((j, i) => top10RowTw(j, i, _golesRanks[i], { color: '#f59e0b' })).join('')}
           </div>
-          <div style="flex:1 1 0%;min-width:220px;padding:18px 22px;border-color:#1f2b42" class="border-r">
-            <div class="flex items-center gap-2 mb-2">
-              <span class="text-base shrink-0">🎯</span>
-              <span class="text-xs font-bold uppercase tracking-wide" style="color:#85b7eb">Asistidores</span>
-            </div>
+          <div class="rv3-tc">
+            <div class="rv3-tth"><span class="rv3-tt rv3-ce">🎯 Asistidores</span></div>
             ${byAsist.map((j, i) => top10RowTw(j, i, _asistRanks[i], { color: '#85b7eb' })).join('')}
           </div>
-          <div style="flex:1 1 0%;min-width:220px;padding:18px 22px">
-            <div class="flex items-center gap-2 mb-2">
-              <span class="text-base shrink-0">👟</span>
-              <span class="text-xs font-bold uppercase tracking-wide" style="color:#fac775">Presencias</span>
-            </div>
+          <div class="rv3-tc">
+            <div class="rv3-tth"><span class="rv3-tt rv3-am">👟 Presencias</span></div>
             ${byPartidos.map((j, i) => top10RowTw(j, i, _partidosRanks[i], { color: '#fac775' })).join('')}
           </div>
         </div>
