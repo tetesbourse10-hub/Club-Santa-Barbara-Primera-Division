@@ -383,8 +383,8 @@
        Centro de Datos del mockup ya viene prefijado "#cd …" en el propio
        mockup — se reusa ese mismo id tal cual (no existía antes en el
        sitio) en vez de inventar otro. */
-    #ap-tab-datos .card, #ap-tab-plantel .card, #ap-tab-tabla .card{background:#141d2e;border:1px solid #1f2b42;border-radius:16px;padding:20px}
-    #ap-tab-datos .row, #ap-tab-plantel .row, #ap-tab-tabla .row{display:grid;gap:16px}
+    #ap-tab-datos .card, #ap-tab-plantel .card, #ap-tab-tabla .card, #ap-tab-detalladas .card{background:#141d2e;border:1px solid #1f2b42;border-radius:16px;padding:20px}
+    #ap-tab-datos .row, #ap-tab-plantel .row, #ap-tab-tabla .row, #ap-tab-detalladas .row{display:grid;gap:16px}
     #ap-tab-datos .big, #ap-tab-plantel .big, #ap-tab-tabla .big{font-size:28px;font-weight:800}
     #ap-tab-datos .bar, #ap-tab-plantel .bar, #ap-tab-tabla .bar{height:8px;border-radius:99px;background:#1f2b42;overflow:hidden}#ap-tab-datos .bar i, #ap-tab-plantel .bar i, #ap-tab-tabla .bar i{display:block;height:100%;background:linear-gradient(90deg,#3b82f6,#22d3ee)}
     #ap-tab-datos .stat, #ap-tab-plantel .stat, #ap-tab-tabla .stat{display:flex;gap:14px}#ap-tab-datos .box, #ap-tab-plantel .box, #ap-tab-tabla .box{flex:1;background:#0f1729;border:1px solid #1f2b42;border-radius:12px;padding:14px;text-align:center}
@@ -395,8 +395,8 @@
     #ap-tab-datos .lab, #ap-tab-plantel .lab, #ap-tab-tabla .lab{font-size:12px;color:var(--mut);letter-spacing:.04em;text-transform:uppercase}
     #ap-tab-datos .pill, #ap-tab-plantel .pill, #ap-tab-tabla .pill{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:700}
     #ap-tab-datos .p-gr, #ap-tab-plantel .p-gr, #ap-tab-tabla .p-gr{background:#0e3b2b;color:#34d399}#ap-tab-datos .p-am, #ap-tab-plantel .p-am, #ap-tab-tabla .p-am{background:#412402;color:#fac775}#ap-tab-datos .p-rd, #ap-tab-plantel .p-rd, #ap-tab-tabla .p-rd{background:#4a1d1d;color:#f87171}#ap-tab-datos .p-bl, #ap-tab-plantel .p-bl, #ap-tab-tabla .p-bl{background:#142a4a;color:#60a5fa}#ap-tab-datos .p-gy, #ap-tab-plantel .p-gy, #ap-tab-tabla .p-gy{background:#232e45;color:#b4c0d1}
-    #ap-tab-datos .hd, #ap-tab-plantel .hd, #ap-tab-tabla .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
-    #ap-tab-datos .hd h3, #ap-tab-plantel .hd h3, #ap-tab-tabla .hd h3{margin:0;font-size:14px;letter-spacing:.05em;text-transform:uppercase}
+    #ap-tab-datos .hd, #ap-tab-plantel .hd, #ap-tab-tabla .hd, #ap-tab-detalladas .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+    #ap-tab-datos .hd h3, #ap-tab-plantel .hd h3, #ap-tab-tabla .hd h3, #ap-tab-detalladas .hd h3{margin:0;font-size:14px;letter-spacing:.05em;text-transform:uppercase}
     #ap-tab-datos .c, #ap-tab-plantel .c, #ap-tab-tabla .c{text-align:center}#ap-tab-datos th.c, #ap-tab-plantel th.c, #ap-tab-tabla th.c{text-align:center}
     #ap-tab-datos .g, #ap-tab-plantel .g, #ap-tab-tabla .g{color:#34d399}#ap-tab-datos .r, #ap-tab-plantel .r, #ap-tab-tabla .r{color:#f87171}#ap-tab-datos .a, #ap-tab-plantel .a, #ap-tab-tabla .a{color:#fac775}
     #ap-tab-datos .me, #ap-tab-plantel .me, #ap-tab-tabla .me{background:#0e2e24 !important;box-shadow:inset 3px 0 0 #34d399}
@@ -405,13 +405,13 @@
     #ap-tab-datos .tag, #ap-tab-plantel .tag, #ap-tab-tabla .tag{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:99px}
     #ap-tab-datos .t-am, #ap-tab-plantel .t-am, #ap-tab-tabla .t-am{background:#412402;color:#fac775}#ap-tab-datos .t-gr, #ap-tab-plantel .t-gr, #ap-tab-tabla .t-gr{background:#0e3b2b;color:#34d399}#ap-tab-datos .t-vi, #ap-tab-plantel .t-vi, #ap-tab-tabla .t-vi{background:#2a1f45;color:#c4b5fd}#ap-tab-datos .t-rd, #ap-tab-plantel .t-rd, #ap-tab-tabla .t-rd{background:#4a1d1d;color:#f87171}#ap-tab-datos .t-yl, #ap-tab-plantel .t-yl, #ap-tab-tabla .t-yl{background:#3b3010;color:#facc15}
     #ap-tab-datos .legend, #ap-tab-plantel .legend, #ap-tab-tabla .legend{display:flex;gap:18px;color:#b4c0d1;font-size:12.5px;margin-top:14px}#ap-tab-datos .legend i, #ap-tab-plantel .legend i, #ap-tab-tabla .legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
-    #ap-tab-datos .cols3, #ap-tab-plantel .cols3, #ap-tab-tabla .cols3{grid-template-columns:repeat(3,1fr)}
-    #ap-tab-datos .li, #ap-tab-plantel .li, #ap-tab-tabla .li{display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:10px;margin-bottom:6px;background:#0f1729}
-    #ap-tab-datos .li .rk, #ap-tab-plantel .li .rk, #ap-tab-tabla .li .rk{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:800;background:#232e45;color:#b4c0d1}
-    #ap-tab-datos .li .rk.m1, #ap-tab-plantel .li .rk.m1, #ap-tab-tabla .li .rk.m1{background:#facc15;color:#2a2000}#ap-tab-datos .li .rk.m2, #ap-tab-plantel .li .rk.m2, #ap-tab-tabla .li .rk.m2{background:#cbd5e1;color:#1e293b}#ap-tab-datos .li .rk.m3, #ap-tab-plantel .li .rk.m3, #ap-tab-tabla .li .rk.m3{background:#fb923c;color:#2a1200}
-    #ap-tab-datos .li .nm, #ap-tab-plantel .li .nm, #ap-tab-tabla .li .nm{flex:1;font-weight:600}#ap-tab-datos .li .v, #ap-tab-plantel .li .v, #ap-tab-tabla .li .v{font-weight:800;font-size:16px;min-width:40px;text-align:right}
-    #ap-tab-datos .v.go, #ap-tab-plantel .v.go, #ap-tab-tabla .v.go{color:#fb923c}#ap-tab-datos .v.as, #ap-tab-plantel .v.as, #ap-tab-tabla .v.as{color:#85b7eb}#ap-tab-datos .v.pr, #ap-tab-plantel .v.pr, #ap-tab-tabla .v.pr{color:#fac775}
-    #ap-tab-datos .more, #ap-tab-plantel .more, #ap-tab-tabla .more{display:block;text-align:center;margin-top:10px;padding:10px;border-radius:10px;background:#1a2438;color:#b4c0d1;font-weight:700;font-size:13px;cursor:pointer}
+    #ap-tab-datos .cols3, #ap-tab-plantel .cols3, #ap-tab-tabla .cols3, #ap-tab-detalladas .cols3{grid-template-columns:repeat(3,1fr)}
+    #ap-tab-datos .li, #ap-tab-plantel .li, #ap-tab-tabla .li, #ap-tab-detalladas .li{display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:10px;margin-bottom:6px;background:#0f1729}
+    #ap-tab-datos .li .rk, #ap-tab-plantel .li .rk, #ap-tab-tabla .li .rk, #ap-tab-detalladas .li .rk{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:800;background:#232e45;color:#b4c0d1}
+    #ap-tab-datos .li .rk.m1, #ap-tab-plantel .li .rk.m1, #ap-tab-tabla .li .rk.m1, #ap-tab-detalladas .li .rk.m1{background:#facc15;color:#2a2000}#ap-tab-datos .li .rk.m2, #ap-tab-plantel .li .rk.m2, #ap-tab-tabla .li .rk.m2, #ap-tab-detalladas .li .rk.m2{background:#cbd5e1;color:#1e293b}#ap-tab-datos .li .rk.m3, #ap-tab-plantel .li .rk.m3, #ap-tab-tabla .li .rk.m3, #ap-tab-detalladas .li .rk.m3{background:#fb923c;color:#2a1200}
+    #ap-tab-datos .li .nm, #ap-tab-plantel .li .nm, #ap-tab-tabla .li .nm, #ap-tab-detalladas .li .nm{flex:1;font-weight:600}#ap-tab-datos .li .v, #ap-tab-plantel .li .v, #ap-tab-tabla .li .v, #ap-tab-detalladas .li .v{font-weight:800;font-size:16px;min-width:40px;text-align:right}
+    #ap-tab-datos .v.go, #ap-tab-plantel .v.go, #ap-tab-tabla .v.go, #ap-tab-detalladas .v.go{color:#fb923c}#ap-tab-datos .v.as, #ap-tab-plantel .v.as, #ap-tab-tabla .v.as, #ap-tab-detalladas .v.as{color:#85b7eb}#ap-tab-datos .v.pr, #ap-tab-plantel .v.pr, #ap-tab-tabla .v.pr, #ap-tab-detalladas .v.pr{color:#fac775}
+    #ap-tab-datos .more, #ap-tab-plantel .more, #ap-tab-tabla .more, #ap-tab-detalladas .more{display:block;text-align:center;margin-top:10px;padding:10px;border-radius:10px;background:#1a2438;color:#b4c0d1;font-weight:700;font-size:13px;cursor:pointer}
     #ap-tab-datos .chip, #ap-tab-plantel .chip, #ap-tab-tabla .chip{display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;border:1px solid #3b4a68;color:#b4c0d1;font-size:13px;font-weight:600;cursor:pointer}
     #ap-tab-datos .chip.on, #ap-tab-plantel .chip.on, #ap-tab-tabla .chip.on{background:#412402;border-color:#7a4a10;color:#fac775}
     #ap-tab-datos .pos, #ap-tab-plantel .pos, #ap-tab-tabla .pos{display:inline-block;font-size:11px;color:#b4c0d1;background:#1a2438;border-radius:6px;padding:2px 7px;margin-left:6px}
@@ -424,7 +424,7 @@
     #ap-tab-datos .fp .p, #ap-tab-plantel .fp .p, #ap-tab-tabla .fp .p{padding:7px 12px;border-radius:9px;font-size:13px;font-weight:700;border:1px solid;white-space:nowrap}
     #ap-tab-datos .fp .ok, #ap-tab-plantel .fp .ok, #ap-tab-tabla .fp .ok{border-color:#14573f;color:#34d399;background:#0b2a20}#ap-tab-datos .fp .pe, #ap-tab-plantel .fp .pe, #ap-tab-tabla .fp .pe{border-color:#6b4210;color:#fac775;background:#2a1a08}#ap-tab-datos .fp .sel, #ap-tab-plantel .fp .sel, #ap-tab-tabla .fp .sel{background:#2563eb;border-color:#2563eb;color:#fff}
     #ap-tab-datos .fp .nx, #ap-tab-plantel .fp .nx, #ap-tab-tabla .fp .nx{border-color:#2563eb;color:#60a5fa;background:#0f1f3d}
-    #ap-tab-datos .ann, #ap-tab-plantel .ann, #ap-tab-tabla .ann{font-size:12.5px;color:#fac775;margin:6px 0 14px}
+    #ap-tab-datos .ann, #ap-tab-plantel .ann, #ap-tab-tabla .ann, #ap-tab-detalladas .ann{font-size:12.5px;color:#fac775;margin:6px 0 14px}
     #ap-tab-tabla .ap-tabla-grid{display:grid;grid-template-columns:1fr 300px;gap:16px}
     /* Pestaña 4 "Fecha a Fecha" — pastillas .fp .p del mockup, reusando
        .ap-fecha-btn/selectFecha (compartida con Recopa/Torneos Antiguos)
@@ -9712,6 +9712,72 @@ window.edToggle = function(id) {
   if (chev) chev.textContent = open ? '▾' : '▴';
 };
 
+// buildEstadisticasDetalladasTabV2 — copia tal cual la pestaña "Estadísticas
+// Detalladas" de envivo_mockup_v2.html (3 columnas .row.cols3, medallas
+// compartidas en empates, Presencias topeada a 10 + "Ver todos"), para uso
+// exclusivo de renderTorneoApertura() (En Vivo). La función compartida
+// buildEstadisticasDetalladasTab (arriba) sigue intacta para Recopa y los
+// torneos históricos.
+function buildEstadisticasDetalladasTabV2(matches, idPrefix) {
+  const players = _aggregatePlayerRivalStats(matches);
+  const medalClass = rank => rank === 1 ? 'm1' : rank === 2 ? 'm2' : rank === 3 ? 'm3' : '';
+
+  function rankList(title, icon, color, key, valClass, cap) {
+    const rows = [...players].filter(p => p[key] > 0).sort((a, b) => b[key] - a[key]);
+    if (!rows.length) {
+      return `<div class="card"><div class="hd"><h3 style="color:${color}">${icon} ${title}</h3></div><div style="color:#7d8aa0">Sin datos registrados.</div></div>`;
+    }
+    // Empates comparten medalla y puesto (1,1,3,4,4,...)
+    let rank = 0, prevVal = null;
+    const ranked = rows.map((p, i) => {
+      if (p[key] !== prevVal) { rank = i + 1; prevVal = p[key]; }
+      return { p, rank };
+    });
+    const liHtml = r => `<div class="li"><span class="rk ${medalClass(r.rank)}">${r.rank}</span><span class="nm">${pl(r.p.nombre)}</span><span class="v ${valClass}">${r.p[key]}</span></div>`;
+    const visible = cap ? ranked.slice(0, cap) : ranked;
+    const hidden = cap ? ranked.slice(cap) : [];
+    const moreId = `ed2-${idPrefix}-${key}`;
+    const moreBtn = hidden.length
+      ? `<div id="${moreId}-hidden" style="display:none">${hidden.map(liHtml).join('')}</div><span class="more" id="${moreId}-more" onclick="_ed2ShowAll('${moreId}')">Ver todos (${ranked.length}) ▾</span>`
+      : '';
+    return `<div class="card"><div class="hd"><h3 style="color:${color}">${icon} ${title}</h3></div>${visible.map(liHtml).join('')}${moreBtn}</div>`;
+  }
+
+  return `<div class="ann">▲ Empates comparten medalla y puesto · color por categoría · las tres columnas con la misma altura · Presencias limitada a 10 con "Ver todos"</div>
+  <div class="row cols3" style="align-items:start">
+    ${rankList('Goleadores', '⚽', '#fb923c', 'goles', 'go', null)}
+    ${rankList('Asistidores', '🎯', '#85b7eb', 'asist', 'as', null)}
+    ${rankList('Presencias', '👟', '#fac775', 'pj', 'pr', 10)}
+  </div>`;
+}
+window._ed2ShowAll = function(moreId) {
+  const hidden = document.getElementById(moreId + '-hidden');
+  const btn = document.getElementById(moreId + '-more');
+  if (hidden) hidden.style.display = 'block';
+  if (btn) btn.style.display = 'none';
+};
+
+// Mobile de "Estadísticas Detalladas" para En Vivo: idéntico al markup móvil
+// que ya traía buildEstadisticasDetalladasTab (misma clase .ed-mobile-section,
+// mismas _edMobileCard), extraído acá para poder usarlo sin duplicar también
+// el bloque desktop viejo (reemplazado por buildEstadisticasDetalladasTabV2).
+function buildEstadisticasDetalladasMobile(matches, idPrefix) {
+  const players = _aggregatePlayerRivalStats(matches);
+  function section(title, icon, key, unitLabel) {
+    const rows = [...players].filter(p => p[key] > 0).sort((a, b) => b[key] - a[key]);
+    if (!rows.length) {
+      return `<div class="ed-mobile-section"><div class="ed-card-title">${icon} ${title}</div><div class="mrow-empty">📭 Sin datos registrados.</div></div>`;
+    }
+    const mobileCards = rows.map((p, i) => _edMobileCard(p, i, key, unitLabel, `ed-m-${idPrefix}-${key}-${i}`)).join('');
+    return `<div class="ed-mobile-section"><div class="ed-card-title">${icon} ${title}</div><div class="mrow-cards">${mobileCards}</div></div>`;
+  }
+  return `<div class="ed-grid">
+    ${section('Goleadores', '⚽', 'goles', 'goles')}
+    ${section('Asistidores', '🎯', 'asist', 'asist.')}
+    ${section('Presencias', '🎮', 'pj', 'PJ')}
+  </div>`;
+}
+
 // Placeholder 4-3-3 for when no real lineup is available
 const PITCH_PLACEHOLDER = [
   { pos:'ARQ', nombre:'1',  _ph:true },
@@ -12421,7 +12487,8 @@ function renderTorneoApertura() {
     </div>
 
     <div class="ap-tab-panel" id="ap-tab-detalladas">
-      ${buildEstadisticasDetalladasTab(ligaDetailMatches, 'ap')}
+      <div class="mrow-desktop-only">${buildEstadisticasDetalladasTabV2(ligaDetailMatches, 'ap')}</div>
+      ${buildEstadisticasDetalladasMobile(ligaDetailMatches, 'ap')}
     </div>`;
 
   // Auto-select last played fecha (pre-render into fechas tab without switching)
