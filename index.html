@@ -14136,15 +14136,6 @@ function renderResumen() {
   const _histPts = h.pg * 3 + h.pe;
   const efectividad = h.pj > 0 ? Math.round((_histPts / (3 * h.pj)) * 100) : null;
   const _pctOfPJ = n => h.pj > 0 ? Math.round((n / h.pj) * 100) : 0;
-  // 4 cajas (antes 8: PJ/V/E/D ya se muestran arriba — cantidad de
-  // partidos — y en la barra apilada de V-E-D, no hace falta repetirlas).
-  const totalesHistItems = [
-    { label: 'Goles a Favor',     val: h.gf, color: '#f59e0b', sub: _golesPorPartido(h.gf) },
-    { label: 'Goles en Contra',   val: h.gc, color: '#ef4444', sub: _golesPorPartido(h.gc) },
-    { label: 'Diferencia de Gol', val: (h.gf - h.gc >= 0 ? '+' : '') + (h.gf - h.gc), color: (h.gf - h.gc) >= 0 ? '#22c55e' : '#ef4444' },
-    { label: 'Vallas Invictas',   val: h.vi, color: '#af9ec6', sub: _pctPJ(h.vi) },
-  ];
-
   // accent = { text, pillBg } clase de color propia de cada columna (goles/
   // asist/presencias), usada en el FONDO del pill del valor — el podio
   // (1-2-3) manda sobre esa marca con su propia medalla dorada/plateada/
@@ -14547,110 +14538,62 @@ function renderResumen() {
         </div>
       </div>
 
-      <!-- "Historia y Récords del Club": un solo contenedor (antes el
-           título quedaba suelto como divisor + Palmarés/Totales eran 2
-           tarjetas separadas con su propio fondo/borde — ahora header
-           propio + 2 columnas internas sin tarjetas-dentro-de-tarjetas). -->
-      <div class="bg-slate-900/90 border border-slate-800 rounded-3xl mb-6 overflow-hidden">
-        <div class="flex items-center gap-4 px-6 py-4 border-b border-slate-800">
-          <span class="text-sm font-extrabold text-white uppercase tracking-wider whitespace-nowrap">🏛️ Historia y Récords del Club</span>
-          <div class="h-px flex-1 bg-slate-800"></div>
-        </div>
-        <div class="flex items-stretch flex-wrap">
-          <!-- Palmarés (~30%) -->
-          <div style="flex:0 0 30%;min-width:260px;padding:22px 24px;border-color:#1f2b42;padding-right:20px" class="border-r flex flex-col">
-            <div>
-            <div class="inline-block text-xs font-bold uppercase tracking-wider text-white bg-slate-800/80 px-2.5 py-1 rounded-lg mb-3">🏅 Palmarés Oficial</div>
-            <div class="flex flex-col gap-2.5 mb-2.5">
-              ${d.titulos.map(t => {
-                // Mismo mapa año|competencia que ya usa Torneos Antiguos
-                // (Gráficos/Estadísticas Anuales) para linkear cada torneo
-                // real — team-qualificado primero (2024 Recopa existe para
-                // A y B a la vez), con fallback a la clave sin equipo.
-                const tCompetencia = t.nombre.replace(/^Campeón\s+/i, '');
-                const tNav = TORNEO_NAV_MAP[`${t.anio}|${tCompetencia}|${isA ? 'A' : 'B'}`] || TORNEO_NAV_MAP[`${t.anio}|${tCompetencia}`];
-                return `
-                <div class="flex items-center gap-3 bg-slate-950/40 rounded-xl px-3.5 py-2.5${tNav ? ' cursor-pointer hover:bg-slate-900/60 transition' : ''}"${tNav ? ` onclick="_navPush('Resumen', () => renderResumen()); _navPushTorneosAntiguos(); ${tNav.fn.replace(/"/g, '&quot;')}" title="Ver campeonato"` : ''}>
-                  <span class="w-8 h-8 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-base shrink-0 shadow-[0_0_10px_rgba(245,158,11,0.35)]">🏆</span>
-                  <span class="flex-1 text-white text-sm font-semibold truncate">${t.nombre}</span>
-                  <span class="text-slate-950 text-xs font-extrabold bg-[linear-gradient(135deg,#fbbf24,#f59e0b)] px-2.5 py-1 rounded-full shrink-0 shadow-[0_0_10px_rgba(245,158,11,0.45)]">${t.anio}</span>
-                </div>`;
-              }).join('')}
-            </div>
-            <div class="grid grid-cols-2 gap-2.5">
-              <div class="bg-slate-950/40 border border-slate-800/60 rounded-xl px-3 p-3.5 flex flex-col items-center text-center gap-1">
-                <span class="text-lg">🔥</span>
-                <span class="text-xs text-slate-500 font-bold uppercase tracking-wide">Racha Invicta · Récord</span>
-                <span class="text-white text-sm font-extrabold">${isA ? '15 partidos' : '15 partidos'}</span>
-                <span class="text-xs text-slate-500 font-semibold">${isA ? '(Apertura AIFA A 2026 y Recopa 2026)' : '(Clausura AIFA D 2023 y Apertura AIFA D 2024)'}</span>
+      <!-- Resumen v3, bloque 3 "Historia y récords del club" — copiado tal
+           cual del mockup (.secw > .secw-h + .hist > .card.pal + .card). -->
+      <div class="rv3-secw">
+        <div class="rv3-secw-h"><h2>🏛 Historia y récords del club</h2><i></i></div>
+        <div class="rv3-hist">
+          <div class="rv3-card rv3-pal">
+            <div><span class="rv3-tt rv3-am">🏅 Palmarés oficiales</span></div>
+            ${d.titulos.map(t => {
+              // Mismo mapa año|competencia que ya usa Torneos Antiguos
+              // (Gráficos/Estadísticas Anuales) para linkear cada torneo
+              // real — team-qualificado primero (2024 Recopa existe para
+              // A y B a la vez), con fallback a la clave sin equipo.
+              const tCompetencia = t.nombre.replace(/^Campeón\s+/i, '');
+              const tNav = TORNEO_NAV_MAP[`${t.anio}|${tCompetencia}|${isA ? 'A' : 'B'}`] || TORNEO_NAV_MAP[`${t.anio}|${tCompetencia}`];
+              return `<div class="rv3-tr"${tNav ? ` style="cursor:pointer" onclick="_navPush('Resumen', () => renderResumen()); _navPushTorneosAntiguos(); ${tNav.fn.replace(/"/g, '&quot;')}" title="Ver campeonato"` : ''}>🏆<b>${t.nombre}</b><span class="rv3-yr">${t.anio}</span></div>`;
+            }).join('')}
+            <div class="rv3-rec2">
+              <div>
+                <small>🔥 Racha invicta · récord</small>
+                <b>15 partidos</b>
+                <em>${isA ? '(Apertura AIFA A 2026 y Recopa 2026)' : '(Clausura AIFA D 2023 y Apertura AIFA D 2024)'}</em>
               </div>
-              <div class="bg-slate-950/40 border border-slate-800/60 rounded-xl px-3 py-3 flex flex-col items-center text-center gap-1${goleadaNav ? ' cursor-pointer hover:bg-slate-900/40 transition' : ''}"${goleadaNav ? ` onclick="${goleadaNav}" title="Ver partido"` : ''}>
-                <span class="text-lg">⚡</span>
-                <span class="text-xs text-slate-500 font-bold uppercase tracking-wide">Máxima Goleada</span>
-                <span class="text-white text-sm font-extrabold">${isA ? '8–0 vs Sitas' : '13–0 vs Rep. del Oeste'}</span>
+              <div${goleadaNav ? ` style="cursor:pointer" onclick="${goleadaNav}" title="Ver partido"` : ''}>
+                <small>⚡ Máxima goleada</small>
+                <b>${isA ? '8–0 vs Sitas' : '13–0 vs Rep. del Oeste'}</b>
+                <em>&nbsp;</em>
               </div>
-            </div>
             </div>
             <!-- BUG REAL encontrado (reportado: "al hacer clic se queda en
                  Resumen"): _navPushTorneosAntiguos() solo registra el
                  breadcrumb para el botón "← Volver" (ver _navPush), nunca
                  navega — hacía falta además la llamada real a _navGoTab. -->
-            <button onclick="_navPush('Resumen', () => renderResumen()); _navGoTab('graficos', document.querySelectorAll('#main-nav button')[4]);" class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold border border-slate-600/60 text-xs transition flex items-center justify-center gap-1 appearance-none cursor-pointer" style="margin-top:auto">Ver Torneos Antiguos →</button>
+            <a class="rv3-btn" onclick="_navPush('Resumen', () => renderResumen()); _navGoTab('graficos', document.querySelectorAll('#main-nav button')[4]);">Ver torneos antiguos →</a>
           </div>
-
-          <!-- Totales Históricos (~70%), 3 sub-bloques separados por líneas -->
-          <div style="flex:1 1 0%;min-width:0" class="flex items-stretch flex-wrap">
-            <div style="flex:1 1 0%;min-width:200px;padding:6px 26px;border-color:#1f2b42" class="border-r flex flex-col justify-start">
-              <div class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Partidos y Efectividad</div>
-              <div class="text-3xl font-black text-white">${h.pj}</div>
-              <div class="text-xs text-slate-500 font-semibold" style="margin-bottom:18px">partidos jugados</div>
-              ${efectividad != null ? `
-              <div class="flex items-center justify-between text-xs font-bold" style="margin-bottom:6px">
-                <span class="text-slate-400">Efectividad</span>
-                <span class="text-emerald-400">${efectividad}%</span>
-              </div>
-              <div style="height:10px" class="w-full rounded-full overflow-hidden bg-slate-800">
-                <div style="width:${efectividad}%;height:100%;background:#22c55e"></div>
-              </div>
-              <div class="text-xs text-slate-600 font-semibold" style="margin-top:6px">Puntos obtenidos sobre los posibles: ${_histPts} de ${3 * h.pj}</div>` : ''}
-            </div>
-            <div style="flex:1 1 0%;min-width:200px;padding:6px 26px;border-color:#1f2b42" class="border-r flex flex-col justify-start">
-              <div class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Resultados</div>
-              <div class="w-full rounded-full overflow-hidden flex bg-slate-800" style="height:8px;margin-bottom:14px">
-                <div style="width:${_pctOfPJ(h.pg)}%;background:#22c55e"></div>
-                <div style="width:${_pctOfPJ(h.pe)}%;background:#f59e0b"></div>
-                <div style="width:${_pctOfPJ(h.pp)}%;background:#ef4444"></div>
-              </div>
-              <div class="grid grid-cols-3 gap-2">
-                <div class="text-center">
-                  <div class="text-xl font-black text-emerald-400">${h.pg}</div>
-                  <div style="font-size:12px;color:#b4c0d1;margin-top:4px">Ganados</div>
-                  <div style="font-size:12px;color:#7d8aa0">${_pctOfPJ(h.pg)}%</div>
+          <div class="rv3-card">
+            <div style="margin-bottom:12px"><span class="rv3-tt rv3-or">📊 Totales históricos</span></div>
+            <div class="rv3-tot">
+              <div class="rv3-tt2"><span class="rv3-lab">Partidos jugados</span><span class="rv3-big">${h.pj}</span><small>desde el debut en la liga</small></div>
+              <div class="rv3-tt2"><span class="rv3-lab">Efectividad</span><span class="rv3-big rv3-g">${efectividad}%</span><div class="rv3-bar2"><i style="width:${efectividad}%"></i></div><small>${_histPts} de ${3 * h.pj} puntos</small></div>
+              <div class="rv3-tt2 rv3-span2">
+                <span class="rv3-lab">Resultados</span>
+                <div class="rv3-stack">
+                  <i style="width:${_pctOfPJ(h.pg)}%;background:var(--rv3-gr)"></i>
+                  <i style="width:${_pctOfPJ(h.pe)}%;background:var(--rv3-am)"></i>
+                  <i style="width:${_pctOfPJ(h.pp)}%;background:var(--rv3-rd)"></i>
                 </div>
-                <div class="text-center">
-                  <div class="text-xl font-black text-amber-400">${h.pe}</div>
-                  <div style="font-size:12px;color:#b4c0d1;margin-top:4px">Empatados</div>
-                  <div style="font-size:12px;color:#7d8aa0">${_pctOfPJ(h.pe)}%</div>
-                </div>
-                <div class="text-center">
-                  <div class="text-xl font-black text-red-400">${h.pp}</div>
-                  <div style="font-size:12px;color:#b4c0d1;margin-top:4px">Perdidos</div>
-                  <div style="font-size:12px;color:#7d8aa0">${_pctOfPJ(h.pp)}%</div>
+                <div class="rv3-res">
+                  <div><b class="rv3-g">${h.pg}</b><span>Ganados</span><em>${_pctOfPJ(h.pg)}%</em></div>
+                  <div><b class="rv3-a">${h.pe}</b><span>Empatados</span><em>${_pctOfPJ(h.pe)}%</em></div>
+                  <div><b class="rv3-r">${h.pp}</b><span>Perdidos</span><em>${_pctOfPJ(h.pp)}%</em></div>
                 </div>
               </div>
-            </div>
-            <div style="flex:1 1 0%;min-width:200px;padding:6px 26px" class="flex flex-col justify-start">
-              <div class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Goles y Vallas</div>
-              <div class="flex flex-col">
-                ${totalesHistItems.map((it, i) => `
-                <div class="flex items-center justify-between${i > 0 ? ' border-t border-slate-800' : ''}" style="padding:10px 0">
-                  <div>
-                    <div class="text-xs text-slate-400 font-semibold">${it.label}</div>
-                    ${it.sub ? `<div class="text-xs text-slate-600 font-semibold mt-0.5">${it.sub}</div>` : ''}
-                  </div>
-                  <div class="text-lg font-black" style="color:${it.color}">${it.val}</div>
-                </div>`).join('')}
-              </div>
+              <div class="rv3-tt2"><span class="rv3-lab">Goles a favor</span><span class="rv3-big rv3-o">${h.gf}</span><small>${_golesPorPartido(h.gf)}</small></div>
+              <div class="rv3-tt2"><span class="rv3-lab">Goles en contra</span><span class="rv3-big rv3-r">${h.gc}</span><small>${_golesPorPartido(h.gc)}</small></div>
+              <div class="rv3-tt2"><span class="rv3-lab">Diferencia de gol</span><span class="rv3-big ${(h.gf - h.gc) >= 0 ? 'rv3-g' : 'rv3-r'}">${(h.gf - h.gc) >= 0 ? '+' : ''}${h.gf - h.gc}</span><small>a favor − en contra</small></div>
+              <div class="rv3-tt2"><span class="rv3-lab">Vallas invictas</span><span class="rv3-big rv3-v">${h.vi}</span><small>${_pctPJ(h.vi)}</small></div>
             </div>
           </div>
         </div>
