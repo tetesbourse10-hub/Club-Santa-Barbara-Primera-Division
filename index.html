@@ -367,6 +367,119 @@
     .rv3-av{width:32px;height:32px;border-radius:50%;background:#232e45;display:grid;place-items:center;font-size:11px;font-weight:700;flex:none}
     .rv3-tr5 .rv3-nm{flex:1;font-weight:600}.rv3-tr5 .rv3-v2{font-weight:800;font-size:18px}
     .rv3-tr5.rv3-p1{background:linear-gradient(90deg,rgba(250,204,21,.07),transparent);margin:0 -10px;padding-left:10px;padding-right:10px;border-radius:10px}
+    /* ══════════════════════════════════════════════════════════════════
+       En Vivo v2 (desktop) — CSS copiado tal cual de envivo_mockup_v2.html.
+       Las clases NO van prefijadas (son las mismas .card/.pill/.tag/etc.
+       del mockup) pero SÍ van todas escopeadas por #id de cada pestaña ya
+       convertida (#ap-tab-datos acá; #ap-tab-plantel/-tabla/-fechas/
+       -detalladas se suman en commits siguientes, uno por pestaña) — nunca
+       bajo todo #torneo-apertura-content de una sola vez, para no romper
+       con este mismo CSS genérico (table/th/td, .card, .g/.r/.a, etc.) las
+       pestañas que todavía no se convirtieron en esta tanda. Tampoco toca
+       Torneos Antiguos (que reusa helpers compartidos como
+       buildEstadisticasDetalladasTab) ni ninguna clase genérica del resto
+       del sitio — la especificidad del selector con #id le gana a
+       cualquier regla global con la misma clase sin tocarla. El bloque
+       Centro de Datos del mockup ya viene prefijado "#cd …" en el propio
+       mockup — se reusa ese mismo id tal cual (no existía antes en el
+       sitio) en vez de inventar otro. */
+    #ap-tab-datos .card{background:#141d2e;border:1px solid #1f2b42;border-radius:16px;padding:20px}
+    #ap-tab-datos .row{display:grid;gap:16px}
+    #ap-tab-datos .big{font-size:28px;font-weight:800}
+    #ap-tab-datos .bar{height:8px;border-radius:99px;background:#1f2b42;overflow:hidden}#ap-tab-datos .bar i{display:block;height:100%;background:linear-gradient(90deg,#3b82f6,#22d3ee)}
+    #ap-tab-datos .stat{display:flex;gap:14px}#ap-tab-datos .box{flex:1;background:#0f1729;border:1px solid #1f2b42;border-radius:12px;padding:14px;text-align:center}
+    #ap-tab-datos .cmp td{padding:9px 22px;font-size:14px}#ap-tab-datos .cmp td:first-child{color:#b4c0d1}#ap-tab-datos .cmp th{padding:9px 22px}#ap-tab-datos .cmp td.c b{font-size:16px}#ap-tab-datos .ef{display:flex;flex-direction:column;gap:5px;align-items:center}#ap-tab-datos .ef .bar{width:120px;height:6px}
+    #ap-tab-datos table{width:100%;border-collapse:collapse}
+    #ap-tab-datos th{font-size:12px;color:#b4c0d1;text-align:left;padding:10px 12px;border-bottom:1px solid #1f2b42;text-transform:uppercase;letter-spacing:.04em}
+    #ap-tab-datos td{padding:11px 12px;border-bottom:1px solid #18233a}
+    #ap-tab-datos .lab{font-size:12px;color:var(--mut);letter-spacing:.04em;text-transform:uppercase}
+    #ap-tab-datos .pill{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:700}
+    #ap-tab-datos .p-gr{background:#0e3b2b;color:#34d399}#ap-tab-datos .p-am{background:#412402;color:#fac775}#ap-tab-datos .p-rd{background:#4a1d1d;color:#f87171}#ap-tab-datos .p-bl{background:#142a4a;color:#60a5fa}#ap-tab-datos .p-gy{background:#232e45;color:#b4c0d1}
+    #ap-tab-datos .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+    #ap-tab-datos .hd h3{margin:0;font-size:14px;letter-spacing:.05em;text-transform:uppercase}
+    #ap-tab-datos .c{text-align:center}#ap-tab-datos th.c{text-align:center}
+    #ap-tab-datos .g{color:#34d399}#ap-tab-datos .r{color:#f87171}#ap-tab-datos .a{color:#fac775}
+    #ap-tab-datos .me{background:#0e2e24 !important;box-shadow:inset 3px 0 0 #34d399}
+    #ap-tab-datos .me td{color:#f1f5f9}
+    #ap-tab-datos .lead td:first-child{font-size:16px}
+    #ap-tab-datos .tag{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:99px}
+    #ap-tab-datos .t-am{background:#412402;color:#fac775}#ap-tab-datos .t-gr{background:#0e3b2b;color:#34d399}#ap-tab-datos .t-vi{background:#2a1f45;color:#c4b5fd}#ap-tab-datos .t-rd{background:#4a1d1d;color:#f87171}#ap-tab-datos .t-yl{background:#3b3010;color:#facc15}
+    #ap-tab-datos .legend{display:flex;gap:18px;color:#b4c0d1;font-size:12.5px;margin-top:14px}#ap-tab-datos .legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
+    #ap-tab-datos .cols3{grid-template-columns:repeat(3,1fr)}
+    #ap-tab-datos .li{display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:10px;margin-bottom:6px;background:#0f1729}
+    #ap-tab-datos .li .rk{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:800;background:#232e45;color:#b4c0d1}
+    #ap-tab-datos .li .rk.m1{background:#facc15;color:#2a2000}#ap-tab-datos .li .rk.m2{background:#cbd5e1;color:#1e293b}#ap-tab-datos .li .rk.m3{background:#fb923c;color:#2a1200}
+    #ap-tab-datos .li .nm{flex:1;font-weight:600}#ap-tab-datos .li .v{font-weight:800;font-size:16px;min-width:40px;text-align:right}
+    #ap-tab-datos .v.go{color:#fb923c}#ap-tab-datos .v.as{color:#85b7eb}#ap-tab-datos .v.pr{color:#fac775}
+    #ap-tab-datos .more{display:block;text-align:center;margin-top:10px;padding:10px;border-radius:10px;background:#1a2438;color:#b4c0d1;font-weight:700;font-size:13px;cursor:pointer}
+    #ap-tab-datos .chip{display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;border:1px solid #3b4a68;color:#b4c0d1;font-size:13px;font-weight:600;cursor:pointer}
+    #ap-tab-datos .chip.on{background:#412402;border-color:#7a4a10;color:#fac775}
+    #ap-tab-datos .pos{display:inline-block;font-size:11px;color:#b4c0d1;background:#1a2438;border-radius:6px;padding:2px 7px;margin-left:6px}
+    #ap-tab-datos .sticky th{position:sticky;top:0;background:#0f1729}
+    #ap-tab-datos .leader{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+    #ap-tab-datos .leader .card{padding:16px;border-top:2px solid #fb923c}
+    #ap-tab-datos .badge-pos{padding:7px 14px;background:#232e45;border-radius:999px;font-weight:700;color:#b4c0d1}
+    #ap-tab-datos .badge-pos b{color:#f1f5f9}
+    #ap-tab-datos .fp{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+    #ap-tab-datos .fp .p{padding:7px 12px;border-radius:9px;font-size:13px;font-weight:700;border:1px solid;white-space:nowrap}
+    #ap-tab-datos .fp .ok{border-color:#14573f;color:#34d399;background:#0b2a20}#ap-tab-datos .fp .pe{border-color:#6b4210;color:#fac775;background:#2a1a08}#ap-tab-datos .fp .sel{background:#2563eb;border-color:#2563eb;color:#fff}
+    #ap-tab-datos .fp .nx{border-color:#2563eb;color:#60a5fa;background:#0f1f3d}
+    #ap-tab-datos .ann{font-size:12.5px;color:#fac775;margin:6px 0 14px}
+    #ap-tab-datos #cd{display:block}
+    #cd .seg{display:inline-flex;background:#0f1729;border:1px solid #1f2b42;border-radius:12px;padding:4px;gap:2px;margin-bottom:18px}
+    #cd .seg button{border:0;background:none;color:#b4c0d1;padding:9px 22px;border-radius:9px;font-weight:700;cursor:pointer;font-size:14px}
+    #cd .seg button.on{background:#412402;color:#fac775}
+    #cd .ficha{display:grid;grid-template-columns:260px 1fr;gap:20px;align-items:stretch}
+    #cd .side1{background:#0f1729;border:1px solid #1f2b42;border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:14px;justify-content:center;text-align:center}
+    #cd .side1 .pts{font-size:60px;font-weight:800;line-height:1}
+    #cd .pillrow{display:flex;gap:8px;justify-content:center}
+    #cd .pill{padding:5px 12px;border-radius:99px;font-weight:800;font-size:13px}
+    #cd .p-g{background:#0e3b2b;color:#34d399}
+    #cd .p-e{background:#3a2608;color:#fac775}
+    #cd .p-p{background:#3f1a1d;color:#f87171}
+    #cd .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+    #cd .tile{background:#0f1729;border:1px solid #1f2b42;border-radius:14px;padding:16px}
+    #cd .tile b{display:block;font-size:30px;line-height:1.1;margin:6px 0 2px}
+    #cd .tile small{color:#7d8aa0;font-size:12px}
+    #cd .eff{grid-column:span 2}
+    #cd .bar{height:10px;border-radius:99px;background:#223049;overflow:hidden;margin-top:10px}
+    #cd .bar i{display:block;height:100%;border-radius:99px;transition:width .3s}
+    #cd .fx{background:#0f1729;border:1px solid #1f2b42;border-radius:14px;display:flex;flex-direction:column;overflow:hidden;max-height:372px}
+    #cd .fx .hd{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid #1f2b42}
+    #cd .fx .list{overflow:auto;flex:1}
+    #cd .fx .list::-webkit-scrollbar{width:6px}
+    #cd .fx .list::-webkit-scrollbar-thumb{background:#2a3650;border-radius:6px}
+    #cd .row{display:grid;grid-template-columns:44px 26px 1fr 22px 58px;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid #18233a}
+    #cd .row:last-child{border-bottom:0}
+    #cd .row .f{color:#b4c0d1;font-weight:700;font-size:13px}
+    #cd .row .cr{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:9px;font-weight:800;color:#0b1220}
+    #cd .row .nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    #cd .row .hv{color:#7d8aa0;font-size:13px;text-align:center}
+    #cd .row .rs{text-align:center;font-weight:800;border-radius:8px;padding:4px 0;font-size:14px}
+    #cd .rs.G{background:#0e3b2b;color:#34d399}
+    #cd .rs.E{background:#3a2608;color:#fac775}
+    #cd .rs.P{background:#3f1a1d;color:#f87171}
+    #cd .rs.N{background:transparent;color:#7d8aa0;font-weight:600;font-size:12px;border:1px dashed #33405a}
+    #cd .rs.X{background:#142a4a;color:#60a5fa;font-size:12px}
+    #cd .row.next{background:#0f1f3d}
+    #cd .mt{padding:12px 14px}
+    #cd .mh{display:flex;justify-content:space-between;margin-bottom:10px}
+    #cd .mg{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x proximity;padding-bottom:8px;scrollbar-width:thin;scrollbar-color:#2a3650 transparent}
+    #cd .mg::-webkit-scrollbar{height:6px}
+    #cd .mg::-webkit-scrollbar-thumb{background:#2a3650;border-radius:6px}
+    #cd .mc{flex:0 0 66px;scroll-snap-align:start}
+    #cd .arr{display:inline-flex;gap:6px;margin-left:10px}
+    #cd .arr button{width:26px;height:26px;border-radius:8px;border:1px solid #1f2b42;background:#141d2e;color:#b4c0d1;cursor:pointer;font-size:14px;line-height:1}
+    #cd .arr button:hover{background:#1c2740;color:#f1f5f9}
+    #cd .mc{background:#141d2e;border:1px solid #1f2b42;border-radius:10px;padding:7px 2px 6px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px}
+    #cd .mc .hv{font-size:12px;line-height:1}
+    #cd .mc .cr{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:8.5px;font-weight:800;color:#0b1220}
+    #cd .mc .rs{font-weight:800;font-size:12.5px;border-radius:6px;padding:2px 0;width:calc(100% - 10px)}
+    #cd .mc .f{font-size:11px;color:#7d8aa0;font-weight:700}
+    #cd .mc.next{border-color:#2563eb;background:#0f1f3d}
+    #cd .ficha .seg{margin-bottom:18px}
+    #cd .ml td{padding:11px 12px}
+    #cd .sec{display:flex;align-items:center;gap:12px;margin-bottom:16px}#cd .sec h3{margin:0;font-size:15px;letter-spacing:.05em;text-transform:uppercase}#cd .sec .l{flex:1;height:1px;background:#1f2b42}#cd .badge{padding:7px 14px;background:#232e45;border-radius:999px;font-weight:700;color:#b4c0d1}#cd .badge b{color:#f1f5f9}
     /* Borde + elevación coloreados por tarjeta — SOLO al pasar el mouse o
        con foco de teclado, igual en las tres (antes Primera A los tenía
        también en reposo). */
@@ -11611,6 +11724,224 @@ function _cdSetMobileSummary(btn, mode) {
     card.style.display = (mode === 'general' || card.dataset.cdCond === mode) ? '' : 'none';
   });
 }
+// En Vivo v2 — Centro de Datos (solo torneo EN VIVO, ver renderTorneoApertura
+// más abajo). Copiado tal cual de envivo_mockup_v2.html: un solo panel
+// "Rendimiento" con selector Total/Local/Visitante (.seg) que recalcula sin
+// re-render — el mismo patrón vanilla set(k) del mockup, acá con los datos
+// reales de _cdSummaryStats en vez de los 3 objetos hardcodeados S.t/S.l/S.v.
+// buildCentroDatosHtml (sin el "V2") sigue intacta para Torneos Antiguos.
+function buildCentroDatosHtmlV2(matches, opts) {
+  opts = opts || {};
+  const tabFn = opts.tabFn || 'apSwitchTab';
+  const fechaFn = opts.fechaFn || 'selectFecha';
+  const list = (matches || []).filter(m => m && m.rival);
+  if (!list.length) return `<div style="color:#64748b;padding:40px;text-align:center">📭 Sin datos cargados para este torneo todavía.</div>`;
+  const asc = [...list].sort((a, b) => (parseInt(a.fecha) || 0) - (parseInt(b.fecha) || 0));
+  const localList = asc.filter(m => _cdCondKey(m.local) === 'local');
+  const visitList = asc.filter(m => _cdCondKey(m.local) === 'visitante');
+  const byMode = { t: asc, l: localList, v: visitList };
+
+  const nextFecha = opts.next ? String(opts.next.fecha) : null;
+  const nextDt = (opts.next && opts.detNext) ? _parseFechaHora(opts.detNext.dia, opts.detNext.hora, true) : null;
+
+  const golesPorPartido = (n, pj) => pj > 0 ? `${(n / pj).toFixed(2).replace('.', ',')} por partido` : '—';
+  const pctDePartidos = (n, pj) => pj > 0 ? `${Math.round((n / pj) * 100)}% de los partidos` : '—';
+
+  function statsFor(mode) {
+    const s = _cdSummaryStats(byMode[mode]);
+    const ef = s.pj > 0 ? Math.round((s.pts / (s.pj * 3)) * 100) : 0;
+    return { ...s, ef };
+  }
+  const S = { t: statsFor('t'), l: statsFor('l'), v: statsFor('v') };
+
+  const posActual = opts.tablaPos || _cdPosActualReal(asc, opts.apertura);
+  const medal = _cdPosMedal(posActual) || '🏅';
+
+  // Tira horizontal de partidos (.mg/.mc) — misma condición (todos/local/
+  // visitante) que el selector de arriba.
+  function matchCard(m) {
+    const { csb, riv } = _cdCsbGoles(m);
+    const jugado = m.gf != null && m.gc != null;
+    const isNext = nextFecha && String(m.fecha) === nextFecha;
+    // Mismo criterio que el mockup: la mini-tarjeta muestra el resultado si
+    // se jugó, ⏸ si está postergado, la fecha programada si es el próximo
+    // partido, o "—" para cualquier otro pendiente (la cuenta regresiva
+    // "⏱ en 1d 22h" solo aparece en la fila de la tabla de abajo).
+    let rsCls = 'N', rsTxt = '—';
+    if (jugado) {
+      rsCls = csb > riv ? 'G' : csb === riv ? 'E' : 'P';
+      rsTxt = m.resultado || `${csb}-${riv}`;
+    } else if (m.resultado && !/^[-—]*$/.test(String(m.resultado).trim())) {
+      rsCls = 'X'; rsTxt = '⏸';
+    } else if (isNext) {
+      rsCls = 'X'; rsTxt = opts.detNext && opts.detNext.dia ? opts.detNext.dia : '—';
+    }
+    const cond = _cdCondKey(m.local) === 'local' ? '🏠' : _cdCondKey(m.local) === 'visitante' ? '✈️' : '·';
+    return `<div class="mc${isNext ? ' next' : ''}" data-cd-cond="${_cdCondKey(m.local)}" data-cd-fecha="${m.fecha}" onclick="_cdGoToFecha('${tabFn}','${fechaFn}',${parseInt(m.fecha) || 0})">
+      <span class="hv">${cond}</span>
+      <span class="cr">${_crestImgHtml(m.rival)}</span>
+      <span class="rs ${rsCls}">${rsTxt}</span>
+      <span class="f">F${m.fecha}</span>
+    </div>`;
+  }
+
+  // Tabla "Todos los partidos" de abajo — misma condición que el selector.
+  function tableRows(mode) {
+    return byMode[mode].map(m => {
+      const { csb, riv } = _cdCsbGoles(m);
+      const jugado = m.gf != null && m.gc != null;
+      const isNext = nextFecha && String(m.fecha) === nextFecha;
+      let pillHtml;
+      if (jugado) {
+        const cls = csb > riv ? 'p-gr' : csb === riv ? 'p-am' : 'p-rd';
+        pillHtml = `<span class="pill ${cls}">${m.resultado || (csb + '-' + riv)}</span>`;
+      } else if (m.resultado && !/^[-—]*$/.test(String(m.resultado).trim())) {
+        pillHtml = `<span class="pill p-gy">${m.resultado}</span>`;
+      } else if (isNext) {
+        pillHtml = `<span class="pill p-bl">⏱ ${nextDt ? _cdCountdownLabel(nextDt) : ''}</span>`;
+      } else {
+        pillHtml = `<span class="pill p-gy">Pendiente</span>`;
+      }
+      const posHtml = jugado
+        ? _cdPosicion(m, false)
+        : (isNext ? `Hoy: ${posActual || '—'} vs ${m.posRival || '—'}` : '<span style="color:#7d8aa0">—</span>');
+      const cronicaHtml = m.obs
+        ? `<span style="color:#b4c0d1">${String(m.obs).slice(0, 60)}${String(m.obs).length > 60 ? '…' : ''}</span> <span class="cd2-obs-link" style="color:#fac775;cursor:pointer" onclick="_cdv2ShowObs(this,'${String(m.obs).replace(/'/g, "\\'").replace(/\n/g, ' ')}')">Ver más →</span>`
+        : '<span style="color:#7d8aa0">—</span>';
+      return `<tr style="${isNext ? 'background:#0f1f3d' : ''}" class="${isNext ? '' : 'cd-row-clickable'}" ${isNext ? '' : `onclick="_cdGoToFecha('${tabFn}','${fechaFn}',${parseInt(m.fecha) || 0})" `}>
+        <td><b>${isNext ? `<span style="color:#60a5fa">F${m.fecha}</span>` : 'F' + m.fecha}</b></td>
+        <td>${_cdCondKey(m.local) === 'local' ? '🏠' : '✈️'} ${m.rival}</td>
+        <td>${pillHtml}</td>
+        <td>${jugado ? _cdParciales(m.parciales) : '<span style="color:#7d8aa0">—</span>'}</td>
+        <td>${posHtml}</td>
+        <td style="color:#b4c0d1">${cronicaHtml}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  const instanceId = 'cdv2-' + (opts.instanceKey || opts.tabFn || 'default');
+  const firstStrip = (mode) => byMode[mode].map(matchCard).join('');
+  const firstRows = (mode) => tableRows(mode);
+  const fxLabel = mode => mode === 't' ? 'Todos los partidos' : mode === 'l' ? 'Partidos de local' : 'Partidos de visitante';
+
+  // Guardado para que el selector Total/Local/Visitante (_cdv2Set) cambie
+  // los números, la tira de partidos y la tabla de abajo sin volver a
+  // renderizar nada — mismo patrón que el set(k) del mockup, con los 3
+  // juegos de datos ya calculados de antemano.
+  window._cdv2Data[instanceId] = ['t', 'l', 'v'].reduce((acc, mode) => {
+    const s = S[mode];
+    acc[mode] = {
+      pts: s.pts, pj: s.pj + (mode === 't' ? ' partidos jugados' : mode === 'l' ? ' partidos como local' : ' partidos como visitante'),
+      g: s.v, e: s.e, p: s.d,
+      ef: s.ef, efColor: s.ef >= 70 ? '#34d399' : '#60a5fa',
+      efs: `${s.pts} de ${s.pj * 3} puntos posibles`,
+      gf: s.gf, gfp: golesPorPartido(s.gf, s.pj), gc: s.gc, gcp: golesPorPartido(s.gc, s.pj),
+      dg: (s.dg >= 0 ? '+' : '') + s.dg, vallas: s.vallas, vp: pctDePartidos(s.vallas, s.pj),
+      fxt: fxLabel(mode), fxc: `${byMode[mode].length} fechas`,
+      strip: firstStrip(mode), rows: firstRows(mode),
+    };
+    return acc;
+  }, {});
+
+  return `<div id="cd">
+    <div class="card" style="margin-bottom:16px">
+      <div class="sec"><h3>Rendimiento · ${opts.torneoName || ''}</h3><span class="l"></span><span class="badge">${medal} <b>${posActual || '—'}</b> en la tabla</span></div>
+      <div class="seg" id="${instanceId}-seg">
+        <button class="on" onclick="_cdv2Set('${instanceId}','t',this)">Total</button>
+        <button onclick="_cdv2Set('${instanceId}','l',this)">🏠 Local</button>
+        <button onclick="_cdv2Set('${instanceId}','v',this)">✈️ Visitante</button>
+      </div>
+      <div class="ficha">
+        <div class="side1">
+          <span class="lab">Puntos</span>
+          <div class="pts a" id="${instanceId}-pts">${S.t.pts}</div>
+          <div style="color:#b4c0d1" id="${instanceId}-pj">${S.t.pj} partidos jugados</div>
+          <div class="pillrow">
+            <span class="pill p-g" id="${instanceId}-g">${S.t.v} G</span>
+            <span class="pill p-e" id="${instanceId}-e">${S.t.e} E</span>
+            <span class="pill p-p" id="${instanceId}-p">${S.t.d} P</span>
+          </div>
+        </div>
+        <div class="tiles">
+          <div class="tile eff">
+            <span class="lab">Efectividad</span>
+            <b id="${instanceId}-ef" style="color:${S.t.ef >= 70 ? '#34d399' : '#60a5fa'}">${S.t.ef}%</b>
+            <div class="bar"><i id="${instanceId}-efb" style="width:${S.t.ef}%;background:${S.t.ef >= 70 ? '#34d399' : '#60a5fa'}"></i></div>
+            <small id="${instanceId}-efs">${S.t.pts} de ${S.t.pj * 3} puntos posibles</small>
+          </div>
+          <div class="tile"><span class="lab">Goles a favor</span><b class="o" id="${instanceId}-gf">${S.t.gf}</b><small id="${instanceId}-gfp">${golesPorPartido(S.t.gf, S.t.pj)}</small></div>
+          <div class="tile"><span class="lab">Goles en contra</span><b class="r" id="${instanceId}-gc">${S.t.gc}</b><small id="${instanceId}-gcp">${golesPorPartido(S.t.gc, S.t.pj)}</small></div>
+          <div class="tile"><span class="lab">Diferencia de gol</span><b class="g" id="${instanceId}-dg">${S.t.dg >= 0 ? '+' : ''}${S.t.dg}</b><small>a favor − en contra</small></div>
+          <div class="tile"><span class="lab">Vallas invictas</span><b class="v" id="${instanceId}-v">${S.t.vallas}</b><small id="${instanceId}-vp">${pctDePartidos(S.t.vallas, S.t.pj)}</small></div>
+          <div class="tile eff mt">
+            <div class="mh"><span class="lab" id="${instanceId}-fxt">Todos los partidos</span><span style="display:flex;align-items:center"><span class="lab" id="${instanceId}-fxc">${asc.length} fechas</span><span class="arr"><button onclick="_cdv2Scroll('${instanceId}',-1)">‹</button><button onclick="_cdv2Scroll('${instanceId}',1)">›</button></span></span></div>
+            <div class="mg" id="${instanceId}-list">${firstStrip('t')}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card"><table id="${instanceId}-tbl">
+      <tr><th>Fecha</th><th>Rival</th><th>Resultado</th><th>Parciales</th><th>Pos. previa</th><th>Crónica</th></tr>
+      ${firstRows('t')}
+    </table></div>
+  </div>`;
+}
+window._cdv2Data = window._cdv2Data || {};
+window._cdv2ShowObs = function(el, text) {
+  const span = el.previousElementSibling;
+  if (!span) return;
+  span.textContent = text;
+  el.remove();
+};
+// "⏱ en 1d 22h" — mismo formato que el resto del sitio usa para cuentas
+// regresivas (_countdownParts), con horas/minutos omitidos a partir de 1
+// día igual que el mockup ("en 1d 22h", nunca "en 1d 22h 30m").
+function _cdCountdownLabel(dt) {
+  const p = _countdownParts(dt);
+  if (!p) return '';
+  if (p.days > 0) return `en ${p.days}d ${p.hours}h`;
+  if (p.hours > 0) return `en ${p.hours}h ${p.minutes}m`;
+  return `en ${p.minutes}m`;
+}
+// Selector Total/Local/Visitante de Centro de Datos v2 — cambia los
+// números, las píldoras G/E/P, la tira de partidos y la tabla de abajo sin
+// volver a renderizar nada (los 3 juegos de datos ya están precalculados
+// en window._cdv2Data, ver buildCentroDatosHtmlV2).
+window._cdv2Set = function(instanceId, mode, btn) {
+  const d = window._cdv2Data[instanceId] && window._cdv2Data[instanceId][mode];
+  if (!d) return;
+  const seg = document.getElementById(instanceId + '-seg');
+  if (seg) seg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === btn));
+  const q = suf => document.getElementById(instanceId + suf);
+  if (q('-pts')) q('-pts').textContent = d.pts;
+  if (q('-pj')) q('-pj').textContent = d.pj;
+  if (q('-g')) q('-g').textContent = d.g + ' G';
+  if (q('-e')) q('-e').textContent = d.e + ' E';
+  if (q('-p')) q('-p').textContent = d.p + ' P';
+  if (q('-ef')) { q('-ef').textContent = d.ef + '%'; q('-ef').style.color = d.efColor; }
+  if (q('-efb')) { q('-efb').style.width = d.ef + '%'; q('-efb').style.background = d.efColor; }
+  if (q('-efs')) q('-efs').textContent = d.efs;
+  if (q('-gf')) q('-gf').textContent = d.gf;
+  if (q('-gfp')) q('-gfp').textContent = d.gfp;
+  if (q('-gc')) q('-gc').textContent = d.gc;
+  if (q('-gcp')) q('-gcp').textContent = d.gcp;
+  if (q('-dg')) q('-dg').textContent = d.dg;
+  if (q('-v')) q('-v').textContent = d.vallas;
+  if (q('-vp')) q('-vp').textContent = d.vp;
+  if (q('-fxt')) q('-fxt').textContent = d.fxt;
+  if (q('-fxc')) q('-fxc').textContent = d.fxc;
+  if (q('-list')) { q('-list').innerHTML = d.strip; q('-list').scrollLeft = 0; }
+  const tbl = q('-tbl');
+  if (tbl) tbl.innerHTML = `<tr><th>Fecha</th><th>Rival</th><th>Resultado</th><th>Parciales</th><th>Pos. previa</th><th>Crónica</th></tr>${d.rows}`;
+  // Centra automáticamente la mini-tarjeta del próximo partido en la tira,
+  // igual que el mockup — nunca arranca la tira a mitad de camino.
+  const nx = q('-list') ? q('-list').querySelector('.next') : null;
+  if (nx) nx.scrollIntoView({ inline: 'center', block: 'nearest' });
+};
+window._cdv2Scroll = function(instanceId, dir) {
+  const list = document.getElementById(instanceId + '-list');
+  if (list) list.scrollBy({ left: dir * 264, behavior: 'smooth' });
+};
 function buildCentroDatosHtml(matches, opts) {
   opts = opts || {};
   const tabFn = opts.tabFn || 'apSwitchTab';
@@ -12028,7 +12359,7 @@ function renderTorneoApertura() {
     </nav>
 
     <div class="ap-tab-panel active" id="ap-tab-datos">
-      ${buildCentroDatosHtml(d.partidos || [], { tabFn: 'apSwitchTab', fechaFn: 'selectFecha', torneoName: name, apertura: d.apertura, tablaPos: (d.tabla || []).find(t => t.csb)?.pos })}
+      ${buildCentroDatosHtmlV2(d.partidos || [], { tabFn: 'apSwitchTab', fechaFn: 'selectFecha', torneoName: name, apertura: d.apertura, tablaPos: (d.tabla || []).find(t => t.csb)?.pos, next, detNext, instanceKey: 'ap' })}
     </div>
 
     <div class="ap-tab-panel" id="ap-tab-plantel">
