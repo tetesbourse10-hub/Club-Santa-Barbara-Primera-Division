@@ -14513,6 +14513,12 @@ function renderResumen() {
   // el MISMO orden (más reciente primero/izquierda, ver `ultimos` arriba —
   // ya viene así por el `.reverse()` de esa misma línea).
   const _rsmOwn = (d.tabla || []).find(t => t.csb) || null;
+  // Total de fechas del torneo activo (jugadas + pendientes) — para el
+  // "X de Y fechas disputadas" del header de "Resumen del torneo", copiado
+  // del mockup. `d.partidos` trae una fila por fecha programada (resultado
+  // null = todavía no jugada), así que su largo es el total real de fechas.
+  const _rsmTotalFechas = (d.partidos || []).length;
+  const _rsmEsLider = !!_rsmOwn && String(_rsmOwn.pos).replace(/[°º]/g, '') === '1';
   // Resumen v3 (resumen_v3_mockup.html, bloque 1): letra G/E/P + círculo
   // con el escudo real del rival debajo (el mockup usa un punto liso de
   // relleno porque es estático — acá va el crest real, mismo helper que ya
@@ -14870,13 +14876,13 @@ function renderResumen() {
            propia en la tabla (torneo sin datos todavía). -->
       ${_rsmOwn ? `
       <div class="rv3-card rv3-sum">
-        <div class="rv3-sum-h"><h3>Resumen del torneo · ${d.badge.replace(/ \d{4}$/, '')}</h3><i></i></div>
+        <div class="rv3-sum-h"><h3>Resumen del torneo · ${d.badge.replace(/ \d{4}$/, '')}</h3><i></i>${_rsmTotalFechas ? `<span style="font-size:11.5px;font-weight:600;color:var(--rv3-mut)">${_rsmOwn.pj} de ${_rsmTotalFechas} fechas disputadas</span>` : ''}</div>
         <div class="rv3-sum-g">
-          <div class="rv3-st"><span class="rv3-lab">Posición</span><span class="rv3-big">${String(_rsmOwn.pos).replace(/[°º]/g, '')}°</span><span class="rv3-sub">en la tabla</span></div>
-          <div class="rv3-st"><span class="rv3-lab">Puntos</span><span class="rv3-big rv3-a">${_rsmOwn.pts}</span><span class="rv3-sub">${_rsmOwn.pj} partidos jugados</span></div>
-          <div class="rv3-st"><span class="rv3-lab">Resultados</span><div class="rv3-sp"><div class="rv3-G"><b>${_rsmOwn.pg}</b><span>Ganados</span></div><div class="rv3-E"><b>${_rsmOwn.pe}</b><span>Empatados</span></div><div class="rv3-P"><b>${_rsmOwn.pp}</b><span>Perdidos</span></div></div></div>
-          <div class="rv3-st"><span class="rv3-lab">Goles</span><div class="rv3-sp"><div class="rv3-F"><b>${_rsmOwn.gf}</b><span>A favor</span></div><div class="rv3-C"><b>${_rsmOwn.gc}</b><span>En contra</span></div></div></div>
-          <div class="rv3-st"><span class="rv3-lab">Últimos 5 partidos</span><div class="rv3-racha">${_rsmRachaPills}</div></div>
+          <div class="rv3-st"><span class="rv3-lab">Posición</span><span class="rv3-big">${String(_rsmOwn.pos).replace(/[°º]/g, '')}°</span><span class="rv3-sub${_rsmEsLider ? ' rv3-g' : ''}" style="${_rsmEsLider ? 'font-weight:700' : ''}">${_rsmEsLider ? 'Líder' : 'en la tabla'}</span></div>
+          <div class="rv3-st"><span class="rv3-lab">Puntos</span><span class="rv3-big rv3-a">${_rsmOwn.pts}</span><span class="rv3-sub">/ ${_rsmTotalFechas * 3} pts</span></div>
+          <div class="rv3-st"><span class="rv3-lab">Resultados (${_rsmOwn.pj} PJ)</span><div class="rv3-sp"><div class="rv3-G"><b>${_rsmOwn.pg}</b><span>Ganados</span></div><div class="rv3-E"><b>${_rsmOwn.pe}</b><span>Empatados</span></div><div class="rv3-P"><b>${_rsmOwn.pp}</b><span>Perdidos</span></div></div></div>
+          <div class="rv3-st"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span class="rv3-lab" style="margin-bottom:0">Balance de Goles</span><span style="font-size:11px;font-weight:700;font-family:monospace;padding:2px 7px;border-radius:6px;background:${(_rsmOwn.gf - _rsmOwn.gc) >= 0 ? 'rgba(52,211,153,.12)' : 'rgba(248,113,113,.12)'};color:${(_rsmOwn.gf - _rsmOwn.gc) >= 0 ? 'var(--rv3-gr)' : 'var(--rv3-rd)'}">${(_rsmOwn.gf - _rsmOwn.gc) >= 0 ? '+' : ''}${_rsmOwn.gf - _rsmOwn.gc} DG</span></div><div class="rv3-sp"><div class="rv3-F"><b>${_rsmOwn.gf}</b><span>A favor</span></div><div class="rv3-C"><b>${_rsmOwn.gc}</b><span>En contra</span></div></div></div>
+          <div class="rv3-st"><span class="rv3-lab">Forma reciente</span><div class="rv3-racha">${_rsmRachaPills}</div></div>
         </div>
       </div>` : ''}
 
