@@ -17819,6 +17819,7 @@ function _anualesMobileHtml(year, years, torneos, total) {
     ${statsHtml}
     <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gris-texto);margin-bottom:8px">🏟️ Rendimiento por torneo</div>
     <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">${torneosHtml}</div>
+    ${_anualesTablaAnualBtnHtml(year, false)}
     <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gris-texto);margin-bottom:8px">🏅 Rankings de la temporada</div>
     ${_anuMobileRankingsShellHtml('a')}
     ${_anuMobilePlantelSectionHtml('a')}
@@ -17896,26 +17897,23 @@ function _anualesEnsureCombinada(year, isB) {
   });
 }
 
-// Dos badges lado a lado (uno por torneo) en vez de uno solo combinado —
-// mismas clases/colores que ya usa copaBadge() en cada tabla individual
-// (ver renderTorneoHistoricoGeneric y afines), solo que acá nunca se pisan
-// entre sí: Apertura y Clausura pueden traer clasificaciones distintas el
-// mismo año (ej: Campeón en Apertura, Promoción en Clausura).
-function _anualesCopaBadgePair(copasAp, copasCl) {
-  const one = (copa, torneoLabel) => {
-    if (!copa || copa === '-' || copa === '–') return '';
-    const cls = /campe[oó]n|supercopa/i.test(copa) ? 'copa-campeon'
-      : /recopa/i.test(copa) ? 'copa-recopa'
-      : /copa de honor/i.test(copa) ? 'copa-honor'
-      : /promoci[oó]n/i.test(copa) ? 'copa-promocion'
-      : /descenso/i.test(copa) ? 'copa-descenso' : null;
-    const text = `${torneoLabel}: ${copa}`;
-    return cls
-      ? `<span class="copa-badge ${cls}" style="display:block;margin-bottom:3px;white-space:normal">${text}</span>`
-      : `<span style="display:block;color:rgba(255,255,255,.4);font-size:0.62rem;margin-bottom:3px">${text}</span>`;
-  };
-  const html = one(copasAp, 'Apertura') + one(copasCl, 'Clausura');
-  return html || '<span style="color:rgba(255,255,255,.15)">—</span>';
+// Un badge de una sola línea por torneo (Apertura/Clausura van en sus
+// PROPIAS columnas de la tabla, ver _anualesCombinedTablaDesktopHtml) en
+// vez de apilar las dos etiquetas dentro de una sola celda — con una sola
+// línea por celda, todas las filas quedan con la misma altura sin importar
+// cuántas clasificaciones (0, 1 o 2) tenga cada equipo ese año. Mismas
+// clases/colores que ya usa copaBadge() en cada tabla individual (ver
+// renderTorneoHistoricoGeneric y afines).
+function _anualesCopaBadgeSingle(copa) {
+  if (!copa || copa === '-' || copa === '–') return '<span style="color:rgba(255,255,255,.15)">—</span>';
+  const cls = /campe[oó]n|supercopa/i.test(copa) ? 'copa-campeon'
+    : /recopa/i.test(copa) ? 'copa-recopa'
+    : /copa de honor/i.test(copa) ? 'copa-honor'
+    : /promoci[oó]n/i.test(copa) ? 'copa-promocion'
+    : /descenso/i.test(copa) ? 'copa-descenso' : null;
+  return cls
+    ? `<span class="copa-badge ${cls}">${copa}</span>`
+    : `<span style="color:rgba(255,255,255,.4);font-size:0.62rem">${copa}</span>`;
 }
 
 // Suma Apertura+Clausura equipo por equipo (match por nombre normalizado,
@@ -17965,7 +17963,8 @@ function _anualesCombinedTablaDesktopHtml(year, isB) {
     return `<tr class="${isLeader ? 'leader-row' : t.csb ? 'csb-row' : ''}">
       <td style="font-weight:700;color:${isLeader ? '#22c55e' : 'var(--gris-texto)'};font-size:${isLeader ? '0.95rem' : 'inherit'}">${isLeader ? '🏆' : t.pos}</td>
       <td>${equipoHtml}</td>
-      <td>${_anualesCopaBadgePair(t.copasAp, t.copasCl)}</td>
+      <td style="white-space:nowrap">${_anualesCopaBadgeSingle(t.copasAp)}</td>
+      <td style="white-space:nowrap">${_anualesCopaBadgeSingle(t.copasCl)}</td>
       <td><strong style="color:${isLeader ? '#22c55e' : '#f1f5f9'}">${t.pts}</strong></td>
       <td>${t.pj}</td><td>${t.pg}</td><td>${t.pe}</td><td>${t.pp}</td>
       <td>${t.gf}</td><td>${t.gc}</td>
@@ -17987,7 +17986,8 @@ function _anualesCombinedTablaDesktopHtml(year, isB) {
         <table class="ap-table">
           <thead><tr>
             <th>#</th><th>Equipo</th>
-            <th style="text-align:left;min-width:130px">Clasificación</th>
+            <th style="text-align:left">Apertura</th>
+            <th style="text-align:left">Clausura</th>
             <th>PTS</th><th>PJ</th><th>PG</th><th>PE</th><th>PP</th>
             <th>GF</th><th>GC</th><th>DF</th>
           </tr></thead>
@@ -18024,6 +18024,38 @@ function _anualesCombinedTablaMobileHtml(year, isB) {
   return `<div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gris-texto);margin:16px 16px 8px">📅 Tabla Anual · Apertura + Clausura</div>
     ${_tablaMobileCardsHtml(mobileRows, copaLegendItems)}`;
 }
+
+// Botón "Ver Tabla Anual" — solo se pinta si el año tiene datos completos
+// de ambos torneos (misma condición que ya usan los builders de arriba).
+// A pedido del club: en vez de dejar la tabla combinada siempre visible al
+// pie de la página, un botón la muestra por separado (vista propia, con
+// flecha "← Volver" al año normal).
+function _anualesTablaAnualBtnHtml(year, isB) {
+  if (!_anualesCombinedRows(year, isB)) return '';
+  return `<div style="margin:18px 0">
+    <button onclick="_anualesShowTablaAnualOnly('${year}', ${isB})" style="appearance:none;cursor:pointer;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.35);color:#fbbf24;font-weight:700;font-size:0.8rem;padding:10px 16px;border-radius:10px;display:inline-flex;align-items:center;gap:8px">
+      📅 Ver Tabla Anual ${year} (Apertura + Clausura) →
+    </button>
+  </div>`;
+}
+
+// Vista dedicada: reemplaza el contenido de Estadísticas Anuales por SOLO
+// la tabla combinada (nada del resumen/rankings/jugadores de abajo) — la
+// flecha "← Volver" del header (volverAtras(), ver _navPush) regresa a la
+// página normal del año vía _navRestoreAnualesYear, mismo mecanismo que ya
+// usan las tarjetas de torneo individuales de esta misma página.
+function _anualesShowTablaAnualOnly(year, isB) {
+  _navPush('Estadísticas Anuales', () => _navRestoreAnualesYear(year, isB));
+  const titulo = `Tabla Anual ${year}${isB ? ' — Primera B' : ''}`;
+  document.getElementById('jug-anuales-content').innerHTML = `
+    <div style="margin-bottom:16px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+      <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gris-texto)">Club Santa Bárbara</div>
+      <div style="font-size:1.3rem;font-weight:900;color:#fff">${titulo}</div>
+    </div>
+    <div class="mrow-desktop-only">${_anualesCombinedTablaDesktopHtml(year, isB)}</div>
+    ${_anualesCombinedTablaMobileHtml(year, isB)}`;
+}
+window._anualesShowTablaAnualOnly = _anualesShowTablaAnualOnly;
 
 function renderJugAnualesYear(year) {
   // .slice(0,5): _routeTorneoBase ya viene fijado por showJugSub('anuales')
@@ -18120,6 +18152,10 @@ function renderJugAnualesYear(year) {
       }).join('')}
     </div>
 
+    <!-- Botón "Ver Tabla Anual" — solo aparece si el año tiene datos
+         completos de ambos torneos (ver _anualesTablaAnualBtnHtml). -->
+    ${_anualesTablaAnualBtnHtml(String(year), false)}
+
     <!-- BLOQUE 3: Rankings (cargados desde el sheet) -->
     <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gris-texto);margin-bottom:8px">🏅 Rankings de la temporada</div>
     <div id="jug-anual-rankings" style="margin-bottom:20px">
@@ -18136,12 +18172,8 @@ function renderJugAnualesYear(year) {
     <div id="jug-anual-table" style="overflow:auto;max-height:640px;">
       <div style="color:var(--gris-texto);font-size:0.82rem;padding:8px 0">Cargando tabla...</div>
     </div>
-
-    <!-- BLOQUE 5: Tabla Anual combinada (Apertura + Clausura, todos los equipos) -->
-    ${_anualesCombinedTablaDesktopHtml(String(year), false)}
     </div>
-    ${_anualesMobileHtml(year, years, torneos, total)}
-    ${_anualesCombinedTablaMobileHtml(String(year), false)}`;
+    ${_anualesMobileHtml(year, years, torneos, total)}`;
 
   _anualesCombinadaOpen = { year: String(year), isB: false };
   _anualesEnsureCombinada(String(year), false);
@@ -18287,6 +18319,7 @@ function _anualesMobileHtmlB(year, years, torneosYear, total) {
     ${statsHtml}
     <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gris-texto);margin-bottom:8px">🏟️ Rendimiento por torneo</div>
     <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">${torneosHtml}</div>
+    ${_anualesTablaAnualBtnHtml(year, true)}
     ${hasRankings ? `<div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gris-texto);margin-bottom:8px">🏅 Rankings de la temporada</div>
     ${_anuMobileRankingsShellHtml('b')}
     ${_anuMobilePlantelSectionHtml('b')}` : ''}
@@ -18383,6 +18416,10 @@ function renderJugAnualesYearB(year) {
       }).join('')}
     </div>
 
+    <!-- Botón "Ver Tabla Anual" — solo aparece si el año tiene datos
+         completos de ambos torneos (ver _anualesTablaAnualBtnHtml). -->
+    ${_anualesTablaAnualBtnHtml(String(year), true)}
+
     ${(SEED_ANUALES_PLAYERS_B[year] || ANUALES_LIVE_GID_B[year]) ? `
     <!-- BLOQUE 3: Rankings de la temporada -->
     <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gris-texto);margin-bottom:8px">🏅 Rankings de la temporada</div>
@@ -18401,12 +18438,8 @@ function renderJugAnualesYearB(year) {
       <div style="color:var(--gris-texto);font-size:0.82rem;padding:8px 0">Cargando tabla...</div>
     </div>`
     : `<div style="font-size:0.72rem;color:rgba(255,255,255,0.35)">Rankings de jugadores por temporada no disponibles todavía para ${year} en Primera B.</div>`}
-
-    <!-- BLOQUE 5: Tabla Anual combinada (Apertura + Clausura, todos los equipos) -->
-    ${_anualesCombinedTablaDesktopHtml(year, true)}
     </div>
-    ${_anualesMobileHtmlB(String(year), years.map(String), torneosYear, total)}
-    ${_anualesCombinedTablaMobileHtml(year, true)}`;
+    ${_anualesMobileHtmlB(String(year), years.map(String), torneosYear, total)}`;
 
   _anualesCombinadaOpen = { year: String(year), isB: true };
   _anualesEnsureCombinada(String(year), true);
