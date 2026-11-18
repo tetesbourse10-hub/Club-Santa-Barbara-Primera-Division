@@ -17848,24 +17848,43 @@ window._anualesMobileGoYear = function(year) {
 // Torneos Antiguos — acá se dispara ese mismo fetch de entrada (si hace
 // falta) para que la Tabla Anual no dependa de que el usuario haya pasado
 // antes por ahí.
+// `apLabel`/`clLabel`: nombre real de cada torneo (categoría incluida) —
+// se usan como título de cada tabla. `mixedDivision: true` (solo 2024 B,
+// ver más abajo) marca un año donde Apertura y Clausura NO fueron la misma
+// categoría/división (el equipo ascendió a mitad de año): ahí NO se suman
+// las dos tablas en una sola (mezclaría rivales de dos niveles distintos,
+// la mayoría ni siquiera coincide entre una tabla y otra) — se muestran
+// las DOS tablas completas por separado, cada una con su propio nombre de
+// categoría, para que se entienda el ascenso en vez de un numero inventado.
 const ANUALES_COMBINADA_SRC = {
   a: {
-    '2023': { ap: { obj: DATA_A_AP2023, generic: 'apertura-2023a' }, cl: { obj: DATA_A_CL2023, generic: 'clausura-2023a' } },
-    '2024': { ap: { obj: DATA_A_AP2024, generic: 'apertura-2024a' }, cl: { obj: DATA_A_CL2024, generic: 'clausura-2024a' } },
+    '2023': { apLabel: 'Apertura AIFA A 2023', clLabel: 'Clausura AIFA A 2023',
+      ap: { obj: DATA_A_AP2023, generic: 'apertura-2023a' }, cl: { obj: DATA_A_CL2023, generic: 'clausura-2023a' } },
+    '2024': { apLabel: 'Apertura AIFA A 2024', clLabel: 'Clausura AIFA A 2024',
+      ap: { obj: DATA_A_AP2024, generic: 'apertura-2024a' }, cl: { obj: DATA_A_CL2024, generic: 'clausura-2024a' } },
     // Apertura AIFA A 2025 (DATA_A_2025) se carga eager junto al resto de
     // Torneos Actuales (ver el fetch principal) — nunca pasa por
     // HISTORICO_GENERIC, así que no lleva `generic` acá.
-    '2025': { ap: { obj: DATA_A_2025 }, cl: { obj: DATA_A_CL2025, generic: 'clausura-2025a' } },
+    '2025': { apLabel: 'Apertura AIFA A 2025', clLabel: 'Clausura AIFA A 2025',
+      ap: { obj: DATA_A_2025 }, cl: { obj: DATA_A_CL2025, generic: 'clausura-2025a' } },
     // 2026: Apertura ya archivada (eager) + Clausura en curso (DATA_A, misma
     // fila "csb" que usa Torneos Actuales) — se recalcula solo si cambia.
-    '2026': { ap: { obj: DATA_A_APERTURA2026 }, cl: { obj: DATA_A } },
+    '2026': { apLabel: 'Apertura AIFA A 2026', clLabel: 'Clausura AIFA A 2026',
+      ap: { obj: DATA_A_APERTURA2026 }, cl: { obj: DATA_A } },
   },
   b: {
-    // Apertura AIFA D 2024 (DATA_B_2024D) tiene su propio loader dedicado
-    // (no vive en HISTORICO_GENERIC, ver _loadBApt2024d más arriba).
-    '2024': { ap: { obj: DATA_B_2024D, loader: '_loadBApt2024d' }, cl: { obj: DATA_B_CL2024C, generic: 'clausura-2024c-b' } },
-    '2025': { ap: { obj: DATA_B_AP2025, generic: 'apertura-2025b' }, cl: { obj: DATA_B_CL2025, generic: 'clausura-2025b' } },
-    '2026': { ap: { obj: DATA_B_APERTURA2026 }, cl: { obj: DATA_B } },
+    // 2024: Apertura AIFA D (Campeón y Ascenso) -> Clausura AIFA C (3° y
+    // Ascenso de nuevo) — DOS categorías distintas el mismo año, club-
+    // confirmado (ver SEED_GRAFICOS_B). Apertura AIFA D 2024 (DATA_B_2024D)
+    // tiene su propio loader dedicado (no vive en HISTORICO_GENERIC, ver
+    // _loadBApt2024d más arriba).
+    '2024': { apLabel: 'Apertura AIFA D 2024', clLabel: 'Clausura AIFA C 2024', mixedDivision: true,
+      nota: 'Doble ascenso en 2024: Campeón de la Apertura AIFA D y 3er puesto en la Clausura AIFA C — dos categorías distintas, por eso van en tablas separadas en vez de sumadas.',
+      ap: { obj: DATA_B_2024D, loader: '_loadBApt2024d' }, cl: { obj: DATA_B_CL2024C, generic: 'clausura-2024c-b' } },
+    '2025': { apLabel: 'Apertura AIFA B 2025', clLabel: 'Clausura AIFA B 2025',
+      ap: { obj: DATA_B_AP2025, generic: 'apertura-2025b' }, cl: { obj: DATA_B_CL2025, generic: 'clausura-2025b' } },
+    '2026': { apLabel: 'Apertura AIFA B 2026', clLabel: 'Clausura AIFA B 2026',
+      ap: { obj: DATA_B_APERTURA2026 }, cl: { obj: DATA_B } },
   },
 };
 // Año actualmente abierto en CUALQUIERA de las dos páginas (A o B) — propio,
@@ -17923,7 +17942,7 @@ function _anualesCopaBadgeSingle(copa) {
 // entero en ese caso, nunca mostrar "no disponible".
 function _anualesCombinedRows(year, isB) {
   const src = _anualesCombinadaSrc(year, isB);
-  if (!src) return null;
+  if (!src || src.mixedDivision) return null;
   const tAp = src.ap.obj.tabla || [];
   const tCl = src.cl.obj.tabla || [];
   if (tAp.length < 3 || tCl.length < 3) return null;
@@ -17950,7 +17969,106 @@ function _anualesCombinedRows(year, isB) {
   return rows;
 }
 
+// ¿Hay datos completos para armar la Tabla Anual de este año? (Apertura Y
+// Clausura con tabla de ≥3 equipos) — independiente de si el año termina
+// combinándose en una sola tabla o mostrándose como dos tablas separadas
+// (`mixedDivision`), así que el botón usa ESTA función (nunca
+// _anualesCombinedRows directo, que devuelve null también en el caso
+// `mixedDivision` a propósito — ver más abajo).
+function _anualesTablaAnualReady(year, isB) {
+  const src = _anualesCombinadaSrc(year, isB);
+  if (!src) return false;
+  return (src.ap.obj.tabla || []).length >= 3 && (src.cl.obj.tabla || []).length >= 3;
+}
+
+// Una sola tabla de posiciones (reusa el mismo armado que ya usan los 4
+// render de torneo individuales — crest/csb-row/leader-row/copaBadge),
+// para el caso `mixedDivision`: Apertura y Clausura de ese año fueron dos
+// categorías distintas, así que se muestran completas por separado en vez
+// de sumadas.
+function _anualesSingleTablaDesktopHtml(label, tabla) {
+  const bodyRows = tabla.map((t, i) => {
+    const isLeader = i === 0;
+    const df = (t.df > 0 ? '+' : '') + (t.df ?? 0);
+    const dfColor = t.df > 0 ? 'color:#22c55e' : t.df < 0 ? 'color:#ef4444' : '';
+    const equipoHtml = t.csb
+      ? `<span class="tabla-team-crest">${_teamCrestHtml(t.equipo, t.csb)}</span>${t.equipo}`
+      : `<span class="tabla-team-crest">${_teamCrestHtml(t.equipo, t.csb)}</span><span class="tabla-team-link" onclick="event.stopPropagation();goToRivalHistorial('${t.equipo.replace(/'/g, "\\'")}')" title="Ver Historial vs ${t.equipo}">${t.equipo}</span>`;
+    return `<tr class="${isLeader ? 'leader-row' : t.csb ? 'csb-row' : ''}">
+      <td style="font-weight:700;color:${isLeader ? '#22c55e' : 'var(--gris-texto)'};font-size:${isLeader ? '0.95rem' : 'inherit'}">${isLeader ? '🏆' : t.pos}</td>
+      <td>${equipoHtml}</td>
+      <td style="white-space:nowrap">${_anualesCopaBadgeSingle(t.copas)}</td>
+      <td><strong style="color:${isLeader ? '#22c55e' : '#f1f5f9'}">${t.pts}</strong></td>
+      <td>${t.pj}</td><td>${t.pg}</td><td>${t.pe}</td><td>${t.pp}</td>
+      <td>${t.gf}</td><td>${t.gc}</td>
+      <td style="${dfColor}">${df}</td>
+    </tr>`;
+  }).join('');
+  return `<div class="ap-standings-card">
+    <div class="ap-card-title">📊 ${label}</div>
+    <div style="overflow-x:auto">
+      <table class="ap-table">
+        <thead><tr>
+          <th>#</th><th>Equipo</th>
+          <th style="text-align:left;min-width:130px">Clasificación</th>
+          <th>PTS</th><th>PJ</th><th>PG</th><th>PE</th><th>PP</th>
+          <th>GF</th><th>GC</th><th>DF</th>
+        </tr></thead>
+        <tbody>${bodyRows}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+function _anualesSeparateTablasDesktopHtml(year, isB) {
+  const src = _anualesCombinadaSrc(year, isB);
+  if (!src) return '';
+  const tAp = src.ap.obj.tabla || [];
+  const tCl = src.cl.obj.tabla || [];
+  if (tAp.length < 3 || tCl.length < 3) return '';
+  const copaLegendItems = [
+    { color: '#f59e0b', label: 'Campeón / Supercopa' },
+    { color: '#22c55e', label: 'Recopa' },
+    { color: '#a855f7', label: 'Copa de Honor' },
+    { color: '#eab308', label: 'Promoción' },
+    { color: '#ef4444', label: 'Descenso' },
+  ];
+  return `
+    <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gris-texto);margin-bottom:8px;margin-top:4px">📅 Tabla Anual ${year}</div>
+    ${src.nota ? `<div style="font-size:0.72rem;color:var(--gris-texto);background:rgba(234,179,8,0.08);border:1px solid rgba(234,179,8,0.25);border-radius:10px;padding:10px 14px;margin-bottom:16px">⚠️ ${src.nota}</div>` : ''}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:12px">
+      ${_anualesSingleTablaDesktopHtml(src.apLabel || 'Apertura', tAp)}
+      ${_anualesSingleTablaDesktopHtml(src.clLabel || 'Clausura', tCl)}
+    </div>
+    <div class="ap-copa-legend" style="margin-top:0">
+      ${copaLegendItems.map(l => `<span class="ap-legend-item"><span class="ap-legend-dot" style="background:${l.color}"></span>${l.label}</span>`).join('')}
+    </div>`;
+}
+
+function _anualesSeparateTablasMobileHtml(year, isB) {
+  const src = _anualesCombinadaSrc(year, isB);
+  if (!src) return '';
+  const tAp = src.ap.obj.tabla || [];
+  const tCl = src.cl.obj.tabla || [];
+  if (tAp.length < 3 || tCl.length < 3) return '';
+  const copaLegendItems = [
+    { color: '#f59e0b', label: 'Campeón / Supercopa' },
+    { color: '#22c55e', label: 'Recopa' },
+    { color: '#a855f7', label: 'Copa de Honor' },
+    { color: '#eab308', label: 'Promoción' },
+    { color: '#ef4444', label: 'Descenso' },
+  ];
+  return `<div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gris-texto);margin:16px 16px 8px">📅 Tabla Anual ${year}</div>
+    ${src.nota ? `<div style="font-size:0.72rem;color:var(--gris-texto);background:rgba(234,179,8,0.08);border:1px solid rgba(234,179,8,0.25);border-radius:10px;padding:10px 14px;margin:0 16px 12px">⚠️ ${src.nota}</div>` : ''}
+    <div style="font-size:0.68rem;font-weight:700;color:#fff;margin:0 16px 6px">${src.apLabel || 'Apertura'}</div>
+    ${_tablaMobileCardsHtml(tAp, copaLegendItems)}
+    <div style="font-size:0.68rem;font-weight:700;color:#fff;margin:16px 16px 6px">${src.clLabel || 'Clausura'}</div>
+    ${_tablaMobileCardsHtml(tCl, copaLegendItems)}`;
+}
+
 function _anualesCombinedTablaDesktopHtml(year, isB) {
+  const src = _anualesCombinadaSrc(year, isB);
+  if (src && src.mixedDivision) return _anualesSeparateTablasDesktopHtml(year, isB);
   const rows = _anualesCombinedRows(year, isB);
   if (!rows) return '';
   const bodyRows = rows.map((t, i) => {
@@ -18008,6 +18126,8 @@ function _anualesCombinedTablaDesktopHtml(year, isB) {
 // en una tabla normal; la vista mobile ya es deliberadamente compacta, sin
 // texto en esa columna en ningún lado del sitio).
 function _anualesCombinedTablaMobileHtml(year, isB) {
+  const src = _anualesCombinadaSrc(year, isB);
+  if (src && src.mixedDivision) return _anualesSeparateTablasMobileHtml(year, isB);
   const rows = _anualesCombinedRows(year, isB);
   if (!rows) return '';
   const copaLegendItems = [
@@ -18031,10 +18151,12 @@ function _anualesCombinedTablaMobileHtml(year, isB) {
 // pie de la página, un botón la muestra por separado (vista propia, con
 // flecha "← Volver" al año normal).
 function _anualesTablaAnualBtnHtml(year, isB) {
-  if (!_anualesCombinedRows(year, isB)) return '';
+  if (!_anualesTablaAnualReady(year, isB)) return '';
+  const src = _anualesCombinadaSrc(year, isB);
+  const subt = src && src.mixedDivision ? '(dos categorías)' : '(Apertura + Clausura)';
   return `<div style="margin:18px 0">
     <button onclick="_anualesShowTablaAnualOnly('${year}', ${isB})" style="appearance:none;cursor:pointer;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.35);color:#fbbf24;font-weight:700;font-size:0.8rem;padding:10px 16px;border-radius:10px;display:inline-flex;align-items:center;gap:8px">
-      📅 Ver Tabla Anual ${year} (Apertura + Clausura) →
+      📅 Ver Tabla Anual ${year} ${subt} →
     </button>
   </div>`;
 }
@@ -21108,7 +21230,7 @@ const RIVAL_CREST_URLS = {
   'CATALUÑA':       'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/e-d-catalu-a-1773088501756.jpg',
   'ROMA':           'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/roma-f-c-b-1771551832738.png',
   'INGENIERIA':     'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/ingenieria-a-1770049274826.JPG',
-  'SAN CARLOS':     'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/san-carlos-1770389349842.jpeg',
+  'SAN CARLOS':     'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/san-carlos-1793120295032.png',
   'VILLANUEVA':     'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/sb5-sports-villanueva-1771957072343.jpeg',
   'BANCO NACION':   'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/banco-nacion-b-1772991368343.jpg',
   'BANCO NACION B': 'https://qchoexcmznexambpkdeb.supabase.co/storage/v1/object/public/team-logos/logos/banco-nacion-b-1772991368343.jpg',
