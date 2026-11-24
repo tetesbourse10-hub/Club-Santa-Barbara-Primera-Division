@@ -5354,6 +5354,12 @@ const DATA_A = {
   titulos: [
     { nombre:'Campeón Apertura AIFA B',        anio:'2019' },
     { nombre:'Campeón Copa Maradona Luefi',    anio:'2020' },
+    // Club-confirmado: campeón tras el descuento de 3 puntos a UBA por
+    // sanción disciplinaria (ver _applySancionUBAClausura2026A). El título
+    // individual de cada jugador ("El Nido") lo carga el club aparte — este
+    // array es solo el palmarés general del plantel (Resumen/Historia y
+    // Récords), no toca el conteo por jugador.
+    { nombre:'Campeón Clausura AIFA A',        anio:'2026' },
   ],
 };
 
@@ -5378,6 +5384,23 @@ const DATA_B_2024D = {
 // propiedad de `window` (ver el comentario completo en
 // window.HISTORICO_GENERIC, más abajo en el archivo).
 window.DATA_B_2024D = DATA_B_2024D;
+
+// Club-confirmado: Primera B descendió de categoría en el Clausura AIFA B
+// 2026, así que el Apertura 2027 arranca en AIFA C (no AIFA B). Esta
+// temporada todavía no empezó — el club todavía no tiene la hoja de
+// cálculo nueva, así que acá SOLO queda preparado el nombre/categoría
+// (mismo patrón vacío que DATA_B_2024D arriba), sin conectar ningún fetch
+// ni tocar ninguna vista todavía. Cuando el club tenga el sheet de
+// "Apertura AIFA C 2027" (gid/rangos confirmados), este objeto pasa a
+// HISTORICO_GENERIC o se conecta como la nueva temporada EN CURSO (mismo
+// camino que ya se usó para Clausura AIFA A/B 2026).
+const DATA_B_AP2027C = {
+  nombre:   'Primera B — Apertura AIFA C 2027',
+  partidos: [],
+  apertura: [],
+  jugadores:[],
+  tabla:    [],
+};
 
 // Historical Primera A seasons (2022-2024) — fetched by gid from A_MAIN, same
 // generic 4-tab component as DATA_A_2025 (renderTorneoHistoricoGeneric).
@@ -12437,6 +12460,7 @@ function renderTorneoApertura() {
       <div class="legend">
         ${copaLegendItems.map(l => `<span><i style="background:${l.color}"></i>${l.label}</span>`).join('')}
       </div>
+      ${(isA && !fromAntiguos) ? _SANCION_UBA_NOTA_HTML : ''}
     </div>` : `<div class="card"><h3 class="lab">📊 Tabla de posiciones</h3><div style="color:#7d8aa0;font-size:0.82rem">Cargando…</div></div>`;
 
   // ── En Vivo v2, pestaña 4 "Fecha a Fecha" — pastillas copiadas tal cual
@@ -12477,7 +12501,7 @@ function renderTorneoApertura() {
         ${tablaHtml}
         <div style="display:flex;flex-direction:column;gap:16px">${lastCardDesktop}${nextCardDesktop}</div>
       </div></div>
-      <div class="rsm-mobile">${_tablaMobileCardsHtml(tabla, copaLegendItems, aifaUrl)}<div class="ap-match-cards">${lastCard}${nextCard}</div></div>
+      <div class="rsm-mobile">${_tablaMobileCardsHtml(tabla, copaLegendItems, aifaUrl)}${(isA && !fromAntiguos) ? `<div style="margin:0 16px 16px">${_SANCION_UBA_NOTA_HTML}</div>` : ''}<div class="ap-match-cards">${lastCard}${nextCard}</div></div>
     </div>
 
     <div class="ap-tab-panel" id="ap-tab-fechas">
@@ -13201,6 +13225,32 @@ function _stripClausura2026ACopaLeaks(matches) {
     return matchesRival && String(m.fecha).trim() === l.fecha;
   }));
 }
+
+// Club-confirmed: UBA perdió 3 puntos por una sanción disciplinaria
+// (incumplimiento en una ficha) en el Clausura AIFA A 2026 — el partido en
+// cuestión NO se dio por perdido, solo se le descontaron los puntos, así
+// que acá también se le resta 1 partido ganado (pg) sin tocar PJ/PE/PP ni
+// el resultado real de ningún partido. Ni la planilla del club ("simulador")
+// ni la tabla oficial de AIFA.ar reflejan la sanción, así que se aplica acá
+// — en los 2 lugares que pueden terminar mostrando la tabla del Clausura A
+// 2026 (el fetch del sheet en loadLiveData, y fetchAifaTabla cuando logra
+// traer la tabla en vivo desde AIFA.ar) — recalculando posición/DF después.
+// Devuelve un array NUEVO (no muta el original) para no pisar accidentalmente
+// otra copia que ya se haya renderizado.
+function _applySancionUBAClausura2026A(tabla) {
+  const list = (tabla || []).map(t => ({ ...t }));
+  const uba = list.find(t => /^UBA$/i.test((t.equipo || '').trim()));
+  if (!uba) return list;
+  uba.pts = (uba.pts || 0) - 3;
+  uba.pg = Math.max(0, (uba.pg || 0) - 1);
+  list.sort((a, b) => (b.pts - a.pts) || ((b.df ?? (b.gf - b.gc)) - (a.df ?? (a.gf - a.gc))) || (b.gf - a.gf));
+  list.forEach((t, i) => { t.pos = (i + 1) + '°'; });
+  return list;
+}
+// Nota a pie de tabla explicando la sanción — misma condición que decide
+// cuándo se aplica _applySancionUBAClausura2026A (Tabla Completa del
+// Clausura A 2026, nunca el Apertura A 2026 archivado ni Primera B).
+const _SANCION_UBA_NOTA_HTML = `<div style="margin-top:10px;padding:10px 12px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:10px;font-size:0.75rem;color:var(--gris-texto)">⚠️ UBA tiene 3 puntos menos por una sanción de AIFA (incumplimiento en una ficha) — el resultado de ese partido no cambió, solo se le descontaron los puntos.</div>`;
 
 // Apertura AIFA B 2026's live sheet has 2 leftover copa fixtures (ZAFADOS,
 // SHOLEM — now read from their own dedicated Recopa AIFA B 2026 sheet
@@ -14082,7 +14132,11 @@ async function fetchAifaTabla(slug, isA, copaLegendItems, renderTablaRows) {
         };
       });
 
-    tbody.innerHTML = renderTablaRows(liveRows);
+    // AIFA.ar todavía no refleja la sanción de puntos a UBA (ver
+    // _applySancionUBAClausura2026A) — se le aplica acá también, nunca al
+    // Apertura A 2026 archivado ni a Primera B.
+    const finalRows = slug === 'division-a-clausura-2026' ? _applySancionUBAClausura2026A(liveRows) : liveRows;
+    tbody.innerHTML = renderTablaRows(finalRows);
 
     const now = new Date().toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit' });
     badge.textContent = `🟢 En vivo · ${now}`;
@@ -19265,6 +19319,11 @@ const TORNEO_NAV_MAP = {
   // Estadísticas Anuales (de donde se hace este click) queda con
   // display:block y el torneo se ve incrustado arriba en vez de reemplazarlo.
   '2026|Clausura AIFA B': { fn: "JUG_SUB_IDS.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; }); showTorneo('apertura')" },
+  // Clausura AIFA A 2026 — mismo patrón que Clausura AIFA B 2026 arriba
+  // (temporada EN CURSO, no Torneos Antiguos): la entrada de "Palmarés
+  // Oficial" que agrega este título en el Resumen de Primera A linkea
+  // directo al Centro de Datos del torneo en curso.
+  '2026|Clausura AIFA A': { fn: "JUG_SUB_IDS.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; }); showTorneo('apertura')" },
   // Recopa 2026 terminó para las dos categorías (B en Cuartos, A eliminado
   // en Semifinales por penales vs GEBA BLANCO) — team-qualificado porque
   // ambas usan el mismo nombre de competencia "Recopa", mismo patrón que
@@ -21959,7 +22018,7 @@ async function loadLiveData() {
   // PRIMERA A standings — the simulator sheet always tracks whichever season
   // is currently live, so this still feeds the live DATA_A (now Clausura).
   const aTbl = ok(aSim) ? parseSimStandings(ok(aSim), 5) : [];
-  if (aTbl.length >= 10) DATA_A.tabla = aTbl;
+  if (aTbl.length >= 10) DATA_A.tabla = _applySancionUBAClausura2026A(aTbl);
   _fillCopasPorPosicion(DATA_A.tabla, COPAS_POR_POSICION_A);
 
   // Apertura AIFA A 2026 detailed match data — positions + fecha-a-fecha,
