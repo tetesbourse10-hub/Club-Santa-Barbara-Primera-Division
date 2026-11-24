@@ -22003,14 +22003,17 @@ async function loadLiveData() {
   // PRIMERA A — Clausura AIFA A 2026 (live season, own new sheet tab → DATA_A)
   if (ok(aClDet)) try {
     const p   = parsePlayers(ok(aClDet));
-    // Single round-robin with the 15 teams this cycle (same format as
-    // Apertura AIFA A 2026's 16 teams topping out at Fecha 15 — n-1 rounds)
-    // means Fecha 14 is the real last matchday; a stray "Fecha 17" row
-    // showed up in Centro de Datos/Fecha a Fecha, almost certainly a leaked
-    // copa fixture parsed as if it were a league round. Capped the same way
-    // HISTORICO_GENERIC seasons already cap their own leaks (maxFecha/capFecha).
+    // BUG REAL encontrado (reportado: "no toma bien los datos del último
+    // partido, Fecha 15 vs Sitas"): este cap asumía que el Clausura corría
+    // con 15 equipos (14 fechas, n-1 rondas), un equipo menos que el
+    // Apertura AIFA A 2026 (16 equipos, 15 fechas) — en realidad corre con
+    // los mismos 16 equipos que el Apertura, así que Fecha 15 (vs Sitas) es
+    // un partido real, no el mismo leak que motivó este cap. Una fila
+    // suelta "Fecha 17" sí apareció en Centro de Datos/Fecha a Fecha
+    // (leak de copa parseado como ronda de liga) — ese leak sigue
+    // filtrándose igual con el cap en 15, sin volver a cortar Fecha 15.
     const det = _stripClausura2026ACopaLeaks(_ligaOnlyMatches(parseDetailedMatches(ok(aClDet), true))
-      .filter(m => parseInt(m.fecha) <= 14));
+      .filter(m => parseInt(m.fecha) <= 15));
     if (p.length > 0)   DATA_A.jugadores = p;
     if (det.length > 0) {
       DATA_A.apertura  = det;
