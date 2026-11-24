@@ -6172,6 +6172,7 @@ function _allPlayerTorneoSources() {
     { d: DATA_B_SUPERCOPA2025, navKey: 'ch:supercopa-2025b', cat: 'b' },
     { d: DATA_B_RECOPA2024, navKey: 'ch:recopa-2024b', cat: 'b' },
     { d: DATA_B_RECOPA2021, navKey: 'ch:recopa-2021b', cat: 'b' },
+    { d: DATA_A_CHALLENGER2026, navKey: 'ch:challenger-2026a', cat: 'a' },
   ].map(({ d, navKey, cat }) => ({ d, equipo: null, navKey, torneo: d.nombre, cat, historic: false }));
   // Two finished LEAGUE seasons (not copas) that got their own bespoke render
   // component instead of going through HISTORICO_GENERIC — they used to be
@@ -6209,6 +6210,7 @@ function _ppCopaMatchesForKey(key) {
   if (key === 'supercopa-2025b') return DATA_B_SUPERCOPA2025.apertura || [];
   if (key === 'recopa-2024b') return DATA_B_RECOPA2024.apertura || [];
   if (key === 'recopa-2021b') return DATA_B_RECOPA2021.apertura || [];
+  if (key === 'challenger-2026a') return DATA_A_CHALLENGER2026.apertura || [];
   return [];
 }
 
@@ -9542,6 +9544,12 @@ function showHistoricoTorneo(key) {
     const el = document.getElementById('tab-torneo-copa-historico');
     if (el) el.classList.add('active');
     renderCopaHistorico(DATA_B_RECOPA2021.apertura || [], 'Recopa AIFA B 2021', DATA_B_RECOPA2021.jugadores || []);
+  } else if (key === 'challenger-2026a') {
+    // Copa Challenger 2026 (Primera A) — mismo patrón que las copas
+    // dedicadas de B de arriba (partido único, sin tabla de posiciones).
+    const el = document.getElementById('tab-torneo-copa-historico');
+    if (el) el.classList.add('active');
+    renderCopaHistorico(DATA_A_CHALLENGER2026.apertura || [], 'Copa Challenger 2026', DATA_A_CHALLENGER2026.jugadores || []);
   } else {
     const el = document.getElementById('tab-torneo-historico-' + key);
     if (el) el.classList.add('active');
@@ -13339,6 +13347,12 @@ function _mergeBasicoIntoPartidos(dataObj, basicoMatches) {
 // calls below). No bracket UI yet (needs the actual cuadro data, like 2026's),
 // but the matches themselves are isolated here instead of silently discarded.
 const DATA_A_RECOPA2025 = { nombre: 'Recopa AIFA A 2025', partidos: [], apertura: [], jugadores: [], tabla: [] };
+
+// Copa Challenger 2026 (Primera A) — partido único, campeón Clausura AIFA A
+// 2026 (Santa Bárbara) vs campeón Apertura AIFA A 2026 (Regatas), 5/12.
+// Propia pestaña dedicada en el mismo spreadsheet que GS.A_MAIN (gid
+// 84513092) — ver el fetch en loadLiveData (_loadDedicatedCopaSheet).
+const DATA_A_CHALLENGER2026 = { nombre: 'Copa Challenger 2026', partidos: [], apertura: [], jugadores: [], tabla: [] };
 
 // Pulls matches matching `predicate` out of a league season's parsed data and
 // into a copa data object, so liga stats (Plantel/Tabla/Estadísticas
@@ -19324,6 +19338,12 @@ const TORNEO_NAV_MAP = {
   // Oficial" que agrega este título en el Resumen de Primera A linkea
   // directo al Centro de Datos del torneo en curso.
   '2026|Clausura AIFA A': { fn: "JUG_SUB_IDS.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; }); showTorneo('apertura')" },
+  // Copa Challenger 2026 (Primera A) — se juega el 5/12. Esta entrada queda
+  // lista pero INERTE: nada la lista todavía en ningún picker/tarjeta de
+  // Torneos Antiguos (solo showHistoricoTorneo('challenger-2026a') la usa,
+  // y nada llama a esa key todavía) — se agrega la tarjeta visible recién
+  // cuando el partido ya se jugó, mismo criterio que pidió el club.
+  '2026|Copa Challenger': { fn: "showHistoricoTorneo('challenger-2026a')" },
   // Recopa 2026 terminó para las dos categorías (B en Cuartos, A eliminado
   // en Semifinales por penales vs GEBA BLANCO) — team-qualificado porque
   // ambas usan el mismo nombre de competencia "Recopa", mismo patrón que
@@ -21818,7 +21838,8 @@ async function loadLiveData() {
     'a25Det', 'a25Global', 'a25Tabla', 'a25Basico', 'bApGlobal', 'bApTabla',
     'bClDet', 'bClGlobal', 'bClTabla', 'bClBasic', 'aClDet', 'aClGlobal', 'aClTabla', 'aClBasic', 'copasSheet', 'copasBasicSheet', 'bRecopa26Det', 'bRecopa26Basico',
     'bSupercopa25Det', 'bSupercopa25Plantel', 'bRecopa24Det', 'bRecopa24Plantel',
-    'bRecopa21Det', 'bRecopa21Plantel', 'bRecopa21Basico'];
+    'bRecopa21Det', 'bRecopa21Plantel', 'bRecopa21Basico',
+    'aChallengerDet', 'aChallengerPlantel', 'aChallengerBasico'];
   // Fetch each section as a targeted range so parsers receive exactly the right rows
   const _fetchPromises = [
     // Antes: fetchCSV(GS.A_SIM) — sin tab/range, csvUrl() arma la URL sin
@@ -21962,13 +21983,23 @@ async function loadLiveData() {
     // has (its "Fecha" column doubles as the round name, no separate Local/
     // Visita or Parciales column there). See parseCopaResumenRow / merge below.
     fetchGvizByGid(GS.B_HIST, 222048409, 'A1:E2'),
+    // ── Copa Challenger 2026 (Primera A) — Santa Bárbara (campeón Clausura
+    //    AIFA A 2026) vs Regatas (campeón Apertura AIFA A 2026), partido
+    //    único el 5/12. Propia pestaña nueva en el mismo spreadsheet que
+    //    GS.A_MAIN (gid distinto), club-confirmed: Fecha a Fecha A6:H34,
+    //    Plantel L3:X29, Resumen (Rival/Instancia/Local-Visita/Resultado/
+    //    Parciales) A1:J2. ──
+    fetchGvizByGid(GS.A_MAIN, 84513092, 'A6:H34'),
+    fetchGvizByGid(GS.A_MAIN, 84513092, 'L3:X29'),
+    fetchGvizByGid(GS.A_MAIN, 84513092, 'A1:J2'),
   ];
   const _timedPromises = _DEBUG_TIMING ? _fetchPromises.map((p, i) => _timed(_fetchLabels[i], p)) : _fetchPromises;
   const [aSim, aBasic, aDet, bApBasic, bApDet, aHist, bHist, aGlobal, aTabla,
          a25Det, a25Global, a25Tabla, a25Basico, bApGlobal, bApTabla,
          bClDet, bClGlobal, bClTabla, bClBasic, aClDet, aClGlobal, aClTabla, aClBasic, copasSheet, copasBasicSheet, bRecopa26Det, bRecopa26Basico,
          bSupercopa25Det, bSupercopa25Plantel, bRecopa24Det, bRecopa24Plantel,
-         bRecopa21Det, bRecopa21Plantel, bRecopa21Basico] = await Promise.allSettled(_timedPromises);
+         bRecopa21Det, bRecopa21Plantel, bRecopa21Basico,
+         aChallengerDet, aChallengerPlantel, aChallengerBasico] = await Promise.allSettled(_timedPromises);
   // El panel se muestra ACÁ, antes del try/catch de abajo — así se ve
   // aunque el parseo posterior tire una excepción (ver el comentario
   // grande de ese try/catch), que es justo cuando más hace falta ver qué
@@ -22392,6 +22423,14 @@ async function loadLiveData() {
   //    its own short resumen row (Local/Visita real + Resultados Parciales,
   //    ninguno de los dos en el bloque detallado). ──
   _loadDedicatedCopaSheet(bRecopa21Det, bRecopa21Plantel, DATA_B_RECOPA2021, 'Recopa B 2021', bRecopa21Basico);
+
+  // ── Copa Challenger 2026 (Primera A) — partido único, no bracket, así que
+  //    _loadDedicatedCopaSheet's ROUND_SEQUENCE (Octavos/Cuartos/Semifinal/
+  //    Final por índice) etiquetaría mal el único partido como "Octavos de
+  //    Final" — se corrige a "Final" después de cargar, reusando el mismo
+  //    merge de resumen/plantel que ya usan las demás copas dedicadas. ──
+  _loadDedicatedCopaSheet(aChallengerDet, aChallengerPlantel, DATA_A_CHALLENGER2026, 'Copa Challenger 2026', aChallengerBasico);
+  if (DATA_A_CHALLENGER2026.apertura?.length) DATA_A_CHALLENGER2026.apertura.forEach(m => { m.posCSB = 'Final'; });
 
   const s = r => r.status === 'fulfilled' ? '✅' : '❌';
 
