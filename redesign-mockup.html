@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Club Santa Bárbara · Propuesta de diseño nuevo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Hanken+Grotesk:wght@400;500;600;700&display=swap');
+:root{--paper:#eef0e6;--paper2:#e3e8d8;--ink:#0f1f17;--mut:#516357;--rule:#c9d0be;--pitch:#0b4d32;--pitch-t:#0b4d32;--grass:#2e9d5b;--yellow:#f1c40f;--red:#d64533;--blue:#1f5fa8;--on:#f4f7ee;--card:#f7f8f1;--sq:var(--pitch-t);--ok:#1f8a4c;--dr:#b8860b}
+[data-theme=dark]{--paper:#09140e;--paper2:#0f1d15;--ink:#e8efe2;--mut:#93a698;--rule:#20362a;--pitch-t:#4cc27c;--grass:#4cc27c;--blue:#6aaeea;--card:#0d1a12;--yellow:#f1c40f;--red:#ef6b57;--ok:#4cc27c;--dr:#f1c40f}
+[data-sq=b]{--sq:var(--blue)}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 "Hanken Grotesk",system-ui,sans-serif;font-variant-numeric:tabular-nums}
+h1,h2,h3{font-family:"Big Shoulders Display","Arial Narrow",sans-serif;margin:0;font-weight:800;letter-spacing:.005em;line-height:1}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
+.wrap{max-width:1240px;margin:0 auto;padding:0 32px}
+/* barra */
+.bar{position:sticky;top:0;z-index:20;background:var(--paper);border-bottom:1px solid var(--rule)}
+.bar .wrap{display:flex;align-items:center;gap:28px;height:64px}
+.brand{display:flex;align-items:center;gap:12px}
+.brand svg{width:34px;height:38px}
+.brand b{font-family:"Big Shoulders Display";font-size:25px;font-weight:800;letter-spacing:.01em;white-space:nowrap}
+nav{display:flex;gap:4px;height:100%;margin-left:12px}
+nav button{background:none;border:0;padding:0 16px;font-weight:600;color:var(--mut);position:relative;height:100%}
+nav button[aria-current=page]{color:var(--ink)}
+nav button[aria-current=page]:after{content:"";position:absolute;left:12px;right:12px;bottom:-1px;height:4px;background:var(--sq);border-radius:4px 4px 0 0}
+.tools{margin-left:auto;display:flex;gap:10px;align-items:center}
+.seg{display:inline-flex;border:1.5px solid var(--ink);border-radius:8px;overflow:hidden}
+.seg button{background:none;border:0;padding:7px 14px;font-weight:700;font-size:14px}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--paper)}
+.ico{border:1.5px solid var(--rule);background:none;border-radius:8px;width:38px;height:36px;font-size:16px}
+/* campo */
+.field{background:repeating-linear-gradient(90deg,#0b4d32 0 90px,#0d5637 90px 180px);color:var(--on);position:relative;overflow:hidden;border-radius:0 0 28px 28px}
+.field .wrap{position:relative}.field svg.lines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.field .in{position:relative;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:24px;padding:28px 0 26px;min-height:330px}
+.cap{position:absolute;left:32px;top:22px;display:flex;gap:10px;align-items:center;font-weight:600;font-size:14px}
+.cap i{font-style:normal;background:var(--yellow);color:#1b1500;font-weight:800;border-radius:4px;padding:2px 8px;font-size:12.5px}
+.side{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;margin-top:22px}
+.side .name{font-family:"Big Shoulders Display";font-size:44px;font-weight:800;line-height:.95}
+.side .pos{font-size:14px;opacity:.85}
+.side .pos b{font-family:"Big Shoulders Display";font-size:26px;font-weight:800;margin-right:4px}
+.centro{display:grid;place-items:center;text-align:center;width:230px;height:230px;border-radius:50%;border:3px solid rgba(255,255,255,.7);background:rgba(7,53,34,.5)}
+.centro .t{font-family:"Big Shoulders Display";font-weight:800;font-size:76px;line-height:.9}
+.centro .t small{font-size:28px;font-weight:700;margin-left:2px}
+.centro .l{font-size:13px;opacity:.85}
+.centro .w{font-weight:700;font-size:15px}
+.hfoot{position:relative;display:flex;gap:18px;justify-content:space-between;align-items:center;padding:14px 0 20px;border-top:1px solid rgba(255,255,255,.22);font-size:14px}
+.hfoot a,.link{color:inherit;font-weight:700;text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:2px;background:none;border:0;padding:0}
+.h2h{display:flex;gap:10px;align-items:center}
+.h2h .b{display:flex;height:10px;width:150px;border-radius:5px;overflow:hidden}
+.crest{display:grid;place-items:center;border-radius:50%;font-family:"Big Shoulders Display";font-weight:800;color:#0b1b12}
+.shieldbig{width:92px;height:104px}
+/* secciones */
+main{padding-bottom:70px}
+section.blk{padding:44px 0 0}
+.hd{display:flex;align-items:baseline;gap:16px;margin-bottom:18px;border-bottom:2px solid var(--ink);padding-bottom:8px}
+.hd h2{font-size:34px}
+.hd p{margin:0;color:var(--mut)}
+.hd .link{margin-left:auto;color:var(--ink);font-size:14px}
+.cols>*{min-width:0}.cols{display:grid;grid-template-columns:7fr 5fr;gap:44px}
+table{border-collapse:collapse;width:100%}
+th{font-weight:600;font-size:13px;color:var(--mut);text-align:right;padding:8px 8px;border-bottom:1px solid var(--rule)}
+th:nth-child(2){text-align:left}
+td{padding:0 8px;height:44px;text-align:right;border-bottom:1px solid var(--rule)}
+td:nth-child(1){text-align:left;width:50px;font-weight:700;color:var(--mut);position:relative;padding-left:14px}
+td:nth-child(1):before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:5px;border-radius:3px;background:var(--z,transparent)}
+td:nth-child(2){text-align:left}
+td .tm{display:flex;align-items:center;gap:10px;font-weight:600}
+td b.pts{font-family:"Big Shoulders Display";font-size:23px;font-weight:800}
+tr.me td{background:color-mix(in srgb,var(--sq) 14%,transparent);font-weight:700}
+tr.me td:nth-child(1){color:var(--ink)}
+.tag{font-size:12px;font-weight:700;border:1.5px solid currentColor;border-radius:99px;padding:1px 9px;white-space:nowrap}
+.gap{margin-top:14px;padding:12px 14px;border-left:5px solid var(--yellow);background:var(--paper2);font-weight:500}
+.big1{font-family:"Big Shoulders Display";font-weight:800;font-size:150px;line-height:.82;color:var(--sq)}
+.big1 sup{font-size:56px;vertical-align:top;position:relative;top:10px;margin-left:2px}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:1px solid var(--rule);margin-top:20px}
+.kpis div{padding:12px 0;border-bottom:1px solid var(--rule)}
+.kpis b{display:block;font-family:"Big Shoulders Display";font-size:36px;font-weight:800;line-height:1}
+.kpis span{font-size:12.5px;color:var(--mut)}
+.kpis div:not(:nth-child(3n+1)){padding-left:14px;border-left:1px solid var(--rule)}
+.gf{color:var(--ok)}.gc{color:var(--red)}
+.ticks{display:flex;gap:5px;margin-top:18px}
+.tk{flex:1;height:50px;border-radius:5px;display:grid;place-items:end center;padding-bottom:5px;font-weight:800;font-size:12px;color:#fff}
+.tk.G{background:var(--ok)}.tk.E{background:var(--yellow);color:#241b00}.tk.P{background:var(--red)}.tk.N{background:none;border:2px dashed var(--rule);color:var(--mut)}.tk.N.next{border-color:var(--sq);color:var(--sq)}
+.lg{display:flex;gap:16px;font-size:13px;color:var(--mut);margin-top:8px;flex-wrap:wrap}.lg i{display:inline-block;width:10px;height:14px;border-radius:3px;margin-right:6px;vertical-align:-2px}
+/* resultado */
+.score{display:grid;grid-template-columns:1fr auto 1fr;gap:20px;align-items:center;padding:6px 0 4px}
+.score .tm{display:flex;align-items:center;gap:16px}.score .tm:last-child{flex-direction:row-reverse;text-align:right}
+.score .tm b{font-family:"Big Shoulders Display";font-size:36px;font-weight:800;line-height:1}
+.score .tm>div>span{display:block;color:var(--mut);font-size:14px}
+.score .res{font-family:"Big Shoulders Display";font-size:96px;font-weight:800;line-height:.85;display:flex;gap:14px;align-items:center}
+.score .res i{font-style:normal;color:var(--mut);font-size:50px}
+.vtag{display:inline-block;font-weight:800;border-radius:6px;padding:3px 12px;font-size:14px;color:#fff;margin-left:12px;vertical-align:middle}
+.vtag.G{background:var(--ok)}.vtag.E{background:var(--yellow);color:#241b00}.vtag.P{background:var(--red)}
+.meta{display:flex;gap:22px;color:var(--mut);margin-bottom:6px;flex-wrap:wrap}
+/* placas */
+.plates{display:grid;grid-template-columns:repeat(4,1fr);gap:0}
+.plate{padding:6px 22px 18px;border-left:1px solid var(--rule)}
+.plate:first-child{border-left:0;padding-left:0}
+.plate .n{font-family:"Big Shoulders Display";font-size:92px;font-weight:800;line-height:.9}
+.plate .k{font-weight:700;margin-top:4px}
+.plate .w{color:var(--mut);font-size:14px}
+.plate .rule{height:5px;width:44px;margin:10px 0 12px;border-radius:3px}
+/* banda historia */
+.band{background:var(--pitch);color:var(--on);border-radius:24px;padding:30px 36px;display:grid;grid-template-columns:1.1fr 1.5fr;gap:36px;align-items:center}
+[data-theme=dark] .band{background:#0b3a27}
+.band h3{font-size:40px}
+.band ul{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:8px}
+.band li{display:flex;gap:12px;align-items:center;font-weight:600}
+.band li i{font-style:normal;background:var(--yellow);color:#1b1500;font-weight:800;border-radius:5px;padding:1px 9px;font-size:13px}
+.bstats{display:grid;grid-template-columns:repeat(3,1fr);gap:0}
+.bstats div{padding:0 18px;border-left:1px solid rgba(255,255,255,.25)}
+.bstats b{display:block;font-family:"Big Shoulders Display";font-size:60px;font-weight:800;line-height:.95}
+.bstats span{font-size:13.5px;opacity:.85}
+/* jugadores */
+.tabs{display:flex;gap:8px;margin-bottom:18px}
+.tabs button{border:1.5px solid var(--ink);background:none;border-radius:99px;padding:7px 18px;font-weight:700}
+.tabs button[aria-pressed=true]{background:var(--ink);color:var(--paper)}
+.rk{display:grid;grid-template-columns:44px 1fr auto;gap:14px;align-items:center;padding:12px 0;border-bottom:1px solid var(--rule)}
+.rk .p{font-family:"Big Shoulders Display";font-weight:800;font-size:34px;color:var(--mut);text-align:center}
+.rk .p.m1{color:#b8860b}.rk .p.m2{color:#7a8a96}.rk .p.m3{color:#a1602a}
+.rk .nm b{display:block;font-size:17px}
+.rk .ln{height:8px;border-radius:5px;background:var(--paper2);margin-top:6px;overflow:hidden}.rk .ln i{display:block;height:100%;background:var(--sq);border-radius:5px}
+.rk .v{font-family:"Big Shoulders Display";font-weight:800;font-size:40px;line-height:1}
+.fich{align-self:start;border:2px solid var(--ink);border-radius:22px;padding:22px 24px;background:var(--card);position:sticky;top:84px}
+.fich .top{display:flex;gap:16px;align-items:center;margin-bottom:16px}
+.fich h3{font-size:36px}.fich .top p{margin:4px 0 0;color:var(--mut)}
+.fgrid{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--rule)}
+.fgrid div{padding:12px 0 10px;border-bottom:1px solid var(--rule)}.fgrid div:not(:nth-child(3n+1)){padding-left:14px;border-left:1px solid var(--rule)}
+.fgrid b{display:block;font-family:"Big Shoulders Display";font-size:40px;font-weight:800;line-height:1}.fgrid span{font-size:13px;color:var(--mut)}
+/* historia */
+.tl{position:relative;margin:6px 0 0 8px;border-left:3px solid var(--ink);padding-left:28px;display:grid;gap:22px}
+.tl .it{position:relative}
+.tl .it:before{content:"";position:absolute;left:-39px;top:6px;width:16px;height:16px;border-radius:50%;background:var(--paper);border:4px solid var(--ink)}
+.tl .it.w:before{background:var(--yellow)}.tl .it.now:before{background:var(--sq);border-color:var(--sq)}
+.tl .y{font-family:"Big Shoulders Display";font-size:34px;font-weight:800;line-height:1}
+.tl p{margin:2px 0 0}.tl small{color:var(--mut)}
+.sheet{border-top:2px solid var(--ink)}
+.sheet .r{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:baseline;padding:11px 0;border-bottom:1px solid var(--rule)}
+.sheet .r span{color:var(--mut)}.sheet .r b{font-family:"Big Shoulders Display";font-size:30px;font-weight:800}
+.stackb{display:flex;height:16px;border-radius:8px;overflow:hidden;margin:14px 0 6px}
+.note{margin-top:60px;border:1.5px dashed var(--rule);border-radius:14px;padding:14px 18px;color:var(--mut);font-size:13.5px}
+.hide{display:none}
+@media (max-width:900px){.cap{left:18px}
+ .wrap{padding:0 18px}.bar .wrap{gap:10px;height:auto;flex-wrap:wrap;padding-top:10px;padding-bottom:0}
+ nav{order:3;width:100%;margin:0;overflow-x:auto;height:46px}nav button{padding:0 12px;white-space:nowrap}
+ .brand b{font-size:20px}
+ .field .in{grid-template-columns:1fr 1fr;gap:10px;padding-top:56px;min-height:0}.centro{grid-column:1/3;width:190px;height:190px;order:-1;margin:0 auto}.centro .t{font-size:58px}.shieldbig{width:64px;height:72px}.side .crest{width:64px!important;height:64px!important;font-size:27px!important}
+ .side .name{font-size:30px}.side{margin-top:0}
+ .cols,.band,.plates{grid-template-columns:1fr}.plate{border-left:0;padding-left:0;border-top:1px solid var(--rule)}
+ .big1{font-size:110px}
+ .score{grid-template-columns:1fr}.score .tm:last-child{flex-direction:row;text-align:left}.score .res{font-size:70px}
+ .fich{position:static}.bstats b{font-size:44px}
+ .tblw{overflow-x:auto}table{min-width:620px}
+ .hfoot{flex-direction:column;align-items:flex-start}
+}
+@media (prefers-reduced-motion:no-preference){.centro{animation:pulso 3.2s ease-in-out infinite}@keyframes pulso{50%{box-shadow:0 0 0 14px rgba(255,255,255,.07)}}}
+
+.c75{display:grid;grid-template-columns:7fr 5fr;gap:44px}.c57{display:grid;grid-template-columns:5fr 7fr;gap:44px}.c75>*,.c57>*{min-width:0}
+.sub{display:flex;gap:26px;border-bottom:1px solid var(--rule);margin:-6px 0 22px;overflow-x:auto}
+.sub button{background:none;border:0;padding:10px 2px;font-weight:700;color:var(--mut);position:relative;white-space:nowrap;font-size:16px}
+.sub button[aria-pressed=true]{color:var(--ink)}
+.sub button[aria-pressed=true]:after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:4px;background:var(--sq);border-radius:4px 4px 0 0}
+.ctrl{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.ctrl .grow{flex:1;min-width:180px}
+input.s,select.s{font:inherit;border:1.5px solid var(--ink);background:var(--card);color:var(--ink);border-radius:8px;padding:7px 12px;width:100%}
+select.s{width:auto}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chips button{border:1.5px solid var(--rule);background:none;border-radius:99px;padding:5px 13px;font-weight:600;font-size:13.5px}
+.chips button[aria-pressed=true]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+tr.clk{cursor:pointer}tr.clk:hover td{background:var(--paper2)}tr.sel td{background:color-mix(in srgb,var(--sq) 16%,transparent)!important}
+.sqt{display:inline-flex;gap:4px}.sqt i{font-style:normal;font-size:11.5px;font-weight:800;border-radius:4px;padding:1px 6px;color:#fff;background:var(--pitch)}.sqt i.b{background:var(--blue)}
+td.l,th.l{text-align:left!important}
+tr.grp td{height:36px;background:var(--paper2);font-family:"Big Shoulders Display";font-weight:800;font-size:19px;text-align:left;padding-left:14px}
+tr.grp td:before{display:none}
+.fx{display:grid;grid-template-columns:64px 36px 1fr auto 90px;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--rule)}
+.fx .f{font-family:"Big Shoulders Display";font-weight:800;font-size:26px;color:var(--mut)}
+.fx .cd{font-size:12px;font-weight:800;border:1.5px solid var(--rule);border-radius:5px;text-align:center;padding:1px 0;color:var(--mut)}
+.fx .tm{display:flex;gap:10px;align-items:center;font-weight:600}
+.fx .sc{font-family:"Big Shoulders Display";font-weight:800;font-size:34px;line-height:1;text-align:center;min-width:80px}
+.fx.nx .sc{color:var(--mut);font-size:22px}
+.ribbon{display:inline-flex;gap:8px;align-items:center;background:var(--yellow);color:#1b1500;font-weight:800;border-radius:6px;padding:3px 12px;font-size:14px}
+.bal{display:flex;height:9px;border-radius:5px;overflow:hidden;min-width:110px;background:var(--paper2)}
+.pos-c{font-weight:700;color:var(--mut)}
+.arch{display:grid;grid-template-columns:90px 1fr;gap:6px 24px;padding:16px 0;border-bottom:2px solid var(--ink)}
+.arch .y{font-family:"Big Shoulders Display";font-weight:800;font-size:44px;line-height:.9}
+.arch .it{display:grid;grid-template-columns:1fr 170px 70px 120px;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--rule)}
+.arch .it:last-child{border-bottom:0}.arch .it small{color:var(--mut)}
+.arch .it b.rs{font-weight:700}.arch .it .w{display:inline-block;background:var(--yellow);color:#1b1500;font-weight:800;border-radius:5px;padding:1px 9px;font-size:13px}
+.hl{background:color-mix(in srgb,var(--yellow) 30%,transparent)}
+.sm{font-size:13.5px;color:var(--mut)}
+@media (max-width:900px){.hd{flex-wrap:wrap;gap:4px 14px}.hd h2{white-space:nowrap}.c75,.c57{grid-template-columns:1fr;gap:28px}
+ .fx{grid-template-columns:44px 30px 1fr auto;}.fx .rt{display:none}.fx .f{font-size:22px}.fx .sc{font-size:28px;min-width:60px}
+ .arch{grid-template-columns:1fr}.arch .it{grid-template-columns:1fr auto}.arch .it .c3,.arch .it .c4{display:none}
+ table.nw{min-width:560px}}
+</style></head><body data-sq="a" data-theme="light">
+<header class="bar"><div class="wrap">
+ <div class="brand"><svg viewBox="0 0 34 38" aria-hidden="true"><path d="M17 1 32 6v14c0 9-6 15-15 17C8 35 2 29 2 20V6z" fill="#0b4d32" stroke="#f1c40f" stroke-width="2"/><path d="M10 25c4-1 6-5 6-9m0 0c1-3 5-4 8-3-1 2-3 3-5 3m-3 0 1 9" stroke="#f4f7ee" stroke-width="2" fill="none" stroke-linecap="round"/></svg><b>Club Santa Bárbara</b></div>
+ <nav id="nav" aria-label="Secciones"></nav>
+ <div class="tools"><div class="seg" role="group" aria-label="Plantel"><button id="sa" aria-pressed="true">Primera A</button><button id="sb" aria-pressed="false">Primera B</button></div><button class="ico" id="th" aria-label="Cambiar a modo noche" title="Modo noche">☾</button></div>
+</div></header>
+<main id="app"></main>
+<script>
+const COLS=['#f6a94a','#7fb8ea','#b9a5e6','#f09ac0','#7fd6a3','#f0d35c','#6fd3df','#ef8f80'];
+const crest=(n,s)=>{const h=[...n].reduce((a,c)=>a+c.charCodeAt(0),0);const ini=n.replace(/\./g,'').split(' ').map(w=>w[0]).join('').slice(0,2);return `<span class="crest" style="width:${s}px;height:${s}px;background:${COLS[h%8]};font-size:${Math.round(s*.42)}px">${ini}</span>`};
+const SHIELD=`<svg class="shieldbig" viewBox="0 0 34 38" aria-hidden="true"><path d="M17 1 32 6v14c0 9-6 15-15 17C8 35 2 29 2 20V6z" fill="#eef0e6" stroke="#f1c40f" stroke-width="1.6"/><path d="M10 25c4-1 6-5 6-9m0 0c1-3 5-4 8-3-1 2-3 3-5 3m-3 0 1 9" stroke="#0b4d32" stroke-width="2" fill="none" stroke-linecap="round"/></svg>`;
+const Z={g:'var(--ok)',b:'#4a90d9',a:'#d9a400',r:'var(--red)'};
+const P=s=>s.trim().split(';').map(x=>x.split(','));
+const FIX=s=>s.split(';').map(x=>{const p=x.split('|');const sc=p[3]?p[3].split('-').map(Number):null;return{f:+p[0],l:p[1],r:p[2],gf:sc?sc[0]:null,gc:sc?sc[1]:null,when:p[4]||''}});
+const res=x=>x.gf==null?null:x.gf>x.gc?'G':x.gf<x.gc?'P':'E';
+const RN={G:'Ganado',E:'Empatado',P:'Perdido'};
+const NIDO=P(`Tomas Elhaiek,MC,A,229,59,48,26;Felipe Bello,DEL,A,213,65,81,33;Juan Moyano,DFC,A,177,59,3,3;Mateo Schwartz,LI,AB,162,46,3,7;Theo Jurs,DFC,A,154,69,12,4;Marcos Gicovate,LD,AB,139,72,15,19;Bautista Elhaiek,MC,A,138,67,27,10;Ramiro Hermida,DEL,A,137,64,49,31;Genaro Falconi,DFC,A,135,32,4,5;Segundo Bourse,MC,AB,134,68,23,28;Valentin Ruocco,DFC,AB,131,65,4,2;Iñaki Usandizaga,ARQ,AB,129,70,0,3;Francisco Vittar,MC,AB,128,63,13,13;Esteban Fernandez King,MC,AB,128,40,6,5;Teo Bellotti,MC,B,123,60,8,11;Joaquin Cadenas,MC,AB,117,57,20,23;Patricio Garre,DEL,AB,117,15,17,14;Mateo Alfonso,DFC,B,117,55,5,3;Bautista Fossa,DEL,AB,112,43,11,10;Fernando Cobian,DEL,A,107,47,23,9;Justo Gottlieb,DEL,AB,104,48,36,3;Carlos Marcelo Cecchi,MC,AB,98,53,16,27;Manuel Diaz Bridge,LI,B,95,54,4,0;Facundo Llauro,MC,A,92,42,0,1;Eduardo Seeber,MC,AB,91,24,9,8;Fermin Garces,LI,A,90,45,0,0;Juan Guyot,MC,A,86,2,2,5;Adrian Cavallero,MC,A,85,11,5,12;Lorenzo Pellegrino,DEL,A,84,43,38,8;Francisco Moresco,DEL,AB,84,26,13,6;Vicente Fiore,DEL,AB,83,39,35,10;Juan Manuel Vittar,LD,AB,77,14,5,9;Felipe Fossa,DFC,AB,74,37,0,1;Rufino Falconi,DFC,B,73,38,10,1;Juan Bautista Basavilbaso,LI,AB,72,40,2,9;Mauro Pellegrino,DFC,A,67,23,1,5;Mateo Garcia,DFC,AB,66,33,7,0;Juan Cruz Goycochea,DFC,A,65,2,1,1;Felipe Navasal,DEL,B,59,27,5,3;Dimas Molinari,ARQ,B,58,33,0,0;Urbano Ledesma,DEL,B,58,20,11,0;Matias Vera,ARQ,A,54,1,0,0;Cruz Queirolo,ARQ,AB,54,26,0,0;Santiago Bassi,LD,AB,54,29,1,7;Marco Sienra,DFC,AB,53,5,6,2;Tomas Bernard,MC,AB,53,26,1,3;Tomas Matheu,LI,B,51,24,0,2;Bautista Baylac,MC,AB,48,23,2,2;Jonatan Lopez,DFC,B,48,25,6,3;Bautista Busch,LD,B,47,20,1,0;Bautista Cassaretto,LD,A,46,5,0,0;Juan Tutaglio,MC,AB,46,15,2,2;Santiago Carabajal,ARQ,A,45,17,0,0;Tomas Castro,MC,A,45,28,2,4;Federico Moronell,DEL,A,44,1,21,10;Guillermo Diaz Mayer,DEL,B,43,24,15,4;Tomas Del Frade,DEL,B,43,21,7,6;Juan Vigano,DEL,AB,41,21,20,6;Santiago Bulacio,MC,B,38,19,3,0;Lucca Lopez Mañan,DEL,B,37,17,5,3;Matias Gerber,MC,B,35,11,0,3;Nicolas Sosa,MC,A,34,0,5,4;Simon Gazzera,DEL,AB,34,6,5,2;Ivan Daverio,DEL,AB,34,17,8,3;Matias Guidoni,LD,AB,33,14,0,0;Manuel Soares Gache,MC,B,30,16,0,0;Tobias Torino,DFC,B,29,16,1,0;Tobias Ricciardelli,DEL,B,29,18,9,3;Mateo Samitier,DFC,AB,27,11,2,0;Felipe Gomez,LD,B,27,16,1,4;Matias Garcia Lanusse,MC,B,27,7,0,0;Francisco Preuss,DEL,B,27,14,8,3;Rocco Tessarolo,DEL,B,24,7,0,0;Benito Jasiukiewicz,DEL,AB,21,13,3,0;Gonzalo Aguirre,LD,B,21,10,1,0;Jaime Cafferata,ARQ,AB,20,7,0,0;Agustin Gounaridis,LI,B,20,7,0,0;Bautista Ares,DEL,B,19,12,4,1;Santiago Tarelli,DFC,B,14,6,0,0;Santiago Chapur,LD,B,14,5,0,0;Mario Seeber,MC,AB,13,2,2,3;Ignacio Frassia,DFC,B,13,6,1,0;Maximo Chialvo,MC,B,12,2,0,1;Ayrton Gardoqui,ARQ,AB,11,4,0,0;Pedro Bulacio,DFC,B,11,6,0,0;Tomas Mayer,DEL,B,11,8,9,6;Juan Cruz Bilbao,DEL,B,11,3,2,0;Juan Cruz Aleixo,ARQ,B,10,1,0,0;Matias Fried,LD,B,8,5,0,0;Jeronimo Costa,DEL,B,8,3,0,0;Benito Gualco,DEL,A,7,4,0,0;Francisco Pane,DEL,A,7,4,0,0;Bautista Dato,MC,B,7,2,0,0;Santino Ruocco,ARQ,B,6,3,0,0;Alfonso Lamm,DEL,B,6,2,1,1;Felipe Saccone,LI,B,5,3,0,0;Santiago Matheu,DEL,B,5,5,0,1;Joaquin Scoceria,DFC,B,4,2,0,0;Juan Segundo de Gaetani,LD,B,4,1,0,0;Matias Wiegers,DEL,B,4,2,0,0;Ignacio Ravagnan,DFC,B,3,2,0,0;Joaquin Toledo,LD,B,3,2,0,0;Alexis Pereyra,ARQ,AB,2,1,0,0;Joaquin Paz,LI,B,2,2,0,1;Tomas Cordoba,DEL,B,1,0,0,0`).map(c=>({n:c[0],pos:c[1],sq:c[2],pj:+c[3],pg:+c[4],g:+c[5],a:+c[6]}));
+const RIV={a:P(`AFALP,18,8,4,6,22,18;ARQUITECTURA,8,5,1,2,17,9;ASTURIANO,7,4,2,1,15,10;BANCO CIUDAD,5,3,2,0,10,5;BANCO PROVINCIA,3,1,1,1,6,7;CAMPOS SARANDI,3,1,1,1,6,7;CISSAB,16,10,2,4,36,19;D10,1,1,0,0,5,0;DEF. HURLINGHAM,4,1,1,2,7,8;EL CHASQUI,3,2,1,0,12,3;EL RETIRO,2,0,1,1,2,3;GALICIA,6,5,0,1,17,11;GALICIA BLANCO,1,0,0,1,1,2;GEBA,15,4,3,8,18,20;GEBA AZUL,2,1,1,0,1,0;HARRODS,14,7,1,6,25,20;ITALIANO,13,8,2,3,19,9;ITALIANO B,1,1,0,0,2,0;LA MATANZA,9,5,1,3,17,9;LA NEGRA,8,3,2,3,10,10;LA PLATA,10,3,3,4,9,10;LAMROTH HACKOL,1,1,0,0,4,0;LASALLE,3,2,1,0,4,2;LIBERTADOR,3,3,0,0,12,3;LOS MOLINOS,2,2,0,0,7,3;MACABI,12,3,1,8,18,18;MELMAC,10,4,4,2,20,16;MITRE,4,1,1,2,7,5;NORDELTA,11,7,1,3,21,14;NORDELTA SUB 21,1,0,1,0,1,1;ONCE CORAZONES,1,1,0,0,5,1;PAC,2,1,1,0,4,3;REGATAS,13,3,6,4,20,21;REPUBLICA DEL OESTE,4,3,1,0,13,6;RHINO,2,1,1,0,4,2;SAN ANDRES,1,1,0,0,2,1;SANTA ALICIA,5,2,1,2,7,7;SHOLEM,1,1,0,0,8,2;SITAS,12,4,4,4,27,21;SITAS B,5,1,0,4,7,13;SITAS C,6,3,1,2,16,8;TOCALLI,2,2,0,0,5,2;TROVADOR,9,3,3,3,16,12;UBA,12,5,2,5,20,20;VILO,12,6,4,2,23,18`).map(c=>({n:c[0],pj:+c[1],g:+c[2],e:+c[3],p:+c[4],gf:+c[5],gc:+c[6]})),b:P(`AFALP B,3,1,1,1,5,6;AFALP C,4,1,3,0,9,6;ARQUITECTURA,3,2,1,0,6,3;ASTURIANO,1,0,1,0,1,1;BANCO CIUDAD,3,1,1,1,1,1;BANCO NACION,2,2,0,0,4,2;BANCO PROVINCIA,1,0,1,0,2,2;BARKOJBA,1,1,0,0,6,2;BENAVIDEZ RANCH SPORTS,2,1,1,0,3,1;BRIT AJIM,1,0,0,1,1,2;CISSAB,1,0,0,1,2,3;CSPFA,1,0,0,1,0,2;D10,3,3,0,0,13,2;DEP. SANTA MARIA,2,1,1,0,4,1;DI TELLA,1,1,0,0,1,0;EL CHASQUI,2,2,0,0,4,2;EL CHASQUI B,2,2,0,0,6,2;EL NACIONAL,1,0,0,1,0,3;EL RETIRO,3,1,2,0,11,1;ESCOBAR,3,1,1,1,5,2;GALICIA BLANCO,3,1,0,2,3,8;GALICIA CELESTE,1,1,0,0,1,0;GEBA AZUL,4,2,1,1,10,4;HACOAJ,6,1,3,2,6,5;HEBRAICA,6,2,1,3,8,9;INGENIERIA,2,2,0,0,5,1;ITALIANO A,2,0,1,1,2,6;ITALIANO B,4,1,0,3,3,6;ITALIANO C,2,1,1,0,4,0;ITALIANO D,1,1,0,0,3,2;JPH LIONS,1,1,0,0,3,0;LA PLATA,1,0,1,0,2,2;LAMROTH HAKOL,3,1,1,1,4,2;LASALLE,2,1,1,0,2,1;LIBERTADOR,4,1,0,3,9,15;LINIERS,5,3,2,0,13,5;LOS MOLINOS,4,0,0,4,3,13;MACABI B,3,3,0,0,10,1;MELMAC,4,2,0,2,4,9;MELMAC B,1,0,0,1,2,3;MITRE,1,0,0,1,0,1;NORDELTA B,1,0,0,1,2,3;ONCE CORAZONES,3,3,0,0,5,1;P.A.C,4,1,2,1,6,7;PLAY FUTBOL,1,0,1,0,1,1;QUINQUELA MARTIN,1,1,0,0,4,0;REGATAS B,4,2,1,1,5,3;REPUBLICA DEL OESTE,4,4,0,0,24,3;RHINO,2,0,1,1,2,3;ROMA,3,3,0,0,6,2;SAN CARLOS,1,1,0,0,4,1;SAN FERNANDO,3,2,1,0,4,1;SHOLEM AZUL,1,1,0,0,3,1;SHOLEM BLANCO,4,1,1,2,5,8;SHOLEM ROJO,1,1,0,0,2,1;SITAS B,3,1,1,1,3,3;SITAS C,3,1,2,0,6,3;SITAS D,1,1,0,0,2,1;SPORTIVO AVELLANEDA,1,0,0,1,0,1;TOCALLI,5,0,1,4,4,15;TRONCOS,2,2,0,0,4,1;TROVADOR,3,1,0,2,3,6;TROVADOR B,1,1,0,0,3,2;UNLAM,3,2,0,1,9,7;VENECIA,2,2,0,0,5,0;VIAJANTES,1,1,0,0,3,1;ZAFADOS,2,1,1,0,2,1`).map(c=>({n:c[0],pj:+c[1],g:+c[2],e:+c[3],p:+c[4],gf:+c[5],gc:+c[6]}))};
+const PLA={a:P(`ARQ~Iñaki Usandizaga,14,0,1;DFC~Theo Jurs,14,0,1;DFC~Valentin Ruocco,14,1,0;DFD~Marcos Gicovate,14,0,4;DFI~Fermin Garces,13,0,0;DFI~Juan Bautista Basavilbaso,7,0,0;DFC~Tomas Bernard,6,0,0;DFD~Bautista Baylac,6,0,0;DFC~Juan Moyano,5,0,0;DFD~Genaro Falconi,4,0,0;MCO~Bautista Elhaiek,14,3,1;MCO~Carlos Marcelo Cecchi,14,1,4;MC~Francisco Vittar,14,1,1;MD~Ramiro Hermida,14,7,3;MC~Tomas Elhaiek,11,0,1;MI~Felipe Bello,8,5,1;MI~Benito Jasiukiewicz,8,0,0;MD~Joaquin Cadenas,7,1,0;MI~Benito Gualco,5,0,0;MC~Facundo Llauro,4,0,0;MI~Tomas Castro,4,0,0;DC~Justo Gottlieb,14,7,1;DC~Francisco Pane,6,0,0;DC~Ivan Daverio,1,0,0;ARQ~Alexis Pereyra,0,0,0;ARQ~Francisco Sena,0,0,0;DFC~Juan Segundo de Gaetani,0,0,0;MC~Tomas Buschiazzo,0,0,0`).map(c=>{const q=c[0].split('~');return{pos:q[0],n:q[1],pj:+c[1],g:+c[2],a:+c[3]}}),b:P(`ARQ~Juan Cruz Aleixo,10,0,0;ARQ~Jaime Cafferata,5,0,0;ARQ~Simon Gazzera,3,0,0;DFI~Tomas Matheu,9,0,0;DFI~Agustin Gounaridis,9,0,0;DFC~Mateo Schwartz,9,0,1;DFC~Mateo Alfonso,8,0,0;DFD~Santiago Bassi,8,0,0;DFD~Bautista Busch,5,0,0;DFI~Teo Bellotti,5,0,0;DFC~Mateo Garcia,4,0,0;DFD~Matias Guidoni,1,0,0;MC~Matias Gerber,13,0,1;MC~Urbano Ledesma,13,1,0;MCO~Matias Garcia Lanusse,12,0,0;MCO~Segundo Bourse,10,1,0;MC~Maximo Chialvo,10,0,0;MC~Juan Tutaglio,8,0,1;MC~Felipe Fossa,7,0,0;MCO~Patricio Garre,7,1,0;DC~Francisco Moresco,12,3,0;DC~Juan Cruz Bilbao,4,0,0;DC~Juan Vigano,3,0,0;DC~Jeronimo Costa,2,0,0;EI~Felipe Navasal,12,0,0;ED~Vicente Fiore,11,4,1;EI~Bautista Fossa,10,0,2;ED~Tomas Del Frade,5,0,0;EI~Rocco Tessarolo,4,0,0;ARQ~Matias Vera,0,0,0;DFI~Joaquin Paz,0,0,0;DFC~Esteban Fernandez King,0,0,0;DFD~Matias Fried,0,0,0`).map(c=>{const q=c[0].split('~');return{pos:q[0],n:q[1],pj:+c[1],g:+c[2],a:+c[3]}})};
+const ARCH={
+a:[[2026,[['Clausura AIFA A','Campeón','33 pts','14 PJ','10-3-1','w'],['Apertura AIFA A','2°','32 pts','15 PJ','9-5-1'],['Recopa','Semifinal','','3 PJ','2-1-0']]],
+ [2025,[['Clausura AIFA A','5°','23 pts','15 PJ','7-2-6'],['Apertura AIFA A','4°','30 pts','15 PJ','9-3-3'],['Recopa','Subcampeón','','4 PJ','2-1-1']]],
+ [2024,[['Clausura AIFA A','8°','23 pts','15 PJ','7-2-6'],['Apertura AIFA A','7°','23 pts','15 PJ','6-5-4'],['Recopa','Subcampeón','','4 PJ','2-1-1']]],
+ [2023,[['Clausura AIFA A','4°','25 pts','15 PJ','7-4-4'],['Apertura AIFA A','9°','19 pts','15 PJ','6-1-8'],['Recopa','Semifinal','','3 PJ','1-2-0']]],
+ [2022,[['Clausura AIFA A','5°','22 pts','15 PJ','6-5-4'],['Apertura AIFA A','6°','23 pts','15 PJ','6-3-6']]],
+ [2021,[['Apertura AIFA A','13°','6 pts','12 PJ','2-0-10'],['Supercopa','Octavos de final','','1 PJ','0-0-1']]],
+ [2020,[['Copa Maradona Luefi','Campeón','','5 PJ','4-1-0','w']]],
+ [2019,[['Clausura AIFA A','7°','17 pts','13 PJ','4-4-5'],['Apertura AIFA B','Campeón y ascenso','34 pts','13 PJ','11-1-1','w']]],
+ [2018,[['Clausura AIFA B','10°','11 pts','13 PJ','2-5-6'],['Apertura AIFA B','5°','21 pts','13 PJ','6-3-4']]],
+ [2017,[['Clausura AIFA B','—','18 pts','13 PJ','5-3-5'],['Apertura AIFA C','2° y ascenso','26 pts','12 PJ','8-2-2']]],
+ [2016,[['Clausura AIFA C','—','18 pts','13 PJ','6-2-5'],['Apertura AIFA C','—','18 pts','12 PJ','5-3-4']]]],
+b:[[2026,[['Clausura AIFA B','15° (en curso)','8 pts','14 PJ','1-5-8'],['Apertura AIFA B','11°','19 pts','15 PJ','6-1-8'],['Recopa','Cuartos de final','','2 PJ','1-0-1']]],
+ [2025,[['Clausura AIFA B','4°','25 pts','15 PJ','7-4-4'],['Apertura AIFA B','11°','20 pts','15 PJ','6-2-7'],['Supercopa','Octavos de final','','1 PJ','0-1-0']]],
+ [2024,[['Clausura AIFA C','3° y ascenso','31 pts','15 PJ','9-4-2'],['Apertura AIFA D','Campeón y ascenso','34 pts','15 PJ','10-4-1','w'],['Recopa','Octavos de final','','1 PJ','0-0-1']]],
+ [2023,[['Clausura AIFA D','5°','32 pts','14 PJ','9-5-0'],['Apertura AIFA D','11°','28 pts','15 PJ','8-4-3']]],
+ [2022,[['Clausura AIFA D','5°','19 pts','12 PJ','5-4-3'],['Apertura AIFA D','7°','19 pts','12 PJ','6-1-5']]],
+ [2021,[['Apertura AIFA D','4°','23 pts','12 PJ','7-2-2'],['Recopa','Octavos de final','','1 PJ','0-0-1']]]]};
+const D={
+a:{n:'Primera A',torneo:'Clausura AIFA A 2026',champ:true,pos:1,pts:33,max:45,pj:14,g:10,e:3,p:1,gf:26,gc:7,dg:'+19',gap:'Líder con 33 puntos, 1 más que UBA (32, que perdió 3 por una sanción de AIFA).',
+ fix:FIX('1|L|VILO|1-0;2|V|REGATAS|1-1;3|L|LA NEGRA|3-1;4|V|LA PLATA|0-0;5|L|NORDELTA|4-0;6|V|MACABI|3-1;7|L|GEBA AZUL|1-0;8|L|TROVADOR|1-0;9|V|LA MATANZA|2-0;10|L|HARRODS|0-2;11|V|UBA|3-1;12|L|AFALP|2-0;13|V|ITALIANO|1-1;14|L|GEBA|4-0;15|V|SITAS||28/11'),
+ prox:{f:15,rival:'SITAS',rp:6,cond:'Visitante',cuando:'Sábado 28/11',lugar:'El Palomar',falta:['3','d','6','h'],h2h:[4,4,4]},
+ ult:{cuando:'Sáb 21/11 · 16:00',cond:'Local',f:'Fecha 14 · Clausura',loc:['SANTA BARBARA',1],vis:['GEBA',8],r:[4,0],k:'G',txt:'Victoria por 4 goles de diferencia'},
+ tabla:[[1,'SANTA BARBARA',14,10,3,1,26,7,'+19',33,'Campeón y Supercopa','g'],[2,'UBA',14,10,2,2,27,12,'+15',32,'Supercopa','g'],[3,'ITALIANO',14,7,5,2,24,14,'+10',26,'Recopa','b'],[4,'LA NEGRA',14,6,3,5,17,16,'+1',21,'Recopa','b'],[5,'LA MATANZA',14,6,3,5,19,22,'-3',21,'Copa de Honor','b'],[6,'SITAS',14,6,2,6,17,17,'0',20,'Copa de Honor','b'],[7,'TROVADOR',14,5,4,5,13,12,'+1',19,'',''],[8,'GEBA',14,5,4,5,20,24,'-4',19,'',''],[9,'HARRODS',14,6,1,7,16,21,'-5',19,'',''],[10,'REGATAS',14,5,3,6,13,16,'-3',18,'',''],[11,'NORDELTA',14,4,4,6,20,26,'-6',16,'',''],[12,'VILO',14,4,3,7,12,19,'-7',15,'',''],[13,'AFALP',14,4,2,8,19,21,'-2',14,'',''],[14,'LA PLATA',14,4,2,8,20,27,'-7',14,'Promoción','a'],[15,'GEBA AZUL',14,3,4,7,14,17,'-3',13,'Descenso','r'],[16,'MACABI',14,4,1,9,16,22,'-6',13,'Descenso','r']],
+ nota:'UBA tiene 3 puntos menos por una sanción de AIFA (incumplimiento en una ficha). El resultado del partido no cambió.',
+ ventana:[1,7],
+ lid:[['7','goles','Ramiro Hermida','var(--ok)'],['4','asistencias','Marcos Gicovate','#2f7fd1'],['8','vallas invictas','Iñaki Usandizaga','#7a52c7'],['14','presencias','Iñaki Usandizaga','#b8860b']],
+ pal:[[2019,'Campeón Apertura AIFA B'],[2020,'Campeón Copa Maradona Luefi'],[2026,'Campeón Clausura AIFA A']],racha:'15 partidos (Apertura AIFA A 2026 y Recopa 2026)',golea:'8–0 vs Sitas',
+ tot:{pj:283,ef:54,pts:'461 de 849',G:133,E:62,P:88,gf:528,gfp:'1,87',gc:379,gcp:'1,34',dg:'+149',v:65,vp:'23,0%'},
+ top:{goles:[['Felipe Bello',81],['Ramiro Hermida',49],['Tomás Elhaiek',48],['Lorenzo Pellegrino',38],['Justo Gottlieb',34]],asistencias:[['Felipe Bello',33],['Ramiro Hermida',31],['Tomás Elhaiek',26],['Marcos Gicovate',19],['Francisco Vittar',12]],presencias:[['Tomás Elhaiek',229],['Felipe Bello',213],['Juan Moyano',177],['Theo Jurs',154],['Mateo Schwartz',153]]},
+ ficha:{n:'Tomás Elhaiek',pos:'Mediocampista',pj:229,g:48,a:26,ga:74,pr:'0,32',rk:'1°'}},
+b:{n:'Primera B',torneo:'Clausura AIFA B 2026',champ:false,pos:15,pts:8,max:45,pj:14,g:1,e:5,p:8,gf:10,gc:21,dg:'-11',gap:'En zona de descenso: Lamroth Hakol (14°) tiene 13 puntos, a 5 de distancia. Queda 1 fecha, con 3 puntos en juego.',
+ fix:FIX('1|L|RHINO|0-1;2|V|SPORTIVO AVELLANEDA|0-1;3|L|MELMAC|0-1;4|V|TOCALLI|0-2;5|L|GALICIA BLANCO|0-3;6|V|LOS MOLINOS|1-4;7|L|ITALIANO B|0-1;8|L|LASALLE|1-1;9|V|LIBERTADOR|3-1;10|L|LAMROTH HAKOL|1-1;11|V|CISSAB|2-3;12|L|HACOAJ|1-1;13|V|BANCO CIUDAD|0-0;14|L|P.A.C|1-1;15|V|SITAS B||28/11'),
+ prox:{f:15,rival:'SITAS B',rp:8,cond:'Visitante',cuando:'Sábado 28/11',lugar:'Visitante',falta:['3','d','6','h'],h2h:[1,1,1]},
+ ult:{cuando:'Sáb 21/11 · 14:00',cond:'Local',f:'Fecha 14 · Clausura',loc:['SANTA BARBARA B',15],vis:['P.A.C',1],r:[1,1],k:'E',txt:'Empate frente al puntero'},
+ tabla:[[1,'P.A.C',14,9,3,2,27,9,'+18',30,'Campeón y Supercopa','g'],[2,'ITALIANO B',14,9,2,3,30,23,'+7',29,'Ascenso y Supercopa','g'],[3,'CISSAB',14,9,1,4,31,19,'+12',28,'Promoción y Recopa','b'],[4,'RHINO',14,8,3,3,25,16,'+9',27,'Recopa','b'],[5,'TOCALLI',14,8,3,3,26,18,'+8',27,'Copa de Honor','b'],[6,'LOS MOLINOS',14,7,4,3,25,15,'+10',25,'Copa de Honor','b'],[7,'MELMAC',14,5,3,6,15,18,'-3',18,'',''],[8,'SITAS B',14,4,5,5,14,15,'-1',17,'',''],[9,'HACOAJ',14,4,5,5,14,18,'-4',17,'',''],[10,'SPORTIVO AVELLANEDA',14,5,2,7,20,27,'-7',17,'',''],[11,'LIBERTADOR',14,4,4,6,20,22,'-2',16,'',''],[12,'BANCO CIUDAD',13,3,6,4,14,14,'0',15,'',''],[13,'GALICIA BLANCO',14,4,2,8,16,25,'-9',14,'',''],[14,'LAMROTH HAKOL',14,3,4,7,14,25,'-11',13,'Promoción','a'],[15,'SANTA BARBARA B',14,1,5,8,10,21,'-11',8,'Descenso','r'],[16,'LASALLE',13,1,2,10,18,34,'-16',5,'Descenso','r']],
+ nota:'',
+ ventana:[10,16],
+ lid:[['4','goles','Vicente Fiore','var(--ok)'],['2','asistencias','Bautista Fossa','#2f7fd1'],['1','vallas invictas','Juan Cruz Aleixo','#7a52c7'],['13','presencias','Matías Gerber','#b8860b']],
+ pal:[[2024,'Campeón Apertura AIFA D']],racha:'15 partidos (Clausura AIFA D 2023 y Apertura AIFA D 2024)',golea:'13–0 vs Rep. del Oeste',
+ tot:{pj:160,ef:56,pts:'268 de 480',G:77,E:37,P:46,gf:298,gfp:'1,86',gc:213,gcp:'1,33',dg:'+85',v:37,vp:'23,1%'},
+ top:{goles:[['Vicente Fiore',35],['Segundo Bourse',21],['Juan Vigano',20],['Joaquín Cadenas',19],['Guillermo Díaz Mayer',15]],asistencias:[['Joaquín Cadenas',23],['Segundo Bourse',23],['Carlos M. Cecchi',22],['Teo Bellotti',11],['Vicente Fiore',10]],presencias:[['Teo Bellotti',123],['Mateo Alfonso',117],['Joaquín Cadenas',109],['Manuel Díaz Bridge',95],['Segundo Bourse',79]]},
+ ficha:{n:'Joaquín Cadenas',pos:'Mediocampista',pj:109,g:19,a:23,ga:42,pr:'0,39',rk:'3°'}}};
+const S={view:'inicio',sq:'a',rank:'goles',sub:{temporada:'tabla',historia:'palmares',jugadores:'ranking'},prof:'Tomas Elhaiek',plog:'todos',nido:{team:'todos',pos:'todas',q:'',sort:'pj',sel:'Tomas Elhaiek',all:false},riv:{q:'',sort:'pj',all:false}};
+const VIEWS=[['inicio','Inicio'],['temporada','Temporada'],['jugadores','Jugadores'],['nido','El Nido'],['historia','Historia']];
+const rankOf=l=>{let o=[],pv=null,pr=0;l.forEach((x,i)=>{if(x[1]!==pv){pr=i+1;pv=x[1]}o.push(pr)});return o};
+const PITCH=`<svg class="lines" viewBox="0 0 1000 330" preserveAspectRatio="xMidYMid slice" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="2.5" aria-hidden="true"><rect x="14" y="14" width="972" height="302" rx="6"/><line x1="500" y1="14" x2="500" y2="316"/><circle cx="500" cy="165" r="86"/><rect x="14" y="85" width="150" height="160"/><rect x="14" y="125" width="54" height="80"/><rect x="836" y="85" width="150" height="160"/><rect x="932" y="125" width="54" height="80"/><path d="M164 130a50 50 0 0 1 0 70M836 130a50 50 0 0 0 0 70"/></svg>`;
+const subnav=(key,items)=>`<div class="sub" role="group" aria-label="Secciones">${items.map(i=>`<button data-sub="${key}:${i[0]}" aria-pressed="${S.sub[key]===i[0]}">${i[1]}</button>`).join('')}</div>`;
+const GRP=c=>c==='ARQ'?'Arqueros':/^DF|^L[ID]$/.test(c)?'Defensores':/^M/.test(c)?'Mediocampistas':'Delanteros';
+const POSN={ARQ:'Arquero',DFC:'Defensor central',DFD:'Defensor derecho',DFI:'Defensor izquierdo',MC:'Mediocampista',MCO:'Mediocampista ofensivo',MD:'Mediocampista derecho',MI:'Mediocampista izquierdo',DC:'Delantero centro',EI:'Extremo izquierdo',ED:'Extremo derecho',LI:'Lateral izquierdo',LD:'Lateral derecho',DEL:'Delantero'};
+function rowsT(d,all){const [a,b]=d.ventana;return d.tabla.filter(r=>all||(r[0]>=a&&r[0]<=b)).map(r=>{const me=r[1].startsWith('SANTA BARBARA');return `<tr class="${me?'me':''}" style="--z:${Z[r[11]]||'transparent'}"><td>${r[0]===1&&d.champ?'🏆':r[0]+'°'}</td><td><span class="tm">${crest(r[1],26)}${r[1]}</span></td>${all?`<td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td><td>${r[6]}</td><td>${r[7]}</td>`:`<td>${r[2]}</td>`}<td>${r[8]}</td><td><b class="pts">${r[9]}</b></td>${all?`<td class="l">${r[10]?`<span class="tag" style="color:${Z[r[11]]}">${r[10]}</span>`:''}</td>`:''}</tr>`}).join('')}
+function ticks(d){const n=15;const arr=d.fix.filter(x=>res(x)).map(x=>{const k=res(x);return `<div class="tk ${k}" title="F${x.f} · ${x.r} · ${x.gf}-${x.gc} (${RN[k]})">${k}</div>`});const pl=arr.length;for(let i=pl;i<n;i++)arr.push(`<div class="tk N ${i===pl?'next':''}" title="${i===pl?'Próximo: F'+(i+1)+' vs '+d.prox.rival:''}">${i===pl?'▸':''}</div>`);return `<div class="ticks" role="img" aria-label="Resultados del torneo por fecha">${arr.join('')}</div><div class="lg"><span><i style="background:var(--ok)"></i>Ganado</span><span><i style="background:var(--yellow)"></i>Empatado</span><span><i style="background:var(--red)"></i>Perdido</span><span>Por fecha, 15 partidos por torneo</span></div>`}
+function inicio(d){const o=S.sq==='a'?D.b:D.a;const p=d.prox;return `
+<div class="field">${PITCH}<div class="wrap"><div class="cap"><i>${d.n}</i><span>Fecha ${p.f} · ${p.cond}${d.champ?' · Campeones del Clausura':''}</span></div>
+ <div class="in"><div class="side">${SHIELD}<div class="name">Santa Bárbara</div><div class="pos">${d.champ?`<span class="ribbon">🏆 Campeón Clausura 2026</span>`:`<b>${d.pos}°</b>${d.pts} puntos`}</div></div>
+ <div class="centro"><div><div class="l">faltan</div><div class="t">${p.falta[0]}<small>${p.falta[1]}</small> ${p.falta[2]}<small>${p.falta[3]}</small></div><div class="w">${p.cuando}</div><div class="l">${p.lugar}</div></div></div>
+ <div class="side">${crest(p.rival,92)}<div class="name">${p.rival}</div><div class="pos"><b>${p.rp}°</b>en la tabla</div></div></div>
+ <div class="hfoot"><div class="h2h"><span>Historial contra ${p.rival}</span><div class="b"><i style="flex:${p.h2h[0]};background:var(--ok)"></i><i style="flex:${p.h2h[1]};background:var(--yellow)"></i><i style="flex:${p.h2h[2]};background:var(--red)"></i></div><b>${p.h2h[0]} G · ${p.h2h[1]} E · ${p.h2h[2]} P</b></div>
+ <button class="link" data-go="${S.sq==='a'?'b':'a'}">También juega ${o.n}: vs ${o.prox.rival}, mismo día</button></div></div></div>
+<div class="wrap"><section class="blk"><div class="hd"><h2>Cómo venimos</h2><p>${d.torneo}</p><button class="link" data-view="temporada">Ver la tabla completa</button></div>
+ <div class="cols"><div><div class="tblw"><table><thead><tr><th>#</th><th>Equipo</th><th>PJ</th><th>DG</th><th>Pts</th></tr></thead><tbody>${rowsT(d,false)}</tbody></table></div><div class="gap">${d.gap}</div></div>
+ <div><div style="display:flex;align-items:flex-end;gap:18px"><div class="big1">${d.pos}<sup>°</sup></div><div style="padding-bottom:6px"><b style="font-size:19px">${d.pts} de ${d.max} puntos</b><div style="color:var(--mut)">${d.pj} de 15 partidos jugados</div></div></div>
+ <div class="kpis"><div><b>${d.g}</b><span>Ganados</span></div><div><b>${d.e}</b><span>Empatados</span></div><div><b>${d.p}</b><span>Perdidos</span></div><div><b class="gf">${d.gf}</b><span>Goles a favor</span></div><div><b class="gc">${d.gc}</b><span>Goles en contra</span></div><div><b>${d.dg}</b><span>Diferencia</span></div></div>${ticks(d)}</div></div></section>
+<section class="blk"><div class="hd"><h2>Lo último</h2><p>${d.ult.f}</p><button class="link" data-view="temporada" data-sub="temporada:partidos">Ver todos los partidos</button></div>
+ <div class="meta"><span>📅 ${d.ult.cuando}</span><span>${d.ult.cond}</span><span>${d.ult.txt}</span><span class="vtag G" style="margin:0;display:${d.ult.k==='G'?'inline-block':'none'}">Victoria</span><span class="vtag E" style="margin:0;display:${d.ult.k==='E'?'inline-block':'none'}">Empate</span></div>
+ <div class="score"><div class="tm">${crest(d.ult.loc[0],64)}<div><b>${d.ult.loc[0]}</b><span>${d.ult.loc[1]}° en la tabla</span></div></div><div class="res">${d.ult.r[0]}<i>–</i>${d.ult.r[1]}</div><div class="tm">${crest(d.ult.vis[0],64)}<div><b>${d.ult.vis[0]}</b><span>${d.ult.vis[1]}° en la tabla</span></div></div></div></section>
+<section class="blk"><div class="hd"><h2>Lo mejor del torneo</h2><p>Clausura 2026</p><button class="link" data-view="jugadores">Ver rankings</button></div>
+ <div class="plates">${d.lid.map(x=>`<div class="plate"><div class="n" style="color:${x[3]}">${x[0]}</div><div class="rule" style="background:${x[3]}"></div><div class="k">${x[2]}</div><div class="w">${x[1]}</div></div>`).join('')}</div></section>
+<section class="blk"><div class="band"><div><h3>La historia del club</h3><ul>${d.pal.map(x=>`<li><i>${x[0]}</i>${x[1]}</li>`).join('')}</ul><p style="margin:16px 0 0"><button class="link" data-view="historia">Ver palmarés, rivales y archivo</button></p></div>
+ <div class="bstats"><div><b>${d.tot.pj}</b><span>partidos jugados</span></div><div><b>${d.tot.ef}%</b><span>efectividad histórica</span></div><div><b>${d.tot.gf}</b><span>goles a favor</span></div></div></div></section>
+<div class="note">Vista previa con datos reales de la planilla al 24/11. Todavía no incluye: goleadores del último partido, crónicas ni las pestañas Debuts e Inferiores.</div></div>`}
+function temporada(d){const sub=S.sub.temporada;const items=[['tabla','Tabla'],['partidos','Partidos'],['plantel','Plantel']];let body='';
+ if(sub==='tabla')body=`${ticks(d)}<div class="tblw" style="margin-top:26px"><table class="nw"><thead><tr><th>#</th><th>Equipo</th><th>PJ</th><th>G</th><th>E</th><th>P</th><th>GF</th><th>GC</th><th>DG</th><th>Pts</th><th class="l">Clasificación</th></tr></thead><tbody>${rowsT(d,true)}</tbody></table></div><div class="gap">${d.gap}</div>${d.nota?`<p class="sm" style="margin-top:12px">${d.nota}</p>`:''}`;
+ if(sub==='partidos')body=`<div>${d.fix.map(x=>{const k=res(x);return `<div class="fx ${k?'':'nx'}"><div class="f">F${x.f}</div><div class="cd" title="${x.l==='L'?'Local':'Visitante'}">${x.l}</div><div class="tm">${crest(x.r,30)}${x.r}</div><div class="sc">${k?`${x.gf}<span style="color:var(--mut);font-size:22px"> – </span>${x.gc}`:x.when}</div><div class="rt">${k?`<span class="vtag ${k}" style="margin:0">${RN[k]}</span>`:'<span class="sm">Próximo</span>'}</div></div>`}).join('')}</div><p class="sm" style="margin-top:12px">L = local, V = visitante. El resultado se muestra siempre desde Santa Bárbara.</p>`;
+ if(sub==='plantel'){const g={};PLA[S.sq].forEach(x=>(g[GRP(x.pos)]=g[GRP(x.pos)]||[]).push(x));body=`<div class="tblw"><table class="nw"><thead><tr><th>Pos.</th><th>Jugador</th><th>PJ</th><th>Goles</th><th>Asist.</th><th>G+A</th></tr></thead><tbody>${['Arqueros','Defensores','Mediocampistas','Delanteros'].map(k=>`<tr class="grp"><td colspan="6">${k}</td></tr>`+(g[k]||[]).sort((a,b)=>b.pj-a.pj||b.g-a.g).map(x=>`<tr><td>${x.pos}</td><td><span class="tm">${crest(x.n,26)}${x.n}</span></td><td>${x.pj}</td><td>${x.g}</td><td>${x.a}</td><td><b class="pts">${x.g+x.a}</b></td></tr>`).join('')).join('')}</tbody></table></div><p class="sm" style="margin-top:12px">Plantel del ${d.torneo}: ${PLA[S.sq].length} jugadores. Los que figuran con 0 partidos no jugaron todavía.</p>`}
+ return `<div class="wrap"><section class="blk"><div class="hd"><h2>Temporada</h2><p>${d.torneo}</p></div>${subnav('temporada',items)}${body}</section></div>`}
+function rankings(d){const l=d.top[S.rank],r=rankOf(l),mx=l[0][1];const f=d.ficha;const unit={goles:'goles',asistencias:'asistencias',presencias:'partidos'}[S.rank];
+ return `<div class="c75"><div><div class="tabs" role="group" aria-label="Ranking">${['goles','asistencias','presencias'].map(k=>`<button data-rank="${k}" aria-pressed="${S.rank===k}">${k[0].toUpperCase()+k.slice(1)}</button>`).join('')}</div>
+ ${l.map((x,i)=>`<div class="rk"><div class="p ${r[i]<=3?'m'+r[i]:''}">${r[i]}</div><div class="nm"><b>${x[0]}</b><div class="ln"><i style="width:${x[1]/mx*100}%"></i></div></div><div class="v">${x[1]}<small style="font-family:Hanken Grotesk;font-size:13px;font-weight:500;color:var(--mut);margin-left:5px">${unit}</small></div></div>`).join('')}
+ <p class="sm" style="margin-top:14px">Los empates comparten puesto.</p></div>
+ <aside class="fich"><div class="top">${crest(f.n,70)}<div><h3>${f.n}</h3><p>${f.pos} · ${d.n}</p></div></div>
+  <div class="fgrid"><div><b>${f.pj}</b><span>partidos</span></div><div><b>${f.g}</b><span>goles</span></div><div><b>${f.a}</b><span>asistencias</span></div><div><b>${f.ga}</b><span>goles + asist.</span></div><div><b>${f.pr}</b><span>por partido</span></div><div><b>${f.rk}</b><span>en presencias</span></div></div><p style="margin:14px 0 0"><button class="link" data-prof="${f.n.normalize('NFD').replace(/[\u0300-\u036f]/g,'')}">Ver perfil completo</button></p></aside></div>`}
+const DEB=[[2026,[['Ivan Daverio',20,'El Chasqui','G','2-1'],['Carlos Marcelo Cecchi',24,'El Chasqui','G','2-1'],['Alexis Pereyra',19,'El Chasqui','G','2-1'],['Benito Jasiukiewicz',19,'El Chasqui','G','2-1','gol'],['Benito Gualco',18,'Harrods','G','3-0'],['Joaquin Cadenas',23,'Vilo','G','1-0'],['Francisco Pane',18,'GEBA','E','1-1'],['Tomas Bernard',20,'La Plata','E','0-0']]],[2025,[['Vicente Fiore',20,'Nordelta','G','1-0'],['Felipe Fossa',20,'Macabi','P','0-1']]],[2024,[['Juan Bautista Basavilbaso',20,'Mitre','G','4-0'],['Juan Tutaglio',18,'Los Molinos','G','5-2'],['Jaime Cafferata',18,'Arquitectura','G','2-0'],['Santiago Bassi',18,'UBA','E','1-1'],['Tomas Castro',19,'Regatas','G','2-1'],['Bautista Baylac',19,'Macabi','P','0-1']]],[2023,[['Fermin Garces',18,'Sitas C','G','3-1'],['Juan Cruz Queriolo',23,'Afalp','G','1-0'],['Mateo Samitier',20,'UBA','P','1-4'],['Lorenzo Pellegrino',18,'Cissab','G','2-1']]]];
+const DEBY=[[2016,4],[2017,3],[2018,2],[2019,3],[2021,7],[2022,6],[2023,4],[2024,6],[2025,2],[2026,8]];
+const INF=[[1997,'Mateo Schwartz, Juan Guyot',2,239,5],[1998,'Felipe Bello, Genaro Falconi',2,348,85],[1999,'Juan Moyano, Juan Manuel Vittar, Cruz Queirolo, Bautista Casaretto',4,302,8],[2000,'Mauro Pellegrino, Simon Gazzera, Segundo Bourse, Toto Torino',4,140,4],[2001,'Facundo Llauro, Francisco Moresco, Mateo Garcia, Carlos Marcelo Cecchi',4,184,6],[2002,'Bautista Fossa, Marcos Gicovate, Ramiro Hermida, Theo Jurs, Valentin Ruocco',5,633,84],[2003,'Bautista Elhaiek, Mateo Samitier, Juan Bautista Basavilbaso, Joaquin Cadenas',4,223,30],[2004,'Justo Gottlieb, Francisco Vittar, Juan Vigano, Fermin Garces, Vicente Fiore, Felipe Fossa',6,340,46],[2005,'Lorenzo Pellegrino, Juan Tutaglio, Jaime Cafferata, Santiago Bassi, Tomas Castro, Bautista Baylac, Ivan Daverio, Tomas Bernard',8,194,40],[2006,'Iñaki Usandizaga',1,116,0],[2007,'Alexis Pereyra, Benito Jasiukiewicz',2,18,2],[2008,'Benito Gualco, Francisco Pane',2,14,0]];
+const kp=(n,l)=>`<div><b>${n}</b><span>${l}</span></div>`;
+function debuts(){const mx=Math.max(...DEBY.map(x=>x[1]));return `<div class="fgrid" style="grid-template-columns:repeat(4,1fr);margin-bottom:30px">${kp(45,'debutantes')}${kp(10,'temporadas')}${kp(3,'goles en el debut')}${kp('14 años','debut más joven: Iñaki Usandizaga')}</div>
+ <div class="c57"><div><h3 style="font-size:26px;margin-bottom:12px">Debuts por temporada</h3>${DEBY.slice().reverse().map(x=>`<div class="rk" style="grid-template-columns:60px 1fr 40px;padding:8px 0"><div class="p" style="font-size:24px">${x[0]}</div><div class="nm"><div class="ln" style="margin:0"><i style="width:${x[1]/mx*100}%"></i></div></div><div class="v" style="font-size:28px">${x[1]}</div></div>`).join('')}
+ <h3 style="font-size:26px;margin:26px 0 8px">Rivales más frecuentes</h3><div class="sheet">${[['La Matanza',4],['Santa Alicia',4],['Trovador',4],['El Chasqui',4],['Arquitectura',3]].map(x=>`<div class="r"><span>${x[0]}</span><b>${x[1]} debuts</b></div>`).join('')}</div></div>
+ <div><h3 style="font-size:26px;margin-bottom:12px">Últimos debuts</h3>${DEB.map(y=>`<div class="arch" style="grid-template-columns:70px 1fr;padding:12px 0"><div class="y" style="font-size:34px">${y[0]}</div><div>${y[1].map(p=>`<div class="it" style="grid-template-columns:1fr 70px 120px 90px"><div class="tm" style="display:flex;gap:10px;align-items:center;font-weight:600">${crest(p[0],26)}${p[0]}${p[5]?' <span title="Gol en el debut">⚽</span>':''}</div><div class="c3">${p[1]} años</div><div class="c4"><small>vs ${p[2]}</small></div><div class="rt"><span class="vtag ${p[3]}" style="margin:0">${p[4]}</span></div></div>`).join('')}</div></div>`).join('')}<p class="sm" style="margin-top:12px">Se muestran las últimas 4 temporadas; la lista llega hasta 2016.</p></div></div>`}
+function inferiores(){const mx=Math.max(...INF.map(x=>x[4]));return `<div class="fgrid" style="grid-template-columns:repeat(4,1fr);margin-bottom:30px">${kp(44,'jugadores de inferiores en la A')}${kp('85%','del plantel surgió de inferiores')}${kp(310,'goles aportados')}${kp('59%','de los goles del club')}</div>
+ <div class="tblw"><table class="nw"><thead><tr><th>Gen.</th><th class="l">Jugadores</th><th>Jug.</th><th>PJ</th><th class="l">Goles</th></tr></thead><tbody>${INF.map(x=>`<tr><td>${x[0]}</td><td class="l" style="font-size:13.5px;line-height:1.35;padding:8px">${x[1]}</td><td>${x[2]}</td><td>${x[3]}</td><td class="l"><div style="display:flex;align-items:center;gap:10px"><div class="ln" style="width:120px;margin:0;height:8px;background:var(--paper2);border-radius:5px;overflow:hidden"><i style="display:block;height:100%;width:${x[4]/mx*100}%;background:var(--sq)"></i></div><b class="pts">${x[4]}</b></div></td></tr>`).join('')}</tbody></table></div><p class="sm" style="margin-top:12px">Generaciones según el año que figura en el sitio actual.</p>`}
+function jugadores(d){const sub=S.sub.jugadores;const items=[['ranking','Rankings'],['debuts','Debuts'],['inferiores','Inferiores']];let body;
+ if(sub==='ranking')body=rankings(d);else if(S.sq==='b')body=`<div class="gap">Debuts e Inferiores se leen hoy solo para Primera A. Para la B se armaría con el mismo formato.</div>`;else body=sub==='debuts'?debuts():inferiores();
+ return `<div class="wrap"><section class="blk"><div class="hd"><h2>Jugadores</h2><p>${d.n}</p><button class="link" data-view="nido">Ver los 105 en El Nido</button></div>${subnav('jugadores',items)}${body}</section></div>`}
+const PLOG=[['F14','Clausura 2026','L','GEBA',4,0,'Suplente',0,''],['F13','Clausura 2026','V','ITALIANO',1,1,'Suplente',0,''],['F12','Clausura 2026','L','AFALP',2,0,'Suplente',0,''],['F11','Clausura 2026','V','UBA',3,1,'Suplente',0,''],['F10','Clausura 2026','L','HARRODS',0,2,'Titular',1,''],['F9','Clausura 2026','V','LA MATANZA',2,0,'Titular',1,'🎯 1'],['F8','Clausura 2026','L','TROVADOR',1,0,'Titular',1,''],['F5','Clausura 2026','L','NORDELTA',4,0,'Suplente',0,''],['F4','Clausura 2026','V','LA PLATA',0,0,'Suplente',0,''],['F3','Clausura 2026','L','LA NEGRA',3,1,'Suplente',0,''],['F1','Clausura 2026','L','VILO',1,0,'Suplente',0,''],['F15','Apertura 2026','L','SITAS',2,2,'Titular',1,'🎯 1']];
+function perfil(){const x=NIDO.find(y=>y.n===S.prof)||NIDO[0];const full=x.n==='Tomas Elhaiek';const pr=v=>(v/x.pj).toFixed(2).replace('.',',');
+ const k=['G','E','P'];const rows=PLOG.filter(r=>S.plog==='todos'||(S.plog==='clausura'&&/Clausura/.test(r[1]))||(S.plog==='apertura'&&/Apertura/.test(r[1])));
+ return `<div class="field" style="border-radius:0 0 28px 28px">${PITCH}<div class="wrap"><div class="cap"><button class="link" data-view="nido">← Volver a El Nido</button></div>
+ <div class="in" style="grid-template-columns:auto 1fr;min-height:250px;padding-top:56px;gap:34px"><div style="position:relative">${crest(x.n,150)}${full?'<span class="ribbon" style="position:absolute;right:-6px;bottom:4px;padding:2px 10px">C</span>':''}</div>
+ <div><div style="font-weight:600;opacity:.85">${(POSN[x.pos]||x.pos).toUpperCase()} · ${/A/.test(x.sq)&&/B/.test(x.sq)?'PRIMERA A Y B':/A/.test(x.sq)?'PRIMERA A':'PRIMERA B'}</div><h1 style="font-family:'Big Shoulders Display';font-size:84px;font-weight:800;line-height:.95;margin:6px 0 14px">${x.n}</h1>
+ ${full?`<div style="display:flex;gap:10px;flex-wrap:wrap"><span class="ribbon">1° en partidos del club</span><span class="ribbon" style="background:#fff">3° goleador histórico</span><span class="ribbon" style="background:#fff">3° en G+A</span><span class="ribbon" style="background:#fff">🏆 3 copas</span></div>`:`<div class="ribbon">${x.pj} partidos con la camiseta</div>`}</div></div></div></div>
+ <div class="wrap"><section class="blk"><div class="plates"><div class="plate"><div class="n">${x.pj}</div><div class="rule" style="background:var(--sq)"></div><div class="k">Partidos</div><div class="w">${full?'184 de titular, 45 de suplente':x.pg+' ganados'}</div></div>
+ <div class="plate"><div class="n gf">${x.g}</div><div class="rule" style="background:var(--ok)"></div><div class="k">Goles</div><div class="w">${pr(x.g)} por partido</div></div>
+ <div class="plate"><div class="n" style="color:#2f7fd1">${x.a}</div><div class="rule" style="background:#2f7fd1"></div><div class="k">Asistencias</div><div class="w">${pr(x.a)} por partido</div></div>
+ <div class="plate"><div class="n" style="color:#b8860b">${x.g+x.a}</div><div class="rule" style="background:#b8860b"></div><div class="k">Goles + asistencias</div><div class="w">${full?'32% del total del club':pr(x.g+x.a)+' por partido'}</div></div></div></section>
+ ${full?`<section class="blk"><div class="c57"><div><div class="hd"><h2>Cara a cara</h2></div><div class="sheet"><div class="r"><span>Rival favorito</span><b>GEBA · 12 PJ</b></div><div class="r"><span>Víctima favorita</span><b>HARRODS · 3 goles</b></div><div class="r"><span>Asistencia favorita</span><b>LA MATANZA · 1</b></div><div class="r"><span>Mayor impacto</span><b>HARRODS · 4 G+A</b></div><div class="r"><span>Tarjetas rojas</span><b>8</b></div></div>
+ <div style="margin-top:22px"><div style="display:flex;justify-content:space-between"><span>Resultados con él en cancha (139 con dato)</span><b style="font-size:20px"><span style="color:var(--ok)">59 G</span> · <span style="color:var(--dr)">30 E</span> · <span style="color:var(--red)">50 P</span></b></div><div class="stackb"><i style="flex:59;background:var(--ok)"></i><i style="flex:30;background:var(--yellow)"></i><i style="flex:50;background:var(--red)"></i></div><span class="sm">42,4% de victorias</span></div></div>
+ <div><div class="hd"><h2>Historial de partidos</h2><p>Últimos 12 de 139</p></div><div class="chips" style="margin-bottom:10px">${[['todos','Todos'],['apertura','Apertura'],['clausura','Clausura']].map(c=>`<button data-pl="${c[0]}" aria-pressed="${S.plog===c[0]}">${c[1]}</button>`).join('')}</div>
+ <div class="tblw"><table class="nw"><thead><tr><th style="width:130px">Fecha</th><th class="l">Partido</th><th>Resultado</th><th class="l">Rol</th><th class="l">Aporte</th></tr></thead><tbody>${rows.map(r=>{const gf=r[4],gc=r[5],kk=gf>gc?'G':gf<gc?'P':'E';const me='<b>Santa Bárbara</b>';const t=r[2]==='L'?`${me} vs ${r[3]}`:`${r[3]} vs ${me}`;const sc=r[2]==='L'?`${gf}-${gc}`:`${gc}-${gf}`;return `<tr><td style="width:130px;white-space:nowrap">${r[0]} <span class="sm">${r[1]}</span></td><td class="l">${t}</td><td><span class="vtag ${kk}" style="margin:0">${sc}</span></td><td class="l">${r[6]}${r[7]?' (C)':''}</td><td class="l">${r[8]||'—'}</td></tr>`}).join('')}</tbody></table></div></div></div></section>`:`<section class="blk"><div class="gap">El detalle por partido, los rivales favoritos y los títulos se arman igual que en el perfil de Tomás Elhaiek, con el historial de cada jugador.</div></section>`}</div>`}
+const inSq=(x,t)=>t==='todos'||(t==='a'&&/A/.test(x.sq))||(t==='b'&&/B/.test(x.sq));
+const nGrp=c=>c==='ARQ'?'arq':/^DFC$|^L[ID]$/.test(c)?'def':c==='MC'?'med':'del';
+const SORTS={pj:['Partidos',x=>x.pj],g:['Goles',x=>x.g],a:['Asistencias',x=>x.a],ga:['G+A',x=>x.g+x.a],pg:['Goles por partido',x=>x.pj>=20?x.g/x.pj:-1],vic:['% de victorias',x=>x.pj>=20?x.pg/x.pj:-1]};
+function nidoList(){const n=S.nido;const f=SORTS[n.sort][1];let L=NIDO.filter(x=>inSq(x,n.team)&&(n.pos==='todas'||nGrp(x.pos)===n.pos)&&(!n.q||x.n.toLowerCase().includes(n.q.toLowerCase())));L.sort((a,b)=>f(b)-f(a)||b.pj-a.pj);const tot=L.length;const sh=n.all||n.q?L:L.slice(0,20);
+ const sqt=s=>`<span class="sqt">${/A/.test(s)?'<i>A</i>':''}${/B/.test(s)?'<i class="b">B</i>':''}</span>`;
+ return {tot,html:`<div class="tblw"><table class="nw"><thead><tr><th>#</th><th>Jugador</th><th class="l">Pos.</th><th class="l">Plantel</th><th>PJ</th><th>Goles</th><th>Asist.</th><th>G+A</th></tr></thead><tbody>${sh.map((x,i)=>`<tr class="clk ${n.sel===x.n?'sel':''}" data-p="${x.n}"><td>${i+1}</td><td><span class="tm">${crest(x.n,26)}${x.n}</span></td><td class="l">${x.pos}</td><td class="l">${sqt(x.sq)}</td><td>${x.pj}</td><td>${x.g}</td><td>${x.a}</td><td><b class="pts">${x.g+x.a}</b></td></tr>`).join('')||'<tr><td colspan="8" class="l" style="padding:20px 14px">Ningún jugador coincide. Probá con otra búsqueda o quitá los filtros.</td></tr>'}</tbody></table></div>${!n.all&&!n.q&&tot>20?`<p style="margin-top:14px"><button class="link" data-all="1">Ver los ${tot} jugadores</button></p>`:''}`}}
+function nidoFicha(){const x=NIDO.find(y=>y.n===S.nido.sel)||NIDO[0];const pr=v=>(v/x.pj).toFixed(2).replace('.',',');const rk=[...NIDO].sort((a,b)=>b.pj-a.pj).findIndex(y=>y.n===x.n)+1;
+ return `<div class="top">${crest(x.n,70)}<div><h3>${x.n}</h3><p>${POSN[x.pos]||x.pos} · ${/A/.test(x.sq)&&/B/.test(x.sq)?'Primera A y B':/A/.test(x.sq)?'Primera A':'Primera B'}</p></div></div>
+ <div class="fgrid"><div><b>${x.pj}</b><span>partidos</span></div><div><b>${x.pg}</b><span>ganados</span></div><div><b>${rk}°</b><span>en presencias</span></div><div><b class="gf">${x.g}</b><span>goles</span></div><div><b>${x.a}</b><span>asistencias</span></div><div><b>${x.g+x.a}</b><span>goles + asist.</span></div><div><b>${pr(x.g)}</b><span>goles por partido</span></div><div><b>${pr(x.a)}</b><span>asist. por partido</span></div><div><b>${pr(x.g+x.a)}</b><span>G+A por partido</span></div></div>
+ <p style="margin:14px 0 0"><button class="link" data-prof="${x.n}">Ver perfil completo</button></p>`}
+function nido(){const n=S.nido;const L=nidoList();
+ return `<div class="wrap"><section class="blk"><div class="hd"><h2>El Nido</h2><p>Base de datos de jugadores · <span id="ncount">${L.tot}</span> de ${NIDO.length}</p></div>
+ <div class="ctrl"><div class="seg" role="group" aria-label="Plantel">${[['todos','Todos'],['a','Primera A'],['b','Primera B']].map(t=>`<button data-nt="${t[0]}" aria-pressed="${n.team===t[0]}">${t[1]}</button>`).join('')}</div>
+ <select class="s" id="npos" aria-label="Posición">${[['todas','Todas las posiciones'],['arq','Arqueros'],['def','Defensores'],['med','Mediocampistas'],['del','Delanteros']].map(o=>`<option value="${o[0]}" ${n.pos===o[0]?'selected':''}>${o[1]}</option>`).join('')}</select>
+ <div class="grow"><input class="s" id="nq" type="search" placeholder="Buscar jugador" value="${n.q}" aria-label="Buscar jugador"></div></div>
+ <div class="ctrl"><span class="sm">Ordenar por</span><div class="chips">${Object.entries(SORTS).map(([k,v])=>`<button data-ns="${k}" aria-pressed="${n.sort===k}">${v[0]}</button>`).join('')}</div></div>
+ <div class="c75"><div id="nlist">${L.html}</div><aside class="fich" id="nficha">${nidoFicha()}</aside></div>
+ <p class="sm" style="margin-top:12px">Los promedios por partido y el % de victorias se ordenan solo entre quienes jugaron 20 partidos o más.</p></section></div>`}
+function riv(){const q=S.riv;const f={pj:['Más jugados',x=>x.pj],bal:['Mejor balance',x=>x.g-x.p],gf:['Más goles a favor',x=>x.gf],neg:['Peor balance',x=>x.p-x.g]}[q.sort][1];
+ let L=RIV[S.sq].filter(x=>!q.q||x.n.toLowerCase().includes(q.q.toLowerCase()));L.sort((a,b)=>f(b)-f(a)||b.pj-a.pj);const tot=L.length;const sh=q.all||q.q?L:L.slice(0,15);
+ return `<div class="ctrl"><div class="grow"><input class="s" id="rq" type="search" placeholder="Buscar club" value="${q.q}" aria-label="Buscar club"></div><div class="chips">${[['pj','Más jugados'],['bal','Mejor balance'],['gf','Más goles a favor'],['neg','Peor balance']].map(o=>`<button data-rs="${o[0]}" aria-pressed="${q.sort===o[0]}">${o[1]}</button>`).join('')}</div></div>
+ <div id="rlist"><div class="tblw"><table class="nw"><thead><tr><th>#</th><th>Club</th><th>PJ</th><th>G</th><th>E</th><th>P</th><th class="l">Balance</th><th>GF</th><th>GC</th><th>DG</th></tr></thead><tbody>${sh.map((x,i)=>{const dg=x.gf-x.gc;return `<tr><td>${i+1}</td><td><span class="tm">${crest(x.n,26)}${x.n}</span></td><td>${x.pj}</td><td>${x.g}</td><td>${x.e}</td><td>${x.p}</td><td class="l"><div class="bal" title="${x.g} ganados, ${x.e} empatados, ${x.p} perdidos"><i style="flex:${x.g};background:var(--ok)"></i><i style="flex:${x.e};background:var(--yellow)"></i><i style="flex:${x.p};background:var(--red)"></i></div></td><td class="gf">${x.gf}</td><td class="gc">${x.gc}</td><td>${dg>0?'+':''}${dg}</td></tr>`}).join('')||'<tr><td colspan="10" class="l" style="padding:20px 14px">Ningún club coincide con la búsqueda.</td></tr>'}</tbody></table></div>${!q.all&&!q.q&&tot>15?`<p style="margin-top:14px"><button class="link" data-rall="1">Ver los ${tot} clubes</button></p>`:''}</div>`}
+function archivo(d){return ARCH[S.sq].map(y=>`<div class="arch"><div class="y">${y[0]}</div><div>${y[1].map(t=>`<div class="it"><div><b>${t[0]}</b></div><div class="c2"><span class="${t[5]?'w':'rs'}" style="${t[5]?'':'font-weight:700'}">${t[1]}</span></div><div class="c3">${t[2]}</div><div class="c4"><small>${t[3]} · ${t[4]}</small></div></div>`).join('')}</div></div>`).join('')+`<p class="sm" style="margin-top:12px">V-E-D al final de cada fila. ${S.sq==='a'?'La Recopa 2024 y la de 2025 figuran con el mismo registro en la planilla; conviene revisarlas.':''}</p>`}
+function historia(d){const t=d.tot,T=t.G+t.E+t.P;const sub=S.sub.historia;const items=[['palmares','Palmarés y récords'],['rivales','Rivales'],['archivo','Archivo por año']];let body='';
+ if(sub==='palmares')body=`<div class="c57"><div><h3 style="font-size:26px;margin-bottom:16px">Palmarés</h3><div class="tl">${d.pal.map(x=>`<div class="it w"><div class="y">${x[0]}</div><p><b>${x[1]}</b></p></div>`).join('')}<div class="it"><div class="y">Racha récord</div><p><b>${d.racha.split(' (')[0]}</b></p><small>${(d.racha.match(/\((.*)\)/)||[,''])[1]}</small></div><div class="it"><div class="y">Máxima goleada</div><p><b>${d.golea}</b></p></div><div class="it now"><div class="y">2026</div><p><b>${d.torneo}</b></p><small>${d.champ?'Campeón · 33 puntos':'En disputa · '+d.pos+'° con '+d.pts+' puntos'}</small></div></div></div>
+ <div><h3 style="font-size:26px;margin-bottom:16px">Totales históricos</h3><div class="sheet"><div class="r"><span>Partidos jugados</span><b>${t.pj}</b></div><div class="r"><span>Efectividad (${t.pts} puntos)</span><b>${t.ef}%</b></div>
+ <div class="r" style="display:block"><div style="display:flex;justify-content:space-between"><span>Resultados</span><b style="font-size:20px"><span style="color:var(--ok)">${t.G} G</span> · <span style="color:var(--dr)">${t.E} E</span> · <span style="color:var(--red)">${t.P} P</span></b></div><div class="stackb"><i style="flex:${t.G};background:var(--ok)"></i><i style="flex:${t.E};background:var(--yellow)"></i><i style="flex:${t.P};background:var(--red)"></i></div></div>
+ <div class="r"><span>Goles a favor (${t.gfp} por partido)</span><b class="gf">${t.gf}</b></div><div class="r"><span>Goles en contra (${t.gcp} por partido)</span><b class="gc">${t.gc}</b></div><div class="r"><span>Diferencia de gol</span><b>${t.dg}</b></div><div class="r"><span>Vallas invictas (${t.vp} de los partidos)</span><b>${t.v}</b></div></div></div></div>`;
+ if(sub==='rivales')body=`<p class="sm" style="margin:-4px 0 14px">Historial de ${d.n} contra cada club: ${RIV[S.sq].length} rivales.</p>${riv()}`;
+ if(sub==='archivo')body=`<p class="sm" style="margin:-4px 0 6px">Todos los torneos de ${d.n}, del más nuevo al más viejo.</p>${archivo(d)}`;
+ return `<div class="wrap"><section class="blk"><div class="hd"><h2>Historia</h2><p>${d.n}</p></div>${subnav('historia',items)}${body}</section></div>`}
+function paint(){document.body.dataset.sq=S.sq;sa.setAttribute('aria-pressed',S.sq==='a');sb.setAttribute('aria-pressed',S.sq==='b');
+ nav.innerHTML=VIEWS.map(v=>`<button data-view="${v[0]}" ${(S.view===v[0]||(S.view==='perfil'&&v[0]==='nido'))?'aria-current="page"':''}>${v[1]}</button>`).join('');
+ const d=D[S.sq];app.innerHTML=({inicio,temporada,jugadores,nido,historia,perfil})[S.view](d);}
+document.addEventListener('click',e=>{const tr=e.target.closest('tr[data-p]');if(tr){S.nido.sel=tr.dataset.p;document.querySelectorAll('#nlist tr.sel').forEach(r=>r.classList.remove('sel'));tr.classList.add('sel');document.getElementById('nficha').innerHTML=nidoFicha();return}
+ const t=e.target.closest('[data-view],[data-go],[data-rank],[data-sub],[data-prof],[data-pl],[data-nt],[data-ns],[data-all],[data-rs],[data-rall]');if(!t)return;
+ if(t.dataset.view)S.view=t.dataset.view;if(t.dataset.prof){S.prof=t.dataset.prof;S.view='perfil';S.plog='todos'}if(t.dataset.pl)S.plog=t.dataset.pl;if(t.dataset.go)S.sq=t.dataset.go;if(t.dataset.rank)S.rank=t.dataset.rank;
+ if(t.dataset.sub){const [k,v]=t.dataset.sub.split(':');S.sub[k]=v}
+ if(t.dataset.nt)S.nido.team=t.dataset.nt;if(t.dataset.ns)S.nido.sort=t.dataset.ns;if(t.dataset.all)S.nido.all=true;
+ if(t.dataset.rs)S.riv.sort=t.dataset.rs;if(t.dataset.rall)S.riv.all=true;
+ paint();if(t.dataset.view||t.dataset.prof)scrollTo(0,0)});
+document.addEventListener('input',e=>{if(e.target.id==='nq'){S.nido.q=e.target.value;const L=nidoList();nlist.innerHTML=L.html;ncount.textContent=L.tot}
+ if(e.target.id==='rq'){S.riv.q=e.target.value;const pos=e.target.selectionStart;paint();const i=document.getElementById('rq');i.focus();i.setSelectionRange(pos,pos)}});
+document.addEventListener('change',e=>{if(e.target.id==='npos'){S.nido.pos=e.target.value;S.nido.all=false;paint()}});
+sa.onclick=()=>{S.sq='a';paint()};sb.onclick=()=>{S.sq='b';paint()};
+th.onclick=()=>{const dk=document.body.dataset.theme!=='dark';document.body.dataset.theme=dk?'dark':'light';th.textContent=dk?'☀':'☾';th.setAttribute('aria-label',dk?'Cambiar a modo día':'Cambiar a modo noche')};
+paint();
+</script></body></html>
