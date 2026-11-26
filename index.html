@@ -18393,13 +18393,8 @@ function _anualesTablaAnualBtnHtml(year, isB) {
 function _anualesShowTablaAnualOnly(year, isB) {
   _navPush('Estadísticas Anuales', () => _navRestoreAnualesYear(year, isB));
   const titulo = `Tabla Anual ${year}${isB ? ' — Primera B' : ''}`;
-  document.getElementById('jug-anuales-content').innerHTML = `
-    <div style="margin-bottom:16px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
-      <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gris-texto)">Club Santa Bárbara</div>
-      <div style="font-size:1.3rem;font-weight:900;color:#fff">${titulo}</div>
-    </div>
-    <div class="mrow-desktop-only">${_anualesCombinedTablaDesktopHtml(year, isB)}</div>
-    ${_anualesCombinedTablaMobileHtml(year, isB)}`;
+  document.getElementById('jug-anuales-content').innerHTML = _jxtTablaAnualView(String(year), isB);
+  window.scrollTo(0, 0);
 }
 window._anualesShowTablaAnualOnly = _anualesShowTablaAnualOnly;
 
@@ -23481,6 +23476,72 @@ function _jxyTableHtml(players, sortCol, asc, query, sortFn) {
   </tr>`).join('');
   return `<table class="jx-table"><thead><tr><th class="jx-rk">#</th>${ths}</tr></thead>
     <tbody>${trs || `<tr><td colspan="7" class="jx-empty">Sin resultados</td></tr>`}</tbody></table>`;
+}
+
+// ── TABLA ANUAL v3 ──
+function _jxtTablaHtml(rows, opts) {
+  // rows: [{equipo,csb,pos,pts,pj,pg,pe,pp,gf,gc,df, ap?:{pos,pts,copas}, cl?:{pos,pts,copas}, copas?}]
+  const two = !!opts.split;
+  const maxPts = Math.max(1, ...rows.map(r => r.pts || 0));
+  const side = s => s ? `<div class="jxt-side"><span class="jxt-side-pos">${_jxEsc(s.pos || '—')}</span><span class="jxt-side-pts">${s.pts ?? 0} pts</span>${s.copas && s.copas !== '-' ? _anualesCopaBadgeSingle(s.copas) : ''}</div>` : '<span class="jxt-dash">—</span>';
+  const trs = rows.map((t, i) => {
+    const pj = Math.max(1, t.pg + t.pe + t.pp);
+    const df = t.df ?? (t.gf - t.gc);
+    const team = t.csb
+      ? `<span class="jxt-team"><span class="jxt-crest">${_teamCrestHtml(t.equipo, true)}</span><b>${_jxEsc(t.equipo)}</b></span>`
+      : `<span class="jxt-team is-link" onclick="event.stopPropagation();goToRivalHistorial('${_jxJs(t.equipo)}')"><span class="jxt-crest">${_teamCrestHtml(t.equipo, false)}</span><b>${_jxEsc(t.equipo)}</b></span>`;
+    return `<tr class="${t.csb ? 'csb' : ''} ${i === 0 ? 'lead' : ''}">
+      <td class="jxt-pos">${i === 0 ? '<span class="jxt-cup">1</span>' : i + 1}</td>
+      <td class="jxt-tm">${team}</td>
+      ${two ? `<td>${side(t.ap)}</td><td>${side(t.cl)}</td>` : `<td class="jxt-copa">${t.copas && t.copas !== '-' ? _anualesCopaBadgeSingle(t.copas) : '<span class="jxt-dash">—</span>'}</td>`}
+      <td class="jxt-pts"><b>${t.pts}</b><u><s style="width:${(t.pts / maxPts * 100).toFixed(1)}%"></s></u></td>
+      <td>${t.pj}</td>
+      <td class="w">${t.pg}</td><td class="d">${t.pe}</td><td class="l">${t.pp}</td>
+      <td class="jxt-form"><span><i class="w" style="width:${(t.pg / pj * 100).toFixed(1)}%"></i><i class="d" style="width:${(t.pe / pj * 100).toFixed(1)}%"></i><i class="l" style="width:${(t.pp / pj * 100).toFixed(1)}%"></i></span></td>
+      <td>${t.gf}:${t.gc}</td>
+      <td class="${df > 0 ? 'pos' : df < 0 ? 'neg' : ''}">${df > 0 ? '+' : ''}${df}</td>
+    </tr>`;
+  }).join('');
+  return `<div class="jx-table-wrap jxt-wrap"><table class="jx-table jxt-table">
+    <thead><tr><th class="jxt-pos">#</th><th>Equipo</th>${two ? '<th>Apertura</th><th>Clausura</th>' : '<th>Clasificación</th>'}<th class="jx-num">Pts</th><th class="jx-num">PJ</th><th class="jx-num">G</th><th class="jx-num">E</th><th class="jx-num">P</th><th>Rendimiento</th><th class="jx-num">Goles</th><th class="jx-num">Dif</th></tr></thead>
+    <tbody>${trs}</tbody></table></div>`;
+}
+function _jxtLegend() {
+  return `<div class="jxt-legend">${[['copa-campeon', 'Campeón / Supercopa'], ['copa-recopa', 'Recopa'], ['copa-honor', 'Copa de Honor'], ['copa-promocion', 'Promoción'], ['copa-descenso', 'Descenso']]
+    .map(([c, l]) => `<span class="copa-badge ${c}">${l}</span>`).join('')}</div>`;
+}
+function _jxtTablaAnualView(year, isB) {
+  const src = _anualesCombinadaSrc(year, isB);
+  if (!src) return '<div class="v3-card jx-empty">Sin datos.</div>';
+  const tAp = src.ap.obj.tabla || [], tCl = src.cl.obj.tabla || [];
+  const norm = s => String(s || '').toUpperCase().trim().replace(/\s+/g, ' ');
+  const posOf = (t, i) => t.pos ? (String(t.pos).includes('°') ? t.pos : t.pos + '°') : (i + 1) + '°';
+  const csbAp = tAp.find(t => t.csb), csbCl = tCl.find(t => t.csb);
+  const csbApPos = csbAp ? posOf(csbAp, tAp.indexOf(csbAp)) : '—', csbClPos = csbCl ? posOf(csbCl, tCl.indexOf(csbCl)) : '—';
+  const head = (kpis) => `<section class="jx-head jxt-head">
+      <div><span class="jx-kicker">${isB ? 'Primera B' : 'Primera A'} · Temporada ${year}</span><h2 class="jx-h">Tabla anual ${year}</h2>
+        <p class="jxi-lead">${src.mixedDivision ? 'Apertura y Clausura se jugaron en categorías distintas: se muestran por separado.' : 'Apertura y Clausura sumados, equipo por equipo.'}</p></div>
+      <div class="jx-kpis">${kpis}</div>
+    </section>${src.nota ? `<div class="jxt-nota">⚠️ ${_jxEsc(src.nota)}</div>` : ''}`;
+  if (src.mixedDivision) {
+    const mk = tabla => tabla.map((t, i) => ({ ...t, df: t.df ?? (t.gf - t.gc) }));
+    return `<div class="jx jxt">${head(`<div><b>${csbApPos}</b><span>${_jxEsc(src.apLabel || 'Apertura')}</span></div><div><b>${csbClPos}</b><span>${_jxEsc(src.clLabel || 'Clausura')}</span></div>`)}
+      <div class="jxyp-sec"><h3>${_jxEsc(src.apLabel || 'Apertura')}</h3></div>${_jxtTablaHtml(mk(tAp), {})}
+      <div class="jxyp-sec"><h3>${_jxEsc(src.clLabel || 'Clausura')}</h3></div>${_jxtTablaHtml(mk(tCl), {})}
+      ${_jxtLegend()}</div>`;
+  }
+  const rows = _anualesCombinedRows(year, isB);
+  if (!rows) return '<div class="v3-card jx-empty">La tabla anual todavía no está completa.</div>';
+  const apMap = {}, clMap = {};
+  tAp.forEach((t, i) => { apMap[norm(t.equipo)] = { pos: posOf(t, i), pts: t.pts, copas: t.copas }; });
+  tCl.forEach((t, i) => { clMap[norm(t.equipo)] = { pos: posOf(t, i), pts: t.pts, copas: t.copas }; });
+  rows.forEach(r => { r.ap = apMap[norm(r.equipo)]; r.cl = clMap[norm(r.equipo)]; });
+  const csb = rows.find(r => r.csb);
+  const csbIdx = csb ? rows.indexOf(csb) : -1;
+  const kpis = csb ? `<div class="jx-kpi-lead"><span>Santa Bárbara</span><b>${csbIdx + 1}° de ${rows.length}</b><em>${csb.pts} pts</em></div>
+      <div><b>${csbApPos}</b><span>Apertura</span></div><div><b>${csbClPos}</b><span>Clausura</span></div>
+      <div><b>${csb.pg}-${csb.pe}-${csb.pp}</b><span>G-E-P</span></div>` : `<div><b>${rows.length}</b><span>Equipos</span></div>`;
+  return `<div class="jx jxt">${head(kpis)}${_jxtTablaHtml(rows, { split: true })}${_jxtLegend()}</div>`;
 }
 
 function _updateTabNavFade(nav) {
