@@ -637,6 +637,82 @@
     body.innerHTML = `<div class="v3-h2h-cards">${card(L, 'l')}${card(R, 'r')}</div><div class="v3-h2h-rows">${rows}</div><div class="v3-h2h-verdict">${verdict} <span style="color:var(--v3-muted)">Totales de carrera en el club (Primera A + B). Tocá un jugador para ver su perfil completo.</span></div>`;
   }
 
+
+  // ════════════════ EN VIVO · TORNEO EN CURSO ════════════════
+  // Portada nueva arriba del torneo en curso (solo dentro de "En Vivo", no
+  // cuando el mismo componente se abre desde Torneos Antiguos) + colores de
+  // resultado en el selector de fechas del Fecha a Fecha. Se engancha por
+  // MutationObserver porque renderTorneoApertura() reescribe todo el
+  // contenido (y redefine apSwitchTab) en cada render.
+  function liveTorneoHero() {
+    const d = getCurrent();
+    if (!d || !Array.isArray(d.partidos)) return null;
+    const tabla = d.tabla || [];
+    const own = tabla.find(t => t.csb);
+    const total = d.partidos.length || 15;
+    const played = d.partidos.filter(p => p.resultado != null && p.gf != null);
+    const res = p => { const g = safe(() => _csbGoles(p)) || { csb: p.gf, riv: p.gc }; return g.csb > g.riv ? 'G' : g.csb < g.riv ? 'P' : 'E'; };
+    const last5 = played.slice(-5).reverse();
+    const est = safe(() => _csbEstadoTorneo(tabla, total));
+    const next = safe(() => _nextPendingPartido(d));
+    const nm = next && next.m;
+    const pj = own ? Number(own.pj) || played.length : played.length;
+    const status = est && est.estado === 'campeon' ? '<span class="v3-tv-status champ">🏆 Campeón</span>'
+      : est && est.estado === 'descendido' ? '<span class="v3-tv-status down">Descendido</span>'
+      : nm ? '<span class="v3-tv-status live"><i></i>En juego</span>' : '<span class="v3-tv-status">Finalizado</span>';
+    const sqLabel = d === getData('b') ? 'Primera B' : 'Primera A';
+    const crest = n => safe(() => _crestImgHtml(n)) || '';
+    const el = document.createElement('section');
+    el.id = 'v3-tv-hero';
+    el.className = 'v3-tv-hero';
+    el.innerHTML = `
+      <div class="v3-tv-id">
+        <div class="v3-tv-kicker">${esc(sqLabel)} · Torneo en curso ${status}</div>
+        <h2 class="v3-tv-title">${esc(d.badge || 'Torneo')}</h2>
+        <div class="v3-tv-prog"><i style="width:${Math.min(100, pj / total * 100).toFixed(1)}%"></i></div>
+        <div class="v3-tv-prog-lbl">${pj} de ${total} fechas jugadas${nm ? ` · Próxima: <b>Fecha ${esc(nm.fecha)} vs ${esc(nm.rival)}</b>` : ''}</div>
+      </div>
+      ${own ? `<div class="v3-tv-stats">
+        <div class="v3-tv-stat"><b>${esc(String(own.pos).replace(/[°º]/g, ''))}°</b><span>Posición</span></div>
+        <div class="v3-tv-stat"><b class="gold">${esc(own.pts)}</b><span>Puntos</span></div>
+        <div class="v3-tv-stat"><b><em class="g">${esc(own.pg)}</em>-<em class="e">${esc(own.pe)}</em>-<em class="p">${esc(own.pp)}</em></b><span>G-E-P</span></div>
+        <div class="v3-tv-stat"><b>${(own.gf - own.gc) >= 0 ? '+' : ''}${own.gf - own.gc}</b><span>Dif. gol</span></div>
+        <div class="v3-tv-stat v3-tv-form"><div>${last5.map((p, i) => `<span class="r${res(p)}${i === 0 ? ' first' : ''}" title="F${esc(p.fecha)} vs ${esc(p.rival)}">${res(p)}<u>${crest(p.rival)}</u></span>`).join('')}</div><span>← Últimos 5</span></div>
+      </div>` : ''}`;
+    return el;
+  }
+  function decorateFechaButtons(root) {
+    const d = getCurrent();
+    if (!d || !Array.isArray(d.partidos)) return;
+    const byFecha = {};
+    d.partidos.forEach(p => { if (p.resultado != null && p.gf != null) { const g = safe(() => _csbGoles(p)) || { csb: p.gf, riv: p.gc }; byFecha[String(p.fecha)] = g.csb > g.riv ? 'w' : g.csb < g.riv ? 'l' : 'd'; } });
+    $$('.ap-fecha-btn', root).forEach(b => {
+      const m = (b.textContent || '').match(/F\s*(\d+)/i);
+      const r = m && byFecha[m[1]];
+      b.classList.remove('v3-fw', 'v3-fd', 'v3-fl');
+      if (r) b.classList.add('v3-f' + r);
+    });
+  }
+  function watchTorneo() {
+    const root = $('#torneo-apertura-content');
+    if (!root) return;
+    let busy = false;
+    const apply = () => {
+      if (busy) return; busy = true;
+      try {
+        const isLive = view().idx === 1;
+        const has = $('#v3-tv-hero', root);
+        if (isLive && root.children.length && !has) {
+          const hero = liveTorneoHero();
+          if (hero) { root.prepend(hero); root.classList.add('v3-has-hero'); }
+        } else if (!isLive && has) { has.remove(); root.classList.remove('v3-has-hero'); }
+        if (isLive) decorateFechaButtons(root);
+      } finally { busy = false; }
+    };
+    new MutationObserver(() => requestAnimationFrame(apply)).observe(root, { childList: true, subtree: true });
+    apply();
+  }
+
   // ════════════════ ARRANQUE ════════════════
   function boot() {
     if (!$('#landing') || !$('#app')) return;
@@ -645,6 +721,7 @@
     buildSearch();
     buildH2H();
     wrapNav();
+    watchTorneo();
     sync(); syncNotif(); syncUpdated();
     // Las cifras del hero dependen de la tabla en vivo — se refrescan cuando llega.
     let tries = 0;
