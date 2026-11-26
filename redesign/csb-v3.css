@@ -1571,3 +1571,18 @@ body.v3-profile #v3-topbar, body.v3-profile #v3-bottomnav { display: none !impor
 .edx-rn { flex: 1; min-width: 0; color: var(--v3-text); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .edx-dr b { font-family: var(--v3-display); font-size: 1.05rem; color: #fff; }
 .edx-dr small { color: var(--v3-dim); font-size: 0.66rem; min-width: 32px; }
+/* En Vivo ajustes: nombres de líderes como fichas */
+.plx-names { gap: 6px; }
+.plx-ln { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 999px; background: rgba(3, 14, 8, 0.45); border: 1px solid color-mix(in srgb, var(--c) 35%, transparent); font-size: 0.8rem; transition: background .15s, border-color .15s; }
+.plx-ln:hover { background: color-mix(in srgb, var(--c) 14%, transparent); border-color: var(--c); color: #fff; }
+.plx-more { align-self: center; }
+/* Cancha: todos iguales (un solo equipo) */
+.ap-pdot.csb { background: radial-gradient(circle at 30% 25%, #1d3428, #070f0a 80%) !important; border: 2.5px solid rgba(255, 255, 255, 0.85) !important; }
+.ap-pdot.hat-trick { background: radial-gradient(circle at 30% 25%, #1d3428, #070f0a 80%) !important; }
+/* Titular / suplentes / cambios con botones */
+.fdx-squads { gap: 8px; }
+.fdx-tabs { display: flex; background: var(--v3-surface); border: 1px solid var(--v3-line-2); border-radius: 13px; padding: 3px; gap: 2px; }
+.fdx-tabs button { flex: 1; border: 0; background: none; color: var(--v3-muted); font: 700 0.8rem 'Inter', sans-serif; padding: 8px 6px; border-radius: 10px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.fdx-tabs button em { font-style: normal; font-size: 0.66rem; font-weight: 800; background: rgba(186, 240, 210, 0.1); border-radius: 999px; padding: 1px 7px; }
+.fdx-tabs button.on { background: var(--v3-brand); color: var(--v3-brand-ink); }
+.fdx-tabs button.on em { background: rgba(3, 25, 12, 0.2); }

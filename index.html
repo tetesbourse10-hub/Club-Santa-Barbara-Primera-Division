@@ -10204,7 +10204,7 @@ function buildPitch(titulares) {
       // veía el nombre corto, sin indicar en qué posición jugó ese partido.
       const posLabel = (!isPlaceholder && jug.pos) ? `<div class="ap-ppos">${jug.pos}</div>` : '';
       const playerInner = `<div class="ap-player-wrap">
-          <div class="ap-pdot${isPlaceholder?' placeholder':isHat?' hat-trick':' csb'}"${isPlaceholder ? '' : ` style="--pc:${_plantelPosColor(jug.pos)}"`}>${initials}${topBadge}${rojaBadge}${subBadge}${capBadge}</div>
+          <div class="ap-pdot${isPlaceholder?' placeholder':isHat?' hat-trick':' csb'}">${initials}${topBadge}${rojaBadge}${subBadge}${capBadge}</div>
         </div>
         <div class="ap-pname${isPlaceholder?' ph':''}"${nameHl}>${displayName}</div>
         ${posLabel}`;
@@ -10828,12 +10828,17 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
   };
   const squadTabsDesktop = `
     <div class="fdx-squads">
-      <div class="fdx-sq"><div class="fdx-sq-h"><span>11 titular</span><em>${titulares.length}</em></div>
+      <div class="fdx-tabs">
+        <button class="on" onclick="_fdxTab(this,0)">11 titular <em>${titulares.length}</em></button>
+        <button onclick="_fdxTab(this,1)">Suplentes <em>${banco.length}</em></button>
+        <button onclick="_fdxTab(this,2)">Cambios <em>${cambios.length}</em></button>
+      </div>
+      <div class="fdx-sq fdx-panel">
         ${titulares.length ? titulares.map(j => _sqRow(j, j.salio ? '<i class="out" title="Salió">▼</i>' : '')).join('') : '<div class="fdx-empty">Sin alineación cargada.</div>'}</div>
-      <div class="fdx-sq"><div class="fdx-sq-h"><span>Suplentes</span><em>${banco.length}</em></div>
+      <div class="fdx-sq fdx-panel" style="display:none">
         ${banco.length ? banco.map(j => _sqRow(j, (j.entro ? '<i class="in" title="Entró">▲</i>' : '') + (j.salio ? '<i class="out" title="Salió">▼</i>' : ''))).join('') : '<div class="fdx-empty">Sin suplentes cargados.</div>'}</div>
-      ${cambios.length ? `<div class="fdx-sq"><div class="fdx-sq-h"><span>Cambios</span><em>${cambios.length}</em></div>
-        ${cambios.map(c => `<div class="fdx-change"><span class="in">▲ ${pl(c.inp.nombre)}</span><span class="out">▼ ${c.out ? pl(c.out.nombre) : '?'}</span></div>`).join('')}</div>` : ''}
+      <div class="fdx-sq fdx-panel" style="display:none">
+        ${cambios.length ? cambios.map(c => `<div class="fdx-change"><span class="in">▲ ${pl(c.inp.nombre)}</span><span class="out">▼ ${c.out ? pl(c.out.nombre) : '?'}</span></div>`).join('') : '<div class="fdx-empty">Sin cambios en este partido.</div>'}</div>
     </div>`;
 
   const pitchSection = `
@@ -11045,6 +11050,12 @@ window._apSquadTabM = function(btn, idx) {
   wrap.querySelectorAll('.ap-squad-tabpanel-m').forEach((p, i) => { p.style.display = i === idx ? 'block' : 'none'; });
 };
 
+function _fdxTab(btn, i) {
+  const box = btn.closest('.fdx-squads');
+  if (!box) return;
+  box.querySelectorAll('.fdx-tabs button').forEach((b, k) => b.classList.toggle('on', k === i));
+  box.querySelectorAll('.fdx-panel').forEach((p, k) => { p.style.display = k === i ? '' : 'none'; });
+}
 function renderFechaDetail(basic, detail, targetId = 'ap-fecha-detail', fechaLabelOverride) {
   const el = document.getElementById(targetId);
   if (!el) return;
