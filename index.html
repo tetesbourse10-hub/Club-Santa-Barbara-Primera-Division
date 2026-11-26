@@ -15039,7 +15039,12 @@ function renderResumen() {
   const _own = _rsmOwn;
   // Línea de objetivo (misma idea que la tarjeta de la home)
   let _objetivo = '';
-  if (_own) {
+  const _estado = _csbEstadoTorneo(_tabla, _rsmTotalFechas || 15);
+  if (_estado && _estado.estado === 'campeon') {
+    _objetivo = `<span class="rv4-campeon">🏆 ¡Campeón del ${_e(d.badge)}!</span>`;
+  } else if (_estado && _estado.estado === 'descendido') {
+    _objetivo = `<span class="rv4-descendido">Descendido</span>`;
+  } else if (_own) {
     const ownPts = Number(_own.pts) || 0;
     if (_rsmEsLider) {
       const second = _tabla.find(t => _posN(t.pos) === '2');
@@ -15163,7 +15168,7 @@ function renderResumen() {
         return `<div class="rv4-tr${t.csb ? ' rv4-me' : ''}${enZona ? ' rv4-dz' : ''}"><span>${_posN(t.pos)}</span><span class="rv4-tteam"><i>${t.csb ? '<img src="logo-csb.webp" alt="">' : _crestImgHtml(t.equipo)}</i>${_e(t.equipo)}</span><span>${_e(t.pj)}</span><span>${dg >= 0 ? '+' : ''}${dg}</span><span><b>${_e(t.pts)}</b></span></div>`;
       }).join('')}
     </div>
-    ${tablaZonaInfo ? `<div class="rv4-note">A <b>${tablaZonaInfo.n} pts</b> de salir del descenso · ${_e(tablaZonaInfo.pos)}° ${_e(tablaZonaInfo.equipo)} (${_e(tablaZonaInfo.pts)} pts)</div>` : ''}` : '<div class="rv4-empty">Tabla no disponible</div>'}
+    ${(_estado && _estado.estado === 'descendido') ? `<div class="rv4-note">Ya no alcanza a los puestos que se salvan: <b>descendido</b>.</div>` : tablaZonaInfo ? `<div class="rv4-note">A <b>${tablaZonaInfo.n} pts</b> de salir del descenso · ${_e(tablaZonaInfo.pos)}° ${_e(tablaZonaInfo.equipo)} (${_e(tablaZonaInfo.pts)} pts)</div>` : ''}` : '<div class="rv4-empty">Tabla no disponible</div>'}
     <button class="rv4-btn" onclick="${verTablaCompletaAttr}">Ver tabla completa →</button>
   </div>`;
 
@@ -21566,7 +21571,33 @@ function renderLandingNextMatch() {
 // (copas/ascenso/descenso) que dio el club; acá solo importa la zona
 // negativa, las positivas (Supercopa/Recopa/Copa de Honor/ascenso) no tienen
 // mensaje propio en el Home.
+// Estado ya definido matemáticamente con las fechas que quedan: CAMPEÓN si
+// el 2° ya no lo alcanza ni ganando todo lo que le falta; DESCENDIDO si CSB
+// ya no alcanza al último puesto que se salva (mismo criterio de zona que
+// abajo: los últimos 3 puestos son promoción/descenso). totalFechas = 15
+// (fechas del Clausura AIFA, informado por el club).
+function _csbEstadoTorneo(tabla, totalFechas) {
+  totalFechas = totalFechas || 15;
+  const sorted = [...(tabla || [])].sort((a, b) => (parseInt(a.pos) || 0) - (parseInt(b.pos) || 0));
+  const own = sorted.find(t => t.csb);
+  if (!own) return null;
+  const pts = Number(own.pts) || 0, pos = parseInt(own.pos) || 0;
+  const rest = t => Math.max(0, totalFechas - (Number(t.pj) || 0));
+  if (pos === 1 && sorted[1]) {
+    const second = sorted[1];
+    if (pts > (Number(second.pts) || 0) + 3 * rest(second)) return { estado: 'campeon' };
+  }
+  const zoneStart = sorted.length - 2;
+  if (zoneStart > 1 && pos >= zoneStart) {
+    const safe = sorted.find(t => (parseInt(t.pos) || 0) === zoneStart - 1);
+    if (safe && pts + 3 * rest(own) < (Number(safe.pts) || 0)) return { estado: 'descendido' };
+  }
+  return null;
+}
 function _lcObjetivoHtml(own, tabla) {
+  const _est = _csbEstadoTorneo(tabla);
+  if (_est && _est.estado === 'campeon') return `<span class="lc-objetivo lc-objetivo-lider">🏆 ¡Campeón!</span>`;
+  if (_est && _est.estado === 'descendido') return `<span class="lc-objetivo lc-objetivo-down">Descendido</span>`;
   if (!own || !tabla.length) return '';
   const pos = parseInt(own.pos) || 0;
   const pts = Number(own.pts) || 0;
@@ -22256,7 +22287,10 @@ async function loadLiveData() {
   }
   if (ok(aClTabla)) {
     const t = parseTablaSheet(ok(aClTabla));
-    if (t.length >= 5) DATA_A.tabla = t;
+    // Esta hoja pisaba la tabla ya sancionada de más arriba (la del
+    // simulador) SIN la sanción de AIFA a UBA (-3 pts) — se veía con 32 en
+    // vez de 29. Se le aplica acá también.
+    if (t.length >= 5) DATA_A.tabla = _applySancionUBAClausura2026A(t);
   }
   _fillCopasPorPosicion(DATA_A.tabla, COPAS_POR_POSICION_A);
 

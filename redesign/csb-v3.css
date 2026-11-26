@@ -1305,3 +1305,8 @@ body.v3-profile #v3-topbar, body.v3-profile #v3-bottomnav { display: none !impor
   .rv4-top3[data-show="goles"] .rv4-top[data-k="goles"], .rv4-top3[data-show="asist"] .rv4-top[data-k="asist"], .rv4-top3[data-show="pj"] .rv4-top[data-k="pj"] { display: block; }
   .rv4-top-h { display: none; }
 }
+/* Resumen: estado del torneo */
+.rv4-campeon { display: inline-block; font-weight: 800; color: var(--v3-gold); background: rgba(243, 194, 79, 0.12); border: 1px solid rgba(243, 194, 79, 0.4); border-radius: 999px; padding: 3px 10px; }
+.rv4-descendido { display: inline-block; font-weight: 800; color: #ff7b7b; background: rgba(255, 95, 95, 0.12); border: 1px solid rgba(255, 95, 95, 0.4); border-radius: 999px; padding: 3px 10px; }
+/* Perfil: cantidades de goles/asist justo debajo de la barra, juntas */
+.ppv3-bar .ppv3-bar-nums { justify-content: center; gap: 8px; margin-top: -2px; }
