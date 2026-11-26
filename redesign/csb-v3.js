@@ -208,6 +208,7 @@
   let syncQueued = false;
   function queueSync() { if (syncQueued) return; syncQueued = true; requestAnimationFrame(() => { syncQueued = false; sync(); }); }
   function sync() {
+    if (!$('#v3-kicker') || !$('#v3-title')) return;
     const v = view();
     let active = 'home', kicker = 'Club Santa Bárbara', title = 'Inicio';
     const sqLabel = v.sq === 'b' ? 'Primera B' : 'Primera A';
@@ -226,8 +227,8 @@
     const tag = $('#v3-sb-sqtag');
     if (tag) { tag.dataset.sq = showSq; tag.textContent = showSq === 'b' ? 'Primera B' : 'Primera A'; }
     const oldBadge = $('#section-badge');
-    $('#v3-badge').textContent = (!v.landingOn && oldBadge && oldBadge.style.display !== 'none') ? oldBadge.textContent.trim() : '';
-    $('.v3-top-back').classList.toggle('show', !v.landingOn && (getNavStackLen() > 0 || v.profileOn));
+    const badgeEl = $('#v3-badge'); if (badgeEl) badgeEl.textContent = (!v.landingOn && oldBadge && oldBadge.style.display !== 'none') ? oldBadge.textContent.trim() : '';
+    const backEl = $('.v3-top-back'); if (backEl) backEl.classList.toggle('show', !v.landingOn && (getNavStackLen() > 0 || v.profileOn));
     // Selector A/B del topbar mobile: solo tiene sentido dentro de un plantel
     const topSq = $('.v3-top-sq');
     if (topSq) topSq.style.display = (v.landingOn || v.nidoOn || v.profileOn) ? 'none' : '';
