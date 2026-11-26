@@ -1387,7 +1387,7 @@ body.v3-profile #v3-topbar, body.v3-profile #v3-bottomnav { display: none !impor
 }
 
 /* ════════════════ EN VIVO v2: Centro de Datos ════════════════ */
-.cdx { display: flex; flex-direction: column; gap: 14px; }
+@media (min-width: 769px) { .cdx { display: flex; flex-direction: column; gap: 14px; } }
 .cdx-sum { background: linear-gradient(180deg, var(--v3-surface-2), var(--v3-surface)); border: 1px solid var(--v3-line-2); border-radius: 20px; padding: 14px 16px; }
 .cdx-sum-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
 .cdx-seg { display: inline-flex; background: rgba(3, 14, 8, 0.45); border: 1px solid var(--v3-line-2); border-radius: 12px; padding: 3px; gap: 2px; }
