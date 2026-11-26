@@ -8504,7 +8504,7 @@ function _ppV3MatchRow(p) {
   const left = isVis ? team(false) : team(true), right = isVis ? team(true) : team(false);
   const chips = [
     p.goles > 0 ? `<span class="ppv3-ap" style="--c:${_PPV3_C.goles}">⚽ ${p.goles}</span>` : '',
-    p.asist > 0 ? `<span class="ppv3-ap" style="--c:${_PPV3_C.asist}">🅰 ${p.asist}</span>` : '',
+    p.asist > 0 ? `<span class="ppv3-ap" style="--c:${_PPV3_C.asist}">👟 ${p.asist}</span>` : '',
     p.rojas > 0 ? `<span class="ppv3-ap" style="--c:#ff7b7b">🟥</span>` : '',
   ].join('');
   const cond = isVis ? 'Visitante' : p.local === 'NEUTRAL' ? 'Neutral' : 'Local';
@@ -8562,23 +8562,28 @@ function _ppV3SeasonChart(catList) {
   });
   const years = Object.values(by).sort((a, b) => a.y - b.y);
   if (years.length < 2) return '';
-  const max = Math.max(...years.map(y => y.pj), 1);
+  // Altura con piso en el año de MENOS partidos (no en 0) y curva
+  // exponencial: así 22 vs 29 se nota a simple vista en vez de verse
+  // casi iguales, como pasaba con una escala lineal desde cero.
+  const vals = years.map(y => y.pj);
+  const min = Math.min(...vals), max = Math.max(...vals);
+  const h = v => max === min ? 70 : Math.round(12 + 88 * Math.pow((v - min) / (max - min), 1.6));
+  const gmax = Math.max(1, ...years.map(y => Math.max(y.goles, y.asist)));
   const sel = String(window._pp2Year);
   return `<div class="ppv3-card ppv3-season">
     <div class="ppv3-card-head"><span class="ppv3-card-title">Temporada por temporada</span>
-      <span class="ppv3-legend"><i style="background:rgba(186,240,210,.25)"></i>Partidos <i style="background:${_PPV3_C.goles}"></i>Goles <i style="background:${_PPV3_C.asist}"></i>Asist.</span></div>
+      <span class="ppv3-legend"><i style="background:rgba(186,240,210,.35)"></i>Partidos <i style="background:${_PPV3_C.goles}"></i>Goles <i style="background:${_PPV3_C.asist}"></i>Asist.</span></div>
     <div class="ppv3-bars">${years.map(y => {
       const on = sel === String(y.y);
       const dim = sel !== 'todos' && !on;
       return `<button class="ppv3-bar${on ? ' on' : ''}${dim ? ' dim' : ''}" onclick="_ppV3YearFromChart('${y.y}')" title="${y.y}: ${y.pj} PJ · ${y.goles} G · ${y.asist} A">
-        <span class="ppv3-bar-val">${y.pj}</span>
-        <span class="ppv3-bar-col" style="height:${Math.max(6, Math.round(y.pj / max * 100))}%">
-          ${y.goles ? `<i class="g" style="height:${Math.min(100, y.goles / y.pj * 100)}%"></i>` : ''}${y.asist ? `<i class="a" style="height:${Math.min(100, y.asist / y.pj * 100)}%"></i>` : ''}
-        </span>
-        <span class="ppv3-bar-y">'${String(y.y).slice(-2)}</span>
+        <span class="ppv3-bar-plot"><span class="ppv3-bar-val">${y.pj}<small> PJ</small></span><span class="ppv3-bar-col" style="height:${h(y.pj)}%"></span></span>
+        <span class="ppv3-bar-ga"><i class="g" style="width:${y.goles ? Math.max(10, y.goles / gmax * 100) : 0}%"></i><i class="a" style="width:${y.asist ? Math.max(10, y.asist / gmax * 100) : 0}%"></i></span>
+        <span class="ppv3-bar-nums"><b style="color:${_PPV3_C.goles}">⚽ ${y.goles}</b><b style="color:${_PPV3_C.asist}">👟 ${y.asist}</b></span>
+        <span class="ppv3-bar-y">${y.y}</span>
       </button>`;
     }).join('')}</div>
-    <div class="ppv3-season-note">Tocá un año para filtrar todo el perfil por esa temporada.</div>
+    <div class="ppv3-season-note">Tocá un año para ver todo el perfil de esa temporada.</div>
   </div>`;
 }
 
@@ -8602,12 +8607,19 @@ function _ppV2Render() {
     cs = { ...cs, pj: yPj, titular: statsList.filter(p => p.condCorta === 'Titular').length, sup: statsList.filter(p => p.condCorta === 'Suplente').length,
       goles: yG, asist: yA, rojas: sum('rojas'), vallas: yV, vallasProm: d(yV, yPj), promGol: d(yG, yPj), promAsist: d(yA, yPj), efectividadGA: d(yG + yA, yPj) * 100 };
   }
-  const record = _ppRecordVED(statsList);
+  // El récord sigue al filtro de Aporte (tocar Goles/Asistencias/G+A/
+  // Vallas en los números de arriba): "¿cuántos ganamos cuando hizo gol?".
+  const aporteNow = window._pp2Aporte || 'todos';
+  const recordList = aporteNow === 'todos' ? statsList : _ppFilterByAporte(statsList, aporteNow);
+  const record = _ppRecordVED(recordList);
   const vedTot = record.v + record.e + record.d;
   const pct = x => vedTot ? x / vedTot * 100 : 0;
   const fav = _ppComputeFavoritos(statsList);
   const favVallas = showVallasSector ? _ppFavoritoRival(statsList.filter(p => _csbGoles(p).riv === 0), 'vallas') : null;
   const capTotal = catList.filter(p => p.esCapitan).length;
+  const capNow = statsList.filter(p => p.esCapitan).length;
+  const catName = cat === 'a' ? 'Primera A' : cat === 'b' ? 'Primera B' : null;
+  const titulosNow = (s.titulosList || []).filter(t => (yearSel === 'todos' || String(t.anio) === String(yearSel)) && (!catName || String(t.categoria || '').includes(catName)));
   const posC = _plantelPosColor(s.pos);
   const logros = _ppComputeTopLogros(s.nombre);
   const teams = (window._nidoFindPlayer && window._nidoFindPlayer(s.nombre)) ? (window._nidoFindPlayer(s.nombre).teams || []) : [];
@@ -8647,6 +8659,7 @@ function _ppV2Render() {
   const resBtn = (k, n, label) => `<button class="ppv3-ved-btn${window._pp2ResFilter === k ? ' on' : ''}" style="--c:${_PPV3_C[k]}" onclick="_ppV2SetRes('${k}');document.getElementById('ppv3-hist')?.scrollIntoView({behavior:'smooth',block:'start'})"><b>${n}</b><span>${label}</span></button>`;
   const recordCard = `<div class="ppv3-card ppv3-record">
     <div class="ppv3-card-head"><span class="ppv3-card-title">Récord con él en cancha</span><span class="ppv3-info" title="Resultado del equipo en los partidos cargados en la web donde jugó.">i</span></div>
+    ${aporteNow !== 'todos' ? `<div class="ppv3-rec-filter">${{ goles: 'En los partidos en que hizo gol', asist: 'En los partidos en que asistió', ga: 'En los partidos con gol o asistencia', vallas: 'En los partidos con valla invicta' }[aporteNow] || ''} · <b>${recordList.length}</b> PJ<button onclick="_ppV3GoAporte('todos')">✕</button></div>` : ''}
     <div class="ppv3-record-main">
       <div class="ppv3-ring" style="--w:${pct(record.v).toFixed(1)};--d:${pct(record.e).toFixed(1)}"><div><b>${pct(record.v).toFixed(0)}%</b><span>victorias</span></div></div>
       <div class="ppv3-ved">${resBtn('win', record.v, 'Ganados')}${resBtn('draw', record.e, 'Empatados')}${resBtn('loss', record.d, 'Perdidos')}</div>
@@ -8664,15 +8677,19 @@ function _ppV2Render() {
     ${favRow('Mayor impacto', fav.ga, 'G+A', _PPV3_C.ga)}
     ${showVallasSector ? favRow('Rival más cerrado', favVallas, 'VI', _PPV3_C.vallas) : ''}
   </div>`;
-  const rk = s.rankGen || {};
+  const rk = (cat === 'a' ? s.rankA : cat === 'b' ? s.rankB : s.rankGen) || {};
   const rkItem = (label, r) => `<div class="ppv3-rk"><span class="ppv3-rk-pos${r?.pos && r.pos <= 3 ? ' top' : ''}">${r?.pos ? '#' + r.pos : '—'}</span><span>${label}</span></div>`;
-  const clubCard = `<div class="ppv3-card ppv3-club">
-    <div class="ppv3-card-head"><span class="ppv3-card-title">En la historia del club</span><button class="ppv3-link" onclick="_ppV2OpenModal('pp2-modal-rankings')">Ver rankings ›</button></div>
-    <div class="ppv3-rks">${rkItem('Partidos', rk.pj)}${rkItem('Goles', rk.goles)}${rkItem('Asistencias', rk.asist)}</div>
+  const valItem = (label, v, c) => `<div class="ppv3-rk"><span class="ppv3-rk-pos" style="color:${c}">${v}</span><span>${label}</span></div>`;
+  const isYear = yearSel !== 'todos';
+  const clubCard = `<div class="ppv3-card ppv3-club${isYear ? ' ppv3-club-year' : ''}">
+    <div class="ppv3-card-head"><span class="ppv3-card-title">${isYear ? `Temporada ${_ppv3Esc(yearSel)}` : 'En la historia del club'}</span>${isYear ? `<button class="ppv3-link" onclick="_ppV2SetYear('todos')">Ver toda la carrera ✕</button>` : `<button class="ppv3-link" onclick="_ppV2OpenModal('pp2-modal-rankings')">Ver rankings ›</button>`}</div>
+    <div class="ppv3-rks">${isYear
+      ? valItem('Partidos', cs.pj, '#fff') + valItem('Goles', cs.goles, _PPV3_C.goles) + valItem('Asistencias', cs.asist, _PPV3_C.asist)
+      : rkItem('Partidos', rk.pj) + rkItem('Goles', rk.goles) + rkItem('Asistencias', rk.asist)}</div>
     <div class="ppv3-club-row">
-      <button class="ppv3-club-btn" onclick="_ppV2OpenModal('pp2-modal-titulos')"><span class="ppv3-club-ico">🏆</span><b>${s.titulos}</b><span>Título${s.titulos === 1 ? '' : 's'}</span></button>
+      <button class="ppv3-club-btn" onclick="_ppV2OpenModal('pp2-modal-titulos')"><span class="ppv3-club-ico">🏆</span><b>${titulosNow.length}</b><span>Título${titulosNow.length === 1 ? '' : 's'}</span></button>
       <button class="ppv3-club-btn${window._pp2RojasOnly ? ' on' : ''}" onclick="_ppV2ToggleRojas();document.getElementById('ppv3-hist')?.scrollIntoView({behavior:'smooth',block:'start'})"><span class="ppv3-club-ico ppv3-red"></span><b>${cs.rojas}</b><span>Roja${cs.rojas === 1 ? '' : 's'}</span></button>
-      ${capTotal ? `<button class="ppv3-club-btn${window._pp2CapOnly ? ' on' : ''}" onclick="_ppV2ToggleCap();document.getElementById('ppv3-hist')?.scrollIntoView({behavior:'smooth',block:'start'})"><span class="ppv3-club-ico ppv3-c">C</span><b>${capTotal}</b><span>Capitán</span></button>` : ''}
+      ${capTotal ? `<button class="ppv3-club-btn${window._pp2CapOnly ? ' on' : ''}" onclick="_ppV2ToggleCap();document.getElementById('ppv3-hist')?.scrollIntoView({behavior:'smooth',block:'start'})"><span class="ppv3-club-ico ppv3-c">C</span><b>${capNow}</b><span>Capitán</span></button>` : ''}
     </div>
   </div>`;
 
@@ -8725,8 +8742,8 @@ function _ppV2Render() {
   const rkRow = (label, r, val, unit) => `<div class="ppv3-mrow"><span>${label}</span><b>${r?.pos ? (r.pos <= 3 ? ['🥇', '🥈', '🥉'][r.pos - 1] + ' ' : '') + '#' + r.pos : '—'}</b><small>${val ?? 0} ${unit}</small></div>`;
   const modals = `
     <div id="pp2-modal-titulos" class="ppv3-modal hidden" onclick="if(event.target===this)_ppV2CloseModal('pp2-modal-titulos')"><div class="ppv3-modal-box">
-      <div class="ppv3-modal-head"><h3>🏆 Títulos ganados · ${s.titulos}</h3>${closeX('pp2-modal-titulos')}</div>
-      ${s.titulosList.length ? s.titulosList.map(t => `<div class="ppv3-mrow"><span><b class="ppv3-mt">${_ppv3Esc(t.torneo)}</b><small>${_ppv3Esc(t.categoria)} · Temporada ${_ppv3Esc(t.anio)}</small></span><em>Campeón</em></div>`).join('') : '<div class="ppv3-empty">Sin títulos registrados.</div>'}
+      <div class="ppv3-modal-head"><h3>🏆 Títulos${yearSel !== 'todos' ? ' ' + _ppv3Esc(yearSel) : ''} · ${titulosNow.length}</h3>${closeX('pp2-modal-titulos')}</div>
+      ${titulosNow.length ? titulosNow.map(t => `<div class="ppv3-mrow"><span><b class="ppv3-mt">${_ppv3Esc(t.torneo)}</b><small>${_ppv3Esc(t.categoria)} · Temporada ${_ppv3Esc(t.anio)}</small></span><em>Campeón</em></div>`).join('') : '<div class="ppv3-empty">Sin títulos registrados.</div>'}
     </div></div>
     <div id="pp2-modal-rankings" class="ppv3-modal hidden" onclick="if(event.target===this)_ppV2CloseModal('pp2-modal-rankings')"><div class="ppv3-modal-box">
       <div class="ppv3-modal-head"><h3>📊 Posición histórica en el club</h3>${closeX('pp2-modal-rankings')}</div>
