@@ -15025,432 +15025,241 @@ function renderResumen() {
     ? `goToMatchFecha('hg:apertura-2023a', '15')`
     : `goToMatchFecha('hg:apertura-2023d-b', '11')`;
 
+  // ════════════════════════════════════════════════════════════════════
+  // RESUMEN v3 (rediseño "Verde Nido") — una sola vista responsive.
+  // Todos los cálculos de arriba (próximo/último partido, tabla corta,
+  // destacados, histórico, top 5, palmarés) quedan igual; esto solo arma
+  // el HTML nuevo. Estilos en redesign/csb-v3.css ("RESUMEN v3").
+  // ════════════════════════════════════════════════════════════════════
   const container = document.getElementById('resumen-content');
-  const _resumenHtml = `
-    <!-- ═══ VISTA MOBILE (≤768px) ═══ — orden pedido: 1) header/selector
-         Plantel, 2) Actualidad (Último/Próximo Partido), 3) Tabla de
-         Posiciones (3 filas + Ver Completa), 4) Destacados Clausura 2026
-         (2x2 + Ver Plantel Completo), 5) Estadísticas históricas, 6) TOP 3
-         histórico, 7) Palmarés Oficial interactivo (títulos + Racha Invicta
-         + Máxima Goleada, clickeables igual que desktop) al cierre. ═══ -->
-    <div class="rsm-mobile">
-      <!-- Módulo 1: header + selector de Plantel -->
-      <div class="resumen-mobile-head">
-        <div class="section-title" style="margin-bottom:10px">${isA ? '🏆' : '⚽'} Resumen – ${d.nombre}</div>
-        <div class="resumen-cat-switch">
-          <button class="resumen-cat-btn${isA ? ' active' : ''}" onclick="_resumenSwitchCategory('a')">Primera A</button>
-          <button class="resumen-cat-btn${isA ? '' : ' active'}" onclick="_resumenSwitchCategory('b')">Primera B</button>
-        </div>
-      </div>
+  const _e = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const _q = s => String(s).replace(/'/g, "\\'");
+  const _posN = p => String(p == null ? '' : p).replace(/[°º]/g, '');
+  const _tabla = d.tabla || [];
+  const _own = _rsmOwn;
+  // Línea de objetivo (misma idea que la tarjeta de la home)
+  let _objetivo = '';
+  if (_own) {
+    const ownPts = Number(_own.pts) || 0;
+    if (_rsmEsLider) {
+      const second = _tabla.find(t => _posN(t.pos) === '2');
+      _objetivo = second ? `Líder · <b>+${ownPts - (Number(second.pts) || 0)}</b> sobre el 2°` : 'Líder';
+    } else if (tablaZonaInfo) {
+      _objetivo = `A <b>${tablaZonaInfo.n} pts</b> de salir del descenso`;
+    } else {
+      const first = _tabla.find(t => _posN(t.pos) === '1');
+      if (first) _objetivo = `A <b>${(Number(first.pts) || 0) - ownPts} pts</b> del 1° (${_e(first.equipo)})`;
+    }
+  }
+  const _pjJugados = _own ? Number(_own.pj) || 0 : 0;
+  const _progreso = _rsmTotalFechas ? Math.min(100, _pjJugados / _rsmTotalFechas * 100) : 0;
 
-      <!-- Módulo 2: Actualidad — Último Partido + Próximo Partido, en su
-           propia tarjeta contenedora (antes flotaba directo sobre el fondo,
-           con solo un título gris arriba — ver rsm-card-box/-badge). -->
-      <div class="rsm-card-box">
-        <div class="rsm-card-badge rsm-card-badge-sky">📊 Actualidad</div>
-        <div class="rsm-actualidad-grid">
-          <div class="rsm-match-card rsm-actualidad-card ${ultimoRes || ''}" ${ultimo ? `onclick="goToMatchFecha('${ultimo._navKey}', '${String(ultimo.fecha).replace(/'/g, "\\'")}')" title="Ver en Fecha a Fecha"` : ''}>
-            <div class="rsm-actualidad-label">⚽ Último Partido</div>
-            ${ultimo ? `
-              <div class="rsm-match-rival"><span class="rsm-match-crest">${_crestImgHtml(ultimo.rival)}</span>vs ${ultimo.rival}</div>
-              <div class="rsm-match-score ${ultimoRes}">${ultimo.resultado}</div>
-              <span class="rsm-match-torneo ${ultimoBadgeCls(ultimo._torneoLabel)}">${ultimo._torneoLabel}</span>
-            ` : `<div class="rsm-actualidad-empty">Sin partidos jugados</div>`}
-          </div>
-          <div class="rsm-match-card rsm-actualidad-card rsm-proximo-card"${proximo ? ` onclick="goToMatchFecha('${clausuraNavKey}', '${String(proximo.fecha).replace(/'/g, "\\'")}')" title="Ver en Fecha a Fecha"` : ''}>
-            <div class="rsm-actualidad-label">🗓 Próximo Partido</div>
-            ${proximo ? `
-              <div class="rsm-match-rival"><span class="rsm-match-crest">${_crestImgHtml(proximo.rival)}</span>vs ${proximo.rival}</div>
-              <div class="rsm-actualidad-meta">${[proximo.fecha ? 'Fecha ' + proximo.fecha : '', _rsmLocalTxt(proximo.local)].filter(Boolean).join(' · ')}</div>
-              <span class="rsm-match-torneo ${ultimoBadgeCls(clausuraLabel)}">${proximoDiaHora || proximoDiaFmt}</span>
-              ${(proximo.lugar || proximo.estadio) ? (proximoMapsUrl ? `
-                <a href="${proximoMapsUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="rsm-actualidad-maps">📍 ${proximo.lugar || proximo.estadio}</a>
-              ` : `<div class="rsm-actualidad-meta">📍 ${proximo.lugar || proximo.estadio}</div>`) : ''}
-            ` : `<div class="rsm-actualidad-empty">Torneo finalizado</div>`}
-          </div>
-        </div>
-      </div>
-
-      <!-- Módulo 3: Tabla de Posiciones — 3 filas centradas en CSB (1 arriba,
-           CSB, 1 abajo) + link "Ver Completa" a la tabla real. -->
-      <div class="rsm-card-box">
-        <div class="rsm-card-badge-row">
-          <div class="rsm-card-badge rsm-card-badge-emerald">📈 Tabla de Posiciones</div>
-          <span class="rsm-ver-completa" onclick="${verTablaCompletaAttr}">Ver Completa →</span>
-        </div>
-        <div class="rsm-tabla-card">
-          ${tablaTresFilas.length ? tablaTresFilas.map(t => `
-            <div class="rsm-tabla-row${t.csb ? ' rsm-tabla-row-csb' : ''}">
-              <span class="rsm-tabla-pos">${t.pos}</span>
-              <span class="rsm-tabla-team">${t.equipo}</span>
-              <span class="rsm-tabla-pj">${t.pj} PJ</span>
-              <span class="rsm-tabla-pts">${t.pts} pts</span>
-            </div>`).join('') : `<div class="rsm-actualidad-empty" style="padding:16px;text-align:center">Tabla no disponible</div>`}
-        </div>
-      </div>
-
-      <!-- Módulo 3: Destacados Clausura 2026 — mismos 4 líderes (Goleador/
-           Asistidor/Valla Invicta/Más Presencias) que la columna 3 de
-           desktop, en grilla 2x2 en vez de columna vertical, + botón "Ver
-           Plantel Completo" (misma navegación que el "Ver Plantel →" de
-           desktop, ver verEstadisticasAttr). -->
-      <div class="rsm-card-box">
-        <div class="rsm-card-badge-row">
-          <div class="rsm-card-badge rsm-card-badge-amber">🌟 Destacados ${clausuraLabel}</div>
-          <span class="rsm-pj-badge">${ligaClausura.length} PJ</span>
-        </div>
-        <div class="rsm-destacados-grid">
-          <div class="rsm-destacado-item">
-            <span class="rsm-destacado-icon" style="background:rgba(16,185,129,.12);color:#34d399">⚽</span>
-            <div class="rsm-destacado-body"><div class="rsm-destacado-label">Goleador</div><div class="rsm-destacado-name">${golLeader ? golLeader[0] : '—'}</div></div>
-            <div class="rsm-destacado-val" style="color:#34d399">${golLeader ? golLeader[1] : '—'}</div>
-          </div>
-          <div class="rsm-destacado-item">
-            <span class="rsm-destacado-icon" style="background:rgba(56,189,248,.12);color:#38bdf8">🎯</span>
-            <div class="rsm-destacado-body"><div class="rsm-destacado-label">Asistidor</div><div class="rsm-destacado-name">${asistLeader ? asistLeader[0] : '—'}</div></div>
-            <div class="rsm-destacado-val" style="color:#38bdf8">${asistLeader ? asistLeader[1] : '—'}</div>
-          </div>
-          <div class="rsm-destacado-item">
-            <span class="rsm-destacado-icon" style="background:rgba(168,85,247,.12);color:#c084fc">🧤</span>
-            <div class="rsm-destacado-body"><div class="rsm-destacado-label">Valla Invicta</div><div class="rsm-destacado-name">${vallaLeader ? vallaLeader[0] : '—'}</div></div>
-            <div class="rsm-destacado-val" style="color:#c084fc">${vallaLeader ? vallaLeader[1] : '—'}</div>
-          </div>
-          <div class="rsm-destacado-item">
-            <span class="rsm-destacado-icon" style="background:rgba(245,158,11,.12);color:#fbbf24">👕</span>
-            <div class="rsm-destacado-body"><div class="rsm-destacado-label">Más Presencias</div><div class="rsm-destacado-name">${presenciasLeader ? presenciasLeader[0] : '—'}</div></div>
-            <div class="rsm-destacado-val" style="color:#fbbf24">${presenciasLeader ? presenciasLeader[1] : '—'}</div>
-          </div>
-        </div>
-        <button class="rsm-ver-plantel-btn" onclick="${verEstadisticasAttr}">Ver Plantel Completo →</button>
-      </div>
-
-      <!-- Módulo 4: KPIs históricos — antes 8 fichas cuadradas sueltas (ver
-           rsm-stats-grid/.rsm-stat), ahora un solo tablero con divisores
-           finos entre celdas (rsm-stats-table/-cell), misma info, mitad de
-           altura. -->
-      <div class="rsm-card-box">
-        <div class="rsm-card-badge rsm-card-badge-purple">📈 Estadísticas Históricas</div>
-        <div class="rsm-stats-table">
-          <div class="rsm-stats-cell"><div class="rsm-stat-val">${h.pj}</div><div class="rsm-stat-label">PJ</div></div>
-          <div class="rsm-stats-cell"><div class="rsm-stat-val" style="color:var(--verde)">${h.pg}</div><div class="rsm-stat-label">Victorias</div></div>
-          <div class="rsm-stats-cell"><div class="rsm-stat-val" style="color:var(--dorado)">${h.pe}</div><div class="rsm-stat-label">Empates</div></div>
-          <div class="rsm-stats-cell"><div class="rsm-stat-val" style="color:var(--rojo)">${h.pp}</div><div class="rsm-stat-label">Derrotas</div></div>
-          <div class="rsm-stats-cell"><div class="rsm-stat-val" style="color:var(--azul-claro)">${h.gf}</div><div class="rsm-stat-label">GF</div></div>
-          <div class="rsm-stats-cell"><div class="rsm-stat-val" style="color:var(--rojo)">${h.gc}</div><div class="rsm-stat-label">GC</div></div>
-          <div class="rsm-stats-cell"><div class="rsm-stat-val">${h.vi}</div><div class="rsm-stat-label">Vallas</div></div>
-          <div class="rsm-stats-cell"><div class="rsm-stat-val" style="color:${(h.gf-h.gc)>=0?'var(--verde)':'var(--rojo)'}">${h.gf-h.gc>=0?'+':''}${h.gf-h.gc}</div><div class="rsm-stat-label">Dif.</div></div>
-        </div>
-      </div>
-
-      <!-- Módulo 5: TOP 3 histórico — módulo tabulado contenedor: un solo
-           marco exterior (rsm-card-box, igual que el resto de los módulos),
-           pestañas como segmento integrado en el header (rsm-tabs, mismo
-           idioma visual que el switch Primera A/B) en vez de tabs sueltas,
-           y el podio (#1 con halo dorado, ver .t5-pcol.t5-p1) directo
-           adentro — .rsm-card-flat saca el marco propio de .rsm-card para
-           no duplicar caja-dentro-de-caja. Mobile se queda en Top 3
-           (recorte propio acá con .slice(0,3)); desktop, más abajo, sigue
-           mostrando las 5 completas de byPartidos/byGoles/byAsist. -->
-      <div class="rsm-card-box">
-        <div class="rsm-card-badge rsm-card-badge-gold">🏆 Top 3 Histórico</div>
-        <div class="rsm-card rsm-card-flat">
-          <div class="rsm-tabs">
-            <button class="rsm-tab active" data-top5="pj" onclick="_resumenMobileTop5('pj', this)">Partidos</button>
-            <button class="rsm-tab" data-top5="goles" onclick="_resumenMobileTop5('goles', this)">Goles</button>
-            <button class="rsm-tab" data-top5="asist" onclick="_resumenMobileTop5('asist', this)">Asist.</button>
-          </div>
-          <div class="rsm-panel" id="rsm-top5-pj">${_top5PodiumHtml(byPartidos.slice(0, 3).map(j => ({ nombre: j.nombre, val: j.valor })))}</div>
-          <div class="rsm-panel" id="rsm-top5-goles" style="display:none">${_top5PodiumHtml(byGoles.slice(0, 3).map(j => ({ nombre: j.nombre, val: j.valor })))}</div>
-          <div class="rsm-panel" id="rsm-top5-asist" style="display:none">${_top5PodiumHtml(byAsist.slice(0, 3).map(j => ({ nombre: j.nombre, val: j.valor })))}</div>
-        </div>
-      </div>
-
-      <!-- Módulo 7: Palmarés Oficial interactivo — títulos como filas
-           completas (clickeables, navegan a su torneo en Torneos Antiguos,
-           mismo tNav que desktop) + Racha Invicta/Máxima Goleada como 2
-           tarjetas lado a lado (mismo grid-cols-2 que la card de desktop,
-           antes filas apiladas acá). Máxima Goleada abre esa ficha puntual
-           (goleadaNav) — Racha Invicta queda sin link, igual que en
-           desktop (no hay un partido puntual al que apuntar). -->
-      <div class="rsm-card-box" style="margin-bottom:0">
-        <div class="rsm-card-badge rsm-card-badge-amber">🏅 Palmarés Oficial</div>
-        <div class="rsm-glorias-card">
-          ${d.titulos.map(t => {
-            const tCompetencia = t.nombre.replace(/^Campeón\s+/i, '');
-            const tNav = TORNEO_NAV_MAP[`${t.anio}|${tCompetencia}|${isA ? 'A' : 'B'}`] || TORNEO_NAV_MAP[`${t.anio}|${tCompetencia}`];
-            return `<div class="rsm-glorias-item${tNav ? ' rsm-glorias-clickable' : ''}"${tNav ? ` onclick="_navPush('Resumen', () => renderResumen()); _navPushTorneosAntiguos(); ${tNav.fn.replace(/"/g, '&quot;')}" title="Ver campeonato"` : ''}>🏅 <strong>${t.nombre}</strong> <span class="rsm-glorias-year">(${t.anio})</span>${tNav ? '<span class="rsm-glorias-arrow">›</span>' : ''}</div>`;
-          }).join('')}
-        </div>
-        <div class="rsm-glorias-grid">
-          <div class="rsm-glorias-box">
-            <span class="rsm-glorias-box-icon">🔥</span>
-            <span class="rsm-glorias-box-label">Racha Invicta</span>
-            <span class="rsm-glorias-box-val">${isA ? '15 partidos' : '15 partidos'}</span>
-            <span class="rsm-glorias-box-sub">${isA ? '(Apertura AIFA A 2026 y Recopa 2026)' : '(Clausura AIFA D 2023 y Apertura AIFA D 2024)'}</span>
-          </div>
-          <div class="rsm-glorias-box${goleadaNav ? ' rsm-glorias-clickable' : ''}"${goleadaNav ? ` onclick="${goleadaNav}" title="Ver partido"` : ''}>
-            <span class="rsm-glorias-box-icon">⚡</span>
-            <span class="rsm-glorias-box-label">Máxima Goleada</span>
-            <span class="rsm-glorias-box-val">${isA ? '8–0 vs Sitas' : '13–0 vs Rep. del Oeste'}</span>
-          </div>
+  const _hero = `<section class="rv4-hero rv4-${isA ? 'a' : 'b'}">
+    <div class="rv4-hero-id">
+      <img src="logo-csb.webp" alt="" class="rv4-hero-crest">
+      <div>
+        <div class="rv4-kicker">${_e(d.badge)}</div>
+        <h1 class="rv4-title">${_e(d.nombre)}</h1>
+        <div class="rv4-sq">
+          <button class="${isA ? 'on' : ''}" onclick="_resumenSwitchCategory('a')">Primera A</button>
+          <button class="${!isA ? 'on' : ''}" onclick="_resumenSwitchCategory('b')">Primera B</button>
         </div>
       </div>
     </div>
-
-    <!-- ═══ VISTA ESCRITORIO (>768px) — Tailwind ═══ -->
-    <div class="resumen-desktop-only bg-[#0a120e]">
-
-      <!-- Header: escudo + título + selector (el badge de torneo ya está
-           arriba a la derecha en la navbar — no se repite acá), y Próximo
-           Partido como card propia con condición/rival/horario. Acento por
-           plantel (naranja Primera A / celeste Primera B, ver acc* arriba)
-           — antes quedaba siempre en verde sin importar el plantel. -->
-      <div class="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 mb-5 flex items-center justify-between gap-6 flex-wrap" style="position:relative;overflow:hidden">
-        <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,${accTop} 15%,${accTop} 85%,transparent)"></div>
-        <div class="flex items-center gap-4">
-          <img src="logo-csb.webp" alt="Escudo Club Santa Bárbara" class="w-16 h-16 rounded-2xl object-contain bg-slate-950/60 border border-slate-800/80 p-2" />
-          <div>
-            <h1 class="text-2xl font-extrabold text-white tracking-tight leading-none">${d.nombre}</h1>
-            <p class="text-xs text-slate-500 font-semibold mt-1">Plantel superior · ${d.badge.replace(/\s*\d{4}$/, '')}</p>
-            <div class="inline-flex bg-slate-950/60 border border-slate-800/80 rounded-full p-1 gap-1 mt-2.5">
-              <button class="${isA ? 'bg-amber-500 text-slate-950' : 'bg-transparent text-slate-400 hover:text-white'} appearance-none border-0 text-xs font-bold px-3 py-1.5 rounded-full transition-colors cursor-pointer" onclick="_resumenSwitchCategory('a')">Primera A</button>
-              <button class="${!isA ? 'bg-sky-500 text-slate-950' : 'bg-transparent text-slate-400 hover:text-white'} appearance-none border-0 text-xs font-bold px-3 py-1.5 rounded-full transition-colors cursor-pointer" onclick="_resumenSwitchCategory('b')">Primera B</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-gradient-to-br from-slate-950 to-slate-900 border ${accBorder} rounded-2xl px-5 py-3 ${accShadow} ${accBorderHover} ${accShadowHover} transition-all min-w-[320px]${proximo ? ' cursor-pointer' : ''}" style="min-width:380px"${proximo ? ` onclick="goToMatchFecha('${clausuraNavKey}', '${String(proximo.fecha).replace(/'/g, "\\'")}')" title="Ver en Fecha a Fecha"` : ''}>
-          ${proximo ? `
-            <div class="flex items-center justify-between pb-2 border-b border-slate-800/80 mb-2.5">
-              <div class="flex items-center gap-2">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${accBg10} ${accText} border ${accBorder}">Próximo Partido</span>
-                ${proximo.fecha ? `<span class="text-xs font-medium text-slate-400">Fecha ${proximo.fecha}</span>` : ''}
-              </div>
-              ${proximoCdVal ? `<div class="flex items-center gap-1.5 text-xs font-bold ${accText} bg-slate-950/40 px-2.5 py-1 rounded-lg border border-slate-800/40">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                ${proximoCdVal}
-              </div>` : ''}
-            </div>
-            <div class="flex items-center justify-between gap-4">
-              <div class="flex items-center gap-3 min-w-0">
-                ${(() => { const rc = _rivalAvatarColor(proximo.rival); return `<div class="w-12 h-12 rounded-full bg-slate-800 p-1.5 border border-slate-700 shadow-sm flex items-center justify-center shrink-0 relative overflow-hidden" style="color:${rc.color}">${_crestImgHtml(proximo.rival)}</div>`; })()}
-                <div class="min-w-0">
-                  ${_rsmLocalTxt(proximo.local) ? `<span class="text-[11px] font-bold uppercase tracking-wider ${accText} ${accBg10} px-1.5 py-0.5 rounded border ${accBorder}">${_rsmLocalTxt(proximo.local)}</span>` : ''}
-                  <h3 class="text-base font-bold text-slate-100 mt-0.5 truncate">${proximo.rival}</h3>
-                </div>
-              </div>
-              <div class="text-right shrink-0">
-                ${proximoDiaHora ? `<p class="text-sm font-bold text-slate-200 whitespace-nowrap">${proximoDiaHora}</p>` : ''}
-                ${_rsmCanonEstadio(proximo.lugar || proximo.estadio) ? (proximoMapsUrl ? `
-                <a href="${proximoMapsUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Cómo llegar" class="text-xs ${accText} font-semibold flex items-center justify-end gap-1 mt-1 whitespace-nowrap">
-                  <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                  ${_rsmCanonEstadio(proximo.lugar || proximo.estadio)}
-                </a>` : `
-                <p class="text-xs text-slate-400 flex items-center justify-end gap-1 mt-1 whitespace-nowrap">
-                  <svg class="w-3 h-3 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                  ${_rsmCanonEstadio(proximo.lugar || proximo.estadio)}
-                </p>`) : ''}
-              </div>
-            </div>
-          ` : `<span class="text-slate-500 text-sm font-semibold">Torneo finalizado</span>`}
-        </div>
+    ${_own ? `<div class="rv4-hero-pos">
+      <div class="rv4-pos-big"><span>${_posN(_own.pos)}</span><small>°</small></div>
+      <div class="rv4-pos-side">
+        <div class="rv4-pts"><b>${_e(_own.pts)}</b> pts</div>
+        ${_objetivo ? `<div class="rv4-obj">${_objetivo}</div>` : ''}
+        ${_rsmTotalFechas ? `<div class="rv4-prog"><i style="width:${_progreso.toFixed(1)}%"></i></div><div class="rv4-prog-lbl">${_pjJugados} de ${_rsmTotalFechas} partidos</div>` : ''}
       </div>
+    </div>` : ''}
+  </section>`;
 
-      <!-- Resumen v3, bloque 1 "Resumen del torneo" — copiado tal cual de
-           resumen_v3_mockup.html (.card.sum > .sum-h + .sum-g), clases
-           prefijadas rv3- (ver CSS arriba). Se omite entero si no hay fila
-           propia en la tabla (torneo sin datos todavía). -->
-      ${_rsmOwn ? `
-      <div class="rv3-card rv3-sum">
-        <div class="rv3-sum-h"><h3>Resumen del torneo · ${d.badge.replace(/ \d{4}$/, '')}</h3><i></i>${_rsmTotalFechas ? `<span style="font-size:11.5px;font-weight:600;color:var(--rv3-mut)">${_rsmOwn.pj} de ${_rsmTotalFechas} fechas disputadas</span>` : ''}</div>
-        <div class="rv3-sum-g">
-          <div class="rv3-st"><span class="rv3-lab">Posición</span><span class="rv3-big">${String(_rsmOwn.pos).replace(/[°º]/g, '')}°</span><span class="rv3-sub${_rsmEsLider ? ' rv3-g' : ''}" style="${_rsmEsLider ? 'font-weight:700' : ''}">${_rsmEsLider ? 'Líder' : 'en la tabla'}</span></div>
-          <div class="rv3-st"><span class="rv3-lab">Puntos</span><span class="rv3-big rv3-a">${_rsmOwn.pts}</span><span class="rv3-sub">/ ${_rsmTotalFechas * 3} pts</span></div>
-          <div class="rv3-st"><span class="rv3-lab">Resultados (${_rsmOwn.pj} PJ)</span><div class="rv3-sp"><div class="rv3-G"><b>${_rsmOwn.pg}</b><span>Ganados</span></div><div class="rv3-E"><b>${_rsmOwn.pe}</b><span>Empatados</span></div><div class="rv3-P"><b>${_rsmOwn.pp}</b><span>Perdidos</span></div></div></div>
-          <div class="rv3-st"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span class="rv3-lab" style="margin-bottom:0">Balance de Goles</span><span style="font-size:11px;font-weight:700;font-family:monospace;padding:2px 7px;border-radius:6px;background:${(_rsmOwn.gf - _rsmOwn.gc) >= 0 ? 'rgba(52,211,153,.12)' : 'rgba(248,113,113,.12)'};color:${(_rsmOwn.gf - _rsmOwn.gc) >= 0 ? 'var(--rv3-gr)' : 'var(--rv3-rd)'}">${(_rsmOwn.gf - _rsmOwn.gc) >= 0 ? '+' : ''}${_rsmOwn.gf - _rsmOwn.gc} DG</span></div><div class="rv3-sp"><div class="rv3-F"><b>${_rsmOwn.gf}</b><span>A favor</span></div><div class="rv3-C"><b>${_rsmOwn.gc}</b><span>En contra</span></div></div></div>
-          <div class="rv3-st"><span class="rv3-lab">Forma reciente</span><div class="rv3-racha">${_rsmRachaPills}</div></div>
-        </div>
+  // Próximo partido
+  const _estadio = proximo ? _rsmCanonEstadio(proximo.lugar || proximo.estadio) : '';
+  const _proxCard = `<div class="rv4-card rv4-next${proximo ? ' rv4-click' : ''}"${proximo ? ` onclick="goToMatchFecha('${clausuraNavKey}', '${_q(proximo.fecha)}')"` : ''}>
+    <div class="rv4-card-head"><span class="rv4-tag rv4-tag-brand">Próximo partido</span>${proximo && proximo.fecha ? `<span class="rv4-meta">Fecha ${_e(proximo.fecha)}</span>` : ''}${proximoCdVal ? `<span class="rv4-countdown">⏱ ${_e(proximoCdVal)}</span>` : ''}</div>
+    ${proximo ? `<div class="rv4-next-body">
+      <div class="rv4-vs">
+        <div class="rv4-vs-team"><span class="rv4-crest-lg"><img src="logo-csb.webp" alt=""></span><b>Santa Bárbara</b></div>
+        <div class="rv4-vs-mid">VS<span>${_e(_rsmLocalTxt(proximo.local) || '')}</span></div>
+        <div class="rv4-vs-team"><span class="rv4-crest-lg">${_crestImgHtml(proximo.rival)}</span><b>${_e(proximo.rival)}</b></div>
+      </div>
+      <div class="rv4-next-info">
+        ${proximoDiaHora ? `<span>📅 ${_e(proximoDiaHora)}</span>` : ''}
+        ${_estadio ? (proximoMapsUrl ? `<a href="${proximoMapsUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">📍 ${_e(_estadio)}</a>` : `<span>📍 ${_e(_estadio)}</span>`) : ''}
+      </div>
+    </div>` : `<div class="rv4-empty">Torneo finalizado</div>`}
+  </div>`;
+
+  // Último partido
+  const _resLbl = ultimoRes === 'win' ? 'Victoria' : ultimoRes === 'loss' ? 'Derrota' : 'Empate';
+  const _teamU = (csb) => csb
+    ? `<div class="rv4-vs-team"><span class="rv4-crest-lg"><img src="logo-csb.webp" alt=""></span><b>Santa Bárbara</b>${_ultimoCsbPos ? `<small>${_e(_ultimoCsbPos)}</small>` : ''}</div>`
+    : `<div class="rv4-vs-team"><span class="rv4-crest-lg">${_crestImgHtml(ultimo.rival)}</span><b>${_e(ultimo.rival)}</b>${_ultimoRivalPos ? `<small>${_e(_ultimoRivalPos)}</small>` : ''}</div>`;
+  const _ultCard = `<div class="rv4-card rv4-last rv4-res-${ultimoRes || 'none'}">
+    ${ultimo ? `<div class="rv4-card-head"><span class="rv4-tag">Último partido</span><span class="rv4-meta">${_e(ultimoFechaLabel)}${ultimoEsCopa ? ' · ' + _e(ultimo._torneoLabel || '') : ''}${ultimoDiaHora ? ' · ' + _e(ultimoDiaHora) : ''}</span></div>
+      <div class="rv4-vs">
+        ${_ultimoCsbEsVisitante ? _teamU(false) : _teamU(true)}
+        <div class="rv4-score"><b>${_e(ultimoResultadoClean)}</b>${ultimoPenales ? `<small>(${_e(ultimoPenales)} pen.)</small>` : ''}<span>${_resLbl}</span></div>
+        ${_ultimoCsbEsVisitante ? _teamU(true) : _teamU(false)}
+      </div>
+      ${(ultimoGoleadores.length || ultimoAsistidores.length) ? `<div class="rv4-scorers">
+        ${ultimoGoleadores.length ? `<div><span>⚽ Goles</span><b>${ultimoGoleadores.map(_e).join(', ')}</b></div>` : ''}
+        ${ultimoAsistidores.length ? `<div><span>👟 Asistencias</span><b>${ultimoAsistidores.map(_e).join(', ')}</b></div>` : ''}
       </div>` : ''}
+      ${(!ultimoGoleadores.length && ultimoCronicaTexto) ? `<div class="rv4-obs"><span>Observación del partido</span><p>${_e(ultimoCronicaTexto)}</p></div>` : ''}
+      <button class="rv4-btn" onclick="goToMatchFecha('${ultimo._navKey}', '${_q(ultimoNavFecha)}')">Ver ficha completa →</button>
+    ` : `<div class="rv4-card-head"><span class="rv4-tag">Último partido</span></div><div class="rv4-empty">Sin partidos jugados aún</div>`}
+  </div>`;
 
-      <!-- Resumen v3, bloque 2 "Fila de tres tarjetas" — copiado tal cual
-           del mockup (.grid3 > .card.col, con .body{flex:1} + .btn al
-           final). -->
-      <div class="rv3-grid3">
-        <!-- Columna 1: Último partido. La observación SOLO se muestra si
-           el partido NO tiene goleador propio Y SÍ tiene crónica — con
-           goleador(es) nunca se muestra (ni la crónica ni "Goles: ..."),
-           y sin ninguno de los dos tampoco (nunca queda un hueco donde
-           iría, el .body centra el marcador solo quedando verticalmente
-           centrado). -->
-        <div class="rv3-card rv3-col">
-          ${ultimo ? `
-            <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-              <span class="rv3-tt rv3-gn">Último partido</span>
-              <span class="rv3-tt rv3-gn" style="background:#142a1f">${_rsmLocalTxt(ultimoLocalVal) || '—'}</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;color:var(--rv3-mut);font-size:13px">
-              <span>${ultimoDiaHora || '—'}</span>
-              <span>${ultimoFechaLabel}${ultimoEsCopa ? ' · ' + (ultimo._torneoLabel || '') : ' · ' + clausuraLabel.replace(/ \d{4}$/, '')}</span>
-            </div>
-            <div class="rv3-body">
-              <div class="rv3-score">
-                ${_ultimoCsbEsVisitante ? _ultimoRivalTeamHtml + _ultimoScoreHtml + _ultimoCsbTeamHtml
-                                        : _ultimoCsbTeamHtml + _ultimoScoreHtml + _ultimoRivalTeamHtml}
-              </div>
-              ${(!ultimoGoleadores.length && ultimoCronicaTexto) ? `
-              <div class="rv3-obs"><b class="rv3-l">Observación del partido</b><p>${ultimoCronicaTexto}</p></div>` : ''}
-            </div>
-            <a class="rv3-btn" onclick="goToMatchFecha('${ultimo._navKey}', '${ultimoNavFecha.replace(/'/g, "\\'")}')">Ver ficha completa →</a>
-          ` : `<div class="rv3-body" style="color:var(--rv3-mut);text-align:center">Sin partidos jugados aún</div>`}
+  // Resumen del torneo (resultados, goles, forma)
+  const _dg = _own ? (Number(_own.gf) || 0) - (Number(_own.gc) || 0) : 0;
+  const _pjT = _own ? Math.max(1, (Number(_own.pg) || 0) + (Number(_own.pe) || 0) + (Number(_own.pp) || 0)) : 1;
+  const _racha = ultimos.map((m, idx) => {
+    const { csb, riv } = _csbGoles(m);
+    const r = csb > riv ? 'G' : csb === riv ? 'E' : 'P';
+    return `<div class="rv4-form-item rv4-f${r}${idx === 0 ? ' rv4-first' : ''}" title="${_e(m.resultado || '')} vs ${_e(m.rival)}"><span>${r}</span><i>${_crestImgHtml(m.rival)}</i></div>`;
+  }).join('');
+  const _torneo = _own ? `<section class="rv4-card rv4-torneo">
+    <div class="rv4-card-head"><span class="rv4-h3">Resumen del torneo</span><span class="rv4-meta">${_e(d.badge.replace(/ \d{4}$/, ''))}</span></div>
+    <div class="rv4-torneo-grid">
+      <div class="rv4-tblock">
+        <span class="rv4-lab">Resultados · ${_e(_own.pj)} PJ</span>
+        <div class="rv4-ged">
+          <div class="g"><b>${_e(_own.pg)}</b><span>Ganados</span></div>
+          <div class="e"><b>${_e(_own.pe)}</b><span>Empatados</span></div>
+          <div class="p"><b>${_e(_own.pp)}</b><span>Perdidos</span></div>
         </div>
-
-        <!-- Columna 2: Tabla de posiciones. Primera A = 4 filas (líder +
-           CSB + vecinos); Primera B = sin líder, desde los equipos arriba
-           de CSB hasta CSB. -->
-        <div class="rv3-card rv3-col">
-          <div style="display:flex;justify-content:space-between;margin-bottom:10px">
-            <span class="rv3-tt rv3-bl">Tabla de posiciones</span>
-            <span style="color:var(--rv3-mut);font-size:13px">${d.badge.replace(/ \d{4}$/, '')}</span>
-          </div>
-          <div class="rv3-body">
-            ${tablaCorta ? `
-            <table class="rv3-mt">
-              <tr><th>#</th><th>Equipo</th><th>PJ</th><th>DG</th><th>Pts</th></tr>
-              ${tablaCorta.map(t => {
-                if (t._gap) return `<tr><td colspan="5" style="text-align:center;color:#668978;letter-spacing:.2em;border-bottom:0">···</td></tr>`;
-                // Zona de "Descenso" (solo Primera B, nunca la propia fila
-                // de CSB — esa ya se resalta entera en verde): SOLO si la
-                // tabla etiqueta a ese equipo como "Descenso" —
-                // "Promoción" es otra zona y no cuenta (mismo criterio que
-                // tablaZonaInfo).
-                const enZona = !isA && !t.csb && /descenso/i.test(t.copas || '');
-                return `
-                <tr class="${t.csb ? 'rv3-me' : enZona ? 'rv3-dz' : ''}">
-                  <td>${String(t.pos).replace(/[°º]/g, '')}°</td>
-                  <td>${t.equipo}</td>
-                  <td>${t.pj}</td>
-                  <td>${(t.gf - t.gc) >= 0 ? '+' : ''}${t.gf - t.gc}</td>
-                  <td><b>${t.pts}</b></td>
-                </tr>`;
-              }).join('')}
-            </table>
-            ${tablaZonaInfo ? `
-            <div class="rv3-ob">A <b>${tablaZonaInfo.n} pts</b> de salir del descenso · ${tablaZonaInfo.pos}° ${tablaZonaInfo.equipo} (${tablaZonaInfo.pts} pts)</div>` : ''}
-            ` : `<div style="color:var(--rv3-mut);text-align:center">Tabla no disponible</div>`}
-          </div>
-          <a class="rv3-btn" onclick="${verTablaCompletaAttr}">Ver tabla completa →</a>
-        </div>
-
-        <!-- Columna 3: Destacados — Valla Invicta siempre se muestra (a
-           diferencia de las otras 3), con "—"/0 si todavía no hay datos. -->
-        <div class="rv3-card rv3-col">
-          <div style="margin-bottom:6px"><span class="rv3-tt rv3-am">Destacados ${clausuraLabel}</span></div>
-          <div class="rv3-body">
-            ${[
-              { leader: golLeader,         icon: '⚽', label: 'Goleador',       color: '#f59e0b', alwaysShow: false },
-              { leader: asistLeader,       icon: '🎯', label: 'Asistidor',      color: '#85b7eb', alwaysShow: false },
-              { leader: vallaLeader,       icon: '🧤', label: 'Valla invicta',  color: '#af9ec6', alwaysShow: true },
-              { leader: presenciasLeader,  icon: '👕', label: 'Más presencias', color: '#8ef0b6', alwaysShow: false },
-            ].map(({ leader, icon, label, color, alwaysShow }) => {
-              if (!leader && !alwaysShow) return '';
-              const nombre = leader ? pl(leader[0]) : '—';
-              const valor = leader ? leader[1] : 0;
-              const valColor = leader ? color : 'var(--rv3-dim)';
-              return `
-              <div class="rv3-dr">
-                <div class="rv3-ic">${icon}</div>
-                <div class="rv3-nm"><span>${label}</span><b style="${leader ? '' : 'color:var(--rv3-dim)'}">${nombre}</b></div>
-                <div class="rv3-n" style="color:${valColor}">${valor}</div>
-              </div>`;
-            }).join('')}
-          </div>
-          <a class="rv3-btn" onclick="${verEstadisticasAttr}">Ver plantel →</a>
+        <div class="rv4-stack"><i class="g" style="width:${(_own.pg / _pjT * 100).toFixed(1)}%"></i><i class="e" style="width:${(_own.pe / _pjT * 100).toFixed(1)}%"></i><i class="p" style="width:${(_own.pp / _pjT * 100).toFixed(1)}%"></i></div>
+      </div>
+      <div class="rv4-tblock">
+        <span class="rv4-lab">Goles</span>
+        <div class="rv4-goals">
+          <div><b class="rv4-gf">${_e(_own.gf)}</b><span>A favor</span></div>
+          <div><b class="rv4-gc">${_e(_own.gc)}</b><span>En contra</span></div>
+          <div><b class="${_dg >= 0 ? 'rv4-pos' : 'rv4-neg'}">${_dg >= 0 ? '+' : ''}${_dg}</b><span>Diferencia</span></div>
         </div>
       </div>
-
-      <!-- Resumen v3, bloque 3 "Historia y récords del club" — copiado tal
-           cual del mockup (.secw > .secw-h + .hist > .card.pal + .card). -->
-      <div class="rv3-secw">
-        <div class="rv3-secw-h"><h2>🏛 Historia y récords del club</h2><i></i></div>
-        <div class="rv3-hist">
-          <div class="rv3-card rv3-pal">
-            <div><span class="rv3-tt rv3-am">🏅 Palmarés oficiales</span></div>
-            ${d.titulos.map(t => {
-              // Mismo mapa año|competencia que ya usa Torneos Antiguos
-              // (Gráficos/Estadísticas Anuales) para linkear cada torneo
-              // real — team-qualificado primero (2024 Recopa existe para
-              // A y B a la vez), con fallback a la clave sin equipo.
-              const tCompetencia = t.nombre.replace(/^Campeón\s+/i, '');
-              const tNav = TORNEO_NAV_MAP[`${t.anio}|${tCompetencia}|${isA ? 'A' : 'B'}`] || TORNEO_NAV_MAP[`${t.anio}|${tCompetencia}`];
-              return `<div class="rv3-tr"${tNav ? ` style="cursor:pointer" onclick="_navPush('Resumen', () => renderResumen()); _navPushTorneosAntiguos(); ${tNav.fn.replace(/"/g, '&quot;')}" title="Ver campeonato"` : ''}>🏆<b>${t.nombre}</b><span class="rv3-yr">${t.anio}</span></div>`;
-            }).join('')}
-            <div class="rv3-rec2">
-              <div>
-                <small>🔥 Racha invicta · récord</small>
-                <b>15 partidos</b>
-                <em>${isA ? '(Apertura AIFA A 2026 y Recopa 2026)' : '(Clausura AIFA D 2023 y Apertura AIFA D 2024)'}</em>
-              </div>
-              <div${goleadaNav ? ` style="cursor:pointer" onclick="${goleadaNav}" title="Ver partido"` : ''}>
-                <small>⚡ Máxima goleada</small>
-                <b>${isA ? '8–0 vs Sitas' : '13–0 vs Rep. del Oeste'}</b>
-                <em>&nbsp;</em>
-              </div>
-            </div>
-            <!-- BUG REAL encontrado (reportado: "al hacer clic se queda en
-                 Resumen"): _navPushTorneosAntiguos() solo registra el
-                 breadcrumb para el botón "← Volver" (ver _navPush), nunca
-                 navega — hacía falta además la llamada real a _navGoTab. -->
-            <a class="rv3-btn" onclick="_navPush('Resumen', () => renderResumen()); _navGoTab('graficos', document.querySelectorAll('#main-nav button')[4]);">Ver torneos antiguos →</a>
-          </div>
-          <div class="rv3-card">
-            <div style="margin-bottom:12px"><span class="rv3-tt rv3-or">📊 Totales históricos</span></div>
-            <div class="rv3-tot">
-              <div class="rv3-tt2"><span class="rv3-lab">Partidos jugados</span><span class="rv3-big">${h.pj}</span><small>desde el debut en la liga</small></div>
-              <div class="rv3-tt2"><span class="rv3-lab">Efectividad</span><span class="rv3-big rv3-g">${efectividad}%</span><div class="rv3-bar2"><i style="width:${efectividad}%"></i></div><small>${_histPts} de ${3 * h.pj} puntos</small></div>
-              <div class="rv3-tt2 rv3-span2">
-                <span class="rv3-lab">Resultados</span>
-                <div class="rv3-stack">
-                  <i style="width:${_pctOfPJ(h.pg)}%;background:var(--rv3-gr)"></i>
-                  <i style="width:${_pctOfPJ(h.pe)}%;background:var(--rv3-am)"></i>
-                  <i style="width:${_pctOfPJ(h.pp)}%;background:var(--rv3-rd)"></i>
-                </div>
-                <div class="rv3-res">
-                  <div><b class="rv3-g">${h.pg}</b><span>Ganados</span><em>${_pctOfPJ(h.pg)}%</em></div>
-                  <div><b class="rv3-a">${h.pe}</b><span>Empatados</span><em>${_pctOfPJ(h.pe)}%</em></div>
-                  <div><b class="rv3-r">${h.pp}</b><span>Perdidos</span><em>${_pctOfPJ(h.pp)}%</em></div>
-                </div>
-              </div>
-              <div class="rv3-tt2"><span class="rv3-lab">Goles a favor</span><span class="rv3-big rv3-o">${h.gf}</span><small>${_golesPorPartido(h.gf)}</small></div>
-              <div class="rv3-tt2"><span class="rv3-lab">Goles en contra</span><span class="rv3-big rv3-r">${h.gc}</span><small>${_golesPorPartido(h.gc)}</small></div>
-              <div class="rv3-tt2"><span class="rv3-lab">Diferencia de gol</span><span class="rv3-big ${(h.gf - h.gc) >= 0 ? 'rv3-g' : 'rv3-r'}">${(h.gf - h.gc) >= 0 ? '+' : ''}${h.gf - h.gc}</span><small>a favor − en contra</small></div>
-              <div class="rv3-tt2"><span class="rv3-lab">Vallas invictas</span><span class="rv3-big rv3-v">${h.vi}</span><small>${_pctPJ(h.vi)}</small></div>
-            </div>
-          </div>
-        </div>
+      <div class="rv4-tblock">
+        <span class="rv4-lab">Últimos 5 partidos <em>más reciente →</em></span>
+        <div class="rv4-form">${_racha || '<span class="rv4-meta">Sin partidos</span>'}</div>
       </div>
+    </div>
+  </section>` : '';
 
-      <!-- Resumen v3, bloque 4 "Top 5 históricos" — copiado tal cual del
-           mockup (.secw > .secw-h (+ link "Ver ranking completo →") +
-           .t3 > .tc por categoría, cada una con su propio borde). -->
-      <div class="rv3-secw">
-        <div class="rv3-secw-h"><h2>🏆 Top 5 históricos</h2><i></i><a onclick="_navGoTab('jugadores', document.querySelectorAll('#main-nav button')[2])">Ver ranking completo →</a></div>
-        <div class="rv3-t3">
-          <div class="rv3-tc">
-            <div class="rv3-tth"><span class="rv3-tt rv3-or">⚽ Goleadores</span></div>
-            ${byGoles.map((j, i) => top10RowTw(j, i, _golesRanks[i], { color: '#f59e0b' })).join('')}
-          </div>
-          <div class="rv3-tc">
-            <div class="rv3-tth"><span class="rv3-tt rv3-ce">🎯 Asistidores</span></div>
-            ${byAsist.map((j, i) => top10RowTw(j, i, _asistRanks[i], { color: '#85b7eb' })).join('')}
-          </div>
-          <div class="rv3-tc">
-            <div class="rv3-tth"><span class="rv3-tt rv3-am">👟 Presencias</span></div>
-            ${byPartidos.map((j, i) => top10RowTw(j, i, _partidosRanks[i], { color: '#8ef0b6' })).join('')}
-          </div>
+  // Tabla corta
+  const _tablaCard = `<div class="rv4-card">
+    <div class="rv4-card-head"><span class="rv4-h3">Tabla de posiciones</span><span class="rv4-meta">${_e(d.badge.replace(/ \d{4}$/, ''))}</span></div>
+    ${tablaCorta ? `<div class="rv4-table">
+      <div class="rv4-tr rv4-th"><span>#</span><span>Equipo</span><span>PJ</span><span>DG</span><span>Pts</span></div>
+      ${tablaCorta.map(t => {
+        if (t._gap) return `<div class="rv4-tr rv4-gap"><span></span><span>···</span></div>`;
+        const enZona = !isA && !t.csb && /descenso/i.test(t.copas || '');
+        const dg = (Number(t.gf) || 0) - (Number(t.gc) || 0);
+        return `<div class="rv4-tr${t.csb ? ' rv4-me' : ''}${enZona ? ' rv4-dz' : ''}"><span>${_posN(t.pos)}</span><span class="rv4-tteam"><i>${t.csb ? '<img src="logo-csb.webp" alt="">' : _crestImgHtml(t.equipo)}</i>${_e(t.equipo)}</span><span>${_e(t.pj)}</span><span>${dg >= 0 ? '+' : ''}${dg}</span><span><b>${_e(t.pts)}</b></span></div>`;
+      }).join('')}
+    </div>
+    ${tablaZonaInfo ? `<div class="rv4-note">A <b>${tablaZonaInfo.n} pts</b> de salir del descenso · ${_e(tablaZonaInfo.pos)}° ${_e(tablaZonaInfo.equipo)} (${_e(tablaZonaInfo.pts)} pts)</div>` : ''}` : '<div class="rv4-empty">Tabla no disponible</div>'}
+    <button class="rv4-btn" onclick="${verTablaCompletaAttr}">Ver tabla completa →</button>
+  </div>`;
+
+  // Destacados (Valla invicta siempre visible)
+  const _dest = [
+    { leader: golLeader, icon: '⚽', label: 'Goleador', color: '#ef9f27', always: false },
+    { leader: asistLeader, icon: '👟', label: 'Asistidor', color: '#97c459', always: false },
+    { leader: vallaLeader, icon: '🧤', label: 'Valla invicta', color: '#85b7eb', always: true },
+    { leader: presenciasLeader, icon: '👕', label: 'Más presencias', color: '#eef6f1', always: false },
+  ].filter(x => x.leader || x.always);
+  const _destCard = `<div class="rv4-card">
+    <div class="rv4-card-head"><span class="rv4-h3">Destacados</span><span class="rv4-meta">${_e(clausuraLabel)} · ${ligaClausura.length} PJ</span></div>
+    <div class="rv4-dest">${_dest.map(x => `<div class="rv4-dest-row"${x.leader ? ` onclick="goToPlayer('${_q(x.leader[0])}')"` : ''}>
+      <span class="rv4-dest-ico" style="--c:${x.color}">${x.icon}</span>
+      <span class="rv4-dest-txt"><small>${x.label}</small><b>${x.leader ? _e(x.leader[0]) : '—'}</b></span>
+      <span class="rv4-dest-val" style="color:${x.leader ? x.color : 'var(--v3-dim)'}">${x.leader ? x.leader[1] : 0}</span>
+    </div>`).join('')}</div>
+    <button class="rv4-btn" onclick="${verEstadisticasAttr}">Ver plantel completo →</button>
+  </div>`;
+
+  // Historia: palmarés + récords
+  const _palmares = `<div class="rv4-card rv4-pal">
+    <div class="rv4-card-head"><span class="rv4-h3">Palmarés</span><span class="rv4-meta">${d.titulos.length} título${d.titulos.length === 1 ? '' : 's'}</span></div>
+    <div class="rv4-titles">${d.titulos.map(t => {
+      const tCompetencia = t.nombre.replace(/^Campeón\s+/i, '');
+      const tNav = TORNEO_NAV_MAP[`${t.anio}|${tCompetencia}|${isA ? 'A' : 'B'}`] || TORNEO_NAV_MAP[`${t.anio}|${tCompetencia}`];
+      return `<div class="rv4-title-row${tNav ? ' rv4-click' : ''}"${tNav ? ` onclick="_navPush('Resumen', () => renderResumen()); _navPushTorneosAntiguos(); ${tNav.fn.replace(/"/g, '&quot;')}"` : ''}><span class="rv4-trophy">🏆</span><b>${_e(t.nombre)}</b><span class="rv4-year">${_e(t.anio)}</span>${tNav ? '<span class="rv4-chev">›</span>' : ''}</div>`;
+    }).join('') || '<div class="rv4-empty">Sin títulos todavía</div>'}</div>
+    <div class="rv4-records">
+      <div><small>🔥 Racha invicta récord</small><b>15 partidos</b><em>${isA ? 'Apertura AIFA A 2026 y Recopa 2026' : 'Clausura AIFA D 2023 y Apertura AIFA D 2024'}</em></div>
+      <div class="${goleadaNav ? 'rv4-click' : ''}"${goleadaNav ? ` onclick="${goleadaNav}"` : ''}><small>⚡ Máxima goleada</small><b>${isA ? '8–0 vs Sitas' : '13–0 vs Rep. del Oeste'}</b><em>${goleadaNav ? 'Ver partido ›' : '&nbsp;'}</em></div>
+    </div>
+    <button class="rv4-btn" onclick="_navPush('Resumen', () => renderResumen()); _navGoTab('graficos', document.querySelectorAll('#main-nav button')[4]);">Ver torneos antiguos →</button>
+  </div>`;
+
+  const _dgH = h.gf - h.gc;
+  const _totales = `<div class="rv4-card rv4-tot">
+    <div class="rv4-card-head"><span class="rv4-h3">Totales históricos</span><span class="rv4-meta">desde el debut en la liga</span></div>
+    <div class="rv4-tot-top">
+      <div class="rv4-ring" style="--w:${_pctOfPJ(h.pg)};--d:${_pctOfPJ(h.pe)}"><div><b>${efectividad}%</b><span>efectividad</span></div></div>
+      <div class="rv4-tot-main">
+        <div class="rv4-tot-pj"><b>${h.pj}</b><span>partidos jugados</span></div>
+        <div class="rv4-ged rv4-ged-sm">
+          <div class="g"><b>${h.pg}</b><span>Ganados · ${_pctOfPJ(h.pg)}%</span></div>
+          <div class="e"><b>${h.pe}</b><span>Empatados · ${_pctOfPJ(h.pe)}%</span></div>
+          <div class="p"><b>${h.pp}</b><span>Perdidos · ${_pctOfPJ(h.pp)}%</span></div>
         </div>
+        <div class="rv4-pts-line">${_histPts} de ${3 * h.pj} puntos posibles</div>
       </div>
+    </div>
+    <div class="rv4-tot-grid">
+      <div><span>Goles a favor</span><b class="rv4-gf">${h.gf}</b><small>${_golesPorPartido(h.gf) || ''}</small></div>
+      <div><span>Goles en contra</span><b class="rv4-gc">${h.gc}</b><small>${_golesPorPartido(h.gc) || ''}</small></div>
+      <div><span>Diferencia</span><b class="${_dgH >= 0 ? 'rv4-pos' : 'rv4-neg'}">${_dgH >= 0 ? '+' : ''}${_dgH}</b><small>a favor − en contra</small></div>
+      <div><span>Vallas invictas</span><b class="rv4-vi">${h.vi}</b><small>${_pctPJ(h.vi) || ''}</small></div>
+    </div>
+  </div>`;
+
+  // Top 5 históricos
+  const _topCol = (key, title, icon, list, ranks, color) => {
+    const max = Math.max(1, ...list.map(j => Number(j.valor) || 0));
+    return `<div class="rv4-top" data-k="${key}">
+      <div class="rv4-top-h"><span>${icon}</span>${title}</div>
+      ${list.map((j, i) => `<div class="rv4-top-row${ranks[i] === 1 ? ' first' : ''}" onclick="goToPlayer('${_q(j.nombre)}')">
+        <span class="rv4-top-rk${ranks[i] <= 3 ? ' m' + ranks[i] : ''}">${ranks[i]}</span>
+        <span class="rv4-top-av">${_e(_rivalInitials(j.nombre))}</span>
+        <span class="rv4-top-nm"><b>${_e(j.nombre)}</b><i><u style="width:${Math.round((Number(j.valor) || 0) / max * 100)}%;background:${color}"></u></i></span>
+        <span class="rv4-top-v" style="color:${color}">${_e(j.valor)}</span>
+      </div>`).join('')}
     </div>`;
+  };
+  const _top = `<section class="rv4-sec">
+    <div class="rv4-sec-h"><h2>Top 5 históricos</h2><span class="rv4-meta">${_e(d.nombre)}</span><button class="rv4-link" onclick="_navGoTab('jugadores', document.querySelectorAll('#main-nav button')[2])">Ver ranking completo →</button></div>
+    <div class="rv4-top-tabs" id="rv4-top-tabs">
+      <button class="on" onclick="_rv4Top('goles', this)">Goleadores</button><button onclick="_rv4Top('asist', this)">Asistidores</button><button onclick="_rv4Top('pj', this)">Presencias</button>
+    </div>
+    <div class="rv4-top3" id="rv4-top3" data-show="goles">
+      ${_topCol('goles', 'Goleadores', '⚽', byGoles, _golesRanks, '#ef9f27')}
+      ${_topCol('asist', 'Asistidores', '👟', byAsist, _asistRanks, '#97c459')}
+      ${_topCol('pj', 'Presencias', '👕', byPartidos, _partidosRanks, '#8ef0b6')}
+    </div>
+  </section>`;
+
+  const _resumenHtml = `<div class="rv4">
+    ${_hero}
+    <div class="rv4-grid2">${_proxCard}${_ultCard}</div>
+    ${_torneo}
+    <div class="rv4-grid2">${_tablaCard}${_destCard}</div>
+    <section class="rv4-sec"><div class="rv4-sec-h"><h2>Historia del club</h2></div>
+      <div class="rv4-grid-hist">${_palmares}${_totales}</div></section>
+    ${_top}
+  </div>`;
   _resumenSoftSet(container, _resumenHtml);
+}
+function _rv4Top(k, btn) {
+  const box = document.getElementById('rv4-top3');
+  if (box) box.dataset.show = k;
+  document.querySelectorAll('#rv4-top-tabs button').forEach(b => b.classList.toggle('on', b === btn));
 }
 // Cambia de pestaña el TOP 5 mobile (Partidos/Goles/Asist.) sin re-renderizar
 // el resto de Resumen — mismo patrón vanilla onclick que el resto del sitio.
