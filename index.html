@@ -15081,11 +15081,13 @@ function renderResumen() {
   const _proxCard = `<div class="rv4-card rv4-next${proximo ? ' rv4-click' : ''}"${proximo ? ` onclick="goToMatchFecha('${clausuraNavKey}', '${_q(proximo.fecha)}')"` : ''}>
     <div class="rv4-card-head"><span class="rv4-tag rv4-tag-brand">Próximo partido</span>${proximo && proximo.fecha ? `<span class="rv4-meta">Fecha ${_e(proximo.fecha)}</span>` : ''}${proximoCdVal ? `<span class="rv4-countdown">⏱ ${_e(proximoCdVal)}</span>` : ''}</div>
     ${proximo ? `<div class="rv4-next-body">
-      <div class="rv4-vs">
-        <div class="rv4-vs-team"><span class="rv4-crest-lg"><img src="logo-csb.webp" alt=""></span><b>Santa Bárbara</b></div>
-        <div class="rv4-vs-mid">VS<span>${_e(_rsmLocalTxt(proximo.local) || '')}</span></div>
-        <div class="rv4-vs-team"><span class="rv4-crest-lg">${_crestImgHtml(proximo.rival)}</span><b>${_e(proximo.rival)}</b></div>
-      </div>
+      ${(() => {
+        // Mismo orden que el resto del sitio: el local a la izquierda.
+        const csbT = `<div class="rv4-vs-team"><span class="rv4-crest-lg"><img src="logo-csb.webp" alt=""></span><b>Santa Bárbara</b></div>`;
+        const rivT = `<div class="rv4-vs-team"><span class="rv4-crest-lg">${_crestImgHtml(proximo.rival)}</span><b>${_e(proximo.rival)}</b></div>`;
+        const vis = /visit/i.test(_rsmLocalTxt(proximo.local) || '');
+        return `<div class="rv4-vs">${vis ? rivT : csbT}<div class="rv4-vs-mid">VS<span>${vis ? 'Visitante' : (_e(_rsmLocalTxt(proximo.local) || ''))}</span></div>${vis ? csbT : rivT}</div>`;
+      })()}
       <div class="rv4-next-info">
         ${proximoDiaHora ? `<span>📅 ${_e(proximoDiaHora)}</span>` : ''}
         ${_estadio ? (proximoMapsUrl ? `<a href="${proximoMapsUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">📍 ${_e(_estadio)}</a>` : `<span>📍 ${_e(_estadio)}</span>`) : ''}
@@ -15143,7 +15145,7 @@ function renderResumen() {
         </div>
       </div>
       <div class="rv4-tblock">
-        <span class="rv4-lab">Últimos 5 partidos <em>más reciente →</em></span>
+        <span class="rv4-lab">Últimos 5 partidos <em>← más reciente</em></span>
         <div class="rv4-form">${_racha || '<span class="rv4-meta">Sin partidos</span>'}</div>
       </div>
     </div>
