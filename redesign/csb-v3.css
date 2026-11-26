@@ -1586,3 +1586,48 @@ body.v3-profile #v3-topbar, body.v3-profile #v3-bottomnav { display: none !impor
 .fdx-tabs button em { font-style: normal; font-size: 0.66rem; font-weight: 800; background: rgba(186, 240, 210, 0.1); border-radius: 999px; padding: 1px 7px; }
 .fdx-tabs button.on { background: var(--v3-brand); color: var(--v3-brand-ink); }
 .fdx-tabs button.on em { background: rgba(3, 25, 12, 0.2); }
+
+/* ════════════════════════════════════════════════════════════════════
+   ESTADÍSTICAS JUGADORES
+   ════════════════════════════════════════════════════════════════════ */
+.jhx { max-width: 1320px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+.jhx-hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; flex-wrap: wrap; border-radius: 24px; border: 1px solid rgba(52, 209, 123, 0.22); padding: 26px 28px;
+  background: radial-gradient(520px 260px at 100% 0%, rgba(52, 209, 123, 0.2), transparent 70%), linear-gradient(135deg, #0d2a1b 0%, #0a1d13 55%, #071209 100%); }
+.jhx-kicker { font-size: 0.68rem; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--v3-brand); }
+.jhx-h { font-family: var(--v3-display); font-weight: 800; font-size: clamp(2.2rem, 4.5vw, 3.4rem); text-transform: uppercase; line-height: 0.95; color: #fff; margin: 6px 0 8px; }
+.jhx-lead { color: var(--v3-muted); font-size: 0.88rem; max-width: 520px; }
+.jhx-kpis { display: flex; gap: 8px; }
+.jhx-kpis div { background: rgba(3, 14, 8, 0.45); border: 1px solid var(--v3-line-2); border-radius: 16px; padding: 12px 16px; min-width: 96px; }
+.jhx-kpis b { display: block; font-family: var(--v3-display); font-weight: 800; font-size: 2.1rem; line-height: 1; color: #fff; }
+.jhx-kpis b.g { color: #ef9f27; } .jhx-kpis b.a { color: #97c459; }
+.jhx-kpis span { font-size: 0.62rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--v3-muted); }
+.jhx-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.jhx-card { text-align: left; display: flex; flex-direction: column; gap: 8px; cursor: pointer; padding: 20px; border-radius: 22px; color: var(--v3-text); font-family: inherit;
+  background: linear-gradient(180deg, var(--v3-surface-2), var(--v3-surface)); border: 1px solid var(--v3-line-2); transition: transform .15s, border-color .15s, box-shadow .15s; }
+.jhx-card:hover { transform: translateY(-3px); border-color: rgba(52, 209, 123, 0.5); box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35); }
+.jhx-ico { width: 46px; height: 46px; border-radius: 14px; background: rgba(52, 209, 123, 0.12); display: inline-flex; align-items: center; justify-content: center; }
+.jhx-ico svg { width: 24px; height: 24px; stroke: var(--v3-brand); fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.jhx-title { font-family: var(--v3-display); font-weight: 800; font-size: 1.45rem; text-transform: uppercase; color: #fff; line-height: 1; margin-top: 4px; }
+.jhx-sub { font-size: 0.82rem; color: var(--v3-muted); line-height: 1.45; }
+.jhx-stat { font-size: 0.72rem; font-weight: 800; color: var(--v3-gold); }
+.jhx-go { margin-top: auto; padding-top: 6px; font-size: 0.8rem; font-weight: 800; color: var(--v3-brand); }
+
+/* Barra de secciones arriba de Totales/Anuales/Debuts/Inferiores */
+.jsx-bar { max-width: 1320px; margin: 0 auto 16px; display: flex; gap: 4px; padding: 4px; background: var(--v3-surface); border: 1px solid var(--v3-line-2); border-radius: 14px; overflow-x: auto; scrollbar-width: none; }
+.jsx-bar::-webkit-scrollbar { display: none; }
+.jsx-bar button { flex: 1 0 auto; border: 0; background: none; color: var(--v3-muted); font: 700 0.84rem 'Inter', sans-serif; padding: 10px 16px; border-radius: 10px; cursor: pointer; white-space: nowrap; }
+.jsx-bar button:hover { color: #fff; }
+.jsx-bar button.on { background: var(--v3-brand); color: var(--v3-brand-ink); }
+
+/* Totales: pestañas de métricas y tabla */
+.jtot-tabrow button { border-radius: 999px !important; border: 1px solid var(--v3-line-2) !important; background: none !important; color: var(--v3-muted) !important; font: 700 0.78rem 'Inter', sans-serif !important; padding: 7px 13px !important; }
+.jtot-tabrow button.active, .jtot-tabrow button.on, .jtot-tabrow button[aria-selected="true"] { background: var(--v3-brand) !important; border-color: var(--v3-brand) !important; color: var(--v3-brand-ink) !important; }
+#jug-search, #jug-search-b { height: 40px; border-radius: 12px !important; background: var(--v3-surface) !important; border: 1px solid var(--v3-line-2) !important; }
+#jug-totales-wrap, #jug-totales-wrap-b { border: 1px solid var(--v3-line-2); border-radius: 18px; background: var(--v3-surface); }
+@media (max-width: 768px) {
+  .jhx-hero { padding: 20px 18px; border-radius: 20px; }
+  .jhx-kpis { width: 100%; } .jhx-kpis div { flex: 1; min-width: 0; padding: 10px; } .jhx-kpis b { font-size: 1.6rem; }
+  .jhx-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .jhx-card { padding: 14px; border-radius: 18px; } .jhx-sub { display: none; } .jhx-title { font-size: 1.15rem; }
+  .jsx-bar button { padding: 9px 12px; font-size: 0.8rem; }
+}

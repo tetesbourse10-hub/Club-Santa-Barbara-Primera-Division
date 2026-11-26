@@ -16451,30 +16451,42 @@ function renderPartidos() {
 // RENDER: JUGADORES
 // ──────────────────────────────────────────────
 function renderJugadoresMenu() {
+  const isA = currentData !== DATA_B;
+  const team = window._nidoGetTeamData ? (window._nidoGetTeamData(isA ? 'a' : 'b') || []) : [];
+  const sum = k => team.reduce((acc, p) => acc + (Number(p[k]) || 0), 0);
+  const ico = {
+    tot: '<svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>',
+    anu: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>',
+    deb: '<svg viewBox="0 0 24 24"><path d="m12 3 2.7 5.6 6.2.9-4.5 4.3 1 6.2L12 17l-5.5 3 1-6.2L3 9.5l6.2-.9z"/></svg>',
+    inf: '<svg viewBox="0 0 24 24"><path d="M2 9 12 4l10 5-10 5z"/><path d="M6 11v5c3 2.5 9 2.5 12 0v-5"/></svg>',
+  };
+  const card = (key, icon, title, sub, stat) => `<button class="jhx-card" onclick="_navPushJugadores();showJugSub('${key}')">
+    <span class="jhx-ico">${icon}</span>
+    <span class="jhx-title">${title}</span>
+    <span class="jhx-sub">${sub}</span>
+    ${stat ? `<span class="jhx-stat">${stat}</span>` : ''}
+    <span class="jhx-go">Entrar →</span>
+  </button>`;
   document.getElementById('jugadores-picker-content').innerHTML = `
-    <div class="section-title" style="margin-bottom:20px">👟 Estadísticas Jugadores – ${currentData.nombre}</div>
-    <div class="torneos-picker-grid" style="max-width:900px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
-      <div class="torneo-card" onclick="_navPushJugadores();showJugSub('totales')">
-        <div class="torneo-card-icon">📊</div>
-        <div class="torneo-card-name">Estadísticas Totales</div>
-        <div class="torneo-card-sub">Estadísticas históricas acumuladas</div>
+    <div class="jhx">
+      <section class="jhx-hero">
+        <div>
+          <span class="jhx-kicker">${currentData.nombre} · Toda la historia</span>
+          <h2 class="jhx-h">Estadísticas de jugadores</h2>
+          <p class="jhx-lead">Rankings históricos, temporada por temporada${isA ? ', debuts y los jugadores que surgieron de inferiores' : ''}.</p>
+        </div>
+        ${team.length ? `<div class="jhx-kpis">
+          <div><b>${team.length}</b><span>Jugadores</span></div>
+          <div><b class="g">${sum('goles')}</b><span>Goles</span></div>
+          <div><b class="a">${sum('asist')}</b><span>Asistencias</span></div>
+        </div>` : ''}
+      </section>
+      <div class="jhx-grid">
+        ${card('totales', ico.tot, 'Estadísticas totales', 'Acumulado histórico de cada jugador: partidos, goles, asistencias, liderazgo, disciplina y vallas.', team.length ? `${team.length} jugadores` : '')}
+        ${card('anuales', ico.anu, 'Estadísticas anuales', 'Cada temporada por separado: resumen del equipo, torneos jugados y rankings del año.', '')}
+        ${isA ? card('debuts', ico.deb, 'Debuts', 'Quién debutó, cuándo, contra quién y los debutantes que convirtieron.', '') : ''}
+        ${isA ? card('inferiores', ico.inf, 'Inferiores aportes', 'Los jugadores surgidos de las inferiores del club, camada por camada.', '') : ''}
       </div>
-      <div class="torneo-card" onclick="_navPushJugadores();showJugSub('anuales')">
-        <div class="torneo-card-icon">📅</div>
-        <div class="torneo-card-name">Estadísticas Anuales</div>
-        <div class="torneo-card-sub">Estadísticas separadas por temporada</div>
-      </div>
-      ${currentData !== DATA_B ? `
-      <div class="torneo-card" onclick="_navPushJugadores();showJugSub('debuts')">
-        <div class="torneo-card-icon">🌟</div>
-        <div class="torneo-card-name">Debuts</div>
-        <div class="torneo-card-sub">Registro de debutantes del plantel</div>
-      </div>
-      <div class="torneo-card" onclick="_navPushJugadores();showJugSub('inferiores')">
-        <div class="torneo-card-icon">🎓</div>
-        <div class="torneo-card-name">Inferiores Aportes</div>
-        <div class="torneo-card-sub">Jugadores surgidos de inferiores</div>
-      </div>` : ''}
     </div>`;
 }
 
@@ -16574,8 +16586,8 @@ function _plantelPosBadgeHtml(pos) {
   return `<span class="pos-badge" style="background:${c}1a;color:${c};border-color:${c}66;margin-right:6px">${pos}</span>`;
 }
 
-const POS_COLOR = { ARQ:'#a855f7', LI:'#22c55e', LD:'#22c55e', DFI:'#22c55e', DFD:'#22c55e', DEF:'#3b82f6', DFC:'#3b82f6', MC:'#f59e0b', MCO:'#f59e0b', MD:'#f59e0b', MI:'#f59e0b', DEL:'#ef4444', DC:'#ef4444', ED:'#ef4444', EI:'#ef4444' };
-const POS_BG    = { ARQ:'rgba(168,85,247,0.18)', LI:'rgba(34,197,94,0.15)', LD:'rgba(34,197,94,0.15)', DFI:'rgba(34,197,94,0.15)', DFD:'rgba(34,197,94,0.15)', DFC:'rgba(59,130,246,0.18)', MC:'rgba(245,158,11,0.18)', MCO:'rgba(245,158,11,0.18)', DEL:'rgba(239,68,68,0.18)', DC:'rgba(239,68,68,0.18)', ED:'rgba(239,68,68,0.18)', EI:'rgba(239,68,68,0.18)' };
+const POS_COLOR = { ARQ:'#c4b5fd', LI:'#5eead4', LD:'#5eead4', DFI:'#5eead4', DFD:'#5eead4', DEF:'#7dd3fc', DFC:'#7dd3fc', MC:'#f3c24f', MCO:'#f3c24f', MD:'#f3c24f', MI:'#f3c24f', DEL:'#fda4af', DC:'#fda4af', ED:'#fda4af', EI:'#fda4af' }; // mismos colores que El Nido v3
+const POS_BG    = { ARQ:'rgba(196,181,253,0.16)', LI:'rgba(94,234,212,0.14)', LD:'rgba(94,234,212,0.14)', DFI:'rgba(94,234,212,0.14)', DFD:'rgba(94,234,212,0.14)', DEF:'rgba(125,211,252,0.15)', DFC:'rgba(125,211,252,0.15)', MC:'rgba(243,194,79,0.15)', MCO:'rgba(243,194,79,0.15)', MD:'rgba(243,194,79,0.15)', MI:'rgba(243,194,79,0.15)', DEL:'rgba(253,164,175,0.15)', DC:'rgba(253,164,175,0.15)', ED:'rgba(253,164,175,0.15)', EI:'rgba(253,164,175,0.15)' };
 
 const JUG_TABS = [
   { key:'general',      label:'General',      cols:[JUG_COL.pj, JUG_COL.goles, JUG_COL.asist, JUG_COL.gmas] },
@@ -16860,7 +16872,7 @@ function _jugTotalBuild() {
   if (tabRow) {
     tabRow.innerHTML = JUG_TABS.map(t => {
       const active = _jugTotalesTab === t.key;
-      return `<button onclick="event.stopPropagation();_jugTotalSetTab('${t.key}')" style="padding:5px 14px;border-radius:20px;border:1px solid ${active?'rgba(249,115,22,0.6)':'rgba(255,255,255,0.09)'};background:${active?'#f97316':'rgba(255,255,255,0.06)'};color:${active?'#fff':'#f2f8f5'};font-size:0.78rem;font-weight:${active?'700':'400'};cursor:pointer;white-space:nowrap;transition:all .15s">${t.label}</button>`;
+      return `<button class="${active?'on':''}" onclick="event.stopPropagation();_jugTotalSetTab('${t.key}')" style="padding:5px 14px;border-radius:20px;border:1px solid ${active?'rgba(249,115,22,0.6)':'rgba(255,255,255,0.09)'};background:${active?'#f97316':'rgba(255,255,255,0.06)'};color:${active?'#fff':'#f2f8f5'};font-size:0.78rem;font-weight:${active?'700':'400'};cursor:pointer;white-space:nowrap;transition:all .15s">${t.label}</button>`;
     }).join('');
   }
 
@@ -16981,8 +16993,8 @@ const JUG_COL_B = {
   promGol:12, promAsist:13, promGmas:14, vallas:15
 };
 
-const POS_COLOR_B = { ARQ:'#a855f7', LI:'#22c55e', LD:'#22c55e', DFI:'#22c55e', DFD:'#22c55e', DEF:'#3b82f6', DFC:'#3b82f6', MC:'#f59e0b', MCO:'#f59e0b', DEL:'#ef4444', DC:'#ef4444', ED:'#ef4444', EI:'#ef4444' };
-const POS_BG_B    = { ARQ:'rgba(168,85,247,0.18)', LI:'rgba(34,197,94,0.15)', LD:'rgba(34,197,94,0.15)', DFI:'rgba(34,197,94,0.15)', DFD:'rgba(34,197,94,0.15)', DEF:'rgba(59,130,246,0.18)', DFC:'rgba(59,130,246,0.18)', MC:'rgba(245,158,11,0.18)', MCO:'rgba(245,158,11,0.18)', DEL:'rgba(239,68,68,0.18)', DC:'rgba(239,68,68,0.18)', ED:'rgba(239,68,68,0.18)', EI:'rgba(239,68,68,0.18)' };
+const POS_COLOR_B = { ARQ:'#c4b5fd', LI:'#5eead4', LD:'#5eead4', DFI:'#5eead4', DFD:'#5eead4', DEF:'#7dd3fc', DFC:'#7dd3fc', MC:'#f3c24f', MCO:'#f3c24f', MD:'#f3c24f', MI:'#f3c24f', DEL:'#fda4af', DC:'#fda4af', ED:'#fda4af', EI:'#fda4af' };
+const POS_BG_B = { ARQ:'rgba(196,181,253,0.16)', LI:'rgba(94,234,212,0.14)', LD:'rgba(94,234,212,0.14)', DFI:'rgba(94,234,212,0.14)', DFD:'rgba(94,234,212,0.14)', DEF:'rgba(125,211,252,0.15)', DFC:'rgba(125,211,252,0.15)', MC:'rgba(243,194,79,0.15)', MCO:'rgba(243,194,79,0.15)', MD:'rgba(243,194,79,0.15)', MI:'rgba(243,194,79,0.15)', DEL:'rgba(253,164,175,0.15)', DC:'rgba(253,164,175,0.15)', ED:'rgba(253,164,175,0.15)', EI:'rgba(253,164,175,0.15)' };
 
 const JUG_TABS_B = [
   { key:'general',       label:'General',       cols:[JUG_COL_B.pj, JUG_COL_B.goles, JUG_COL_B.asist, JUG_COL_B.gmas] },
@@ -17202,7 +17214,7 @@ function _jugBBuild() {
   if (tabRow) {
     tabRow.innerHTML = JUG_TABS_B.map(t => {
       const active = _jugBTab === t.key;
-      return `<button onclick="event.stopPropagation();_jugBSetTab('${t.key}')" style="padding:5px 14px;border-radius:20px;border:1px solid ${active?'rgba(249,115,22,0.6)':'rgba(255,255,255,0.09)'};background:${active?'#f97316':'rgba(255,255,255,0.06)'};color:${active?'#fff':'#f2f8f5'};font-size:0.78rem;font-weight:${active?'700':'400'};cursor:pointer;white-space:nowrap;transition:all .15s">${t.label}</button>`;
+      return `<button class="${active?\'on\':\'\'}" onclick="event.stopPropagation();_jugBSetTab('${t.key}')" style="padding:5px 14px;border-radius:20px;border:1px solid ${active?'rgba(249,115,22,0.6)':'rgba(255,255,255,0.09)'};background:${active?'#f97316':'rgba(255,255,255,0.06)'};color:${active?'#fff':'#f2f8f5'};font-size:0.78rem;font-weight:${active?'700':'400'};cursor:pointer;white-space:nowrap;transition:all .15s">${t.label}</button>`;
     }).join('');
   }
 

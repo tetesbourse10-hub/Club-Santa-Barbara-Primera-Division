@@ -713,6 +713,33 @@
     apply();
   }
 
+
+  // ════════════════ ESTADÍSTICAS JUGADORES: barra de secciones ════════════════
+  // Barra fija arriba de Totales/Anuales/Debuts/Inferiores para saltar entre
+  // las cuatro sin volver al menú.
+  function jugSubBar(active) {
+    const isB = getCurrent() === getData('b');
+    const items = [['totales', 'Totales'], ['anuales', 'Anuales'], ...(isB ? [] : [['debuts', 'Debuts'], ['inferiores', 'Inferiores']])];
+    return `<div class="jsx-bar" role="tablist">${items.map(([k, l]) => `<button class="${k === active ? 'on' : ''}" onclick="showJugSub('${k}')">${l}</button>`).join('')}</div>`;
+  }
+  function placeJugSubBar(key) {
+    ['totales', 'anuales', 'debuts', 'inferiores'].forEach(k => {
+      const panel = $('#tab-jug-' + k);
+      if (!panel) return;
+      let bar = $(':scope > .jsx-bar', panel);
+      if (k !== key) { if (bar) bar.remove(); return; }
+      const html = jugSubBar(key);
+      if (bar) bar.outerHTML = html; else panel.insertAdjacentHTML('afterbegin', html);
+    });
+  }
+  function wrapJugSub() {
+    const orig = window.showJugSub;
+    if (typeof orig !== 'function' || orig.__v3jug) return;
+    const w = function (key) { const r = orig.apply(this, arguments); try { placeJugSubBar(key); } catch (e) {} return r; };
+    w.__v3jug = true; w.__v3 = true;
+    window.showJugSub = w;
+  }
+
   // ════════════════ ARRANQUE ════════════════
   function boot() {
     if (!$('#landing') || !$('#app')) return;
@@ -721,6 +748,7 @@
     buildSearch();
     buildH2H();
     wrapNav();
+    wrapJugSub();
     watchTorneo();
     sync(); syncNotif(); syncUpdated();
     // Las cifras del hero dependen de la tabla en vivo — se refrescan cuando llega.
