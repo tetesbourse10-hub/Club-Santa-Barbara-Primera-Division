@@ -15503,105 +15503,94 @@ function renderHistorial() {
   // Start with seed data for instant render while async load completes (A only; B has no seed)
   let data = currentData === DATA_B ? [] : [...SEED_HISTORIAL];
 
-  function kpi(icon, val, label, variant = '') {
-    const v = (typeof val === 'number' && (label.toLowerCase().includes('dif') || label.toLowerCase().includes('diferencia')))
-      ? (val > 0 ? '+' + val : val) : val;
-    return `<div class="hist-kpi ${variant ? 'hist-kpi-' + variant : ''}">
-      <div class="hist-kpi-icon">${icon}</div>
-      <div class="hist-kpi-val">${v}</div>
-      <div class="hist-kpi-label">${label}</div>
-    </div>`;
+  const _hvJs = r => r.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+  const _hvEsc = v => String(v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  function sign(v) { return v > 0 ? '+' + v : String(v); }
+  function balCls(v) { return v > 0 ? 'pos' : v < 0 ? 'neg' : 'neu'; }
+  function recBar(r) {
+    const t = Math.max(1, r.pg + r.pe + r.pp);
+    return `<span class="hvx-bar"><i class="w" style="width:${(r.pg / t * 100).toFixed(1)}%"></i><i class="d" style="width:${(r.pe / t * 100).toFixed(1)}%"></i><i class="l" style="width:${(r.pp / t * 100).toFixed(1)}%"></i></span>`;
   }
-
   function buildKpiBar(d) {
     const t = d.reduce((acc, r) => {
-      acc.pj += r.pj; acc.pg += r.pg; acc.pe += r.pe;
-      acc.pp += r.pp; acc.gf += r.gf; acc.gc += r.gc; acc.dif += r.dif;
+      acc.pj += r.pj; acc.pg += r.pg; acc.pe += r.pe; acc.pp += r.pp; acc.gf += r.gf; acc.gc += r.gc;
       return acc;
-    }, { pj:0, pg:0, pe:0, pp:0, gf:0, gc:0, dif:0 });
-    return `<div class="hist-kpis">
-      ${kpi('🏟', d.length,  'Clubes')}
-      ${kpi('📋', t.pj,      'Partidos')}
-      ${kpi('✅', t.pg,      'Victorias',   'win')}
-      ${kpi('🟡', t.pe,      'Empates',     'draw')}
-      ${kpi('❌', t.pp,      'Derrotas',    'loss')}
-      ${kpi('⚽', t.gf,      'GF')}
-      ${kpi('🥅', t.gc,      'GC')}
-      ${kpi('📈', t.dif,     'Diferencia')}
-    </div>`;
+    }, { pj: 0, pg: 0, pe: 0, pp: 0, gf: 0, gc: 0 });
+    const dif = t.gf - t.gc, tt = Math.max(1, t.pg + t.pe + t.pp);
+    const efec = Math.round((t.pg * 3 + t.pe) / (tt * 3) * 100);
+    const pos = d.filter(r => r.dh > 0).length, neg = d.filter(r => r.dh < 0).length, eq = d.length - pos - neg;
+    const pick = (arr, fn) => arr.length ? arr.reduce((best, r) => fn(r, best) ? r : best) : null;
+    const elig = d.filter(r => r.pj >= 3);
+    const hl = [
+      ['Rival más frecuente', pick(d, (r, b) => r.pj > b.pj), r => `${r.pj} partidos`, 'brand'],
+      ['Víctima favorita', pick(elig, (r, b) => r.dh > b.dh || (r.dh === b.dh && r.pg > b.pg)), r => `${r.pg}G ${r.pe}E ${r.pp}P`, 'win'],
+      ['Bestia negra', pick(elig, (r, b) => r.dh < b.dh || (r.dh === b.dh && r.pp > b.pp)), r => `${r.pg}G ${r.pe}E ${r.pp}P`, 'loss'],
+      ['Más goles le hicimos', pick(d, (r, b) => r.gf > b.gf), r => `${r.gf} goles`, 'gold'],
+    ].filter(h => h[1]);
+    return `<section class="jx-head hvx-head">
+        <div><span class="jx-kicker">${_hvEsc(currentData.nombre || '')} · Todos los rivales</span><h2 class="jx-h">Historial vs clubes</h2>
+          <div class="hvx-rec">
+            <div class="w"><b>${t.pg}</b><span>Ganados</span></div><div class="d"><b>${t.pe}</b><span>Empatados</span></div><div class="l"><b>${t.pp}</b><span>Perdidos</span></div>
+          </div>
+          ${recBar(t)}
+        </div>
+        <div class="jx-kpis hvx-kpis">
+          <div><b>${d.length}</b><span>Clubes</span></div>
+          <div><b>${t.pj}</b><span>Partidos</span></div>
+          <div><b>${t.gf}:${t.gc}</b><span>Goles</span></div>
+          <div><b class="${balCls(dif)}">${sign(dif)}</b><span>Diferencia</span></div>
+          <div><b>${efec}%</b><span>Efectividad</span></div>
+          <div class="hvx-split"><span><em class="pos">${pos}</em> a favor · <em class="neu">${eq}</em> parejos · <em class="neg">${neg}</em> en contra</span></div>
+        </div>
+      </section>
+      ${hl.length ? `<div class="hvx-hl">${hl.map(([lbl, r, sub, tone]) => `<button class="hvx-hl-card t-${tone}" onclick="histDrilldown('${_hvJs(r.rival)}')">
+        <span class="hvx-hl-lbl">${lbl}</span>
+        <span class="hvx-hl-main">${_rivalAvatarHtml(r.rival)}<span><b>${_hvEsc(r.rival)}</b><small>${sub(r)}</small></span></span>
+      </button>`).join('')}</div>` : ''}`;
   }
-
-  function difClass(v) { return v > 0 ? 'hist-dif-pos' : v < 0 ? 'hist-dif-neg' : 'hist-dif-neu'; }
-  function balClass(v) { return v > 0 ? 'hist-bal-pos' : v < 0 ? 'hist-bal-neg' : 'hist-bal-neu'; }
-  function sign(v) { return v > 0 ? '+' + v : String(v); }
 
   const isLoadingB = currentData === DATA_B && !data.length;
 
   function buildTable(rows) {
     if (!rows.length) return isLoadingB
-      ? `<div class="hd-loading"><div class="hd-loading-spin">⚽</div><div style="margin-top:12px;font-size:.85rem">Cargando historial…</div></div>`
-      : `<div class="hist-empty">No se encontraron clubes.</div>`;
+      ? `<div class="jx-loading"><span class="spinner"></span>Cargando historial…</div>`
+      : `<div class="v3-card jx-empty">No se encontraron clubes.</div>`;
     const cols = [
-      { key:'rival', label:'Rival' },
-      { key:'pj',    label:'PJ'   },
-      { key:'pg',    label:'PG'   },
-      { key:'pe',    label:'PE'   },
-      { key:'pp',    label:'PP'   },
-      { key:'dh',    label:'Bal.' },
-      { key:'gf',    label:'GF'   },
-      { key:'gc',    label:'GC'   },
-      { key:'dif',   label:'Dif.' },
+      { key: 'rival', label: 'Rival' }, { key: 'pj', label: 'PJ' }, { key: 'pg', label: 'G' }, { key: 'pe', label: 'E' }, { key: 'pp', label: 'P' },
+      { key: 'dh', label: 'Balance' }, { key: 'gf', label: 'GF' }, { key: 'gc', label: 'GC' }, { key: 'dif', label: 'Dif.' },
     ];
-    const thead = cols.map(c => {
-      const sorted = _histSort.col === c.key;
-      const arrow = sorted ? (_histSort.asc ? ' ▲' : ' ▼') : '';
-      return `<th onclick="histSort('${c.key}')" class="${sorted ? 'sorted' : ''}">${c.label}<span class="hist-sort-arrow">${arrow}</span></th>`;
+    const thead = cols.map((c, i) => {
+      const on = _histSort.col === c.key;
+      return `<th class="${i ? 'jx-num' : ''} ${on ? 'on' : ''}" onclick="histSort('${c.key}')" style="cursor:pointer">${c.label}${on ? (_histSort.asc ? ' ▲' : ' ▼') : ''}</th>`;
     }).join('');
-    const tbody = rows.map(r => `
-      <tr onclick="histDrilldown('${r.rival.replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">
-        <td><span style="display:inline-flex;align-items:center;gap:6px;vertical-align:middle">${_rivalAvatarHtml(r.rival)}${r.rival}</span><span class="hist-rival-arrow">›</span></td>
-        <td class="hist-td-pj">${r.pj}</td>
-        <td class="hist-td-win">${r.pg}</td>
-        <td class="hist-td-draw">${r.pe}</td>
-        <td class="hist-td-loss">${r.pp}</td>
-        <td><span class="${difClass(r.dh)}">${sign(r.dh)}</span></td>
-        <td class="hist-td-gf">${r.gf}</td>
-        <td>${r.gc}</td>
-        <td class="${balClass(r.dif)}">${sign(r.dif)}</td>
+    const maxPj = Math.max(1, ...rows.map(r => r.pj));
+    const tbody = rows.map(r => `<tr onclick="histDrilldown('${_hvJs(r.rival)}')">
+        <td><span class="hvx-club">${_rivalAvatarHtml(r.rival)}<span><b>${_hvEsc(r.rival)}</b>${recBar(r)}</span></span></td>
+        <td class="jx-num"><span>${r.pj}</span><u><s style="width:${(r.pj / maxPj * 100).toFixed(1)}%"></s></u></td>
+        <td class="jx-num hvx-w">${r.pg}</td><td class="jx-num hvx-d">${r.pe}</td><td class="jx-num hvx-l">${r.pp}</td>
+        <td class="jx-num"><span class="hvx-bal ${balCls(r.dh)}">${r.dh === 0 ? '=' : sign(r.dh)}</span></td>
+        <td class="jx-num">${r.gf}</td><td class="jx-num">${r.gc}</td>
+        <td class="jx-num hvx-dif ${balCls(r.dif)}">${sign(r.dif)}</td>
       </tr>`).join('');
-    return `<div class="hist-table-wrap mrow-desktop-only"><table class="hist-table"><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody></table></div>${buildMobileCards(rows)}`;
+    const cards = rows.map(r => `<div class="hvx-card" onclick="histDrilldown('${_hvJs(r.rival)}')">
+        <div class="hvx-card-top">${_rivalAvatarHtml(r.rival)}<span class="hvx-card-n"><b>${_hvEsc(r.rival)}</b><small>${r.pj} partidos · ${r.gf}:${r.gc}</small></span>
+          <span class="hvx-bal ${balCls(r.dh)}">${r.dh === 0 ? '=' : sign(r.dh)}</span></div>
+        <div class="hvx-card-rec"><span class="w"><b>${r.pg}</b>G</span><span class="d"><b>${r.pe}</b>E</span><span class="l"><b>${r.pp}</b>P</span>${recBar(r)}</div>
+      </div>`).join('');
+    return `<div class="jx-table-wrap hvx-table mrow-desktop-only"><table class="jx-table"><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody></table></div>
+      <div class="hvx-cards">${cards}</div>`;
   }
 
-  // Mobile card view: club name + chevron on top (preserves the drilldown
-  // click), head-to-head record (PG−PP) highlighted on the right — más
-  // relevante en un vistazo que la diferencia de gol para saber "quién le
-  // gana a quién" —, secondary line with PJ/V/E/D/GF·GC.
-  function buildMobileCards(rows) {
-    if (!rows.length) return '';
-    const cardsHtml = rows.map(r => `
-      <div class="mrow-card clickable" onclick="histDrilldown('${r.rival.replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">
-        <div class="mrow-top">
-          <div class="mrow-top-main">
-            <div class="mrow-title-row">${_rivalAvatarHtml(r.rival)}<div class="mrow-title">${r.rival}</div><span class="mrow-chevron">›</span></div>
-          </div>
-          <div class="mrow-highlight">
-            <div class="mrow-highlight-val ${balClass(r.dh)}">${r.dh === 0 ? '=' : sign(r.dh)}</div>
-            <div class="mrow-highlight-label">PJ</div>
-          </div>
-        </div>
-        <div class="mrow-secondary">
-          <div class="mrow-sec-item"><span class="mrow-sec-val">${r.pj}</span><span class="mrow-sec-label">PJ</span></div>
-          <div class="mrow-sec-item"><span class="mrow-sec-val" style="color:#22c55e">${r.pg}</span><span class="mrow-sec-label">V</span></div>
-          <div class="mrow-sec-item"><span class="mrow-sec-val" style="color:#f59e0b">${r.pe}</span><span class="mrow-sec-label">E</span></div>
-          <div class="mrow-sec-item"><span class="mrow-sec-val" style="color:#ef4444">${r.pp}</span><span class="mrow-sec-label">D</span></div>
-          <div class="mrow-sec-item"><span class="mrow-sec-val">${r.gf}·${r.gc}</span><span class="mrow-sec-label">GF·GC</span></div>
-        </div>
-      </div>`).join('');
-    return `<div class="mrow-cards">${cardsHtml}</div>`;
+  const HV_FILTERS = [['all', 'Todos'], ['pos', 'A favor'], ['neu', 'Parejos'], ['neg', 'En contra']];
+  function buildFilterChips() {
+    const cnt = { all: data.length, pos: data.filter(r => r.dh > 0).length, neu: data.filter(r => r.dh === 0).length, neg: data.filter(r => r.dh < 0).length };
+    return HV_FILTERS.map(([k, l]) => `<button class="${(window._hvFilter || 'all') === k ? 'on' : ''}" onclick="window._hvSetFilter('${k}')">${l} <small>${cnt[k]}</small></button>`).join('');
   }
 
   function getSorted(q) {
     let rows = q ? data.filter(r => r.rival.toLowerCase().includes(q.toLowerCase())) : [...data];
+    const f = window._hvFilter || 'all';
+    if (f !== 'all') rows = rows.filter(r => f === 'pos' ? r.dh > 0 : f === 'neg' ? r.dh < 0 : r.dh === 0);
     rows.sort((a, b) => {
       const av = a[_histSort.col], bv = b[_histSort.col];
       if (typeof av === 'string') return _histSort.asc ? av.localeCompare(bv) : bv.localeCompare(av);
@@ -15622,23 +15611,13 @@ function renderHistorial() {
   // cualquier otra opción, no había forma de volver a ese orden desde el
   // dropdown. Ahora es una opción más de la lista, como el resto.
   const HIST_MOBILE_SORTS = [
-    ['rival', 'Rival (A-Z)'],
-    ['pg', 'Más victorias'], ['pp', 'Más derrotas'], ['pe', 'Más empates'],
+    ['rival', 'Rival (A-Z)'], ['pj', 'Más partidos'],
+    ['pg', 'Más victorias'], ['pp', 'Más derrotas'], ['pe', 'Más empates'], ['dh', 'Mejor balance'],
     ['dif', 'Mejor diferencia'], ['gf', 'Más goles a favor'], ['gc', 'Más goles en contra'],
   ];
   function buildSortBar() {
-    const active = HIST_MOBILE_SORTS.find(([col]) => col === _histSort.col);
-    const label = active ? active[1] : 'Rival (A-Z)';
-    const menu = HIST_MOBILE_SORTS.map(([col, l]) => `<div class="pmf-menu-item${_histSort.col === col ? ' active' : ''}"
-      onclick="window._histSortSelect('${col}')">${l}</div>`).join('');
-    return `<div class="pmf-bar hist-sort-bar" id="hist-sort-bar">
-      <div class="pmf-row">
-        <div class="pmf-dd">
-          <button class="pmf-btn active" onclick="window._histSortToggle()">Orden: ${label} <span>▾</span></button>
-          ${_histSortMenuOpen ? `<div class="pmf-menu">${menu}</div>` : ''}
-        </div>
-      </div>
-    </div>`;
+    return `<label class="nv3-select hvx-sort" id="hist-sort-bar"><span>Orden</span><select onchange="window._histSortSelect(this.value)">
+      ${HIST_MOBILE_SORTS.map(([col, l]) => `<option value="${col}" ${_histSort.col === col ? 'selected' : ''}>${l}</option>`).join('')}</select></label>`;
   }
 
   function paint() {
@@ -15648,6 +15627,8 @@ function renderHistorial() {
     const tblEl = document.getElementById('hist-table-container');
     if (kpiEl) kpiEl.innerHTML = buildKpiBar(data);
     if (sortEl) sortEl.outerHTML = buildSortBar();
+    const chipEl = document.getElementById('hvx-chips');
+    if (chipEl) chipEl.innerHTML = buildFilterChips();
     if (tblEl) tblEl.innerHTML = buildTable(getSorted(q));
   }
 
@@ -15658,17 +15639,19 @@ function renderHistorial() {
   };
   window._histSortSelect = function(col) {
     _histSortMenuOpen = false;
-    histSort(col);
+    histSort(col, col === 'rival' ? true : col === 'pp' || col === 'gc' || col === 'pe' ? false : false);
   };
+  window._hvSetFilter = function(f) { window._hvFilter = f; paint(); };
 
   document.getElementById('partidos-grid').innerHTML = `
-    <div class="hist-wrap">
+    <div class="jx hvx">
       <div id="hist-kpi-bar">${buildKpiBar(data)}</div>
-      <div class="hist-search-wrap">
-        <span class="hist-search-icon">🔍</span>
-        <input class="hist-search" id="hist-search-input" placeholder="Buscar entre ${data.length} clubes…" oninput="histFilter(this.value)">
+      <div class="jx-controls">
+        <label class="jx-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input id="hist-search-input" type="search" placeholder="Buscar entre ${data.length} clubes…" oninput="histFilter(this.value)"></label>
+        <div class="jx-tabs" id="hvx-chips">${buildFilterChips()}</div>
+        ${buildSortBar()}
       </div>
-      ${buildSortBar()}
       <div id="hist-table-container">${buildTable(getSorted(''))}</div>
     </div>`;
 
@@ -16202,7 +16185,7 @@ function _histRefCardHtml(accent, icon, label, top, unit) {
 function renderHistorialDetalle(rival) {
   _histInDrilldown = true;
   const el = document.getElementById('partidos-grid');
-  el.innerHTML = `<div class="hd-loading"><div class="hd-loading-spin">⚽</div><div style="margin-top:12px;font-size:.85rem">Cargando historial vs ${rival}…</div></div>`;
+  el.innerHTML = `<div class="jx-loading"><span class="spinner"></span>Cargando historial vs ${rival}…</div>`;
   document.getElementById('part-title').textContent = '';
 
   const isB = currentData === DATA_B;
@@ -16257,167 +16240,99 @@ function renderHistorialDetalle(rival) {
     const efectividad = pj > 0 ? Math.round(((pg * 3 + pe) / (pj * 3)) * 100) : 0;
     const difSign = dif > 0 ? '+' : '';
 
-    // Last match (newest) result — `played` ahora está en orden cronológico
-    // ascendente (heredado de la hoja), así que el más reciente es el último.
-    const last = played[played.length - 1];
-    let rachaIcon = '—', rachaLabel = '—', rachaColor = '#b8cdc2';
-    if (last) {
-      if (last.gf > last.gc) { rachaIcon = '✅'; rachaLabel = `Victoria ${last.resultado}`; rachaColor = '#22c55e'; }
-      else if (last.gf === last.gc) { rachaIcon = '🟡'; rachaLabel = `Empate ${last.resultado}`; rachaColor = '#f59e0b'; }
-      else { rachaIcon = '❌'; rachaLabel = `Derrota ${last.resultado}`; rachaColor = '#ef4444'; }
-    }
-
-    // ── Top KPI bar (rival-specific) ──────────────────────────────────────
-    const rivalKpis = `
-      <div class="hist-kpis" style="margin-bottom:18px">
-        <div class="hist-kpi"><div class="hist-kpi-icon">📋</div><div class="hist-kpi-val">${pj}</div><div class="hist-kpi-label">Partidos</div></div>
-        <div class="hist-kpi hist-kpi-win"><div class="hist-kpi-icon">✅</div><div class="hist-kpi-val">${pg}</div><div class="hist-kpi-label">Victorias</div></div>
-        <div class="hist-kpi hist-kpi-draw"><div class="hist-kpi-icon">🟡</div><div class="hist-kpi-val">${pe}</div><div class="hist-kpi-label">Empates</div></div>
-        <div class="hist-kpi hist-kpi-loss"><div class="hist-kpi-icon">❌</div><div class="hist-kpi-val">${pp}</div><div class="hist-kpi-label">Derrotas</div></div>
-        <div class="hist-kpi"><div class="hist-kpi-icon">⚽</div><div class="hist-kpi-val">${gf}</div><div class="hist-kpi-label">GF</div></div>
-        <div class="hist-kpi"><div class="hist-kpi-icon">🥅</div><div class="hist-kpi-val">${gc}</div><div class="hist-kpi-label">GC</div></div>
-        <div class="hist-kpi"><div class="hist-kpi-icon">📈</div><div class="hist-kpi-val" style="color:${dif>0?'#22c55e':dif<0?'#ef4444':'#f2f8f5'}">${difSign}${dif}</div><div class="hist-kpi-label">Diferencia</div></div>
-        <div class="hist-kpi"><div class="hist-kpi-icon">🎯</div><div class="hist-kpi-val">${efectividad}%</div><div class="hist-kpi-label">Efectividad</div></div>
-      </div>`;
-
-    // ── Unified sidebar ───────────────────────────────────────────────────
-    function initials(s) { return s.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
+    // ── Rediseño v3 ──
+    const esc = v => String(v == null ? '' : v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const rc = m => (m.gf === null || m.gc === null) ? 'p' : m.gf > m.gc ? 'w' : m.gf === m.gc ? 'd' : 'l';
+    const rivalCrest = RIVAL_CREST_URLS[rivalUp] || `escudos/${slugify(rival)}.webp`;
+    const ini = String(rival).split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
+    const tt = Math.max(1, pg + pe + pp);
+    const recent = played.slice(-6).reverse();
+    const split = tipo => {
+      const ms = played.filter(m => tipo === 'l' ? /local/i.test(m.local) : /visit/i.test(m.local));
+      return { pj: ms.length, g: ms.filter(m => m.gf > m.gc).length, e: ms.filter(m => m.gf === m.gc).length, p: ms.filter(m => m.gf < m.gc).length, gf: ms.reduce((s, m) => s + m.gf, 0), gc: ms.reduce((s, m) => s + m.gc, 0) };
+    };
+    const sL = split('l'), sV = split('v');
+    const bestWin = played.filter(m => m.gf > m.gc).sort((a, b) => (b.gf - b.gc) - (a.gf - a.gc) || b.gf - a.gf)[0];
+    const worstLoss = played.filter(m => m.gf < m.gc).sort((a, b) => (b.gc - b.gf) - (a.gc - a.gf) || b.gc - a.gc)[0];
+    let unb = 0, unbMax = 0, winRun = 0, winMax = 0;
+    played.forEach(m => { if (m.gf >= m.gc) { unb++; unbMax = Math.max(unbMax, unb); } else unb = 0; if (m.gf > m.gc) { winRun++; winMax = Math.max(winMax, winRun); } else winRun = 0; });
     const rivalPlayerStats = _histLeadersFromMatches(matches.map(m => m._nav).filter(Boolean));
-    const rivalCrestSrc = RIVAL_CREST_URLS[rivalUp] || `escudos/${slugify(rival)}.webp`;
-    const sidebar = `
-      <div class="hd-sidebar">
-        <div class="hd-profile-card">
-          <div class="hd-profile-identity">
-            <div class="hd-club-avatar">
-              <img src="${rivalCrestSrc}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-              <span class="hd-club-avatar-fallback">${initials(rival)}</span>
-            </div>
-            <div class="hd-club-name">${rival}</div>
-            <div class="hd-club-sub">${matches.length} partido${matches.length !== 1 ? 's' : ''} desde ${currentData === DATA_B ? '2021' : '2016'}</div>
-          </div>
-          <div class="hd-profile-section">
-            <div class="hd-section-label">Efectividad de puntos</div>
-            <div class="hd-meter-track"><div class="hd-meter-fill" style="width:${efectividad}%"></div></div>
-            <div class="hd-meter-row"><span>0%</span><span class="hd-meter-pct">${efectividad}%</span><span>100%</span></div>
-          </div>
-          <div class="hd-profile-section">
-            <div class="hd-section-label">Último resultado</div>
-            <div class="hd-racha-row">
-              <div class="hd-racha-icon">${rachaIcon}</div>
-              <div class="hd-racha-val" style="color:${rachaColor}">${rachaLabel}</div>
-            </div>
-          </div>
-          <div class="hd-profile-section">
-            <div class="hd-section-label">Balance de goles</div>
-            <div class="hd-goals-row"><span class="hd-goals-label">⚽ Goles a favor</span><span class="hd-goals-val" style="color:#60a5fa">${gf}</span></div>
-            <div class="hd-goals-row"><span class="hd-goals-label">🥅 Goles en contra</span><span class="hd-goals-val" style="color:#ef4444">${gc}</span></div>
-            <div class="hd-goals-divider"></div>
-            <div class="hd-goals-row"><span class="hd-goals-label">📈 Diferencia</span><span class="hd-goals-val" style="color:${dif>0?'#22c55e':dif<0?'#ef4444':'#b8cdc2'}">${difSign}${dif}</span></div>
-          </div>
-          <div class="hd-profile-section">
-            <div class="hd-section-label">Referentes vs Rival</div>
-            <div class="hd-ref-grid">
-              ${_histRefCardHtml('emerald', '⚽', 'Máximo Goleador', rivalPlayerStats.goleador, 'goles')}
-              ${_histRefCardHtml('sky', '🎯', 'Máximo Asistidor', rivalPlayerStats.asistidor, 'asist.')}
-              ${_histRefCardHtml('amber', '⚔️', 'Más Presencias', rivalPlayerStats.presencias, 'PJ')}
-            </div>
-          </div>
-        </div>
-      </div>`;
+    const refCard = (lbl, top, unit, c) => `<div class="hdx-ref" style="--rc:${c}"><span class="hdx-ref-l">${lbl}</span>
+      ${top && top.nombres.length ? `<div class="hdx-ref-n">${top.nombres.map(n => `<b onclick="goToPlayer('${String(n).replace(/'/g, "\\'")}')">${esc(n)}</b>`).join('')}</div><span class="hdx-ref-v">${top.val} <small>${unit}</small></span>` : '<div class="hdx-ref-n"><i>Sin registros</i></div>'}</div>`;
+    const splitCard = (lbl, s) => { const t = Math.max(1, s.g + s.e + s.p); return `<div class="hdx-split"><div class="hdx-split-h"><b>${lbl}</b><span>${s.pj} PJ · ${s.gf}:${s.gc}</span></div>
+      <div class="hdx-split-rec"><span class="w">${s.g}</span><span class="d">${s.e}</span><span class="l">${s.p}</span></div>
+      <span class="hvx-bar"><i class="w" style="width:${(s.g / t * 100).toFixed(1)}%"></i><i class="d" style="width:${(s.e / t * 100).toFixed(1)}%"></i><i class="l" style="width:${(s.p / t * 100).toFixed(1)}%"></i></span></div>`; };
+    const mLabel = m => m ? `${esc(m.resultado)} <small>${esc(m.torneo)} ${esc(m.anio)}</small>` : '—';
 
-    // ── Match list grouped by year → torneo, más reciente primero ──────────
-    // `matches` está en orden cronológico ascendente (heredado de la hoja,
-    // ver más arriba). Para este listado se muestra al revés: el grupo más
-    // reciente arriba, y dentro de cada grupo el partido más reciente arriba
-    // también — solo el orden VISUAL se invierte, el cálculo de "último
-    // resultado"/KPIs de más arriba sigue usando el orden cronológico real.
-    function resClass(m) {
-      if (m.gf === null || m.gc === null) return 'hd-res-p';
-      return m.gf > m.gc ? 'hd-res-w' : m.gf === m.gc ? 'hd-res-d' : 'hd-res-l';
-    }
-
-    const grouped = {};
-    const order = [];
-    matches.forEach(m => {
-      const key = `${m.anio} · ${m.torneo}`;
-      if (!grouped[key]) { grouped[key] = []; order.push(key); }
-      grouped[key].push(m);
-    });
-    order.reverse();
-    Object.values(grouped).forEach(g => g.reverse());
-
-    const noData = matches.length === 0
-      ? `<div class="hd-empty-state">
-           <div class="hd-empty-icon">⚽</div>
-           <div class="hd-empty-title">Sin historial de partidos</div>
-           <div class="hd-empty-sub">No se registran enfrentamientos oficiales contra <strong style="color:#e4eee9">${rival}</strong> en la base de datos.</div>
-         </div>`
-      : '';
-
-    const matchGroups = noData || order.map(key => {
-      const grupo = grouped[key];
-      const cards = grupo.map(m => {
-        const localTag = /local/i.test(m.local)
-          ? `<span class="hd-tag hd-tag-local">🏠 Local</span>`
-          : /visit/i.test(m.local)
-            ? `<span class="hd-tag hd-tag-visit">✈ Visitante</span>` : '';
-        const resLabel = m.resultado || '—';
-        const obsHtml = m.obs ? `<div class="hd-match-obs">💬 ${m.obs}</div>` : '';
-        const fechaTag = m.fecha && /^\d+$/.test(String(m.fecha))
-          ? `<span class="hd-tag">Fecha ${m.fecha}</span>`
-          : m.fecha ? `<span class="hd-tag">${m.fecha}</span>` : '';
-        // BUG REAL encontrado (reportado como "aparece 3°°"): la hoja ya trae
-        // posCSB con el símbolo "°" incluido (ej. "3°"), y acá se le sumaba
-        // otro más a mano. Se limpia el que ya viene antes de agregarlo — y
-        // se evita agregarlo directamente cuando es el nombre de una ronda de
-        // copa (Octavos/Cuartos/etc.), que no es una posición numérica.
-        const isRoundName = v => /octavos|cuartos|semifinal|final|ronda/i.test(String(v || ''));
-        const cleanPos = v => String(v || '').replace(/°+$/, '');
-        const csbPosClean = cleanPos(m.posCSB);
-        const rivalPosClean = cleanPos(m.posRival);
-        const posTags = `
-          ${csbPosClean && !isRoundName(csbPosClean) ? `<span class="hd-tag">CSB: ${csbPosClean}°</span>` : ''}
-          ${rivalPosClean && !isRoundName(rivalPosClean) ? `<span class="hd-tag">Rival: ${rivalPosClean}°</span>` : ''}
-        `;
-        // Clickable straight into that date's "Fecha a Fecha" ficha whenever
-        // this match resolved to a loaded lineup source (_nav) — matches
-        // still pending digitization stay as plain, non-clickable cards.
-        const locator = _histLocatorFor(m._nav);
-        const clickable = !!m._nav && locator != null;
-        const rowAttrs = clickable
-          ? `class="hd-match hd-match-link" onclick="histGoToMatchFecha('${m._nav.navKey}', '${String(locator).replace(/'/g, "\\'")}', '${rival.replace(/'/g, "\\'")}', ${isB})" title="Ver en Fecha a Fecha"`
-          : `class="hd-match"`;
-        return `
-          <div ${rowAttrs}>
-            <div class="hd-match-res ${resClass(m)}">${resLabel}</div>
-            <div class="hd-match-info">
-              <div class="hd-match-meta">
-                ${fechaTag}${localTag}
-                ${posTags}
+    const grouped = {}, order = [];
+    matches.forEach(m => { const key = `${m.anio}|${m.torneo}`; if (!grouped[key]) { grouped[key] = []; order.push(key); } grouped[key].push(m); });
+    order.reverse(); Object.values(grouped).forEach(g => g.reverse());
+    const isRoundName = v => /octavos|cuartos|semifinal|final|ronda/i.test(String(v || ''));
+    const cleanPos = v => String(v || '').replace(/°+$/, '');
+    const groupsHtml = !matches.length
+      ? `<div class="v3-card jx-empty">No se registran enfrentamientos oficiales contra <b>${esc(rival)}</b>.</div>`
+      : order.map(key => {
+        const [anio, torneo] = key.split('|');
+        const g = grouped[key];
+        return `<div class="hdx-group"><div class="hdx-group-h"><span class="hdx-group-y">${esc(anio)}</span><b>${esc(torneo)}</b><i></i><small>${g.length} partido${g.length > 1 ? 's' : ''}</small></div>
+          ${g.map(m => {
+            const locator = _histLocatorFor(m._nav);
+            const clickable = !!m._nav && locator != null;
+            const attrs = clickable ? `class="hdx-match is-link" onclick="histGoToMatchFecha('${m._nav.navKey}', '${String(locator).replace(/'/g, "\\'")}', '${rival.replace(/'/g, "\\'")}', ${isB})"` : 'class="hdx-match"';
+            const cp = cleanPos(m.posCSB), rp = cleanPos(m.posRival);
+            const lv = /local/i.test(m.local) ? '<span class="hdx-tag">Local</span>' : /visit/i.test(m.local) ? '<span class="hdx-tag">Visitante</span>' : '';
+            return `<div ${attrs}>
+              <span class="hdx-res r-${rc(m)}">${esc(m.resultado || '—')}</span>
+              <div class="hdx-match-i">
+                <div class="hdx-match-tags">${m.fecha ? `<span class="hdx-tag">${/^\d+$/.test(String(m.fecha)) ? 'Fecha ' + esc(m.fecha) : esc(m.fecha)}</span>` : ''}${lv}
+                  ${cp && !isRoundName(cp) ? `<span class="hdx-tag">CSB ${esc(cp)}°</span>` : ''}${rp && !isRoundName(rp) ? `<span class="hdx-tag">Rival ${esc(rp)}°</span>` : ''}</div>
+                ${m.parciales ? `<div class="hdx-match-sub">Parciales: ${esc(m.parciales)}</div>` : ''}
+                ${m.obs ? `<div class="hdx-match-sub">${esc(m.obs)}</div>` : ''}
               </div>
-              ${m.parciales ? `<div class="hd-match-parcial">Parciales: ${m.parciales}</div>` : ''}
-              ${obsHtml}
-            </div>
-            ${clickable ? `<div class="hd-match-arrow">›</div>` : ''}
-          </div>`;
+              ${clickable ? '<span class="hdx-go">Ver ficha →</span>' : ''}
+            </div>`;
+          }).join('')}</div>`;
       }).join('');
-      return `
-        <div class="hd-torneo-group">
-          <div class="hd-torneo-header">
-            <span class="hd-torneo-badge">${key}</span>
-            <span>${grupo.length} partido${grupo.length>1?'s':''}</span>
-          </div>
-          ${cards}
-        </div>`;
-    }).join('');
 
-    el.innerHTML = `
-      ${_volverBtnHtml()}
-      ${rivalKpis}
-      <div class="hd-layout">
-        ${sidebar}
-        <div class="hd-main">${matchGroups}</div>
-      </div>`;
+    el.innerHTML = `${_volverBtnHtml()}
+    <div class="jx hdx">
+      <section class="jx-head hdx-head">
+        <div class="hdx-id">
+          <span class="hdx-crest"><img src="${rivalCrest}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span>${esc(ini)}</span></span>
+          <div><span class="jx-kicker">${esc(currentData.nombre || '')} vs</span><h2 class="jx-h">${esc(rival)}</h2>
+            <span class="hdx-sub">${matches.length} partido${matches.length !== 1 ? 's' : ''} desde ${isB ? '2021' : '2016'}</span></div>
+        </div>
+        <div class="hdx-sum">
+          <div class="hvx-rec"><div class="w"><b>${pg}</b><span>Ganados</span></div><div class="d"><b>${pe}</b><span>Empatados</span></div><div class="l"><b>${pp}</b><span>Perdidos</span></div></div>
+          <span class="hvx-bar"><i class="w" style="width:${(pg / tt * 100).toFixed(1)}%"></i><i class="d" style="width:${(pe / tt * 100).toFixed(1)}%"></i><i class="l" style="width:${(pp / tt * 100).toFixed(1)}%"></i></span>
+          <div class="jx-kpis"><div><b>${pj}</b><span>Partidos</span></div><div><b>${gf}:${gc}</b><span>Goles</span></div>
+            <div><b class="${dif > 0 ? 'pos' : dif < 0 ? 'neg' : ''}">${difSign}${dif}</b><span>Diferencia</span></div><div><b>${efectividad}%</b><span>Efectividad</span></div></div>
+        </div>
+      </section>
+      <div class="hdx-layout">
+        <div class="hdx-main">
+          ${played.length ? `<div class="v3-card hdx-strip-card"><div class="hdx-card-h">Todos los partidos <small>del primero al último</small></div>
+            <div class="hdx-strip">${played.map(m => `<i class="r-${rc(m)}" title="${esc(m.anio)} ${esc(m.torneo)} · ${esc(m.resultado)}"></i>`).join('')}</div></div>` : ''}
+          ${groupsHtml}
+        </div>
+        <aside class="hdx-aside">
+          ${recent.length ? `<div class="v3-card"><div class="hdx-card-h">Últimos partidos <small>más reciente primero</small></div>
+            <div class="hdx-form">${recent.map(m => `<span class="hdx-res r-${rc(m)}">${esc(m.resultado)}</span>`).join('')}</div></div>` : ''}
+          <div class="v3-card"><div class="hdx-card-h">Local y visitante</div>${splitCard('Local', sL)}${splitCard('Visitante', sV)}</div>
+          <div class="v3-card hdx-marks"><div class="hdx-card-h">Marcas</div>
+            <div><span>Mayor victoria</span><b>${mLabel(bestWin)}</b></div>
+            <div><span>Peor derrota</span><b>${mLabel(worstLoss)}</b></div>
+            <div><span>Racha invicta más larga</span><b>${unbMax} partidos</b></div>
+            <div><span>Victorias seguidas</span><b>${winMax}</b></div>
+          </div>
+          <div class="v3-card"><div class="hdx-card-h">Referentes vs ${esc(rival)}</div>
+            ${refCard('Máximo goleador', rivalPlayerStats.goleador, 'goles', '#ef9f27')}
+            ${refCard('Máximo asistidor', rivalPlayerStats.asistidor, 'asist.', '#97c459')}
+            ${refCard('Más presencias', rivalPlayerStats.presencias, 'PJ', '#85b7eb')}
+          </div>
+        </aside>
+      </div>
+    </div>`;
   });
 }
 
