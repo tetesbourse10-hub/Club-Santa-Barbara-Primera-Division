@@ -4497,7 +4497,7 @@
     <button onclick="_navGoTab('posiciones', this)">En Vivo</button>
     <button onclick="_navGoTab('jugadores', this)">Estadísticas Jugadores</button>
     <button onclick="_navGoTab('historial', this)">Historial vs Clubes</button>
-    <button onclick="_navGoTab('graficos', this)">Torneos Antiguos</button>
+    <button onclick="_navGoTab('graficos', this)">Todos los Torneos</button>
   </nav>
   <div id="refresh-bar">
     <span id="refresh-status"></span>
@@ -9699,7 +9699,7 @@ function _navPushJugadores() {
 // Pushed right before entering a torneo from "Torneos Antiguos" (same panel
 // as "Gráficos" — see main-nav button 4).
 function _navPushTorneosAntiguos() {
-  _navPush('Torneos Antiguos', () => showTab('graficos', document.querySelectorAll('#main-nav button')[4]));
+  _navPush('Todos los torneos', () => showTab('graficos', document.querySelectorAll('#main-nav button')[4]));
 }
 // BUG REAL encontrado (reportado: clickear un torneo desde "Estadísticas
 // Anuales" y después tocar "← Volver" no hacía nada visible): los 4 cards de
@@ -19163,7 +19163,11 @@ function renderGraficos() {
   // Actuales" anymore, so this is what surfaces it in Torneos Antiguos/Gráficos).
   let source;
   if (currentData === DATA_B) {
-    source = DATA_B.graficos.length ? DATA_B.graficos : SEED_GRAFICOS_B;
+    source = _anualesSourceB().map(t => {
+      if (t.anio !== 2026 || t.competencia !== 'Clausura AIFA B') return t;
+      const est = _csbEstadoTorneo(DATA_B.tabla || []);
+      return { ...t, live: true, pos: est && est.estado === 'descendido' ? `${t.pos} · Descenso` : t.pos, descenso: !!(est && est.estado === 'descendido') };
+    });
   } else {
     source = SEED_GRAFICOS;
     const csbRow = (DATA_A_APERTURA2026.tabla || []).find(t => t.csb);
@@ -19175,6 +19179,18 @@ function renderGraficos() {
         competencia: 'Apertura AIFA A', anio: 2026,
         pj: csbRow.pj, pg: csbRow.pg, pe: csbRow.pe, pp: csbRow.pp,
         gf: csbRow.gf, gc: csbRow.gc, vi: null, pts: csbRow.pts, pos: csbRow.pos, forceColor,
+      }];
+    }
+    // Torneo en curso (Clausura AIFA A 2026) — calculado en vivo desde DATA_A.tabla.
+    const liveRow = (DATA_A.tabla || []).find(t => t.csb);
+    if (liveRow && !source.some(t => t.anio === 2026 && t.competencia === 'Clausura AIFA A')) {
+      const est = _csbEstadoTorneo(DATA_A.tabla || []);
+      const campeon = est && est.estado === 'campeon';
+      source = [...source, {
+        competencia: 'Clausura AIFA A', anio: 2026, live: true,
+        pj: liveRow.pj, pg: liveRow.pg, pe: liveRow.pe, pp: liveRow.pp,
+        gf: liveRow.gf, gc: liveRow.gc, vi: null, pts: liveRow.pts,
+        pos: campeon ? 'Campeón' : liveRow.pos,
       }];
     }
   }
@@ -19252,15 +19268,15 @@ function renderGraficos() {
     const firstYear = byYear.length ? byYear[byYear.length - 1].anio : '';
 
     const card = t => {
-      const rich = TORNEO_NAV_MAP[`${t.anio}|${t.competencia}|${isBv ? 'B' : 'A'}`] || TORNEO_NAV_MAP[`${t.anio}|${t.competencia}`];
+      const rich = t.live ? { fn: "showTorneo('apertura')" } : (TORNEO_NAV_MAP[`${t.anio}|${t.competencia}|${isBv ? 'B' : 'A'}`] || TORNEO_NAV_MAP[`${t.anio}|${t.competencia}`]);
       const esCopa = /recopa|copa/i.test(t.competencia);
       const k = kind(t);
       const clickFn = rich
         ? `_navPushTorneosAntiguos(); ${rich.fn}`
-        : `_navPush('Torneos Antiguos', () => renderGraficos()); grafDetalle(${JSON.stringify(t).replace(/"/g, '&quot;')})`;
+        : `_navPush('Todos los torneos', () => renderGraficos()); grafDetalle(${JSON.stringify(t).replace(/"/g, '&quot;')})`;
       const n = Math.max(1, (t.pg || 0) + (t.pe || 0) + (t.pp || 0));
-      return `<div class="tax-card k-${k || 'n'}" onclick="${clickFn}">
-        <div class="tax-card-h"><span class="tax-ic">${cardIcon(t)}</span><span class="tax-card-n"><b>${esc(t.competencia)}</b><small>${esCopa ? 'Copa' : 'Liga'} · ${t.anio}</small></span></div>
+      return `<div class="tax-card k-${k || (t.descenso ? 'down' : 'n')}" onclick="${clickFn}">
+        <div class="tax-card-h"><span class="tax-ic">${cardIcon(t)}</span><span class="tax-card-n"><b>${esc(t.competencia)}</b><small>${esCopa ? 'Copa' : 'Liga'} · ${t.anio}</small></span>${t.live ? '<span class="tax-live">Actual</span>' : ''}</div>
         <div class="tax-pos"><b>${esc(shortPos(t))}</b>${k === 'asc' && !/campe/i.test(t.pos) ? '<span class="tax-asc">⬆ Ascenso</span>' : ''}</div>
         <div class="jxyp-t-rec">
           ${t.pts != null ? `<div><b>${t.pts}</b><span>Pts</span></div>` : `<div><b>${t.pj}</b><span>PJ</span></div>`}
@@ -19268,7 +19284,7 @@ function renderGraficos() {
           <div><b>${t.gf}:${t.gc}</b><span>Goles</span></div>
         </div>
         <div class="jxy-bar"><i class="w" style="width:${(t.pg / n * 100).toFixed(1)}%"></i><i class="d" style="width:${(t.pe / n * 100).toFixed(1)}%"></i><i class="l" style="width:${(t.pp / n * 100).toFixed(1)}%"></i></div>
-        <span class="tax-go">${rich ? 'Estadísticas completas →' : 'Ver resumen →'}</span>
+        <span class="tax-go">${t.live ? 'Ver torneo en vivo →' : rich ? 'Estadísticas completas →' : 'Ver resumen →'}</span>
       </div>`;
     };
 
@@ -19282,7 +19298,7 @@ function renderGraficos() {
 
     container.innerHTML = `<div class="jx tax">
       <section class="jx-head tax-head">
-        <div class="tax-id"><span class="jx-kicker">${teamName} · Desde ${firstYear}</span><h2 class="jx-h">Torneos antiguos</h2>
+        <div class="tax-id"><span class="jx-kicker">${teamName} · Desde ${firstYear}</span><h2 class="jx-h">Todos los torneos</h2>
           <div class="hvx-rec"><div class="w"><b>${T.pg}</b><span>Ganados</span></div><div class="d"><b>${T.pe}</b><span>Empatados</span></div><div class="l"><b>${T.pp}</b><span>Perdidos</span></div></div>
           <span class="hvx-bar"><i class="w" style="width:${(T.pg / tt * 100).toFixed(1)}%"></i><i class="d" style="width:${(T.pe / tt * 100).toFixed(1)}%"></i><i class="l" style="width:${(T.pp / tt * 100).toFixed(1)}%"></i></span>
         </div>
@@ -19300,7 +19316,7 @@ function renderGraficos() {
       <div class="v3-card tax-evol"><div class="hdx-card-h">Evolución histórica <small>posición final en cada torneo de liga · 🏆 campeón · ⬆️ ascenso</small></div>
         <div class="tax-evol-scroll"><div style="position:relative;height:230px" id="hist-evol-canvas-wrap"><canvas id="hist-evol-canvas"></canvas></div></div></div>
       <div class="tax-bar">
-        <div class="jx-tabs"><button class="${view === 'temp' ? 'on' : ''}" onclick="window._grafView('temp')">Por temporada</button><button class="${view === 'tabla' ? 'on' : ''}" onclick="window._grafView('tabla')">Todos los torneos</button></div>
+        <div class="jx-tabs"><button class="${view === 'temp' ? 'on' : ''}" onclick="window._grafView('temp')">Por temporada</button><button class="${view === 'tabla' ? 'on' : ''}" onclick="window._grafView('tabla')">Tabla completa</button></div>
         ${view === 'temp' ? `<div class="jxyp-years tax-years">${byYear.map(y => `<button class="${y.anio === selectedYear ? 'on' : ''}" onclick="window._grafYear(${y.anio})">${y.anio}</button>`).join('')}</div>` : ''}
       </div>
       ${view === 'temp'

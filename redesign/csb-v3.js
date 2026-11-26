@@ -123,7 +123,7 @@
         ${navItem('posiciones', 'En Vivo · Torneo', I.vivo)}
         ${navItem('jugadores', 'Estadísticas jugadores', I.jugadores)}
         ${navItem('historial', 'Historial vs Clubes', I.historial)}
-        ${navItem('graficos', 'Torneos antiguos', I.torneos)}
+        ${navItem('graficos', 'Todos los torneos', I.torneos)}
       </div>
       <div class="v3-sb-foot">
         <button class="v3-notif-btn" data-act="notif"><span class="v3-notif-ico" id="v3-notif-ico">🔕</span><span id="v3-notif-txt">Activar notificaciones</span></button>
@@ -166,7 +166,7 @@
         <div class="v3-more-grab"></div>
         <div class="v3-more-grid">
           <button class="v3-more-item" data-nav="historial">${I.historial}Historial vs Clubes<small>Récord contra cada rival</small></button>
-          <button class="v3-more-item" data-nav="graficos">${I.torneos}Torneos antiguos<small>Campañas desde 2016</small></button>
+          <button class="v3-more-item" data-nav="graficos">${I.torneos}Todos los torneos<small>Actual y anteriores</small></button>
           <button class="v3-more-item" data-nav="nido">${I.nido}El Nido<small>Todos nuestros jugadores</small></button>
           <button class="v3-more-item" data-nav="h2h">${I.h2h}Cara a cara<small>Compará dos jugadores</small></button>
           <button class="v3-more-item" data-act="search">${I.user}Buscar jugador<small>Ir directo a un perfil</small></button>
@@ -445,7 +445,7 @@
       { label: `En Vivo · ${L}`, sub: 'Torneo en curso, tabla y fecha a fecha', icon: I.vivo, run: () => goTab('posiciones', k) },
       { label: `Estadísticas jugadores · ${L}`, sub: 'Totales, anuales, debuts e inferiores', icon: I.jugadores, run: () => goTab('jugadores', k) },
       { label: `Historial vs Clubes · ${L}`, sub: 'Récord contra cada rival', icon: I.historial, run: () => goTab('historial', k) },
-      { label: `Torneos antiguos · ${L}`, sub: 'Campañas anteriores y copas', icon: I.torneos, run: () => goTab('graficos', k) },
+      { label: `Todos los torneos · ${L}`, sub: 'Torneo actual, anteriores y copas', icon: I.torneos, run: () => goTab('graficos', k) },
     );
   });
   let srItems = [], srSel = 0;

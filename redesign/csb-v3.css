@@ -2092,3 +2092,5 @@ em.pos { color: #8fe03a; } em.neg { color: #ff7b7b; } em.neu { color: #ffc83d; }
   .tax-pos b { font-size: 1.8rem; }
   .tax-table td:first-child { position: sticky; left: 0; z-index: 1; background: #0e1d15; }
 }
+.tax-live { margin-left: auto; font-size: 0.6rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--v3-brand-ink); background: var(--v3-brand); border-radius: 999px; padding: 4px 9px; }
+.tax-card.k-down { border-color: rgba(255, 95, 95, 0.45); } .k-down .tax-pos b { color: #ff7b7b; }
