@@ -492,9 +492,16 @@ nav button.active, nav button:hover { border-bottom-color: var(--v3-brand) !impo
 }
 
 /* Perfil de jugador abierto: el overlay tiene su propio encabezado */
-body.v3-profile #v3-topbar { display: none !important; }
+body.v3-profile #v3-topbar, body.v3-profile #v3-bottomnav { display: none !important; }
 @media (max-height: 720px) and (min-width: 1025px) {
   #v3-sidebar { padding-top: 14px; }
   .v3-nav-item { padding: 7px 12px; }
   .v3-squad-switch { margin-top: 8px; }
+}
+
+.v3-search-input-row input::-webkit-search-cancel-button { display: none; }
+@media (max-width: 768px) {
+  .v3-sec-head .v3-sec-sub { display: none; }
+  .v3-hero-stat { min-width: 0; flex: 1 1 0; }
+  .v3-hero-stat-val { font-size: 1.7rem; }
 }
