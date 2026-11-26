@@ -17977,11 +17977,7 @@ function renderJugAnualesMenu() {
       torneos: torneos.map(t => ({ n: t.nombre, pos: t.pos })),
       onclick: `_navPush('Estadísticas Anuales', () => renderJugAnualesMenu());renderJugAnualesYear('${y}')` };
   });
-  document.getElementById('jug-anuales-content').innerHTML = back + `<div class="mrow-desktop-only">${_jxYearCards(cards)}</div>`;
-  const { torneos, total } = _anualesComputeYear(years[0]);
-  document.getElementById('jug-anuales-content').insertAdjacentHTML('beforeend',
-    _anualesMobileHtml(years[0], years, torneos, total));
-  _anualesLoadPlayers(years[0]);
+  document.getElementById('jug-anuales-content').innerHTML = back + _jxYearCards(cards);
 }
 
 // Cálculo puro (sin tocar el DOM) de los torneos/totales de una temporada —
@@ -18430,100 +18426,14 @@ function renderJugAnualesYear(year) {
   const backMenu = _volverBtnHtml('margin-bottom:16px');
   const years = Object.keys(SEED_ANUALES).sort((a, b) => b - a);
 
-  document.getElementById('jug-anuales-content').innerHTML = backMenu + `
-    <div class="mrow-desktop-only">
-    <div style="margin-bottom:16px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
-      <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gris-texto)">Club Santa Bárbara</div>
-      <div style="font-size:1.3rem;font-weight:900;color:#fff">Temporada ${year}</div>
-    </div>
-
-    <!-- BLOQUE 1: Resumen del equipo -->
-    <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gris-texto);margin-bottom:8px">📊 Resumen del equipo (Liga + Copa)</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px;margin-bottom:20px">
-      ${[
-        ['🎮','PJ', total.pj, '#f2f8f5'],
-        ['✅','Victorias', total.g, '#22c55e'],
-        ['➡️','Empates', total.e, '#f59e0b'],
-        ['❌','Derrotas', total.p, '#ef4444'],
-        ['⚽','GF', total.gf, '#60a5fa'],
-        ['🥅','GC', total.gc, '#f2f8f5'],
-        ['📊','Dif.', total.gf - total.gc >= 0 ? '+' + (total.gf - total.gc) : (total.gf - total.gc), total.gf >= total.gc ? '#22c55e' : '#ef4444'],
-      ].map(([icon, label, val, color]) => `
-        <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-left:3px solid ${color};border-radius:9px;padding:9px 10px;display:flex;align-items:center;gap:8px">
-          <div style="font-size:1.1rem">${icon}</div>
-          <div>
-            <div style="font-size:1.1rem;font-weight:900;color:${color};line-height:1">${val}</div>
-            <div style="font-size:0.6rem;color:rgba(255,255,255,0.55);text-transform:uppercase;letter-spacing:.05em;margin-top:2px">${label}</div>
-          </div>
-        </div>`).join('')}
-    </div>
-
-    <!-- BLOQUE 2: Rendimiento por torneo -->
-    <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gris-texto);margin-bottom:8px">🏟️ Rendimiento por torneo</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-bottom:20px">
-      ${!torneos.length ? `<div style="grid-column:1/-1;color:rgba(255,255,255,0.35);font-size:0.78rem;padding:12px 0">Todavía no hay partidos cargados en la temporada ${year}.</div>` : [...torneos].sort((a, b) => _ppTorneoRank(a.nombre) - _ppTorneoRank(b.nombre)).map(t => {
-        const isLeague = t.pts !== null;
-        const posColor = posStyle(t.pos);
-        const posBg = posColor + '1f', posBorder = posColor + '59';
-        const posBadge = `<span style="display:inline-block;padding:3px 10px;border-radius:999px;background:${posBg};border:1px solid ${posBorder};color:${posColor};font-size:0.75rem;font-weight:800">${t.pos}</span>`;
-        const statBadge = (val, label, color) => `<span style="display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:6px;background:rgba(255,255,255,0.06);font-size:0.72rem;font-weight:700;color:${color}">${val}<span style="font-weight:400;color:rgba(255,255,255,0.4);font-size:0.65rem">&thinsp;${label}</span></span>`;
-        // Full competencia name to key into TORNEO_NAV_MAP — SEED_ANUALES only
-        // stores the short "Apertura"/"Clausura"/"Recopa" label, while the map
-        // is keyed by the full name shared with "Gráficos" (e.g. "Apertura AIFA A").
-        const competenciaFull = t.nombre === 'Recopa' ? 'Recopa' : `${t.nombre} AIFA A`;
-        // Clausura/Recopa 2026 (A) siguen activos en Torneos Actuales — no
-        // están en TORNEO_NAV_MAP (que solo cubre torneos ya archivados), así
-        // que su link va directo a showTorneo() en vez de showHistoricoTorneo().
-        const LIVE_2026_NAV_A = { Clausura: "showTorneo('apertura')", Recopa: "showTorneo('recopa')" };
-        const nav = (year === '2026' && LIVE_2026_NAV_A[t.nombre])
-          ? { fn: LIVE_2026_NAV_A[t.nombre] }
-          : (TORNEO_NAV_MAP[`${year}|${competenciaFull}|A`] || TORNEO_NAV_MAP[`${year}|${competenciaFull}`]);
-        const cardAttrs = nav ? `onclick="_navPush('Estadísticas Anuales', () => _navRestoreAnualesYear('${year}', false)); ${nav.fn}" style="cursor:pointer;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px 14px;transition:border-color .15s,background .15s" onmouseover="this.style.background='rgba(255,255,255,0.07)';this.style.borderColor='rgba(245,158,11,0.35)'" onmouseout="this.style.background='rgba(255,255,255,0.04)';this.style.borderColor='rgba(255,255,255,0.07)'"`
-          : `style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px 14px"`;
-        return `<div ${cardAttrs}>
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-            <span style="font-size:0.8rem;font-weight:700;color:#fff">${t.icon} ${t.nombre} ${year}</span>
-            ${posBadge}
-          </div>
-          ${isLeague ? `
-          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:4px">
-            ${statBadge(t.pts + ' pts', '', '#f2f8f5')}
-            ${statBadge(t.g, 'G', '#22c55e')}
-            ${statBadge(t.e, 'E', '#f59e0b')}
-            ${statBadge(t.p, 'P', '#ef4444')}
-            ${statBadge(t.gf + ':' + t.gc, '', '#f2f8f5')}
-          </div>` : `
-          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:4px">
-            ${statBadge(t.pj, 'PJ', '#f2f8f5')}
-            ${statBadge(t.gf + ':' + t.gc, '', '#f2f8f5')}
-          </div>`}
-          ${t.maxGol ? `<div style="font-size:0.68rem;color:rgba(255,255,255,0.4);margin-top:6px">⚽ ${t.maxGol}</div>` : ''}
-        </div>`;
-      }).join('')}
-    </div>
-
-    <!-- Botón "Ver Tabla Anual" — solo aparece si el año tiene datos
-         completos de ambos torneos (ver _anualesTablaAnualBtnHtml). -->
-    ${_anualesTablaAnualBtnHtml(String(year), false)}
-
-    <!-- BLOQUE 3: Rankings (cargados desde el sheet) -->
-    <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gris-texto);margin-bottom:8px">🏅 Rankings de la temporada</div>
-    <div id="jug-anual-rankings" style="margin-bottom:20px">
-      <div style="color:var(--gris-texto);font-size:0.82rem">Cargando estadísticas de jugadores...</div>
-    </div>
-
-    <!-- BLOQUE 4: Base de datos de jugadores -->
-    <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gris-texto);margin-bottom:8px">👥 Todos los jugadores</div>
-    <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap">
-      <input id="jug-anual-search" type="search" placeholder="🔍 Buscar jugador..." oninput="_anualesFilter(this.value)"
-        style="flex:1;min-width:150px;padding:7px 11px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:#fff;font-size:0.85rem;outline:none">
-      <span id="jug-anual-count" style="color:var(--gris-texto);font-size:0.78rem;white-space:nowrap"></span>
-    </div>
-    <div id="jug-anual-table" style="overflow:auto;max-height:640px;">
-      <div style="color:var(--gris-texto);font-size:0.82rem;padding:8px 0">Cargando tabla...</div>
-    </div>
-    </div>
-    ${_anualesMobileHtml(year, years, torneos, total)}`;
+  const LIVE_2026_NAV_A = { Clausura: "showTorneo('apertura')", Recopa: "showTorneo('recopa')" };
+  const tN = [...torneos].sort((a, b) => _ppTorneoRank(a.nombre) - _ppTorneoRank(b.nombre)).map(t => {
+    const competenciaFull = t.nombre === 'Recopa' ? 'Recopa' : `${t.nombre} AIFA A`;
+    const nav = (year === '2026' && LIVE_2026_NAV_A[t.nombre]) ? { fn: LIVE_2026_NAV_A[t.nombre] }
+      : (TORNEO_NAV_MAP[`${year}|${competenciaFull}|A`] || TORNEO_NAV_MAP[`${year}|${competenciaFull}`]);
+    return { nombre: t.nombre, icon: t.icon, pos: t.pos, pts: t.pts, g: t.g, e: t.e, p: t.p, gf: t.gf, gc: t.gc, pj: t.pj, maxGol: t.maxGol, nav: nav ? nav.fn : null };
+  });
+  document.getElementById('jug-anuales-content').innerHTML = backMenu + _jxyYearView({ isB: false, year, years, torneos: tN, total, hasPlayers: true });
 
   _anualesCombinadaOpen = { year: String(year), isB: false };
   _anualesEnsureCombinada(String(year), false);
@@ -18614,17 +18524,7 @@ function renderJugAnualesMenuB() {
     return { year: y, live: String(y) === '2026', ...t, torneos: ts.map(x => ({ n: x.competencia, pos: x.pos })),
       onclick: `_navPush('Estadísticas Anuales', () => renderJugAnualesMenuB());renderJugAnualesYearB('${y}')` };
   });
-  document.getElementById('jug-anuales-content').innerHTML = back + `<div class="mrow-desktop-only">${_jxYearCards(cards)}</div>`;
-  const yr0 = years[0];
-  const torneosYear = _anualesSourceB().filter(t => t.anio === yr0);
-  const total = torneosYear.reduce((acc, t) => {
-    acc.pj += t.pj || 0; acc.g += t.pg || 0; acc.e += t.pe || 0; acc.p += t.pp || 0;
-    acc.gf += t.gf || 0; acc.gc += t.gc || 0;
-    return acc;
-  }, { pj: 0, g: 0, e: 0, p: 0, gf: 0, gc: 0 });
-  document.getElementById('jug-anuales-content').insertAdjacentHTML('beforeend',
-    _anualesMobileHtmlB(String(yr0), years.map(String), torneosYear, total));
-  _anualesLoadPlayersB(yr0);
+  document.getElementById('jug-anuales-content').innerHTML = back + _jxYearCards(cards);
 }
 
 // Bloque mobile de una temporada de Primera B — mismos builders compartidos
@@ -18696,89 +18596,12 @@ function renderJugAnualesYearB(year) {
 
   const posStyle = _posSemaforoColor;
 
-  document.getElementById('jug-anuales-content').innerHTML = backMenu + `
-    <div class="mrow-desktop-only">
-    <div style="margin-bottom:16px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
-      <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gris-texto)">Club Santa Bárbara — Primera B</div>
-      <div style="font-size:1.3rem;font-weight:900;color:#fff">Temporada ${year}</div>
-    </div>
-
-    <!-- BLOQUE 1: Resumen del equipo -->
-    <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gris-texto);margin-bottom:8px">📊 Resumen del equipo (Liga + Copa)</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px;margin-bottom:20px">
-      ${[
-        ['🎮','PJ', total.pj, '#f2f8f5'],
-        ['✅','Victorias', total.g, '#22c55e'],
-        ['➡️','Empates', total.e, '#f59e0b'],
-        ['❌','Derrotas', total.p, '#ef4444'],
-        ['⚽','GF', total.gf, '#60a5fa'],
-        ['🥅','GC', total.gc, '#f2f8f5'],
-        ['📊','Dif.', dif >= 0 ? '+' + dif : dif, dif >= 0 ? '#22c55e' : '#ef4444'],
-        ['🎯','Efectividad', pctPts + '%', pctPts >= 50 ? '#22c55e' : pctPts >= 35 ? '#f59e0b' : '#ef4444'],
-      ].map(([icon, label, val, color]) => `
-        <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-left:3px solid ${color};border-radius:9px;padding:9px 10px;display:flex;align-items:center;gap:8px">
-          <div style="font-size:1.1rem">${icon}</div>
-          <div>
-            <div style="font-size:1.1rem;font-weight:900;color:${color};line-height:1">${val}</div>
-            <div style="font-size:0.6rem;color:rgba(255,255,255,0.55);text-transform:uppercase;letter-spacing:.05em;margin-top:2px">${label}</div>
-          </div>
-        </div>`).join('')}
-    </div>
-
-    <!-- BLOQUE 2: Rendimiento por torneo -->
-    <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gris-texto);margin-bottom:8px">🏟️ Rendimiento por torneo</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-bottom:20px">
-      ${torneosYear.map(t => {
-        const isLeague = t.pts != null;
-        const posColor = posStyle(t.pos);
-        const posBg = posColor + '1f', posBorder = posColor + '59';
-        const posBadge = `<span style="display:inline-block;padding:3px 10px;border-radius:999px;background:${posBg};border:1px solid ${posBorder};color:${posColor};font-size:0.75rem;font-weight:800">${t.pos || '—'}</span>`;
-        const statBadge = (val, label, color) => `<span style="display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:6px;background:rgba(255,255,255,0.06);font-size:0.72rem;font-weight:700;color:${color}">${val}<span style="font-weight:400;color:rgba(255,255,255,0.4);font-size:0.65rem">&thinsp;${label}</span></span>`;
-        // t.competencia here is already the full name (e.g. "Clausura AIFA C",
-        // "Recopa") — same convention TORNEO_NAV_MAP is keyed by.
-        const nav = TORNEO_NAV_MAP[`${year}|${t.competencia}|B`] || TORNEO_NAV_MAP[`${year}|${t.competencia}`];
-        const cardAttrs = nav ? `onclick="_navPush('Estadísticas Anuales', () => _navRestoreAnualesYear('${year}', true)); ${nav.fn}" style="cursor:pointer;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px 14px;transition:border-color .15s,background .15s" onmouseover="this.style.background='rgba(255,255,255,0.07)';this.style.borderColor='rgba(245,158,11,0.35)'" onmouseout="this.style.background='rgba(255,255,255,0.04)';this.style.borderColor='rgba(255,255,255,0.07)'"`
-          : `style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px 14px"`;
-        return `<div ${cardAttrs}>
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-            <span style="font-size:0.8rem;font-weight:700;color:#fff">${t.competencia} ${year}</span>
-            ${posBadge}
-          </div>
-          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:4px">
-            ${isLeague ? statBadge(t.pts + ' pts', '', '#f2f8f5') : ''}
-            ${statBadge(t.pg, 'G', '#22c55e')}
-            ${statBadge(t.pe, 'E', '#f59e0b')}
-            ${statBadge(t.pp, 'P', '#ef4444')}
-            ${statBadge(t.gf + ':' + t.gc, '', '#f2f8f5')}
-          </div>
-        </div>`;
-      }).join('')}
-    </div>
-
-    <!-- Botón "Ver Tabla Anual" — solo aparece si el año tiene datos
-         completos de ambos torneos (ver _anualesTablaAnualBtnHtml). -->
-    ${_anualesTablaAnualBtnHtml(String(year), true)}
-
-    ${(SEED_ANUALES_PLAYERS_B[year] || ANUALES_LIVE_GID_B[year]) ? `
-    <!-- BLOQUE 3: Rankings de la temporada -->
-    <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gris-texto);margin-bottom:8px">🏅 Rankings de la temporada</div>
-    <div id="jug-anual-rankings-b" style="margin-bottom:20px">
-      <div style="color:var(--gris-texto);font-size:0.82rem">Cargando estadísticas de jugadores...</div>
-    </div>
-
-    <!-- BLOQUE 4: Base de datos de jugadores -->
-    <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gris-texto);margin-bottom:8px">👥 Todos los jugadores</div>
-    <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap">
-      <input id="jug-anual-search-b" type="search" placeholder="🔍 Buscar jugador..." oninput="_anualesFilterB(this.value)"
-        style="flex:1;min-width:150px;padding:7px 11px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:#fff;font-size:0.85rem;outline:none">
-      <span id="jug-anual-count-b" style="color:var(--gris-texto);font-size:0.78rem;white-space:nowrap"></span>
-    </div>
-    <div id="jug-anual-table-b" style="overflow:auto;max-height:640px;">
-      <div style="color:var(--gris-texto);font-size:0.82rem;padding:8px 0">Cargando tabla...</div>
-    </div>`
-    : `<div style="font-size:0.72rem;color:rgba(255,255,255,0.35)">Rankings de jugadores por temporada no disponibles todavía para ${year} en Primera B.</div>`}
-    </div>
-    ${_anualesMobileHtmlB(String(year), years.map(String), torneosYear, total)}`;
+  const tN = torneosYear.map(t => {
+    const nav = TORNEO_NAV_MAP[`${year}|${t.competencia}|B`] || TORNEO_NAV_MAP[`${year}|${t.competencia}`];
+    return { nombre: t.competencia, icon: t.pts != null ? '🏆' : '🏅', pos: t.pos, pts: t.pts, g: t.pg || 0, e: t.pe || 0, p: t.pp || 0, gf: t.gf || 0, gc: t.gc || 0, pj: t.pj || 0, nav: nav ? nav.fn : null };
+  });
+  const hasPlayersB = !!(SEED_ANUALES_PLAYERS_B[year] || ANUALES_LIVE_GID_B[year]);
+  document.getElementById('jug-anuales-content').innerHTML = backMenu + _jxyYearView({ isB: true, year, years, torneos: tN, total, hasPlayers: hasPlayersB });
 
   _anualesCombinadaOpen = { year: String(year), isB: true };
   _anualesEnsureCombinada(String(year), true);
@@ -18818,36 +18641,7 @@ function _anualesBuildRankingsB(year) {
   if (!el) return;
   if (!players.length) { el.innerHTML = '<div style="color:var(--gris-texto);font-size:0.82rem">Sin datos de jugadores.</div>'; return; }
 
-  const top = (arr, key, n=5) => [...arr].sort((a,b) => b[key]-a[key]).slice(0,n).filter(p => p[key] > 0);
-  const PODIUM_BG     = ['rgba(251,191,36,0.09)','rgba(153,179,166,0.07)','rgba(180,120,60,0.08)'];
-  const PODIUM_BORDER = ['rgba(251,191,36,0.30)','rgba(153,179,166,0.25)','rgba(180,120,60,0.25)'];
-  const PODIUM_COLOR  = ['#fbbf24','#f2f8f5','#b47c3c'];
-  const PODIUM_ICON   = ['🥇','🥈','🥉'];
-  const rankBlock = (title, icon, items, key, suffix='') => {
-    if (!items.length) return '';
-    return `<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px 14px">
-      <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.08em;color:var(--gris-texto);margin-bottom:8px">${icon} ${title}</div>
-      ${items.map((p, i) => {
-        const isPodium = i < 3;
-        const rowBg     = isPodium ? PODIUM_BG[i]     : 'transparent';
-        const rowBorder = isPodium ? `1px solid ${PODIUM_BORDER[i]}` : '1px solid transparent';
-        const numColor  = isPodium ? PODIUM_COLOR[i]  : '#f2f8f5';
-        const nameColor = isPodium && i === 0 ? '#fff' : '#e4eee9';
-        const prefix    = isPodium ? PODIUM_ICON[i]   : `<span style="color:rgba(255,255,255,0.3);font-size:0.72rem;min-width:16px;display:inline-block;text-align:center">${i+1}.</span>`;
-        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-radius:7px;margin-bottom:3px;background:${rowBg};border:${rowBorder}">
-          <span style="font-size:0.8rem;color:${nameColor};font-weight:${i===0?'700':'400'}">${prefix} ${pl(p.nombre)}</span>
-          <span style="font-size:0.9rem;font-weight:900;color:${numColor};margin-left:8px">${p[key]}${suffix}</span>
-        </div>`;
-      }).join('')}
-    </div>`;
-  };
-
-  el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px">
-    ${rankBlock('Goleadores',   '⚽', top(players,'goles'), 'goles')}
-    ${rankBlock('Asistidores',  '🎯', top(players,'asist'), 'asist')}
-    ${rankBlock('G+A',          '🔥', top(players,'gmas'),  'gmas')}
-    ${rankBlock('Más partidos', '🎮', top(players,'pj'),    'pj', ' PJ')}
-  </div>`;
+  el.innerHTML = _jxyRankingsHtml(players);
 }
 
 function _anualesBuildTableB(year) {
@@ -18856,61 +18650,10 @@ function _anualesBuildTableB(year) {
   if (!el) return;
   const players = _anualesPlayersB[year] || SEED_ANUALES_PLAYERS_B[year] || [];
 
-  const COLS = [
-    { label:'Jugador',  key:'nombre',  color:'#fff',     isText: true },
-    { label:'PJ',       key:'pj',      color:'#f2f8f5' },
-    { label:'⚽ Goles', key:'goles',   color:'#22c55e' },
-    { label:'🎯 Asist', key:'asist',   color:'#3b82f6' },
-    { label:'🔥 G+A',  key:'gmas',    color:'#a855f7' },
-    { label:'Prom G+A', key:'promGmas',color:'#a855f7', isDecimal: true },
-  ];
-
-  let rows = [...players];
-  if (_anualesQueryB) rows = rows.filter(p => p.nombre.toLowerCase().includes(_anualesQueryB));
-
-  const { key: sk, isText } = COLS[_anualesSortColB] || COLS[1];
-  rows.sort((a,b) => {
-    const cmp = isText ? (a[sk]||'').localeCompare(b[sk]||'','es') : (b[sk]||0) - (a[sk]||0);
-    return _anualesSortAscB ? -cmp : cmp;
-  });
-
-  if (countEl) countEl.textContent = `${rows.length} jugador${rows.length !== 1 ? 'es' : ''}`;
-
-  const ths = COLS.map((c, i) => {
-    const active = _anualesSortColB === i;
-    return `<th onclick="_anualesSortB(${i})" style="cursor:pointer;user-select:none;padding:9px 10px;font-size:0.65rem;color:${active ? c.color : 'var(--gris-texto)'};text-align:${i===0?'left':'center'};white-space:nowrap;border-bottom:1px solid rgba(255,255,255,0.08);position:sticky;top:0;z-index:20;background:var(--azul-card);">
-      ${c.label}${active ? `<span style="margin-left:2px;font-size:.7em">${_anualesSortAscB?'▲':'▼'}</span>` : ''}
-    </th>`;
-  }).join('');
-
-  const trs = rows.map((p, i) => {
-    const bg = i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)';
-    const initials = p.nombre.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
-    const pos = p.pos || '';
-    const pc = POS_COLOR[pos] || '#f2f8f5';
-    const pb = POS_BG[pos]   || 'rgba(255,255,255,0.08)';
-    return `<tr style="background:${bg};transition:background .12s" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='${bg}'">
-      <td style="padding:8px 10px;white-space:nowrap">
-        <div style="display:flex;align-items:center;gap:8px">
-          <div style="width:30px;height:30px;border-radius:50%;background:${pb};border:1.5px solid ${pc}44;display:flex;align-items:center;justify-content:center;font-size:0.6rem;font-weight:900;color:${pc};flex-shrink:0">${initials}</div>
-          <div>
-            <div style="font-weight:700;color:#fff;font-size:0.85rem;line-height:1.1;cursor:pointer" onclick="goToPlayer('${p.nombre.replace(/'/g,"\\'")}')">${p.nombre}</div>
-            <span style="font-size:0.6rem;font-weight:800;color:${pc};background:${pb};padding:2px 7px;border-radius:999px;border:1px solid ${pc}33">${pos}</span>
-          </div>
-        </div>
-      </td>
-      <td style="text-align:center;padding:8px 10px"><span style="color:#f2f8f5;font-weight:700">${p.pj || 0}</span></td>
-      <td style="text-align:center;padding:8px 10px"><span style="color:${p.goles>0?'#22c55e':'rgba(255,255,255,0.4)'};font-weight:${p.goles>0?'800':'400'}">${p.goles || 0}</span></td>
-      <td style="text-align:center;padding:8px 10px"><span style="color:${p.asist>0?'#60a5fa':'rgba(255,255,255,0.4)'};font-weight:${p.asist>0?'800':'400'}">${p.asist || 0}</span></td>
-      <td style="text-align:center;padding:8px 10px"><span style="color:${p.gmas>0?'#a855f7':'rgba(255,255,255,0.4)'};font-weight:${p.gmas>0?'800':'400'}">${p.gmas  || 0}</span></td>
-      <td style="text-align:center;padding:8px 10px"><span style="color:${p.promGmas>0?'#a855f7':'rgba(255,255,255,0.4)'}">${(p.promGmas || 0).toFixed(2).replace('.',',')}</span></td>
-    </tr>`;
-  }).join('');
-
-  el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:0.85rem">
-    <thead><tr>${ths}</tr></thead>
-    <tbody>${trs || `<tr><td colspan="${COLS.length}" style="text-align:center;color:var(--gris-texto);padding:24px">Sin resultados</td></tr>`}</tbody>
-  </table>`;
+  const q = _anualesQueryB;
+  const n = q ? players.filter(p => p.nombre.toLowerCase().includes(q)).length : players.length;
+  if (countEl) countEl.textContent = `${n} jugador${n !== 1 ? 'es' : ''}`;
+  el.innerHTML = _jxyTableHtml(players, _anualesSortColB, _anualesSortAscB, q, '_anualesSortB');
 }
 
 // 2026 vive en una pestaña identificada por gid (no por nombre de tab que
@@ -18981,36 +18724,7 @@ function _anualesBuildRankings(year) {
   const players = _anualesPlayers[year] || [];
   if (!players.length) { el.innerHTML = '<div style="color:var(--gris-texto);font-size:0.82rem">Sin datos de jugadores.</div>'; return; }
 
-  const top = (arr, key, n=5) => [...arr].sort((a,b) => b[key]-a[key]).slice(0,n).filter(p => p[key] > 0);
-  const PODIUM_BG     = ['rgba(251,191,36,0.09)','rgba(153,179,166,0.07)','rgba(180,120,60,0.08)'];
-  const PODIUM_BORDER = ['rgba(251,191,36,0.30)','rgba(153,179,166,0.25)','rgba(180,120,60,0.25)'];
-  const PODIUM_COLOR  = ['#fbbf24','#f2f8f5','#b47c3c'];
-  const PODIUM_ICON   = ['🥇','🥈','🥉'];
-  const rankBlock = (title, icon, items, key, suffix='') => {
-    if (!items.length) return '';
-    return `<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px 14px">
-      <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.08em;color:var(--gris-texto);margin-bottom:8px">${icon} ${title}</div>
-      ${items.map((p, i) => {
-        const isPodium = i < 3;
-        const rowBg     = isPodium ? PODIUM_BG[i]     : 'transparent';
-        const rowBorder = isPodium ? `1px solid ${PODIUM_BORDER[i]}` : '1px solid transparent';
-        const numColor  = isPodium ? PODIUM_COLOR[i]  : '#f2f8f5';
-        const nameColor = isPodium && i === 0 ? '#fff' : '#e4eee9';
-        const prefix    = isPodium ? PODIUM_ICON[i]   : `<span style="color:rgba(255,255,255,0.3);font-size:0.72rem;min-width:16px;display:inline-block;text-align:center">${i+1}.</span>`;
-        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-radius:7px;margin-bottom:3px;background:${rowBg};border:${rowBorder}">
-          <span style="font-size:0.8rem;color:${nameColor};font-weight:${i===0?'700':'400'}">${prefix} ${pl(p.nombre)}</span>
-          <span style="font-size:0.9rem;font-weight:900;color:${numColor};margin-left:8px">${p[key]}${suffix}</span>
-        </div>`;
-      }).join('')}
-    </div>`;
-  };
-
-  el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px">
-    ${rankBlock('Goleadores',   '⚽', top(players,'goles'), 'goles')}
-    ${rankBlock('Asistidores',  '🎯', top(players,'asist'), 'asist')}
-    ${rankBlock('G+A',          '🔥', top(players,'gmas'),  'gmas')}
-    ${rankBlock('Más partidos', '🎮', top(players,'pj'),    'pj', ' PJ')}
-  </div>`;
+  el.innerHTML = _jxyRankingsHtml(players);
 }
 
 function _anualesBuildTable(year) {
@@ -19019,61 +18733,10 @@ function _anualesBuildTable(year) {
   if (!el) return;
   const players = _anualesPlayers[year] || [];
 
-  const COLS = [
-    { label:'Jugador',  key:'nombre',  color:'#fff',     isText: true },
-    { label:'PJ',       key:'pj',      color:'#f2f8f5' },
-    { label:'⚽ Goles', key:'goles',   color:'#22c55e' },
-    { label:'🎯 Asist', key:'asist',   color:'#3b82f6' },
-    { label:'🔥 G+A',  key:'gmas',    color:'#a855f7' },
-    { label:'Prom G+A', key:'promGmas',color:'#a855f7', isDecimal: true },
-  ];
-
-  let rows = [...players];
-  if (_anualesQuery) rows = rows.filter(p => p.nombre.toLowerCase().includes(_anualesQuery));
-
-  const { key: sk, isText } = COLS[_anualesSortCol] || COLS[1];
-  rows.sort((a,b) => {
-    const cmp = isText ? (a[sk]||'').localeCompare(b[sk]||'','es') : (b[sk]||0) - (a[sk]||0);
-    return _anualesSortAsc ? -cmp : cmp;
-  });
-
-  if (countEl) countEl.textContent = `${rows.length} jugador${rows.length !== 1 ? 'es' : ''}`;
-
-  const ths = COLS.map((c, i) => {
-    const active = _anualesSortCol === i;
-    return `<th onclick="_anualesSort(${i})" style="cursor:pointer;user-select:none;padding:9px 10px;font-size:0.65rem;color:${active ? c.color : 'var(--gris-texto)'};text-align:${i===0?'left':'center'};white-space:nowrap;border-bottom:1px solid rgba(255,255,255,0.08);position:sticky;top:0;z-index:20;background:var(--azul-card);">
-      ${c.label}${active ? `<span style="margin-left:2px;font-size:.7em">${_anualesSortAsc?'▲':'▼'}</span>` : ''}
-    </th>`;
-  }).join('');
-
-  const trs = rows.map((p, i) => {
-    const bg = i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)';
-    const initials = p.nombre.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
-    const pos = p.pos || '';
-    const pc = POS_COLOR[pos] || '#f2f8f5';
-    const pb = POS_BG[pos]   || 'rgba(255,255,255,0.08)';
-    return `<tr style="background:${bg};transition:background .12s" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='${bg}'">
-      <td style="padding:8px 10px;white-space:nowrap">
-        <div style="display:flex;align-items:center;gap:8px">
-          <div style="width:30px;height:30px;border-radius:50%;background:${pb};border:1.5px solid ${pc}44;display:flex;align-items:center;justify-content:center;font-size:0.6rem;font-weight:900;color:${pc};flex-shrink:0">${initials}</div>
-          <div>
-            <div style="font-weight:700;color:#fff;font-size:0.85rem;line-height:1.1;cursor:pointer" onclick="goToPlayer('${p.nombre.replace(/'/g,"\\'")}')">${p.nombre}</div>
-            <span style="font-size:0.6rem;font-weight:800;color:${pc};background:${pb};padding:2px 7px;border-radius:999px;border:1px solid ${pc}33">${pos}</span>
-          </div>
-        </div>
-      </td>
-      <td style="text-align:center;padding:8px 10px"><span style="color:#f2f8f5;font-weight:700">${p.pj || 0}</span></td>
-      <td style="text-align:center;padding:8px 10px"><span style="color:${p.goles>0?'#22c55e':'rgba(255,255,255,0.4)'};font-weight:${p.goles>0?'800':'400'}">${p.goles || 0}</span></td>
-      <td style="text-align:center;padding:8px 10px"><span style="color:${p.asist>0?'#60a5fa':'rgba(255,255,255,0.4)'};font-weight:${p.asist>0?'800':'400'}">${p.asist || 0}</span></td>
-      <td style="text-align:center;padding:8px 10px"><span style="color:${p.gmas>0?'#a855f7':'rgba(255,255,255,0.4)'};font-weight:${p.gmas>0?'800':'400'}">${p.gmas  || 0}</span></td>
-      <td style="text-align:center;padding:8px 10px"><span style="color:${p.promGmas>0?'#a855f7':'rgba(255,255,255,0.4)'}">${(p.promGmas || 0).toFixed(2).replace('.',',')}</span></td>
-    </tr>`;
-  }).join('');
-
-  el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:0.85rem">
-    <thead><tr>${ths}</tr></thead>
-    <tbody>${trs || `<tr><td colspan="${COLS.length}" style="text-align:center;color:var(--gris-texto);padding:24px">Sin resultados</td></tr>`}</tbody>
-  </table>`;
+  const q = _anualesQuery;
+  const n = q ? players.filter(p => p.nombre.toLowerCase().includes(q)).length : players.length;
+  if (countEl) countEl.textContent = `${n} jugador${n !== 1 ? 'es' : ''}`;
+  el.innerHTML = _jxyTableHtml(players, _anualesSortCol, _anualesSortAsc, q, '_anualesSort');
 }
 
 let _debutsAReady = false; // true una vez que el fetch en vivo resolvió (éxito o error)
@@ -23687,6 +23350,137 @@ function renderInferiores() {
     </article>`).join('')}</div>
   </div>`;
   if (!_inferiorosALoaded) _loadInferioresA().then(() => { if (INFERIORES_LIVE) renderInferiores(); });
+}
+
+// ── ANUALES v3: detalle de temporada (A y B comparten markup) ──
+function _jxyYearView(o) {
+  // o = { isB, year, years, torneos:[{nombre,icon,pos,pts,g,e,p,gf,gc,pj,maxGol,nav}], total, hasPlayers }
+  const { isB, year, years, torneos, total } = o;
+  const pj = total.pj || 0, dif = total.gf - total.gc;
+  const tot = Math.max(1, total.g + total.e + total.p);
+  const efec = pj ? Math.round((total.g * 3 + total.e) / (pj * 3) * 100) : 0;
+  const goFn = isB ? 'renderJugAnualesYearB' : 'renderJugAnualesYear';
+  const sfx = isB ? '-b' : '';
+  const pct = v => (v / tot * 100).toFixed(1);
+  const tablaBtn = _anualesTablaAnualReady(String(year), isB) ? (() => {
+    const src = _anualesCombinadaSrc(String(year), isB);
+    return `<button class="jxyp-tabla" onclick="_anualesShowTablaAnualOnly('${year}', ${isB})"><span>📅</span><span><b>Tabla anual ${year}</b><small>${src && src.mixedDivision ? 'Dos categorías' : 'Apertura + Clausura'}</small></span><em>→</em></button>`;
+  })() : '';
+  const torneoCard = t => {
+    const pc = _posSemaforoColor(t.pos);
+    const tt = Math.max(1, t.g + t.e + t.p);
+    const attrs = t.nav ? `class="jxyp-t is-link" onclick="_navPush('Estadísticas Anuales', () => _navRestoreAnualesYear('${year}', ${isB})); ${t.nav}"` : 'class="jxyp-t"';
+    return `<div ${attrs}>
+      <div class="jxyp-t-h"><span class="jxyp-t-ic">${t.icon || '🏟️'}</span><span class="jxyp-t-n"><b>${_jxEsc(t.nombre)}</b><small>${year}</small></span>
+        <span class="jxyp-t-pos" style="--pc:${pc}"><b>${_jxEsc(t.pos || '—')}</b><small>puesto</small></span></div>
+      <div class="jxyp-t-rec">
+        ${t.pts != null ? `<div><b>${t.pts}</b><span>Pts</span></div>` : `<div><b>${t.pj || 0}</b><span>PJ</span></div>`}
+        <div class="w"><b>${t.g}</b><span>G</span></div><div class="d"><b>${t.e}</b><span>E</span></div><div class="l"><b>${t.p}</b><span>P</span></div>
+        <div><b>${t.gf}:${t.gc}</b><span>Goles</span></div>
+      </div>
+      <div class="jxy-bar"><i class="w" style="width:${(t.g / tt * 100).toFixed(1)}%"></i><i class="d" style="width:${(t.e / tt * 100).toFixed(1)}%"></i><i class="l" style="width:${(t.p / tt * 100).toFixed(1)}%"></i></div>
+      ${t.maxGol ? `<div class="jxyp-t-gol">⚽ ${_jxEsc(t.maxGol)}</div>` : ''}
+      ${t.nav ? '<span class="jxyp-t-go">Ver torneo →</span>' : ''}
+    </div>`;
+  };
+  return `<div class="jx jxyp">
+    <section class="jx-head jxyp-head">
+      <div class="jxyp-id">
+        <span class="jx-kicker">${_jxEsc(isB ? 'Primera B' : 'Primera A')} · Temporada</span>
+        <h2 class="jxyp-year">${year}</h2>
+        <div class="jxyp-years">${years.map(y => `<button class="${String(y) === String(year) ? 'on' : ''}" onclick="${goFn}('${y}')">${y}</button>`).join('')}</div>
+      </div>
+      <div class="jxyp-sum">
+        <div class="jxyp-rec">
+          <div class="w"><b>${total.g}</b><span>Ganados</span></div>
+          <div class="d"><b>${total.e}</b><span>Empatados</span></div>
+          <div class="l"><b>${total.p}</b><span>Perdidos</span></div>
+        </div>
+        <div class="jxy-bar jxyp-bar"><i class="w" style="width:${pct(total.g)}%"></i><i class="d" style="width:${pct(total.e)}%"></i><i class="l" style="width:${pct(total.p)}%"></i></div>
+        <div class="jx-kpis jxyp-kpis">
+          <div><b>${pj}</b><span>Partidos</span></div>
+          <div><b>${total.gf}</b><span>Goles a favor</span></div>
+          <div><b>${total.gc}</b><span>Goles en contra</span></div>
+          <div><b class="${dif >= 0 ? 'pos' : 'neg'}">${dif >= 0 ? '+' : ''}${dif}</b><span>Diferencia</span></div>
+          <div><b>${efec}%</b><span>Efectividad</span></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="jxyp-sec"><h3>Torneos de la temporada</h3><small>Liga + copa</small></div>
+    ${torneos.length ? `<div class="jxyp-tgrid">${torneos.map(torneoCard).join('')}</div>` : `<div class="v3-card jx-empty">Todavía no hay partidos cargados en la temporada ${year}.</div>`}
+    ${tablaBtn}
+
+    ${o.hasPlayers ? `
+    <div class="jxyp-sec"><h3>Rankings de la temporada</h3><small>Top 5 de cada rubro</small></div>
+    <div id="jug-anual-rankings${sfx}"><div class="jx-loading"><span class="spinner"></span>Cargando jugadores…</div></div>
+
+    <div class="jxyp-sec"><h3>Plantel de la temporada</h3><small id="jug-anual-count${sfx}"></small></div>
+    <div class="jx-controls">
+      <label class="jx-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="jug-anual-search${sfx}" type="search" placeholder="Buscar jugador…" oninput="${isB ? '_anualesFilterB' : '_anualesFilter'}(this.value)"></label>
+    </div>
+    <div id="jug-anual-table${sfx}" class="jx-table-wrap"><div class="jx-loading">Cargando tabla…</div></div>`
+    : `<div class="v3-card jx-empty">Rankings de jugadores por temporada no disponibles todavía para ${year}.</div>`}
+  </div>`;
+}
+
+const _JXY_RANKS = [
+  ['goles', 'Goleadores', '#ef9f27', ''],
+  ['asist', 'Asistidores', '#97c459', ''],
+  ['gmas', 'Goles + asistencias', '#af9ec6', ''],
+  ['pj', 'Más partidos', '#85b7eb', ' PJ'],
+];
+function _jxyRankingsHtml(players) {
+  if (!players.length) return '<div class="v3-card jx-empty">Sin datos de jugadores.</div>';
+  return `<div class="jxyp-ranks">${_JXY_RANKS.map(([k, title, c, sfx]) => {
+    const top = [...players].filter(p => (p[k] || 0) > 0).sort((a, b) => (b[k] || 0) - (a[k] || 0)).slice(0, 5);
+    if (!top.length) return '';
+    const [lead, ...rest] = top;
+    const max = Math.max(1, lead[k]);
+    return `<div class="jxyp-rank" style="--rc:${c}">
+      <div class="jxyp-rank-h">${title}</div>
+      <div class="jxyp-rank-lead" onclick="goToPlayer('${_jxJs(lead.nombre)}')">
+        <span class="nv3-av nv3-av-lg" style="--pc:${_plantelPosColor(lead.pos)}">${_jxEsc(_jxIni(lead.nombre))}</span>
+        <span class="jxyp-rank-id"><b>${_jxEsc(lead.nombre)}</b>${lead.pos ? `<span class="nv3-pos" style="--pc:${_plantelPosColor(lead.pos)}">${_jxEsc(lead.pos)}</span>` : ''}</span>
+        <span class="jxyp-rank-v">${lead[k]}<small>${sfx}</small></span>
+      </div>
+      ${rest.map((p, i) => `<div class="jxyp-rank-row" onclick="goToPlayer('${_jxJs(p.nombre)}')">
+        <span class="jxyp-rank-n">${i + 2}</span><span class="jxyp-rank-nm">${_jxEsc(p.nombre)}</span>
+        <i><u style="width:${(p[k] / max * 100).toFixed(1)}%"></u></i><b>${p[k]}</b></div>`).join('')}
+    </div>`;
+  }).join('')}</div>`;
+}
+
+const _JXY_COLS = [
+  { label: 'Jugador', key: 'nombre', isText: true },
+  { label: 'PJ', key: 'pj', c: '#eef6f1' },
+  { label: 'Goles', key: 'goles', c: '#ef9f27' },
+  { label: 'Asist.', key: 'asist', c: '#97c459' },
+  { label: 'G+A', key: 'gmas', c: '#af9ec6' },
+  { label: 'Prom. G+A', key: 'promGmas', c: '#af9ec6', dec: true },
+];
+function _jxyTableHtml(players, sortCol, asc, query, sortFn) {
+  let rows = [...players];
+  if (query) rows = rows.filter(p => p.nombre.toLowerCase().includes(query));
+  const col = _JXY_COLS[sortCol] || _JXY_COLS[1];
+  rows.sort((a, b) => {
+    const cmp = col.isText ? (a[col.key] || '').localeCompare(b[col.key] || '', 'es') : (b[col.key] || 0) - (a[col.key] || 0);
+    return asc ? -cmp : cmp;
+  });
+  const max = {}; _JXY_COLS.forEach(c => { if (!c.isText) max[c.key] = Math.max(0.0001, ...players.map(p => p[c.key] || 0)); });
+  const ths = _JXY_COLS.map((c, i) => `<th class="${i ? 'jx-num' : ''} ${sortCol === i ? 'on' : ''}" onclick="${sortFn}(${i})" style="cursor:pointer">${c.label}${sortCol === i ? (asc ? ' ▲' : ' ▼') : ''}</th>`).join('');
+  const trs = rows.map((p, i) => `<tr onclick="goToPlayer('${_jxJs(p.nombre)}')">
+    <td class="jx-rk ${i < 3 && !query ? 'm' + (i + 1) : ''}">${i + 1}</td>
+    <td><div class="jx-pl"><span class="nv3-av" style="--pc:${_plantelPosColor(p.pos)}">${_jxEsc(_jxIni(p.nombre))}</span><span class="jx-pl-id"><b>${_jxEsc(p.nombre)}</b>${p.pos ? `<span class="nv3-pos" style="--pc:${_plantelPosColor(p.pos)}">${_jxEsc(p.pos)}</span>` : ''}</span></div></td>
+    ${_JXY_COLS.slice(1).map((c, j) => {
+      const v = p[c.key] || 0, on = sortCol === j + 1;
+      const txt = c.dec ? v.toFixed(2).replace('.', ',') : v;
+      return `<td class="jx-num ${on ? 'on' : ''}"><span style="color:${v ? c.c : 'var(--v3-dim)'}">${txt}</span>${on ? `<u><s style="width:${(v / max[c.key] * 100).toFixed(1)}%;background:${c.c}"></s></u>` : ''}</td>`;
+    }).join('')}
+  </tr>`).join('');
+  return `<table class="jx-table"><thead><tr><th class="jx-rk">#</th>${ths}</tr></thead>
+    <tbody>${trs || `<tr><td colspan="7" class="jx-empty">Sin resultados</td></tr>`}</tbody></table>`;
 }
 
 function _updateTabNavFade(nav) {
