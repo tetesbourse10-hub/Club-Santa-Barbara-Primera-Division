@@ -22626,6 +22626,12 @@ async function loadLiveData() {
         a.gmas   = a.goles + a.asist;
         a.titulos += p.titulos;
         a.vallas  += p.vallas;
+        // Titular/suplente/rojas también son totales de carrera: antes no se
+        // sumaban, así que un jugador de A y B quedaba solo con los de
+        // Primera A (se veía en Cara a cara: Titular muy por debajo de PJ).
+        a.titular  = (a.titular  || 0) + (p.titular  || 0);
+        a.suplente = (a.suplente || 0) + (p.suplente || 0);
+        a.rojas    = (a.rojas    || 0) + (p.rojas    || 0);
         // recalculate averages from totals
         a.promGol   = a.pj > 0 ? parseFloat((a.goles  / a.pj).toFixed(2)) : 0;
         a.promAsist = a.pj > 0 ? parseFloat((a.asist  / a.pj).toFixed(2)) : 0;
