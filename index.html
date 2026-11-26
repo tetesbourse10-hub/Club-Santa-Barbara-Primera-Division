@@ -17214,7 +17214,7 @@ function _jugBBuild() {
   if (tabRow) {
     tabRow.innerHTML = JUG_TABS_B.map(t => {
       const active = _jugBTab === t.key;
-      return `<button class="${active?\'on\':\'\'}" onclick="event.stopPropagation();_jugBSetTab('${t.key}')" style="padding:5px 14px;border-radius:20px;border:1px solid ${active?'rgba(249,115,22,0.6)':'rgba(255,255,255,0.09)'};background:${active?'#f97316':'rgba(255,255,255,0.06)'};color:${active?'#fff':'#f2f8f5'};font-size:0.78rem;font-weight:${active?'700':'400'};cursor:pointer;white-space:nowrap;transition:all .15s">${t.label}</button>`;
+      return `<button class="${active?'on':''}" onclick="event.stopPropagation();_jugBSetTab('${t.key}')" style="padding:5px 14px;border-radius:20px;border:1px solid ${active?'rgba(249,115,22,0.6)':'rgba(255,255,255,0.09)'};background:${active?'#f97316':'rgba(255,255,255,0.06)'};color:${active?'#fff':'#f2f8f5'};font-size:0.78rem;font-weight:${active?'700':'400'};cursor:pointer;white-space:nowrap;transition:all .15s">${t.label}</button>`;
     }).join('');
   }
 
