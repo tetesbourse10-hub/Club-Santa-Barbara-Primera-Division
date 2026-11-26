@@ -309,6 +309,10 @@
     hero.appendChild(stats);
     home.appendChild(hero);
 
+    const champ = document.createElement('section');
+    champ.id = 'v3-champ';
+    home.appendChild(champ);
+
     const matches = document.createElement('section');
     matches.innerHTML = `<div class="v3-sec-head"><span class="v3-sec-title" id="v3-matches-title">Próximos partidos</span><span class="v3-sec-sub">Tocá un partido para ver la ficha</span></div>`;
     const row = $('.next-match-row', landing), car = $('.pm-carousel-wrap', landing);
@@ -325,6 +329,10 @@
     if (cards) squads.appendChild(cards);
     home.appendChild(squads);
 
+    const nums = document.createElement('section');
+    nums.innerHTML = `<div class="v3-sec-head"><span class="v3-sec-title">El club en números</span><span class="v3-sec-sub">Todos los torneos oficiales, Primera A y Primera B</span><button class="v3-sec-link" data-nav="graficos">Ver todos los torneos ›</button></div><div id="v3-club-nums"></div>`;
+    home.appendChild(nums);
+
     const extra = document.createElement('section');
     extra.className = 'v3-grid-2';
     extra.innerHTML = `
@@ -340,7 +348,7 @@
         <div class="v3-quick">
           <button data-act="search">${I.search.replace(' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"', '')}<span>Buscar jugador<small>Ir directo a su perfil</small></span></button>
           <button data-nav="historial">${I.historial}<span>vs Clubes<small>Récord contra cada rival</small></span></button>
-          <button data-nav="graficos">${I.torneos}<span>Torneos<small>Todas las campañas</small></span></button>
+          <button data-nav="graficos">${I.torneos}<span>Todos los torneos<small>Actual y anteriores</small></span></button>
           <button data-nav="posiciones">${I.vivo}<span>En Vivo<small>Fecha a fecha</small></span></button>
         </div>
       </div>`;
@@ -362,14 +370,82 @@
     ['a', 'b'].forEach(k => {
       const own = ownRow(k);
       const pos = own ? String(own.pos).replace(/[°º]/g, '') : '–';
-      items.push(`<div class="v3-hero-stat" data-nav="resumen" data-sq-target="${k}">
+      const d = getData(k);
+      const est = own && g('_csbEstadoTorneo') ? safe(() => _csbEstadoTorneo(d.tabla)) : null;
+      const tag = est && est.estado === 'campeon' ? '<span class="v3-hs-tag gold">🏆 Campeón</span>' : est && est.estado === 'descendido' ? '<span class="v3-hs-tag red">Descendido</span>' : '';
+      items.push(`<div class="v3-hero-stat${est && est.estado === 'campeon' ? ' is-champ' : ''}" data-nav="resumen" data-sq-target="${k}">
         <div class="v3-hero-stat-lbl">Primera ${k.toUpperCase()}</div>
         <div class="v3-hero-stat-val">${esc(pos)}<small style="margin-left:1px">º</small></div>
-        <div class="v3-hero-stat-sub">${own ? `${esc(own.pts)} pts · ${esc(own.pj != null ? own.pj + ' PJ' : 'Clausura')}` : 'Cargando…'}</div></div>`);
+        <div class="v3-hero-stat-sub">${own ? `${esc(own.pts)} pts · ${esc(own.pj != null ? own.pj + ' PJ' : 'Clausura')}` : 'Cargando…'}</div>${tag}</div>`);
     });
     const tit = ((getData('a') || {}).titulos || []).length + ((getData('b') || {}).titulos || []).length;
     items.push(`<div class="v3-hero-stat" data-nav="resumen"><div class="v3-hero-stat-lbl">Títulos</div><div class="v3-hero-stat-val">${tit || '–'}</div><div class="v3-hero-stat-sub">Primera A + B</div></div>`);
     const html = items.join('');
+    if (box.__last !== html) { box.innerHTML = html; box.__last = html; }
+    renderChamp();
+    renderClubNums();
+  }
+
+  // ── Banner de campeón (torneo en curso) ──
+  function renderChamp() {
+    const box = $('#v3-champ');
+    if (!box) return;
+    const out = [];
+    ['a', 'b'].forEach(k => {
+      const d = getData(k), own = ownRow(k);
+      if (!d || !own || !g('_csbEstadoTorneo')) return;
+      const est = safe(() => _csbEstadoTorneo(d.tabla));
+      if (!est || est.estado !== 'campeon') return;
+      const torneo = (d.badge || ('Clausura AIFA ' + k.toUpperCase() + ' 2026'));
+      const pj = Number(own.pj) || 0, pts = Number(own.pts) || 0;
+      const efec = pj ? Math.round(pts / (pj * 3) * 100) : 0;
+      const tabla = [...(d.tabla || [])].sort((a, b) => (parseInt(a.pos) || 0) - (parseInt(b.pos) || 0));
+      const second = tabla[1];
+      const diff = second ? pts - (Number(second.pts) || 0) : null;
+      out.push(`<div class="v3-champ">
+        <div class="v3-champ-cup">🏆</div>
+        <div class="v3-champ-id"><span class="v3-champ-k">Primera ${k.toUpperCase()} · ¡Campeones!</span><h2>${esc(torneo)}</h2>
+          <p>Santa Bárbara se consagró campeón${diff != null ? ` con ${diff} punto${diff !== 1 ? 's' : ''} de ventaja sobre ${esc(second.equipo)}` : ''}.</p></div>
+        <div class="v3-champ-nums">
+          <div><b>${pts}</b><span>Puntos</span></div>
+          <div><b>${own.pg}-${own.pe}-${own.pp}</b><span>G-E-P</span></div>
+          <div><b>${own.gf}:${own.gc}</b><span>Goles</span></div>
+          <div><b>${efec}%</b><span>Efectividad</span></div>
+        </div>
+        <div class="v3-champ-act"><button class="v3-btn" data-nav="posiciones" data-sq-target="${k}">Ver el torneo</button><button class="v3-btn-ghost" data-nav="graficos" data-sq-target="${k}">Palmarés</button></div>
+      </div>`);
+    });
+    const html = out.join('');
+    if (box.__last !== html) { box.innerHTML = html; box.__last = html; }
+  }
+
+  // ── El club en números (A + B, todos los torneos) ──
+  function renderClubNums() {
+    const box = $('#v3-club-nums');
+    if (!box || !g('_grafSource')) return;
+    const srcA = safe(() => window._grafSource(false)) || [], srcB = safe(() => window._grafSource(true)) || [];
+    const all = [...srcA, ...srcB];
+    if (!all.length) return;
+    const sum = k => all.reduce((s, t) => s + (Number(t[k]) || 0), 0);
+    const isSub = p => /subcampe/i.test(p || '');
+    const isCamp = t => t.forceColor ? t.forceColor === 'oro' : (!isSub(t.pos) && /campe[oó]n/i.test(t.pos || ''));
+    const tit = all.filter(isCamp).length, asc = all.filter(t => /ascenso/i.test(t.pos || '')).length;
+    const years = new Set(all.map(t => t.anio));
+    const pg = sum('pg'), pe = sum('pe'), pp = sum('pp'), tt = Math.max(1, pg + pe + pp);
+    const html = `<div class="v3-nums">
+      <div class="v3-nums-rec">
+        <div class="w"><b>${pg}</b><span>Ganados</span></div><div class="d"><b>${pe}</b><span>Empatados</span></div><div class="l"><b>${pp}</b><span>Perdidos</span></div>
+        <span class="v3-nums-bar"><i class="w" style="width:${(pg / tt * 100).toFixed(1)}%"></i><i class="d" style="width:${(pe / tt * 100).toFixed(1)}%"></i><i class="l" style="width:${(pp / tt * 100).toFixed(1)}%"></i></span>
+      </div>
+      <div class="v3-nums-grid">
+        <div><b>${sum('pj')}</b><span>Partidos</span></div>
+        <div><b>${sum('gf')}</b><span>Goles a favor</span></div>
+        <div><b>${all.length}</b><span>Torneos</span></div>
+        <div><b>${years.size}</b><span>Temporadas</span></div>
+        <div class="gold"><b>${tit}</b><span>Títulos</span></div>
+        <div><b>${asc}</b><span>Ascensos</span></div>
+      </div>
+    </div>`;
     if (box.__last !== html) { box.innerHTML = html; box.__last = html; }
   }
 

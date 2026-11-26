@@ -19152,17 +19152,9 @@ let _grafPanelState = { a: null, b: null };
 // antes de re-renderizar, igual que ya hace con el drilldown de Historial.
 let _grafInDrilldown = false;
 
-function renderGraficos() {
-  _grafInDrilldown = false;
-  const container = document.getElementById('graf-content');
-
-  // Use B's live data (from sheet) or B seed; A uses SEED_GRAFICOS plus the just-finished
-  // Apertura AIFA A 2026, computed live from ITS OWN archived standings table
-  // (DATA_A_APERTURA2026, not the live DATA_A — which now points at Clausura
-  // AIFA A 2026 instead — no card for the finished Apertura in "Torneos
-  // Actuales" anymore, so this is what surfaces it in Torneos Antiguos/Gráficos).
+function _grafSource(isB) {
   let source;
-  if (currentData === DATA_B) {
+  if (isB) {
     source = _anualesSourceB().map(t => {
       if (t.anio !== 2026 || t.competencia !== 'Clausura AIFA B') return t;
       const est = _csbEstadoTorneo(DATA_B.tabla || []);
@@ -19194,6 +19186,20 @@ function renderGraficos() {
       }];
     }
   }
+  return source;
+}
+window._grafSource = _grafSource;
+
+function renderGraficos() {
+  _grafInDrilldown = false;
+  const container = document.getElementById('graf-content');
+
+  // Use B's live data (from sheet) or B seed; A uses SEED_GRAFICOS plus the just-finished
+  // Apertura AIFA A 2026, computed live from ITS OWN archived standings table
+  // (DATA_A_APERTURA2026, not the live DATA_A — which now points at Clausura
+  // AIFA A 2026 instead — no card for the finished Apertura in "Torneos
+  // Actuales" anymore, so this is what surfaces it in Torneos Antiguos/Gráficos).
+  const source = _grafSource(currentData === DATA_B);
   // Sort newest first
   const sorted = [...source].sort((a, b) => b.anio - a.anio || (b.competencia || '').localeCompare(a.competencia || ''));
   const byYear = [];
