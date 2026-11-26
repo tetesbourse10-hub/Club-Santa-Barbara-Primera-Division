@@ -595,6 +595,20 @@
       } else renderH2H();
     });
   }
+  // Abre Cara a cara con un jugador ya elegido (botón ⇄ de El Nido)
+  function compareWith(nombre) {
+    closeSearch();
+    $('#v3-h2h').classList.add('open');
+    ensureNido().then(list => {
+      pickH2H('l', nombre);
+      if (!h2h.r || norm(h2h.r.nombre) === norm(nombre)) {
+        const other = [...list].sort((a, b) => (b.pj || 0) - (a.pj || 0)).find(p => norm(p.nombre) !== norm(nombre));
+        if (other) pickH2H('r', other.nombre);
+      }
+      const inp = $('#v3-h2h .v3-h2h-pick[data-side="r"] input');
+      if (inp && window.matchMedia('(min-width: 641px)').matches) { inp.select(); inp.focus(); }
+    });
+  }
   function closeH2H() { const el = $('#v3-h2h'); if (el) el.classList.remove('open'); }
   function fmtN(v, f) { const n = Number(v) || 0; return f ? n.toFixed(f).replace('.', ',') : String(n); }
   function renderH2H() {
@@ -635,7 +649,7 @@
     // Las cifras del hero dependen de la tabla en vivo — se refrescan cuando llega.
     let tries = 0;
     const iv = setInterval(() => { renderHeroStats(); if (++tries > 40 || (ownRow('a') && ownRow('b'))) clearInterval(iv); }, 1500);
-    window.v3 = { openSearch, openH2H, goTab, goHome, goNido, switchSquad, sync };
+    window.v3 = { openSearch, openH2H, compareWith, goTab, goHome, goNido, switchSquad, sync };
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();

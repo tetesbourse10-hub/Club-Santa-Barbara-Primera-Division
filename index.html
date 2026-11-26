@@ -22524,7 +22524,7 @@ async function loadLiveData() {
   let _nidoLoading = false;
   let _nidoPos     = 'todas';
   let _nidoPosOpen = false;
-  let _nidoMobileVisible = 15; // mobile card list "cargar más" — reset on any filter change
+  let _nidoMobileVisible = 24; // mobile card list "cargar más" — reset on any filter change
   // Sub-orden propio del filtro "Partidos Jugados" (PJ/PG/PE/PP/G/A/G+A) —
   // clickeable de mayor a menor como cualquier otra columna, pero sin salir
   // del modo ranking (a diferencia de _nidoSort/window._nidoSort, que sí
@@ -22781,21 +22781,6 @@ async function loadLiveData() {
     return sortData(data);
   }
 
-  function thArrow(col) {
-    const isPjRank = _nidoRank === 'pj';
-    const activeCol = isPjRank ? _nidoPjSort.col : (_nidoRank || _nidoSort.col);
-    if (activeCol !== col) return `<span style="opacity:0.25;font-size:9px;margin-left:3px;">⇅</span>`;
-    const isAsc = isPjRank ? _nidoPjSort.asc : _nidoSort.asc;
-    return `<span style="font-size:9px;margin-left:3px;color:#eab308;">${isAsc ? '▲' : '▼'}</span>`;
-  }
-
-  const PODIO = [
-    { bg: 'rgba(234,179,8,0.10)',   border: 'rgba(234,179,8,0.25)',   medal: '🥇' },
-    { bg: 'rgba(153,179,166,0.10)', border: 'rgba(153,179,166,0.20)', medal: '🥈' },
-    { bg: 'rgba(180,120,60,0.10)',  border: 'rgba(180,120,60,0.20)',  medal: '🥉' },
-  ];
-
-  // Map prom-ranking key → which base column it replaces and how to display it
   const PROM_MAP = {
     promGol:   { replaces: 'goles',  header: 'PROM.G',   field: 'promGol'   },
     promAsist: { replaces: 'asist',  header: 'PROM.A',   field: 'promAsist' },
@@ -22803,465 +22788,265 @@ async function loadLiveData() {
     vallasProm:{ replaces: 'vallas', header: 'PROM.V',   field: 'vallasProm'},
   };
 
-  function renderTable() {
-    const rows = filteredData();
-    const isRankMode = !!_nidoRank;
-    const rankMeta   = isRankMode ? RANK_METRICS.find(m => m.key === _nidoRank) : null;
-    const promSwap   = isRankMode ? PROM_MAP[_nidoRank] : null; // non-null only for prom rankings
-    // Filtro "Partidos Jugados": columnas propias (PJ, PG, PE, PP, G, A, G+A)
-    // en vez del set fijo de siempre — pedido explícito para no mezclar
-    // Títulos/Vallas con el desglose de resultados en esta vista.
-    const isPjRank   = _nidoRank === 'pj';
+  // ════════════════════════════════════════════════════════════════════
+  // EL NIDO v3 — render nuevo (rediseño "Verde Nido"). Estado, carga de
+  // datos, V-E-D, ordenamiento, filtros y rutas (window._nidoTeam/
+  // _nidoPosSelect/_nidoSort/_nidoRankMode/_nidoPjSortBy/_nidoSearch/
+  // _nidoLoadMore) siguen siendo los de siempre — esto solo reemplaza cómo
+  // se pinta. Estilos en redesign/csb-v3.css (sección "EL NIDO v3").
+  // ════════════════════════════════════════════════════════════════════
+  const NV3_POS = {
+    ARQ: { c: '#c4b5fd', n: 'Arquero' },
+    LI:  { c: '#5eead4', n: 'Lateral izq.' }, LD: { c: '#5eead4', n: 'Lateral der.' },
+    DFI: { c: '#5eead4', n: 'Defensor' }, DFD: { c: '#5eead4', n: 'Defensor' },
+    DFC: { c: '#7dd3fc', n: 'Central' }, DEF: { c: '#7dd3fc', n: 'Defensor' },
+    MC:  { c: '#f3c24f', n: 'Mediocampista' }, MCO: { c: '#f3c24f', n: 'Mediocampista' },
+    DEL: { c: '#fda4af', n: 'Delantero' }, DC: { c: '#fda4af', n: 'Delantero' }, ED: { c: '#fda4af', n: 'Delantero' }, EI: { c: '#fda4af', n: 'Delantero' },
+  };
+  const nv3PosC = pos => (NV3_POS[normPos(pos)] || { c: '#a3bbad' }).c;
+  const nv3Esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const nv3Js = s => String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  const nv3Ini = n => String(n || '').trim().split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+  const nv3Fmt = (v, isFloat) => isFloat ? (Number(v) || 0).toFixed(2).replace('.', ',') : String(v == null ? 0 : v);
+  let _nidoView = (() => { try { return localStorage.getItem('nido-view') || ''; } catch (e) { return ''; } })();
+  const nv3View = () => _nidoView || (window.matchMedia && window.matchMedia('(max-width: 768px)').matches ? 'cards' : 'tabla');
 
-    // El wrapper de abajo (overflow:auto;max-height:640px) es su propio
-    // panel con scroll acotado, no la página entera — la tabla también
-    // scrollea horizontalmente, y un ancestro con overflow-x:auto termina
-    // forzando overflow-y:auto también (así lo resuelve la spec de CSS
-    // Overflow), lo que rompe un "sticky" pensado relativo a la ventana:
-    // sin una altura fija ese div nunca scrollea de verdad y el header no
-    // se despega. Por eso top:0 acá es relativo a ESTE panel.
-    const TH  = `padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:#6c7f76;white-space:nowrap;letter-spacing:.06em;position:sticky;top:0;z-index:20;background:var(--azul-card);`;
-    const THS = TH + `cursor:pointer;user-select:none;`;
-
-    // Which column key is the active ranking column (for visual highlight) —
-    // dentro de "Partidos Jugados" sigue el sub-orden propio (_nidoPjSort),
-    // no siempre PJ, para que el usuario vea resaltada la columna que
-    // realmente está ordenando (PG/PE/PP/G/A/G+A), igual que en el resto de
-    // las secciones de ranking.
-    const activeColKey = isPjRank
-      ? _nidoPjSort.col
-      : isRankMode
-        ? (promSwap ? promSwap.replaces : _nidoRank)
-        : _nidoSort.col;
-
-    // Build column list, swapping the affected column header when in prom-rank mode.
-    // pjSort:true marca las columnas que deben ordenar vía window._nidoPjSortBy
-    // (mantiene el modo ranking) en vez de window._nidoSort (que lo resetea).
-    const cols = isPjRank ? [
-      { key: 'nombre',  label: 'JUGADOR' },
-      { key: 'pos',     label: 'POS',     center: true },
-      { key: 'teams',   label: 'EQUIPO',  noSort: true },
-      { key: 'pj',      label: 'PJ',      center: true, pjSort: true },
-      { key: 'pg',      label: 'PG',      center: true, pjSort: true },
-      { key: 'pe',      label: 'PE',      center: true, pjSort: true },
-      { key: 'pp',      label: 'PP',      center: true, pjSort: true },
-      { key: 'goles',   label: 'G',       center: true, pjSort: true },
-      { key: 'asist',   label: 'A',       center: true, pjSort: true },
-      { key: 'gmas',    label: 'G+A',     center: true, pjSort: true },
-    ] : [
-      { key: 'nombre',  label: 'JUGADOR' },
-      { key: 'pos',     label: 'POS',     center: true },
-      { key: 'teams',   label: 'EQUIPO',  noSort: true },
-      { key: 'pj',      label: 'PJ',      center: true },
-      { key: 'goles',   label: promSwap?.replaces === 'goles' ? promSwap.header : 'GOLES',  center: true },
-      { key: 'asist',   label: promSwap?.replaces === 'asist' ? promSwap.header : 'ASIST',  center: true },
-      { key: 'gmas',    label: promSwap?.replaces === 'gmas'  ? promSwap.header : 'G+A',    center: true },
-      { key: 'titulos', label: 'TÍTULOS', center: true },
-      { key: 'vallas',  label: promSwap?.replaces === 'vallas' ? promSwap.header : 'VALLAS', center: true },
-    ];
-
-    const thead = `<thead><tr style="border-bottom:1px solid rgba(255,255,255,0.08);">${
-      (isRankMode ? `<th style="${TH}text-align:center;">#</th>` : '') +
-      cols.map(c => {
-        const align = c.center ? 'text-align:center;' : '';
-        if (c.noSort) return `<th style="${TH}${align}">${c.label}</th>`;
-        const isActive = activeColKey === c.key;
-        const hl = isActive && isRankMode
-          ? `color:#a5b4fc;border-bottom:2px solid rgba(99,102,241,0.6);`
-          : isActive ? 'color:#d2dad6;' : '';
-        const sortFn = c.pjSort ? `window._nidoPjSortBy('${c.key}')` : `window._nidoSort('${c.key}')`;
-        return `<th style="${THS}${align}${hl}" onclick="${sortFn}">${c.label}${thArrow(c.key)}</th>`;
-      }).join('')
-    }</tr></thead>`;
-
-    const tbody = rows.map((p, i) => {
-      const podio = isRankMode && i < 3 ? PODIO[i] : null;
-      const bg = podio
-        ? podio.bg
-        : i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.025)';
-      const borderBottom = podio
-        ? `1px solid ${podio.border}`
-        : '1px solid rgba(255,255,255,0.04)';
-      const pColor = posColor(p.pos);
-      const pBg    = pColor + '1a';
-      const teamBadges = p.teams.map(teamBadge).join('<span style="display:inline-block;width:4px;"></span>');
-      const statColor = podio
-        ? (i === 0 ? '#fde68a' : i === 1 ? '#ceded6' : '#d6a87c')
-        : '#ffffff';
-
-      // Active column: highlight the value only (no cell background)
-      const cellColor = isRankMode
-        ? (podio ? statColor : '#c7d2fe')  // indigo-200 for non-podio rows
-        : statColor;
-
-      let posCell = '';
-      if (isRankMode) {
-        if (podio) {
-          posCell = `<td style="padding:9px 10px;text-align:center;font-size:18px;width:36px;">${podio.medal}</td>`;
-        } else {
-          posCell = `<td style="padding:9px 10px;text-align:center;font-size:13px;font-weight:700;color:#ffffff;width:36px;opacity:.8;">${i + 1}°</td>`;
-        }
-      }
-
-      const nombreCell = podio
-        ? `<span style="font-weight:700;">${pl(p.nombre)}</span>`
-        : pl(p.nombre);
-
-      // Helper: td — active ranking column highlights the value text only (no bg).
-      // colorOverride (PG/PE/PP: verde/amarillo/rojo) gana siempre sobre el
-      // resaltado de columna activa, para que W/D/L se distingan a simple
-      // vista sin importar si esa columna es la que ordena la tabla o no.
-      const td = (colKey, value, colorOverride) => {
-        const isActiveCol = isRankMode && activeColKey === colKey;
-        const col2 = colorOverride || (isActiveCol ? cellColor : statColor);
-        const fw   = isActiveCol ? '700' : '600';
-        const wrap = isActiveCol
-          ? `<span style="display:inline-block;padding:2px 8px;border-radius:999px;background:rgba(99,102,241,0.18);border:1px solid rgba(99,102,241,0.35);color:${col2};font-weight:${fw};">${value}</span>`
-          : (colorOverride ? `<span style="color:${colorOverride};font-weight:700;">${value}</span>` : value);
-        return `<td style="padding:9px 14px;text-align:center;font-size:13px;font-weight:600;color:${statColor};">${wrap}</td>`;
-      };
-
-      // For prom-rank mode: show prom value in the swapped column, raw in others
-      const fmt = (raw, promField) => {
-        if (promSwap && promSwap.field === promField) {
-          const v = p[promField] || 0;
-          return v.toFixed(2);
-        }
-        return raw;
-      };
-
-      // Antes de que loadLiveData() complete al menos una vez, PG/PE/PP
-      // pueden estar incompletos (ver _matchDataReadyOnce) — se evita incluso
-      // calcularlos y se muestra un placeholder de carga en su lugar, en vez
-      // de un número que cambia solo apenas termina la carga real.
-      const ved = isPjRank && _nidoVedReady() ? _nidoGetVED(p.nombre) : null;
-
-      return `<tr style="background:${bg};border-bottom:${borderBottom};transition:background .15s;">
-        ${posCell}
-        <td style="padding:9px 14px;font-size:13px;color:#f3f6f4;white-space:nowrap;">${nombreCell}</td>
-        <td style="padding:9px 14px;text-align:center;"><span style="padding:3px 8px;border-radius:6px;background:${pBg};color:${pColor};font-size:11px;font-weight:700;letter-spacing:.04em;">${p.pos || '—'}</span></td>
-        <td style="padding:9px 14px;white-space:nowrap;">${teamBadges}</td>
-        ${td('pj',     p.pj)}
-        ${isPjRank ? td('pg', ved ? ved.v : '…', ved ? '#22c55e' : '#6c7f76') : ''}
-        ${isPjRank ? td('pe', ved ? ved.e : '…', ved ? '#f59e0b' : '#6c7f76') : ''}
-        ${isPjRank ? td('pp', ved ? ved.d : '…', ved ? '#ef4444' : '#6c7f76') : ''}
-        ${td('goles',  fmt(p.goles,  'promGol'))}
-        ${td('asist',  fmt(p.asist,  'promAsist'))}
-        ${td('gmas',   fmt(p.gmas,   'promGmas'))}
-        ${!isPjRank ? td('titulos', p.titulos || 0) : ''}
-        ${!isPjRank ? td('vallas', fmt(p.vallas, 'vallasProm')) : ''}
-      </tr>`;
-    }).join('');
-
-    const totalDs = activeDataset().length;
-    const showing  = rows.length;
-    const colspan  = isPjRank ? 11 : (isRankMode ? 10 : 9);
-
-    // overflow:hidden acá rompería el sticky header de abajo: cualquier
-    // overflow != visible (aunque sea "hidden", sin barra de scroll visible)
-    // hace que el navegador calcule el "position:sticky" contra ESTE
-    // contenedor en vez de contra la ventana, y como este div nunca
-    // scrollea internamente (crece con el contenido), el header dejaría de
-    // pegarse al hacer scroll de la página. Se saca overflow:hidden; el
-    // borde redondeado se pierde en las esquinas superiores de la tabla,
-    // cambio aceptado a cambio de que el sticky funcione.
-    const desktopHtml = `<div class="nido-desktop-only" style="border-radius:12px;border:1px solid rgba(255,255,255,0.09);">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:rgba(255,255,255,0.03);border-bottom:1px solid rgba(255,255,255,0.07);">
-        <span style="font-size:12px;color:#6c7f76;">
-          Mostrando <strong style="color:#c3d5cc;font-weight:600;">${showing}</strong> de <strong style="color:#c3d5cc;font-weight:600;">${totalDs}</strong> jugadores
-        </span>
-        ${isRankMode ? `<span style="font-size:11px;color:#eab308;font-weight:600;letter-spacing:.05em;">RANKING — ${rankMeta?.label || ''}</span>` : ''}
-        ${isPjRank && !_nidoVedReady() ? `<span style="font-size:11px;color:#6c7f76;">⏳ Cargando PG/PE/PP…</span>` : ''}
-      </div>
-      <div style="overflow:auto;max-height:640px;">
-        <table style="width:100%;border-collapse:collapse;">${thead}<tbody>${tbody || `<tr><td colspan="${colspan}" style="padding:32px;text-align:center;color:#4c6257;">Sin resultados</td></tr>`}</tbody></table>
-      </div>
-    </div>`;
-
-    return desktopHtml + _renderNidoMobileTable(rows, activeColKey, promSwap, isPjRank);
+  const NV3_METRIC = {
+    pj: { label: 'Partidos', short: 'PJ' }, goles: { label: 'Goles', short: 'G' }, asist: { label: 'Asistencias', short: 'A' },
+    gmas: { label: 'G+A', short: 'G+A' }, titulos: { label: 'Títulos', short: 'TÍT' }, vallas: { label: 'Vallas invictas', short: 'VI' },
+    promGol: { label: 'Prom. goles', short: 'PROM G', f: 1 }, promAsist: { label: 'Prom. asist.', short: 'PROM A', f: 1 },
+    promGmas: { label: 'Prom. G+A', short: 'PROM G+A', f: 1 }, vallasProm: { label: 'Prom. vallas', short: 'PROM VI', f: 1 },
+    pg: { label: 'Ganados', short: 'PG' }, pe: { label: 'Empatados', short: 'PE' }, pp: { label: 'Perdidos', short: 'PP' },
+    nombre: { label: 'Nombre', short: 'Nombre' }, pos: { label: 'Posición', short: 'Pos' },
+  };
+  // Columna/métrica que manda en este momento (la que define el orden)
+  function nv3ActiveKey() {
+    if (_nidoRank === 'pj') return _nidoPjSort.col;
+    return _nidoRank || _nidoSort.col;
   }
-
-  // Same per-column value (raw vs. promedio-swapped) the desktop table's
-  // `td()`/`fmt()` helpers compute, reused here so la tabla mobile muestra
-  // los mismos números. pg/pe/pp no viven en `p` — se resuelven vía
-  // _nidoGetVED (misma cache que el desktop).
-  const NIDO_PROM_KEYS = new Set(['promGol', 'promAsist', 'promGmas', 'vallasProm']);
-  function _nidoStatValue(p, key, promSwap) {
+  function nv3IsAsc() { return _nidoRank === 'pj' ? _nidoPjSort.asc : _nidoSort.asc; }
+  function nv3Val(p, key) {
     if (key === 'pg' || key === 'pe' || key === 'pp') {
+      if (!_nidoVedReady()) return null;
       const ved = _nidoGetVED(p.nombre);
       return key === 'pg' ? ved.v : key === 'pe' ? ved.e : ved.d;
     }
-    if (NIDO_PROM_KEYS.has(key)) {
-      const v = p[key] || 0;
-      return v.toFixed(2);
-    }
-    const raw = key === 'titulos' ? (p.titulos || 0) : p[key];
-    const promFieldByKey = { goles: 'promGol', asist: 'promAsist', gmas: 'promGmas', vallas: 'vallasProm' };
-    const promField = promFieldByKey[key];
-    if (promSwap && promField && promSwap.field === promField) {
-      const v = p[promField] || 0;
-      return v.toFixed(2);
-    }
-    return raw;
+    return p[key] || 0;
+  }
+  function nv3Teams(p) {
+    return (p.teams || []).map(t => `<span class="nv3-team nv3-team-${t}">${t === 'a' ? 'A' : 'B'}</span>`).join('');
+  }
+  function nv3Avatar(p, cls = '') {
+    return `<span class="nv3-av ${cls}" style="--pc:${nv3PosC(p.pos)}">${nv3Esc(nv3Ini(p.nombre))}</span>`;
+  }
+  function nv3PosPill(p) {
+    const pos = normPos(p.pos);
+    return pos ? `<span class="nv3-pos" style="--pc:${nv3PosC(pos)}">${nv3Esc(pos)}</span>` : '';
+  }
+  function nv3VedBar(p) {
+    if (!_nidoVedReady()) return '<div class="nv3-ved nv3-ved-loading"></div>';
+    const ved = _nidoGetVED(p.nombre);
+    const t = ved.v + ved.e + ved.d;
+    if (!t) return '';
+    const pc = x => (x / t * 100).toFixed(1);
+    return `<div class="nv3-ved" title="${ved.v} ganados · ${ved.e} empatados · ${ved.d} perdidos"><i class="w" style="width:${pc(ved.v)}%"></i><i class="d" style="width:${pc(ved.e)}%"></i><i class="l" style="width:${pc(ved.d)}%"></i></div>`;
+  }
+  const nv3Open = p => `onclick="goToPlayer('${nv3Js(p.nombre)}')"`;
+
+  function nv3Podium(rows, key) {
+    if (!_nidoRank || nv3IsAsc() || rows.length < 3 || _nidoQuery) return '';
+    const m = NV3_METRIC[key] || {};
+    const top = rows.slice(0, 3);
+    if (top.some(p => nv3Val(p, key) == null)) return '';
+    const order = [1, 0, 2]; // 2º · 1º · 3º
+    return `<div class="nv3-podium">${order.map(i => {
+      const p = top[i];
+      return `<button class="nv3-pod nv3-pod-${i + 1}" ${nv3Open(p)}>
+        <span class="nv3-pod-place">${i + 1}º</span>
+        ${nv3Avatar(p, 'nv3-av-lg')}
+        <span class="nv3-pod-name">${nv3Esc(p.nombre)}</span>
+        <span class="nv3-pod-meta">${nv3PosPill(p)}${nv3Teams(p)}</span>
+        <span class="nv3-pod-val">${nv3Fmt(nv3Val(p, key), m.f ? 2 : 0)}</span>
+        <span class="nv3-pod-lbl">${nv3Esc(m.label || '')}</span>
+      </button>`;
+    }).join('')}</div>`;
   }
 
-  // Colores vivos por línea de posición y por plantel — solo para la celda
-  // sticky de El Nido en mobile (ver _nidoMobileStickyCell). Independiente
-  // de posColor()/teamBadge() (que alimentan tanto esta tabla como la de
-  // escritorio) porque acá se pide explícitamente una paleta Tailwind
-  // distinta (emerald/rose/sky/amber/indigo) — cambiar posColor() directo
-  // hubiera corrido también los colores de la tabla desktop.
-  const NIDO_MOBILE_POS_COLOR = {
-    ARQ: { bg: 'rgba(167,139,250,0.2)', text: '#c4b5fd', border: 'rgba(167,139,250,0.3)' },   // violet
-    LI:  { bg: 'rgba(45,212,191,0.2)',  text: '#5eead4', border: 'rgba(45,212,191,0.3)' },    // teal
-    LD:  { bg: 'rgba(45,212,191,0.2)',  text: '#5eead4', border: 'rgba(45,212,191,0.3)' },
-    DFI: { bg: 'rgba(45,212,191,0.2)',  text: '#5eead4', border: 'rgba(45,212,191,0.3)' },
-    DFD: { bg: 'rgba(45,212,191,0.2)',  text: '#5eead4', border: 'rgba(45,212,191,0.3)' },
-    DEF: { bg: 'rgba(14,165,233,0.2)',  text: '#7dd3fc', border: 'rgba(14,165,233,0.3)' },    // sky
-    DFC: { bg: 'rgba(14,165,233,0.2)',  text: '#7dd3fc', border: 'rgba(14,165,233,0.3)' },
-    MC:  { bg: 'rgba(16,185,129,0.2)',  text: '#6ee7b7', border: 'rgba(16,185,129,0.3)' },    // emerald
-    MCO: { bg: 'rgba(16,185,129,0.2)',  text: '#6ee7b7', border: 'rgba(16,185,129,0.3)' },
-    DEL: { bg: 'rgba(244,63,94,0.2)',   text: '#fda4af', border: 'rgba(244,63,94,0.3)' },     // rose
-    DC:  { bg: 'rgba(244,63,94,0.2)',   text: '#fda4af', border: 'rgba(244,63,94,0.3)' },
-    ED:  { bg: 'rgba(244,63,94,0.2)',   text: '#fda4af', border: 'rgba(244,63,94,0.3)' },
-    EI:  { bg: 'rgba(244,63,94,0.2)',   text: '#fda4af', border: 'rgba(244,63,94,0.3)' },
-  };
-  const NIDO_MOBILE_POS_COLOR_DEFAULT = { bg: 'rgba(102,137,120,0.2)', text: '#f2f8f5', border: 'rgba(102,137,120,0.3)' };
-  const NIDO_MOBILE_TEAM_COLOR = {
-    a: { bg: 'rgba(245,158,11,0.2)', text: '#fcd34d', border: 'rgba(245,158,11,0.3)', label: '1ra A' }, // amber
-    b: { bg: 'rgba(99,102,241,0.2)', text: '#a5b4fc', border: 'rgba(99,102,241,0.3)', label: '1ra B' }, // indigo
-  };
-  function _nidoMobileBadgeHtml(c, label) {
-    return `<span style="background:${c.bg};color:${c.text};border:1px solid ${c.border}">${label}</span>`;
-  }
-
-  // Tabla mobile (≤768px) — misma data-table analítica que desktop
-  // (renderTable()), con la primera columna "JUGADOR / EQUIPO" fija
-  // (sticky) para poder scrollear horizontalmente el resto de columnas
-  // (PJ/PG/PE/PP/G/A/G+A o PJ/GOLES/ASIST/G+A/TÍTULOS/VALLAS) sin perder
-  // de vista a qué jugador corresponde cada fila. Reemplaza el layout de
-  // cards anterior — mismos `rows` (ya filtrados+ordenados) y estado de
-  // ranking que la tabla desktop, así ambas quedan siempre sincronizadas
-  // desde el mismo renderTable().
-  function _nidoMobileStickyCell(p, i) {
-    const rankColor = i === 0 ? '#eab308' : i === 1 ? '#ceded6' : i === 2 ? '#d6a87c' : '#6c7f76';
-    const rankLabel = i < 3 ? PODIO[i].medal : `${i + 1}º`;
-    const posC = NIDO_MOBILE_POS_COLOR[String(p.pos || '').toUpperCase()] || NIDO_MOBILE_POS_COLOR_DEFAULT;
-    const teamBadges = p.teams.map(t => _nidoMobileBadgeHtml(NIDO_MOBILE_TEAM_COLOR[t] || NIDO_MOBILE_TEAM_COLOR.a, (NIDO_MOBILE_TEAM_COLOR[t] || NIDO_MOBILE_TEAM_COLOR.a).label)).join('');
-    return `<td class="nido-mtable-sticky-td">
-      <div class="nido-mtable-rank-name">
-        <span class="nido-mtable-rank" style="color:${rankColor}">${rankLabel}</span>
-        <span class="nido-mtable-name">${p.nombre}</span>
-      </div>
-      <div class="nido-mtable-badges">
-        ${_nidoMobileBadgeHtml(posC, p.pos || '—')}
-        ${teamBadges}
-      </div>
-    </td>`;
-  }
-
-  function _nidoMobileTd(colKey, value, activeColKey, colorOverride) {
-    const isActive = activeColKey === colKey;
-    const cls = isActive ? ' nido-mtable-active' : '';
-    const style = colorOverride ? ` style="color:${colorOverride};"` : '';
-    return `<td class="nido-mtable-td${cls}"${style}>${value}</td>`;
-  }
-
-  function _renderNidoMobileTable(rows, activeColKey, promSwap, isPjRank) {
-    const total = rows.length;
+  function nv3Cards(rows, key) {
+    const m = NV3_METRIC[key] || NV3_METRIC.pj;
+    const showKey = (key === 'nombre' || key === 'pos') ? 'pj' : key;
+    const sm = NV3_METRIC[showKey];
     const visible = rows.slice(0, _nidoMobileVisible);
-
-    const cols = isPjRank ? [
-      { key: 'pj',     label: 'PJ' },
-      { key: 'pg',     label: 'PG', color: '#22c55e' },
-      { key: 'pe',     label: 'PE', color: '#f59e0b' },
-      { key: 'pp',     label: 'PP', color: '#ef4444' },
-      { key: 'goles',  label: 'G' },
-      { key: 'asist',  label: 'A' },
-      { key: 'gmas',   label: 'G+A' },
-    ] : [
-      { key: 'pj',      label: 'PJ' },
-      { key: 'goles',   label: promSwap?.replaces === 'goles' ? promSwap.header : 'GOLES' },
-      { key: 'asist',   label: promSwap?.replaces === 'asist' ? promSwap.header : 'ASIST' },
-      { key: 'gmas',    label: promSwap?.replaces === 'gmas'  ? promSwap.header : 'G+A' },
-      { key: 'titulos', label: 'TÍT.' },
-      { key: 'vallas',  label: promSwap?.replaces === 'vallas' ? promSwap.header : 'VALLAS' },
-    ];
-
-    // Con un ranking activo (dropdown "RANKING POR"), la columna por la que
-    // se está ordenando pasa a ser la primera después de la columna fija de
-    // Jugador — así queda pegada sin tener que scrollear horizontal para
-    // verla. Sin ranking activo (orden por defecto/columna del desktop),
-    // se deja el orden fijo de siempre.
-    if (_nidoRank) {
-      const activeIdx = cols.findIndex(c => c.key === activeColKey);
-      if (activeIdx > 0) cols.unshift(cols.splice(activeIdx, 1)[0]);
-    }
-
-    // Headers clickeables también en mobile (antes solo texto fijo — el
-    // único control de orden era el dropdown "RANKING POR", que siempre
-    // fuerza descendente y no deja invertir mayor↔menor dentro del mismo
-    // ranking). Mismo criterio que desktop: en modo "Partidos Jugados"
-    // (isPjRank) va por _nidoPjSortBy (mantiene ese sub-orden propio),
-    // el resto por window._nidoSort (que desde el fix de arriba ya
-    // mantiene prendido el pill de ranking activo si la columna tiene uno).
-    const theadCells = cols.map(c => {
-      const sortFn = isPjRank ? `window._nidoPjSortBy('${c.key}')` : `window._nidoSort('${c.key}')`;
-      return `<th class="nido-mtable-th${activeColKey === c.key ? ' nido-mtable-th-active' : ''}" onclick="${sortFn}">${c.label}</th>`;
+    const max = Math.max(1, ...rows.map(p => Number(nv3Val(p, showKey)) || 0));
+    const cards = visible.map((p, i) => {
+      const v = nv3Val(p, showKey);
+      return `<div class="nv3-card" ${nv3Open(p)} role="button" tabindex="0">
+        <div class="nv3-card-top">
+          <span class="nv3-card-rank">${_nidoRank ? (i + 1) + 'º' : ''}</span>
+          ${nv3Avatar(p)}
+          <div class="nv3-card-id">
+            <div class="nv3-card-name">${nv3Esc(p.nombre)}</div>
+            <div class="nv3-card-meta">${nv3PosPill(p)}${nv3Teams(p)}</div>
+          </div>
+          <div class="nv3-card-big"><b>${v == null ? '…' : nv3Fmt(v, sm.f ? 2 : 0)}</b><small>${nv3Esc(sm.short)}</small></div>
+        </div>
+        <div class="nv3-meter"><i style="width:${v == null ? 0 : Math.max(3, Math.round((Number(v) || 0) / max * 100))}%"></i></div>
+        <div class="nv3-card-stats">
+          <span><b>${p.pj || 0}</b>PJ</span><span><b>${p.goles || 0}</b>G</span><span><b>${p.asist || 0}</b>A</span>
+          <span><b>${p.titulos || 0}</b>Tít.</span><span><b>${p.vallas || 0}</b>VI</span>
+          <button class="nv3-cmp" title="Comparar" onclick="event.stopPropagation();window.v3&&window.v3.compareWith&&window.v3.compareWith('${nv3Js(p.nombre)}')">⇄</button>
+        </div>
+        ${nv3VedBar(p)}
+      </div>`;
     }).join('');
+    const more = rows.length > _nidoMobileVisible
+      ? `<button class="nv3-more" onclick="window._nidoLoadMore()">Ver más jugadores <span>${rows.length - _nidoMobileVisible} restantes</span></button>` : '';
+    return `<div class="nv3-cards">${cards}</div>${more}`;
+  }
 
-    const rowsHtml = visible.map((p, i) => {
-      const cellsHtml = cols.map(c => {
-        let val, colorOverride;
-        if (c.key === 'pg' || c.key === 'pe' || c.key === 'pp') {
-          // Ver _matchDataReadyOnce: antes de la primera carga completa,
-          // PG/PE/PP pueden estar incompletos — placeholder de carga en
-          // vez de un número que cambia solo apenas termina de cargar.
-          const ved = _nidoVedReady() ? _nidoGetVED(p.nombre) : null;
-          val = ved ? (c.key === 'pg' ? ved.v : c.key === 'pe' ? ved.e : ved.d) : '…';
-          colorOverride = c.color;
-        } else {
-          val = _nidoStatValue(p, c.key, promSwap);
-        }
-        return _nidoMobileTd(c.key, val, activeColKey, colorOverride);
+  function nv3Table(rows, key) {
+    const isPj = _nidoRank === 'pj';
+    const promSwap = _nidoRank ? PROM_MAP[_nidoRank] : null;
+    const cols = isPj
+      ? ['pj', 'pg', 'pe', 'pp', 'goles', 'asist', 'gmas']
+      : ['pj', 'goles', 'asist', 'gmas', 'titulos', 'vallas'];
+    const colKey = c => (promSwap && promSwap.replaces === c) ? promSwap.field : c;
+    const activeCol = promSwap ? promSwap.replaces : key;
+    const head = c => {
+      const k = colKey(c), m = NV3_METRIC[k] || {};
+      const on = activeCol === c;
+      const fn = isPj ? `window._nidoPjSortBy('${c}')` : `window._nidoSort('${k}')`;
+      return `<th class="nv3-th-num${on ? ' on' : ''}" onclick="${fn}">${nv3Esc(m.short || c)}${on ? `<span class="nv3-arrow">${nv3IsAsc() ? '▲' : '▼'}</span>` : ''}</th>`;
+    };
+    const body = rows.map((p, i) => {
+      const pod = _nidoRank && !nv3IsAsc() && i < 3 ? ` nv3-tr-pod nv3-tr-pod-${i + 1}` : '';
+      const cells = cols.map(c => {
+        const k = colKey(c), m = NV3_METRIC[k] || {};
+        const v = nv3Val(p, k);
+        const cls = (activeCol === c ? 'on ' : '') + (c === 'pg' ? 'w' : c === 'pe' ? 'd' : c === 'pp' ? 'l' : '');
+        return `<td class="nv3-td-num ${cls}">${v == null ? '…' : nv3Fmt(v, m.f ? 2 : 0)}</td>`;
       }).join('');
-      return `<tr onclick="goToPlayer('${p.nombre.replace(/'/g, "\\'")}')">${_nidoMobileStickyCell(p, i)}${cellsHtml}</tr>`;
+      return `<tr class="nv3-tr${pod}" ${nv3Open(p)}>
+        <td class="nv3-td-rank">${_nidoRank ? i + 1 : ''}</td>
+        <td class="nv3-td-player"><div class="nv3-player">${nv3Avatar(p)}<div class="nv3-player-id"><span class="nv3-player-name">${nv3Esc(p.nombre)}</span>${isPj ? nv3VedBar(p) : ''}</div></div></td>
+        <td class="nv3-td-pos">${nv3PosPill(p)}</td>
+        <td class="nv3-td-team">${nv3Teams(p)}</td>
+        ${cells}
+        <td class="nv3-td-cmp"><button class="nv3-cmp" title="Comparar" onclick="event.stopPropagation();window.v3&&window.v3.compareWith&&window.v3.compareWith('${nv3Js(p.nombre)}')">⇄</button></td>
+      </tr>`;
     }).join('');
+    const sortTh = (k, label, cls) => `<th class="${cls}${!_nidoRank && _nidoSort.col === k ? ' on' : ''}" onclick="window._nidoSort('${k}')">${label}${!_nidoRank && _nidoSort.col === k ? `<span class="nv3-arrow">${_nidoSort.asc ? '▲' : '▼'}</span>` : ''}</th>`;
+    return `<div class="nv3-table-wrap"><table class="nv3-table">
+      <thead><tr><th class="nv3-td-rank">#</th>${sortTh('nombre', 'Jugador', 'nv3-th-player')}${sortTh('pos', 'Pos', 'nv3-td-pos')}<th class="nv3-td-team">Plantel</th>${cols.map(head).join('')}<th class="nv3-td-cmp"></th></tr></thead>
+      <tbody>${body || `<tr><td colspan="${cols.length + 5}" class="nv3-empty">No hay jugadores con esos filtros.</td></tr>`}</tbody>
+    </table></div>`;
+  }
 
-    const loadMoreHtml = total > _nidoMobileVisible
-      ? `<button class="nido-load-more" onclick="window._nidoLoadMore()">Cargar más jugadores (${total - _nidoMobileVisible} restantes)</button>`
-      : '';
+  // Contenido que se repinta con la búsqueda / "ver más" (sin re-dibujar
+  // los filtros, así el input no pierde el foco mientras se escribe).
+  function renderTable() {
+    const rows = filteredData();
+    const key = nv3ActiveKey();
+    const m = NV3_METRIC[key] || {};
+    const view = nv3View();
+    const status = `<div class="nv3-status">
+      <span><b>${rows.length}</b> de <b>${activeDataset().length}</b> jugadores${_nidoQuery ? ` · "${nv3Esc(_nidoQuery)}"` : ''}</span>
+      <span class="nv3-status-sort">${_nidoRank ? 'Ranking' : 'Orden'}: <b>${nv3Esc(m.label || key)}</b> ${nv3IsAsc() ? '↑ menor a mayor' : '↓ mayor a menor'}</span>
+      ${_nidoRank === 'pj' && !_nidoVedReady() ? '<span class="nv3-status-load">Calculando ganados/empatados/perdidos…</span>' : ''}
+    </div>`;
+    if (!rows.length) return status + `<div class="nv3-empty-box">No encontramos jugadores con esos filtros.<button onclick="window._nidoResetAll()">Limpiar filtros</button></div>`;
+    return status + nv3Podium(rows, key) + (view === 'cards' ? nv3Cards(rows, key) : nv3Table(rows, key));
+  }
 
-    return `<div class="nido-mobile-only nido-mtable-wrap">
-      <div class="nido-mtable-scroll">
-        <table class="nido-mtable">
-          <thead><tr><th class="nido-mtable-sticky-th">JUGADOR / EQUIPO</th>${theadCells}</tr></thead>
-          <tbody>${rowsHtml || `<tr><td class="nido-mtable-empty" colspan="${cols.length + 1}">Sin resultados</td></tr>`}</tbody>
-        </table>
+  function nv3Summary(ds) {
+    const sum = k => ds.reduce((a, p) => a + (Number(p[k]) || 0), 0);
+    const byPos = { ARQ: 0, DEF: 0, MC: 0, DEL: 0 };
+    ds.forEach(p => {
+      const ps = normPos(p.pos);
+      if (ps === 'ARQ') byPos.ARQ++;
+      else if (['LI', 'LD', 'DFC', 'DEF', 'DFI', 'DFD'].includes(ps)) byPos.DEF++;
+      else if (['MC', 'MCO'].includes(ps)) byPos.MC++;
+      else if (['DEL', 'DC', 'ED', 'EI'].includes(ps)) byPos.DEL++;
+    });
+    const tot = Math.max(1, byPos.ARQ + byPos.DEF + byPos.MC + byPos.DEL);
+    const seg = (k, c, lbl) => byPos[k] ? `<i style="width:${(byPos[k] / tot * 100).toFixed(1)}%;background:${c}" title="${lbl}: ${byPos[k]}"></i>` : '';
+    const kpi = (v, l) => `<div class="nv3-kpi"><b>${v}</b><span>${l}</span></div>`;
+    return `<div class="nv3-kpis">
+      ${kpi(ds.length, 'Jugadores')}${kpi(sum('goles'), 'Goles')}${kpi(sum('asist'), 'Asistencias')}${kpi(sum('vallas'), 'Vallas invictas')}
+      <div class="nv3-kpi nv3-kpi-pos"><span>Por posición</span>
+        <div class="nv3-posbar">${seg('ARQ', '#c4b5fd', 'Arqueros')}${seg('DEF', '#7dd3fc', 'Defensores')}${seg('MC', '#f3c24f', 'Mediocampistas')}${seg('DEL', '#fda4af', 'Delanteros')}</div>
+        <div class="nv3-poslegend"><span style="--pc:#c4b5fd">ARQ ${byPos.ARQ}</span><span style="--pc:#7dd3fc">DEF ${byPos.DEF}</span><span style="--pc:#f3c24f">MC ${byPos.MC}</span><span style="--pc:#fda4af">DEL ${byPos.DEL}</span></div>
       </div>
-      ${loadMoreHtml}
     </div>`;
   }
 
   function _renderNidoContent() {
     const el = document.getElementById('nido-content');
     if (!el) return;
-
+    const searchFocused = document.activeElement && document.activeElement.id === 'nido-search';
     if (!_nidoMerged) {
-      el.innerHTML = `<div style="text-align:center;padding:80px 0;color:#6c7f76;">
-        <div style="font-size:36px;margin-bottom:14px;">⏳</div>
-        <div style="font-size:14px;">Cargando base de datos de jugadores…</div>
-      </div>`;
+      el.innerHTML = `<div class="nv3"><div class="nv3-hero"><div class="nv3-hero-txt"><span class="nv3-kicker">Base de datos del club</span><h2 class="nv3-title">El Nido</h2></div></div>
+        <div class="nv3-loading"><div class="nv3-spin"></div>Cargando a todos los jugadores…</div></div>`;
       return;
     }
-
-    const teamBtns = [
-      { key: 'todos', label: 'Todos' },
-      { key: 'a',     label: 'Primera A' },
-      { key: 'b',     label: 'Primera B' },
-    ].map(f => {
-      const active = f.key === _nidoTeam;
-      const bg = active ? 'rgba(234,179,8,0.2)' : 'rgba(255,255,255,0.05)';
-      const cl = active ? '#eab308' : '#9eada6';
-      const bd = active ? '1px solid rgba(234,179,8,0.4)' : '1px solid rgba(255,255,255,0.08)';
-      const fw = active ? '700' : '500';
-      return `<button onclick="window._nidoTeam('${f.key}')" style="padding:6px 15px;border-radius:20px;background:${bg};color:${cl};border:${bd};font-size:12px;font-weight:${fw};cursor:pointer;transition:all .15s;">${f.label}</button>`;
+    const ds = activeDataset();
+    const posCount = p => ds.filter(x => normPos(x.pos) === p).length;
+    const seg = [{ k: 'todos', l: 'Todos' }, { k: 'a', l: 'Primera A' }, { k: 'b', l: 'Primera B' }]
+      .map(f => `<button class="${_nidoTeam === f.k ? 'on' : ''}" data-t="${f.k}" onclick="window._nidoTeam('${f.k}')">${f.l}</button>`).join('');
+    const posChips = ['todas', ...POSICIONES].map(p => {
+      const on = _nidoPos === p;
+      const n = p === 'todas' ? ds.length : posCount(p);
+      return `<button class="nv3-chip${on ? ' on' : ''}" style="--pc:${p === 'todas' ? '#34d17b' : nv3PosC(p)}" onclick="window._nidoPosSelect('${p}')">${p === 'todas' ? 'Todas' : p}<span>${n}</span></button>`;
     }).join('');
+    const rankChips = RANK_METRICS.map(m => `<button class="nv3-rchip${_nidoRank === m.key ? ' on' : ''}" onclick="window._nidoRankMode('${m.key}')">${nv3Esc((NV3_METRIC[m.key] || {}).label || m.label)}</button>`).join('');
+    const pjSub = _nidoRank === 'pj' ? `<div class="nv3-subsort"><span>Ordenar por</span>${['pj', 'pg', 'pe', 'pp'].map(c =>
+      `<button class="nv3-sub nv3-sub-${c}${_nidoPjSort.col === c ? ' on' : ''}" onclick="window._nidoPjSortBy('${c}')">${c.toUpperCase()}</button>`).join('')}</div>` : '';
+    const view = nv3View();
 
-    const posOptions = ['todas', ...POSICIONES];
-    const posLabel = _nidoPos === 'todas' ? 'TODAS' : _nidoPos;
-    const posOpen = _nidoPosOpen;
-    const posMenu = posOptions.map(p => {
-      const active = _nidoPos === p;
-      const lbl = p === 'todas' ? 'TODAS' : p;
-      return `<div onclick="window._nidoPosSelect('${p}')" style="padding:7px 14px;font-size:12px;font-weight:${active ? '700' : '500'};color:${active ? '#eab308' : '#d2dad6'};background:${active ? 'rgba(234,179,8,0.12)' : 'transparent'};cursor:pointer;white-space:nowrap;" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='${active ? 'rgba(234,179,8,0.12)' : 'transparent'}'">${lbl}</div>`;
-    }).join('');
-    // BUG REAL reportado con captura (desktop): el header pegajoso de la
-    // tabla (más abajo, TH) usa position:sticky + z-index:20 — EXACTO el
-    // mismo z-index que este panel. Empatados, gana el que aparece DESPUÉS
-    // en el HTML (la tabla, que se arma después del filtro acá arriba), así
-    // que el header terminaba pintado ENCIMA del desplegable abierto,
-    // tapando la opción "DFC" que le tocaba quedar justo detrás. z-index
-    // más alto que el de la tabla lo resuelve sin tocar el header (que sí
-    // necesita ganarle a las filas normales de la tabla, z-index más bajo).
-    const posDropdown = `
-      <div id="nido-pos-dropdown" style="position:relative;display:inline-block;">
-        <button onclick="window._nidoPosToggle()" style="padding:6px 15px;border-radius:20px;background:${_nidoPos !== 'todas' ? 'rgba(234,179,8,0.2)' : 'rgba(255,255,255,0.05)'};color:${_nidoPos !== 'todas' ? '#eab308' : '#9eada6'};border:1px solid ${_nidoPos !== 'todas' ? 'rgba(234,179,8,0.4)' : 'rgba(255,255,255,0.08)'};font-size:12px;font-weight:${_nidoPos !== 'todas' ? '700' : '500'};cursor:pointer;display:flex;align-items:center;gap:5px;">POS: ${posLabel} <span style="font-size:9px;opacity:.7;">▾</span></button>
-        ${posOpen ? `<div style="position:absolute;top:calc(100% + 4px);left:0;z-index:30;background:#18261f;border:1px solid rgba(255,255,255,0.1);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.4);overflow-x:hidden;overflow-y:auto;max-height:280px;min-width:110px;">${posMenu}</div>` : ''}
-      </div>`;
-
-    const rankBtns = RANK_METRICS.map(m => {
-      const active = _nidoRank === m.key;
-      const bg = active ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.05)';
-      const cl = active ? '#a5b4fc' : '#9eada6';
-      const bd = active ? '1px solid rgba(99,102,241,0.4)' : '1px solid rgba(255,255,255,0.08)';
-      const fw = active ? '700' : '500';
-      return `<button onclick="window._nidoRankMode('${m.key}')" style="padding:6px 13px;border-radius:20px;background:${bg};color:${cl};border:${bd};font-size:12px;font-weight:${fw};cursor:pointer;transition:all .15s;">${m.label}</button>`;
-    }).join('');
-
-    el.innerHTML = `
-      <div style="margin-bottom:20px;">
-        <div style="font-size:21px;font-weight:800;color:#f2f8f5;letter-spacing:-.3px;">Base de Datos de Jugadores</div>
-        <div style="font-size:12px;color:#4c6257;margin-top:3px;">Club Santa Bárbara — Primera A &amp; Primera B</div>
-      </div>
-
-      <div class="nido-desktop-only" style="display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:14px;">
-        <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
-          <span style="font-size:11px;color:#4c6257;font-weight:600;letter-spacing:.05em;white-space:nowrap;">PLANTEL</span>
-          ${teamBtns}
+    el.innerHTML = `<div class="nv3">
+      <section class="nv3-hero">
+        <div class="nv3-hero-txt">
+          <span class="nv3-kicker">Base de datos del club · Primera A y Primera B</span>
+          <h2 class="nv3-title">El Nido</h2>
+          <p class="nv3-lead">Todos los jugadores que vistieron la camiseta de Santa Bárbara, con sus números de carrera. Tocá cualquiera para ver su perfil completo.</p>
         </div>
-        <div style="width:1px;height:24px;background:rgba(255,255,255,0.08);flex-shrink:0;"></div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
-          ${posDropdown}
-        </div>
-        <div style="width:1px;height:24px;background:rgba(255,255,255,0.08);flex-shrink:0;"></div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
-          <span style="font-size:11px;color:#4c6257;font-weight:600;letter-spacing:.05em;white-space:nowrap;">RANKING</span>
-          ${rankBtns}
-          ${_nidoRank ? `<button onclick="window._nidoRankMode(null)" style="padding:6px 10px;border-radius:20px;background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.25);font-size:11px;cursor:pointer;">✕ Quitar</button>` : ''}
-        </div>
-        <div style="flex:1;"></div>
-        <input id="nido-search" type="text" placeholder="Buscar jugador…" value="${_nidoQuery}"
-          oninput="window._nidoSearch(this.value)"
-          style="min-width:170px;max-width:260px;padding:7px 13px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#f2f8f5;font-size:13px;outline:none;" />
-      </div>
+        ${nv3Summary(ds)}
+      </section>
 
-      <div class="nido-mobile-only nido-mobile-filters">
-        <input id="nido-search-mobile" type="text" class="nido-mobile-search" placeholder="Buscar jugador…" value="${_nidoQuery}"
-          oninput="window._nidoSearch(this.value)" />
-        <div class="nido-mobile-filter-label">PLANTEL</div>
-        <div class="nido-mobile-filter-row">${teamBtns}</div>
-        <div class="nido-mobile-select-grid">
-          <div>
-            <div class="nido-mobile-filter-label">POSICIÓN</div>
-            <select class="nido-mobile-select" onchange="window._nidoPosSelect(this.value)">
-              ${posOptions.map(p => `<option value="${p}" ${p === _nidoPos ? 'selected' : ''}>${p === 'todas' ? 'Todas' : p}</option>`).join('')}
-            </select>
-          </div>
-          <div>
-            <div class="nido-mobile-filter-label">RANKING POR</div>
-            <select class="nido-mobile-select nido-mobile-select-rank" onchange="window._nidoRankMode(this.value)">
-              <option value="" ${!_nidoRank ? 'selected' : ''}>Sin ranking</option>
-              ${RANK_METRICS.map(m => `<option value="${m.key}" ${_nidoRank === m.key ? 'selected' : ''}>${m.label}</option>`).join('')}
-            </select>
+      <section class="nv3-controls">
+        <div class="nv3-row nv3-row-main">
+          <label class="nv3-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input id="nido-search" type="search" placeholder="Buscar jugador…" value="${nv3Esc(_nidoQuery)}" oninput="window._nidoSearch(this.value)" autocomplete="off"></label>
+          <div class="nv3-seg">${seg}</div>
+          <div class="nv3-viewtoggle" role="group" aria-label="Vista">
+            <button class="${view === 'tabla' ? 'on' : ''}" onclick="window._nidoView('tabla')" title="Tabla"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+            <button class="${view === 'cards' ? 'on' : ''}" onclick="window._nidoView('cards')" title="Tarjetas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></button>
           </div>
         </div>
-        ${_nidoRank === 'pj' ? `
-        <div class="nido-pj-subsort">
-          <div class="nido-pj-subsort-label">Ordenar "Partidos Jugados" por</div>
-          <div class="nido-pj-subsort-chips">
-            ${['pj', 'pg', 'pe', 'pp'].map(col => {
-              const active = _nidoPjSort.col === col;
-              return `<button class="nido-pj-chip nido-pj-chip-${col}${active ? ' active' : ''}" onclick="window._nidoPjSortBy('${col}')">${col.toUpperCase()}</button>`;
-            }).join('')}
-          </div>
-        </div>` : ''}
-        <div class="nido-mobile-summary">Mostrando <strong>${filteredData().length}</strong> de <strong>${activeDataset().length}</strong> jugadores${_nidoRank ? ` · RANKING — ${(RANK_METRICS.find(m => m.key === _nidoRank) || {}).label || ''}` : ''}</div>
-      </div>
+        <div class="nv3-row"><span class="nv3-lbl">Posición</span><div class="nv3-scroll">${posChips}</div></div>
+        <div class="nv3-row"><span class="nv3-lbl">Ranking</span><div class="nv3-scroll">${rankChips}
+          ${_nidoRank ? `<button class="nv3-dir" onclick="${_nidoRank === 'pj' ? `window._nidoPjSortBy('${_nidoPjSort.col}')` : `window._nidoSort('${_nidoRank}')`}" title="Invertir orden">${nv3IsAsc() ? '↑ Menor a mayor' : '↓ Mayor a menor'}</button>
+          <button class="nv3-clear" onclick="window._nidoRankMode(null)">✕ Quitar</button>` : ''}</div></div>
+        ${pjSub}
+      </section>
 
       <div id="nido-table-container">${renderTable()}</div>
-    `;
+    </div>`;
+    if (searchFocused) {
+      const inp = document.getElementById('nido-search');
+      if (inp) { inp.focus(); const n = inp.value.length; inp.setSelectionRange(n, n); }
+    }
   }
+  window._nidoView = function (v) {
+    _nidoView = v;
+    try { localStorage.setItem('nido-view', v); } catch (e) {}
+    _nidoMobileVisible = 24;
+    _renderNidoContent();
+  };
+  window._nidoResetAll = function () {
+    _nidoPos = 'todas'; _nidoQuery = ''; _nidoTeam = 'todos';
+    _renderNidoContent(); _nidoUpdateRoute();
+  };
 
   let _nidoLoadPromise = null;
   // Shared loader: dedupes concurrent callers (renderNido + player profile) into one fetch.
@@ -23333,7 +23118,6 @@ async function loadLiveData() {
 
   // ── Public accessors used by the Player Profile component ──────────────
   window._nidoEnsureLoaded = _nidoLoad;
-  window._nidoGetMerged = () => _nidoMerged;
   window._nidoGetTeamData  = function(team) { return team === 'b' ? _nidoDataB : _nidoDataA; };
   window._nidoGetMerged    = function() { return _nidoMerged || []; };
   // Same ranking list the "Base de Datos de Jugadores" filter buttons use —
@@ -23358,7 +23142,7 @@ async function loadLiveData() {
     else parts.push('col', _nidoSort.col, 'dir', _nidoSort.asc ? 'asc' : 'desc');
     _routeSetTorneoBase(parts);
   }
-  window._nidoTeam = function(t) { _nidoTeam = t; _nidoMobileVisible = 15; _renderNidoContent(); _nidoUpdateRoute(); };
+  window._nidoTeam = function(t) { _nidoTeam = t; _nidoMobileVisible = 24; _renderNidoContent(); _nidoUpdateRoute(); };
   // BUG REAL reportado (desktop): el desplegable de POS no tenía ninguna
   // forma de cerrarse tocando afuera — solo se cerraba eligiendo una
   // posición, así que se quedaba abierto tapando la tabla de jugadores de
@@ -23374,12 +23158,12 @@ async function loadLiveData() {
     _renderNidoContent();
     if (_nidoPosOpen) setTimeout(() => document.addEventListener('click', _nidoPosOutsideClick, { once: true }), 0);
   };
-  window._nidoPosSelect = function(p) { _nidoPos = p; _nidoPosOpen = false; _nidoMobileVisible = 15; _renderNidoContent(); _nidoUpdateRoute(); };
+  window._nidoPosSelect = function(p) { _nidoPos = p; _nidoPosOpen = false; _nidoMobileVisible = 24; _renderNidoContent(); _nidoUpdateRoute(); };
   // Only refresh the results table on each keystroke — never touch the input's
   // parent innerHTML, or the DOM node (and keyboard focus) would be destroyed.
   window._nidoSearch = function(q) {
     _nidoQuery = q;
-    _nidoMobileVisible = 15;
+    _nidoMobileVisible = 24;
     const c = document.getElementById('nido-table-container');
     if (c) c.innerHTML = renderTable();
   };
@@ -23397,7 +23181,7 @@ async function loadLiveData() {
       else if (_nidoRank === col) _nidoSort.asc = !_nidoSort.asc;
       else _nidoSort = { col, asc: false };
       _nidoRank = col;
-      _nidoMobileVisible = 15;
+      _nidoMobileVisible = 24;
       _renderNidoContent();
       _nidoUpdateRoute();
       return;
@@ -23406,7 +23190,7 @@ async function loadLiveData() {
     if (forceAsc != null) _nidoSort = { col, asc: forceAsc };
     else if (_nidoSort.col === col) _nidoSort.asc = !_nidoSort.asc;
     else { _nidoSort.col = col; _nidoSort.asc = false; }
-    _nidoMobileVisible = 15;
+    _nidoMobileVisible = 24;
     _renderNidoContent();
     _nidoUpdateRoute();
   };
@@ -23414,7 +23198,7 @@ async function loadLiveData() {
     _nidoRank = m;
     if (m) _nidoSort = { col: m, asc: false };
     if (m === 'pj') _nidoPjSort = { col: 'pj', asc: false };
-    _nidoMobileVisible = 15;
+    _nidoMobileVisible = 24;
     _renderNidoContent();
     _nidoUpdateRoute();
   };
@@ -23424,11 +23208,11 @@ async function loadLiveData() {
   window._nidoPjSortBy = function(col) {
     if (_nidoPjSort.col === col) _nidoPjSort.asc = !_nidoPjSort.asc;
     else { _nidoPjSort = { col, asc: false }; }
-    _nidoMobileVisible = 15;
+    _nidoMobileVisible = 24;
     _renderNidoContent();
   };
   window._nidoLoadMore = function() {
-    _nidoMobileVisible += 15;
+    _nidoMobileVisible += 24;
     const c = document.getElementById('nido-table-container');
     if (c) c.innerHTML = renderTable();
   };
