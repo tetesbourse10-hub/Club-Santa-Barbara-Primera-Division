@@ -23407,7 +23407,7 @@ function _jxtTablaHtml(rows, opts) {
     const team = t.csb
       ? `<span class="jxt-team"><span class="jxt-crest">${_teamCrestHtml(t.equipo, true)}</span><b>${_jxEsc(t.equipo)}</b></span>`
       : `<span class="jxt-team is-link" onclick="event.stopPropagation();goToRivalHistorial('${_jxJs(t.equipo)}')"><span class="jxt-crest">${_teamCrestHtml(t.equipo, false)}</span><b>${_jxEsc(t.equipo)}</b></span>`;
-    return `<tr class="${t.csb ? 'csb' : ''} ${i === 0 ? 'lead' : ''}">
+    return `<tr class="${t.csb ? 'csb' : ''}">
       <td class="jxt-pos">${i === 0 ? '<span class="jxt-cup">1</span>' : i + 1}</td>
       <td class="jxt-tm">${team}</td>
       ${two ? `<td>${side(t.ap)}</td><td>${side(t.cl)}</td>` : `<td class="jxt-copa">${t.copas && t.copas !== '-' ? _anualesCopaBadgeSingle(t.copas) : '<span class="jxt-dash">—</span>'}</td>`}
