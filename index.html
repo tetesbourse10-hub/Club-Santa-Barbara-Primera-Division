@@ -8577,8 +8577,7 @@ function _ppV3SeasonChart(catList) {
       const on = sel === String(y.y);
       const dim = sel !== 'todos' && !on;
       return `<button class="ppv3-bar${on ? ' on' : ''}${dim ? ' dim' : ''}" onclick="_ppV3YearFromChart('${y.y}')" title="${y.y}: ${y.pj} PJ · ${y.goles} G · ${y.asist} A">
-        <span class="ppv3-bar-plot"><span class="ppv3-bar-val">${y.pj}<small> PJ</small></span><span class="ppv3-bar-col" style="height:${h(y.pj)}%"></span></span>
-        <span class="ppv3-bar-ga"><i class="g" style="width:${y.goles ? Math.max(10, y.goles / gmax * 100) : 0}%"></i><i class="a" style="width:${y.asist ? Math.max(10, y.asist / gmax * 100) : 0}%"></i></span>
+        <span class="ppv3-bar-plot"><span class="ppv3-bar-val">${y.pj}<small> PJ</small></span><span class="ppv3-bar-col" style="height:${h(y.pj)}%">${y.goles ? `<i class="g" style="height:${Math.max(6, Math.min(100, y.goles / y.pj * 100))}%"></i>` : ''}${y.asist ? `<i class="a" style="height:${Math.max(6, Math.min(100, y.asist / y.pj * 100))}%"></i>` : ''}</span></span>
         <span class="ppv3-bar-nums"><b style="color:${_PPV3_C.goles}">⚽ ${y.goles}</b><b style="color:${_PPV3_C.asist}">👟 ${y.asist}</b></span>
         <span class="ppv3-bar-y">${y.y}</span>
       </button>`;

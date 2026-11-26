@@ -1077,3 +1077,8 @@ body.v3-profile #v3-topbar, body.v3-profile #v3-bottomnav { display: none !impor
   .ppv3-bar { flex: 0 0 72px; }
   .ppv3-bar-plot { height: 110px; }
 }
+/* Barritas de goles/asistencias DENTRO de la barra de partidos */
+.ppv3-bar .ppv3-bar-col { display: flex; align-items: flex-end; justify-content: center; gap: 3px; padding: 0 6px; }
+.ppv3-bar .ppv3-bar-col i { display: block; flex: 1; max-width: 12px; border-radius: 3px 3px 0 0; }
+.ppv3-bar .ppv3-bar-col i.g { background: #ef9f27; }
+.ppv3-bar .ppv3-bar-col i.a { background: #97c459; }
