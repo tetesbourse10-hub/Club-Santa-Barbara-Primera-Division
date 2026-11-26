@@ -19227,96 +19227,89 @@ function renderGraficos() {
 
   function render() {
     const yearGroup = byYear.find(y => y.anio === selectedYear);
+    const isBv = currentData === DATA_B;
+    const teamName = isBv ? 'Primera B' : 'Primera A';
+    const view = _grafPanelState[yearStateKey] === 'resumen' ? 'tabla' : 'temp';
+    const esc = v => String(v == null ? '' : v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const kind = t => {
+      const esCamp = t.forceColor ? t.forceColor === 'oro' : isCampeon(t.pos);
+      const esSubc = t.forceColor ? t.forceColor === 'plata' : isSubcampeon(t.pos);
+      const esAsc = isAscenso(t.pos);
+      return esCamp ? 'oro' : esSubc ? 'plata' : esAsc ? 'asc' : '';
+    };
+    const shortPos = t => {
+      const k = kind(t);
+      if (k === 'oro') return isAscenso(t.pos) ? 'Campeón y ascenso' : 'Campeón';
+      if (k === 'plata') return 'Subcampeón';
+      return t.pos && t.pos !== '?' ? t.pos : '—';
+    };
+    // Totales de toda la historia
+    const T = source.reduce((a, t) => { a.pj += t.pj || 0; a.pg += t.pg || 0; a.pe += t.pe || 0; a.pp += t.pp || 0; a.gf += t.gf || 0; a.gc += t.gc || 0; return a; }, { pj: 0, pg: 0, pe: 0, pp: 0, gf: 0, gc: 0 });
+    const titulos = sorted.filter(t => kind(t) === 'oro');
+    const subs = sorted.filter(t => kind(t) === 'plata').length;
+    const ascensos = sorted.filter(t => isAscenso(t.pos)).length;
+    const tt = Math.max(1, T.pg + T.pe + T.pp);
+    const firstYear = byYear.length ? byYear[byYear.length - 1].anio : '';
 
-    const yearNav = byYear.map(y =>
-      `<button class="hist-year-pill${y.anio === selectedYear ? ' active' : ''}"
-               onclick="window._grafYear(${y.anio})">${y.anio}</button>`
-    ).join('');
-
-    const cards = (yearGroup?.torneos || []).map(t => {
-      // Team-scoped key first (A/B can both have a "Recopa"/"Supercopa" the
-      // same year, e.g. 2024 Recopa exists for both) — fall back to the plain
-      // key for entries that only ever exist for one team (Apertura AIFA D, etc).
-      const rich    = TORNEO_NAV_MAP[`${t.anio}|${t.competencia}|${currentData === DATA_B ? 'B' : 'A'}`] || TORNEO_NAV_MAP[`${t.anio}|${t.competencia}`];
-      const esCamp  = t.forceColor ? t.forceColor === 'oro'   : isCampeon(t.pos);
-      const esSubc  = t.forceColor ? t.forceColor === 'plata' : isSubcampeon(t.pos);
-      const esAscensoOnly = !esCamp && !esSubc && !t.forceColor && isAscenso(t.pos);
-      const posClass = esCamp ? 'campeon-txt' : esSubc ? 'subcampeon-txt' : esAscensoOnly ? 'ascenso-txt' : '';
-      const isLongLabel = isAscenso(t.pos); // "Campeón y Ascenso" / "N° y Ascenso" — longer text, uniform smaller size
-      const esCopa  = /recopa|copa/i.test(t.competencia);
-      const richBadge = rich ? `<div class="hist-tc-detail-badge">📊 Estadísticas completas</div>` : '';
+    const card = t => {
+      const rich = TORNEO_NAV_MAP[`${t.anio}|${t.competencia}|${isBv ? 'B' : 'A'}`] || TORNEO_NAV_MAP[`${t.anio}|${t.competencia}`];
+      const esCopa = /recopa|copa/i.test(t.competencia);
+      const k = kind(t);
       const clickFn = rich
         ? `_navPushTorneosAntiguos(); ${rich.fn}`
-        : `_navPush('Torneos Antiguos', () => renderGraficos()); grafDetalle(${JSON.stringify(t).replace(/"/g,'&quot;')})`;
-      // Desktop mantiene el texto coloreado con separadores " - "; mobile
-      // (ver .hist-tc-ved-chips ≤768px) muestra los mismos 3 valores como
-      // chips independientes con fondo, separados por un borde superior —
-      // mismo dato, sin duplicar el cálculo de PG/PE/PP.
-      const record = `<span class="hist-tc-v">${t.pg}V</span> - <span class="hist-tc-e">${t.pe}E</span> - <span class="hist-tc-d">${t.pp}D</span>`;
-      const recordChips = `<div class="hist-tc-ved-chips">
-        <span class="hist-tc-chip hist-tc-chip-v">${t.pg}V</span>
-        <span class="hist-tc-chip hist-tc-chip-e">${t.pe}E</span>
-        <span class="hist-tc-chip hist-tc-chip-d">${t.pp}D</span>
-      </div>`;
-      const footer = esCopa
-        ? `<div class="hist-tc-foot-copa">${t.pj} PJ<span class="hist-tc-record-inline">&nbsp;&nbsp;•&nbsp;&nbsp;${record}</span></div>${recordChips}`
-        : `<div class="hist-tc-foot-liga">
-             <div class="hist-tc-line1">${t.pts != null ? t.pts + ' pts&nbsp;&nbsp;•&nbsp;&nbsp;' : ''}${t.pj} PJ</div>
-             <div class="hist-tc-line2 hist-tc-record-inline">${record}</div>
-           </div>${recordChips}`;
-      return `<div class="hist-torneo-card${esCamp ? ' campeon' : ''}" onclick="${clickFn}">
-        <div class="hist-tc-header">
-          <span class="hist-tc-tipo ${esCopa ? 'copa' : 'liga'}">${esCopa ? 'Copa' : 'Liga'}</span>
-          <span class="hist-tc-name">${cardIcon(t)} ${t.competencia}</span>
+        : `_navPush('Torneos Antiguos', () => renderGraficos()); grafDetalle(${JSON.stringify(t).replace(/"/g, '&quot;')})`;
+      const n = Math.max(1, (t.pg || 0) + (t.pe || 0) + (t.pp || 0));
+      return `<div class="tax-card k-${k || 'n'}" onclick="${clickFn}">
+        <div class="tax-card-h"><span class="tax-ic">${cardIcon(t)}</span><span class="tax-card-n"><b>${esc(t.competencia)}</b><small>${esCopa ? 'Copa' : 'Liga'} · ${t.anio}</small></span></div>
+        <div class="tax-pos"><b>${esc(shortPos(t))}</b>${k === 'asc' && !/campe/i.test(t.pos) ? '<span class="tax-asc">⬆ Ascenso</span>' : ''}</div>
+        <div class="jxyp-t-rec">
+          ${t.pts != null ? `<div><b>${t.pts}</b><span>Pts</span></div>` : `<div><b>${t.pj}</b><span>PJ</span></div>`}
+          <div class="w"><b>${t.pg}</b><span>G</span></div><div class="d"><b>${t.pe}</b><span>E</span></div><div class="l"><b>${t.pp}</b><span>P</span></div>
+          <div><b>${t.gf}:${t.gc}</b><span>Goles</span></div>
         </div>
-        <div class="hist-tc-pos ${esCopa ? 'hist-tc-pos-copa' : 'hist-tc-pos-liga'} ${posClass}${isLongLabel ? ' hist-tc-pos-long' : ''}">${posLabel(t.pos)}</div>
-        ${footer}
-        ${richBadge}
-        <div class="hist-tc-arrow">›</div>
+        <div class="jxy-bar"><i class="w" style="width:${(t.pg / n * 100).toFixed(1)}%"></i><i class="d" style="width:${(t.pe / n * 100).toFixed(1)}%"></i><i class="l" style="width:${(t.pp / n * 100).toFixed(1)}%"></i></div>
+        <span class="tax-go">${rich ? 'Estadísticas completas →' : 'Ver resumen →'}</span>
       </div>`;
-    }).join('');
+    };
 
-    const teamName = currentData === DATA_B ? 'Primera B' : 'Primera A';
-    container.innerHTML = `
-      <div class="graf-section-title">📅 Historial de Torneos</div>
-      <div class="hist-evol-btnrow">
-        <button class="hist-evol-btn" onclick="window._toggleEvolucionHistorica()">📈 Evolución Histórica</button>
-        <button class="hist-evol-btn" onclick="window._toggleHistResumen()">📋 Resumen</button>
-      </div>
-      <div class="hist-evol-panel" id="hist-evol-panel" style="display:none">
-        <div class="hist-evol-title">Evolución histórica — ${teamName}</div>
-        <div class="hist-evol-sub">Posición final por temporada (solo torneos de liga)</div>
-        <div class="hist-evol-scroll" id="hist-evol-scroll">
-          <div style="position:relative;height:220px;" id="hist-evol-canvas-wrap">
-            <canvas id="hist-evol-canvas"></canvas>
-          </div>
+    const tabla = `<div class="jx-table-wrap"><table class="jx-table tax-table"><thead><tr><th>Torneo</th><th class="jx-num">Año</th><th>Posición</th><th class="jx-num">PJ</th><th class="jx-num">G</th><th class="jx-num">E</th><th class="jx-num">P</th><th class="jx-num">GF</th><th class="jx-num">GC</th><th class="jx-num">Dif</th><th class="jx-num">Pts</th></tr></thead><tbody>
+      ${sorted.map(t => {
+        const k = kind(t), df = (t.gf != null && t.gc != null) ? t.gf - t.gc : null, v = x => x != null ? x : '—';
+        return `<tr onclick="window._grafYear(${t.anio}); window._grafView('temp')"><td><span class="tax-tn">${cardIcon(t)} <b>${esc(t.competencia)}</b></span></td><td class="jx-num">${t.anio}</td>
+          <td><span class="tax-chip k-${k || 'n'}">${esc(shortPos(t))}</span></td><td class="jx-num">${v(t.pj)}</td><td class="jx-num hvx-w">${v(t.pg)}</td><td class="jx-num hvx-d">${v(t.pe)}</td><td class="jx-num hvx-l">${v(t.pp)}</td>
+          <td class="jx-num">${v(t.gf)}</td><td class="jx-num">${v(t.gc)}</td><td class="jx-num hvx-dif ${df > 0 ? 'pos' : df < 0 ? 'neg' : ''}">${df != null ? (df > 0 ? '+' : '') + df : '—'}</td><td class="jx-num"><b>${v(t.pts)}</b></td></tr>`;
+      }).join('') || '<tr><td colspan="11" class="jx-empty">Sin torneos registrados.</td></tr>'}</tbody></table></div>`;
+
+    container.innerHTML = `<div class="jx tax">
+      <section class="jx-head tax-head">
+        <div class="tax-id"><span class="jx-kicker">${teamName} · Desde ${firstYear}</span><h2 class="jx-h">Torneos antiguos</h2>
+          <div class="hvx-rec"><div class="w"><b>${T.pg}</b><span>Ganados</span></div><div class="d"><b>${T.pe}</b><span>Empatados</span></div><div class="l"><b>${T.pp}</b><span>Perdidos</span></div></div>
+          <span class="hvx-bar"><i class="w" style="width:${(T.pg / tt * 100).toFixed(1)}%"></i><i class="d" style="width:${(T.pe / tt * 100).toFixed(1)}%"></i><i class="l" style="width:${(T.pp / tt * 100).toFixed(1)}%"></i></span>
         </div>
-      </div>
-      <div class="hist-evol-panel" id="hist-resumen-panel" style="display:none">
-        <div class="hist-evol-title">Resumen de Torneos — ${teamName}</div>
-        <div class="hist-evol-sub">Todos los torneos jugados (liga y copas), para comparar de un vistazo</div>
-        <div class="hist-evol-scroll">
-          <table class="hist-resumen-table">
-            <thead><tr>
-              <th>Torneo</th><th>Año</th><th>Posición</th><th>PJ</th><th>PG</th><th>PE</th><th>PP</th><th>GF</th><th>GC</th><th>DF</th><th>Pts</th>
-            </tr></thead>
-            <tbody></tbody>
-          </table>
+        <div class="jx-kpis tax-kpis">
+          <div><b>${sorted.length}</b><span>Torneos</span></div>
+          <div class="tax-k-gold"><b>${titulos.length}</b><span>Títulos</span></div>
+          <div><b>${subs}</b><span>Subcampeonatos</span></div>
+          <div><b>${ascensos}</b><span>Ascensos</span></div>
+          <div><b>${T.pj}</b><span>Partidos</span></div>
+          <div><b>${T.gf}:${T.gc}</b><span>Goles</span></div>
         </div>
+      </section>
+      ${titulos.length ? `<div class="v3-card tax-palmares"><div class="hdx-card-h">Palmarés <small>${titulos.length} título${titulos.length > 1 ? 's' : ''}</small></div>
+        <div class="tax-trophies">${titulos.map(t => `<button onclick="window._grafYear(${t.anio}); window._grafView('temp')"><span>🏆</span><b>${t.anio}</b><small>${esc(t.competencia)}</small></button>`).join('')}</div></div>` : ''}
+      <div class="v3-card tax-evol"><div class="hdx-card-h">Evolución histórica <small>posición final en cada torneo de liga · 🏆 campeón · ⬆️ ascenso</small></div>
+        <div class="tax-evol-scroll"><div style="position:relative;height:230px" id="hist-evol-canvas-wrap"><canvas id="hist-evol-canvas"></canvas></div></div></div>
+      <div class="tax-bar">
+        <div class="jx-tabs"><button class="${view === 'temp' ? 'on' : ''}" onclick="window._grafView('temp')">Por temporada</button><button class="${view === 'tabla' ? 'on' : ''}" onclick="window._grafView('tabla')">Todos los torneos</button></div>
+        ${view === 'temp' ? `<div class="jxyp-years tax-years">${byYear.map(y => `<button class="${y.anio === selectedYear ? 'on' : ''}" onclick="window._grafYear(${y.anio})">${y.anio}</button>`).join('')}</div>` : ''}
       </div>
-      <div class="hist-year-nav">${yearNav}</div>
-      <div class="hist-year-cards">${cards || '<div style="color:#496758;padding:32px;text-align:center">Sin torneos registrados para este año.</div>'}</div>`;
-    // Reabrir el panel (Evolución/Resumen) que el usuario tenía abierto antes
-    // de este re-render — ver _grafPanelState arriba. Sin esto, cada 60s el
-    // panel abierto se cerraba solo (el container entero se reconstruye).
-    if (_grafPanelState[yearStateKey] === 'evol') {
-      document.getElementById('hist-evol-panel').style.display = 'block';
-      renderEvolucionChart();
-    } else if (_grafPanelState[yearStateKey] === 'resumen') {
-      document.getElementById('hist-resumen-panel').style.display = 'block';
-      renderHistResumenTable();
-    }
+      ${view === 'temp'
+        ? `<div class="tax-grid">${(yearGroup?.torneos || []).map(card).join('') || '<div class="v3-card jx-empty">Sin torneos registrados para este año.</div>'}</div>`
+        : tabla}
+    </div>`;
+    renderEvolucionChart();
   }
+  window._grafView = v => { _grafPanelState[yearStateKey] = v === 'tabla' ? 'resumen' : null; render(); };
 
   // Evolución Histórica — un punto por temporada de LIGA jugada (Apertura/
   // Clausura AIFA), en orden cronológico; copas (Recopa/Supercopa) quedan
@@ -19368,6 +19361,7 @@ function renderGraficos() {
   function renderEvolucionChart() {
     const canvas = document.getElementById('hist-evol-canvas');
     const wrap = document.getElementById('hist-evol-canvas-wrap');
+    if (canvas && wrap && typeof Chart === 'undefined') { setTimeout(renderEvolucionChart, 500); return; }
     if (!canvas || !wrap || typeof Chart === 'undefined') return;
     if (_histEvolChart) { _histEvolChart.destroy(); _histEvolChart = null; }
     const rows = buildEvolucionData();
@@ -19380,8 +19374,8 @@ function renderGraficos() {
     // Primera A: ámbar (mismo criterio que el resto de "campeón" en dorado
     // ya usado en esta sección). Primera B: celeste, para diferenciarse a
     // simple vista de A sin mirar el título.
-    const mainColor  = isB ? '#85b7eb' : '#ef9f27';
-    const fillColor  = isB ? 'rgba(133,183,235,0.08)' : 'rgba(239,159,39,0.08)';
+    const mainColor  = isB ? '#85b7eb' : '#34d17b';
+    const fillColor  = isB ? 'rgba(133,183,235,0.08)' : 'rgba(52,209,123,0.10)';
     const ptColor    = isB ? '#bfe0ff' : '#8ef0b6';
     const ptBorder   = isB ? '#042c53' : '#0e1914';
     const CAMPEON_COLOR = '#fbbf24';
@@ -19537,31 +19531,32 @@ function renderGraficos() {
     _grafInDrilldown = true;
     const esCamp = t.forceColor ? t.forceColor === 'oro'   : isCampeon(t.pos);
     const esSubc = t.forceColor ? t.forceColor === 'plata' : isSubcampeon(t.pos);
-    const esAscensoOnly = !esCamp && !esSubc && !t.forceColor && isAscenso(t.pos);
+    const k = esCamp ? 'oro' : esSubc ? 'plata' : isAscenso(t.pos) ? 'asc' : 'n';
     const ef = t.gf - t.gc;
-    const pct = v => t.pj ? ((v / t.pj) * 100).toFixed(0) + '%' : '—';
-    container.innerHTML = `
-      <div class="graf-detail-back">
-        ${_volverBtnHtml()}
-      </div>
-      <div class="graf-detail-header">
-        <div class="graf-detail-name">${cardIcon(t)} ${t.competencia} ${t.anio}</div>
-        <div class="graf-detail-year">Temporada ${t.anio}</div>
-      </div>
-      <div class="hist-tc-pos ${esCamp ? 'campeon-txt' : esSubc ? 'subcampeon-txt' : esAscensoOnly ? 'ascenso-txt' : ''}" style="font-size:2rem;font-weight:900;margin-bottom:16px">${posLabel(t.pos)}</div>
-      <div class="graf-detail-kpis">
-        <div class="graf-detail-kpi"><div class="graf-detail-kpi-val">${t.pj}</div><div class="graf-detail-kpi-label">PJ</div></div>
-        <div class="graf-detail-kpi"><div class="graf-detail-kpi-val" style="color:#22c55e">${t.pg}</div><div class="graf-detail-kpi-label">Victorias</div></div>
-        <div class="graf-detail-kpi"><div class="graf-detail-kpi-val" style="color:#f59e0b">${t.pe}</div><div class="graf-detail-kpi-label">Empates</div></div>
-        <div class="graf-detail-kpi"><div class="graf-detail-kpi-val" style="color:#ef4444">${t.pp}</div><div class="graf-detail-kpi-label">Derrotas</div></div>
-        <div class="graf-detail-kpi"><div class="graf-detail-kpi-val">${t.gf}</div><div class="graf-detail-kpi-label">GF</div></div>
-        <div class="graf-detail-kpi"><div class="graf-detail-kpi-val">${t.gc}</div><div class="graf-detail-kpi-label">GC</div></div>
-        <div class="graf-detail-kpi"><div class="graf-detail-kpi-val" style="color:${ef>=0?'#22c55e':'#ef4444'}">${ef>=0?'+':''}${ef}</div><div class="graf-detail-kpi-label">Diferencia</div></div>
-        ${t.vi != null ? `<div class="graf-detail-kpi"><div class="graf-detail-kpi-val">🔒 ${t.vi}</div><div class="graf-detail-kpi-label">Vallas Invictas</div></div>` : ''}
-        ${t.pts != null ? `<div class="graf-detail-kpi"><div class="graf-detail-kpi-val" style="color:var(--dorado)">${t.pts}</div><div class="graf-detail-kpi-label">Puntos</div></div>` : ''}
-        <div class="graf-detail-kpi"><div class="graf-detail-kpi-val">${pct(t.pg)}</div><div class="graf-detail-kpi-label">% Victorias</div></div>
-      </div>
-      <div class="graf-coming-soon">📂 Los fixtures y estadísticas de jugadores de este torneo estarán disponibles próximamente.</div>`;
+    const n = Math.max(1, t.pg + t.pe + t.pp);
+    const efec = t.pj ? Math.round((t.pg * 3 + t.pe) / (t.pj * 3) * 100) : 0;
+    window.scrollTo(0, 0);
+    container.innerHTML = `${_volverBtnHtml()}
+      <div class="jx tax">
+        <section class="jx-head tax-det k-${k}">
+          <div><span class="jx-kicker">${currentData === DATA_B ? 'Primera B' : 'Primera A'} · Temporada ${t.anio}</span>
+            <h2 class="jx-h">${cardIcon(t)} ${t.competencia} ${t.anio}</h2>
+            <div class="tax-det-pos">${posLabel(t.pos)}</div></div>
+          <div class="hdx-sum">
+            <div class="hvx-rec"><div class="w"><b>${t.pg}</b><span>Ganados</span></div><div class="d"><b>${t.pe}</b><span>Empatados</span></div><div class="l"><b>${t.pp}</b><span>Perdidos</span></div></div>
+            <span class="hvx-bar"><i class="w" style="width:${(t.pg / n * 100).toFixed(1)}%"></i><i class="d" style="width:${(t.pe / n * 100).toFixed(1)}%"></i><i class="l" style="width:${(t.pp / n * 100).toFixed(1)}%"></i></span>
+            <div class="jx-kpis">
+              <div><b>${t.pj}</b><span>Partidos</span></div>
+              ${t.pts != null ? `<div><b>${t.pts}</b><span>Puntos</span></div>` : ''}
+              <div><b>${t.gf}:${t.gc}</b><span>Goles</span></div>
+              <div><b class="${ef > 0 ? 'pos' : ef < 0 ? 'neg' : ''}">${ef > 0 ? '+' : ''}${ef}</b><span>Diferencia</span></div>
+              <div><b>${efec}%</b><span>Efectividad</span></div>
+              ${t.vi != null ? `<div><b>${t.vi}</b><span>Vallas invictas</span></div>` : ''}
+            </div>
+          </div>
+        </section>
+        <div class="v3-card jx-empty">Los fixtures y las estadísticas de jugadores de este torneo todavía no están cargados.</div>
+      </div>`;
   }
 
   window.grafDetalle = grafDetalle;
