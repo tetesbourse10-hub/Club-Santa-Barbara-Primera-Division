@@ -1877,3 +1877,4 @@ body.v3-profile #v3-topbar, body.v3-profile #v3-bottomnav { display: none !impor
   .jxyp-ranks { grid-template-columns: 1fr; }
   .jxyp-tabla { align-self: stretch; }
 }
+@media (max-width: 768px) { .jxyp-head > * { width: 100%; max-width: 100%; min-width: 0; } .jxyp-years { max-width: 100%; } }

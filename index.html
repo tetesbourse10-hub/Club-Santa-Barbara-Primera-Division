@@ -23401,7 +23401,7 @@ function _jxyYearView(o) {
           <div><b>${pj}</b><span>Partidos</span></div>
           <div><b>${total.gf}</b><span>Goles a favor</span></div>
           <div><b>${total.gc}</b><span>Goles en contra</span></div>
-          <div><b class="${dif >= 0 ? 'pos' : 'neg'}">${dif >= 0 ? '+' : ''}${dif}</b><span>Diferencia</span></div>
+          <div><b class="${dif > 0 ? 'pos' : dif < 0 ? 'neg' : ''}">${dif > 0 ? '+' : ''}${dif}</b><span>Diferencia</span></div>
           <div><b>${efec}%</b><span>Efectividad</span></div>
         </div>
       </div>
