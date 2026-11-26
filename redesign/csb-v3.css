@@ -78,7 +78,7 @@ body {
   padding: 20px 14px 16px;
   overflow-y: auto;
 }
-.v3-brand { display: flex; align-items: center; gap: 12px; padding: 4px 8px 18px; cursor: pointer; text-decoration: none; color: inherit; }
+.v3-brand { display: flex; align-items: center; gap: 12px; padding: 2px 8px 14px; cursor: pointer; text-decoration: none; color: inherit; }
 .v3-brand img { width: 46px; height: 46px; object-fit: contain; filter: drop-shadow(0 4px 14px rgba(52, 209, 123, 0.35)); }
 .v3-brand-name { font-family: var(--v3-display); font-weight: 800; font-size: 1.45rem; line-height: 0.95; text-transform: uppercase; letter-spacing: 0.02em; }
 .v3-brand-name small { display: block; font-family: 'Inter', sans-serif; font-size: 0.66rem; font-weight: 600; letter-spacing: 0.14em; color: var(--v3-brand); margin-top: 5px; }
@@ -93,13 +93,13 @@ body {
 .v3-search-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
 .v3-kbd { margin-left: auto; font-size: 0.68rem; font-weight: 700; border: 1px solid var(--v3-line-2); border-radius: 6px; padding: 1px 6px; color: var(--v3-dim); }
 
-.v3-nav-label { font-size: 0.64rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--v3-dim); padding: 20px 10px 8px; display: flex; align-items: center; gap: 8px; }
+.v3-nav-label { font-size: 0.64rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--v3-dim); padding: 16px 10px 6px; display: flex; align-items: center; gap: 8px; }
 .v3-nav-label .v3-sq-tag { margin-left: auto; letter-spacing: 0.06em; }
 .v3-nav { display: flex; flex-direction: column; gap: 2px; }
 .v3-nav-item {
   display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
-  background: none; border: 0; border-radius: 11px; padding: 10px 12px;
-  color: var(--v3-muted); font: 600 0.9rem 'Inter', sans-serif; cursor: pointer;
+  background: none; border: 0; border-radius: 11px; padding: 8px 12px;
+  color: var(--v3-muted); font: 600 0.88rem 'Inter', sans-serif; cursor: pointer;
   position: relative; transition: background .15s, color .15s;
 }
 .v3-nav-item svg { width: 19px; height: 19px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
@@ -168,7 +168,8 @@ body {
 
 /* Layout con sidebar */
 @media (min-width: 1025px) {
-  #landing, #app { margin-left: var(--v3-sb-w); }
+  #landing, #app, #v3-topbar { margin-left: var(--v3-sb-w); }
+  body.v3-on-home #v3-topbar { display: none; }
   .pp-overlay { left: var(--v3-sb-w) !important; }
   #v3-bottomnav, #v3-more { display: none !important; }
 }
@@ -482,4 +483,12 @@ nav button.active, nav button:hover { border-bottom-color: var(--v3-brand) !impo
   .v3-h2h-val { font-size: 1.2rem; }
   .v3-h2h-row .v3-h2h-lbl { font-size: 0.62rem; }
   .v3-h2h-verdict { margin: 4px 14px 18px; }
+}
+
+/* Perfil de jugador abierto: el overlay tiene su propio encabezado */
+body.v3-profile #v3-topbar { display: none !important; }
+@media (max-height: 720px) and (min-width: 1025px) {
+  #v3-sidebar { padding-top: 14px; }
+  .v3-nav-item { padding: 7px 12px; }
+  .v3-squad-switch { margin-top: 8px; }
 }

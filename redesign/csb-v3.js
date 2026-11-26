@@ -107,7 +107,7 @@
         <img src="logo-csb.webp" alt="">
         <span class="v3-brand-name">Santa Bárbara<small>ESTADÍSTICAS · 2026</small></span>
       </a>
-      <button class="v3-search-btn" data-act="search">${I.search}<span>Buscar jugador o sección</span><span class="v3-kbd">⌘K</span></button>
+      <button class="v3-search-btn" data-act="search">${I.search}<span>Buscar…</span><span class="v3-kbd">⌘K</span></button>
       <div class="v3-nav-label">Club</div>
       <div class="v3-nav">
         ${navItem('home', 'Inicio', I.home)}
@@ -231,6 +231,8 @@
     // Selector A/B del topbar mobile: solo tiene sentido dentro de un plantel
     const topSq = $('.v3-top-sq');
     if (topSq) topSq.style.display = (v.landingOn || v.nidoOn || v.profileOn) ? 'none' : '';
+    document.body.classList.toggle('v3-on-home', v.landingOn);
+    document.body.classList.toggle('v3-profile', v.profileOn);
     if (v.landingOn) renderHeroStats();
   }
 
@@ -361,7 +363,7 @@
       const pos = own ? String(own.pos).replace(/[°º]/g, '') : '–';
       items.push(`<div class="v3-hero-stat" data-nav="resumen" data-sq-target="${k}">
         <div class="v3-hero-stat-lbl">Primera ${k.toUpperCase()}</div>
-        <div class="v3-hero-stat-val">${esc(pos)}<small>º</small></div>
+        <div class="v3-hero-stat-val">${esc(pos)}<small style="margin-left:1px">º</small></div>
         <div class="v3-hero-stat-sub">${own ? `${esc(own.pts)} pts · ${esc(own.pj != null ? own.pj + ' PJ' : 'Clausura')}` : 'Cargando…'}</div></div>`);
     });
     const tit = ((getData('a') || {}).titulos || []).length + ((getData('b') || {}).titulos || []).length;
