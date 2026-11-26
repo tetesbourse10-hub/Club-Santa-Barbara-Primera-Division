@@ -16695,7 +16695,7 @@ function _jugTotalMobileCardsHtml(rows, sortCol, activeCols, colMap, posColorMap
   </div>`;
 }
 
-function renderJugadoresTotales() {
+function _renderJugadoresTotalesLegacy() {
   const wrap = document.getElementById('jug-totales-content');
   wrap.innerHTML = `
     ${_volverBtnHtml('margin-bottom:14px')}
@@ -17038,7 +17038,7 @@ let _jugBSort = { col: JUG_COL_B.pj, asc: false };
 let _jugBQuery = '';
 let _jugBTab = 'general';
 
-function renderJugadoresTotalesB() {
+function _renderJugadoresTotalesBLegacy() {
   const wrap = document.getElementById('jug-totales-content');
   wrap.innerHTML = `
     ${_volverBtnHtml('margin-bottom:14px')}
@@ -17971,26 +17971,13 @@ function renderJugAnualesMenu() {
   if (currentData === DATA_B) return renderJugAnualesMenuB();
   const back = _volverBtnHtml('margin-bottom:16px');
   const years = Object.keys(SEED_ANUALES).sort((a, b) => b - a);
-  document.getElementById('jug-anuales-content').innerHTML = back + `
-    <div class="mrow-desktop-only">
-      <div style="margin-bottom:18px">
-        <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gris-texto);margin-bottom:2px">Club Santa Bárbara</div>
-        <div style="font-size:1.25rem;font-weight:900;color:#fff">📅 Estadísticas Anuales</div>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;max-width:600px">
-        ${years.map(y => `
-          <div onclick="_navPush('Estadísticas Anuales', () => renderJugAnualesMenu());renderJugAnualesYear('${y}')" style="cursor:pointer;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:22px 20px;text-align:center;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,0.09)';this.style.borderColor='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.04)';this.style.borderColor='rgba(255,255,255,0.1)'">
-            <div style="font-size:2rem;margin-bottom:8px">📊</div>
-            <div style="font-size:1.5rem;font-weight:900;color:#fff">${y}</div>
-            <div style="font-size:0.72rem;color:var(--gris-texto);margin-top:4px">Ver temporada →</div>
-          </div>`).join('')}
-      </div>
-    </div>`;
-  // El mobile arranca directo en la temporada más reciente — sin el paso
-  // intermedio de la grilla de años (esa queda solo para desktop arriba) —
-  // agregando el bloque mobile (pills + contenido) a continuación del grid
-  // ya escrito, en vez de llamar a renderJugAnualesYear (que reemplazaría
-  // todo el innerHTML de acá y borraría el grid recién armado).
+  const cards = years.map(y => {
+    const { torneos, total } = _anualesComputeYear(y);
+    return { year: y, live: y === '2026', pj: total.pj, g: total.g, e: total.e, p: total.p, gf: total.gf, gc: total.gc,
+      torneos: torneos.map(t => ({ n: t.nombre, pos: t.pos })),
+      onclick: `_navPush('Estadísticas Anuales', () => renderJugAnualesMenu());renderJugAnualesYear('${y}')` };
+  });
+  document.getElementById('jug-anuales-content').innerHTML = back + `<div class="mrow-desktop-only">${_jxYearCards(cards)}</div>`;
   const { torneos, total } = _anualesComputeYear(years[0]);
   document.getElementById('jug-anuales-content').insertAdjacentHTML('beforeend',
     _anualesMobileHtml(years[0], years, torneos, total));
@@ -18621,24 +18608,13 @@ function _anualesLoadPlayersB(year) {
 function renderJugAnualesMenuB() {
   const back = _volverBtnHtml('margin-bottom:16px');
   const years = [...new Set(_anualesSourceB().map(t => t.anio))].sort((a, b) => b - a);
-  document.getElementById('jug-anuales-content').innerHTML = back + `
-    <div class="mrow-desktop-only">
-      <div style="margin-bottom:18px">
-        <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gris-texto);margin-bottom:2px">Club Santa Bárbara — Primera B</div>
-        <div style="font-size:1.25rem;font-weight:900;color:#fff">📅 Estadísticas Anuales</div>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;max-width:600px">
-        ${years.map(y => `
-          <div onclick="_navPush('Estadísticas Anuales', () => renderJugAnualesMenuB());renderJugAnualesYearB('${y}')" style="cursor:pointer;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:22px 20px;text-align:center;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,0.09)';this.style.borderColor='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.04)';this.style.borderColor='rgba(255,255,255,0.1)'">
-            <div style="font-size:2rem;margin-bottom:8px">📊</div>
-            <div style="font-size:1.5rem;font-weight:900;color:#fff">${y}</div>
-            <div style="font-size:0.72rem;color:var(--gris-texto);margin-top:4px">Ver temporada →</div>
-          </div>`).join('')}
-      </div>
-    </div>`;
-  // El mobile arranca directo en la temporada más reciente — sin el paso
-  // intermedio de la grilla de años (esa queda solo para desktop arriba) —
-  // mismo criterio que renderJugAnualesMenu (A).
+  const cards = years.map(y => {
+    const ts = _anualesSourceB().filter(t => t.anio === y);
+    const t = ts.reduce((acc, x) => { acc.pj += x.pj || 0; acc.g += x.pg || 0; acc.e += x.pe || 0; acc.p += x.pp || 0; acc.gf += x.gf || 0; acc.gc += x.gc || 0; return acc; }, { pj: 0, g: 0, e: 0, p: 0, gf: 0, gc: 0 });
+    return { year: y, live: String(y) === '2026', ...t, torneos: ts.map(x => ({ n: x.competencia, pos: x.pos })),
+      onclick: `_navPush('Estadísticas Anuales', () => renderJugAnualesMenuB());renderJugAnualesYearB('${y}')` };
+  });
+  document.getElementById('jug-anuales-content').innerHTML = back + `<div class="mrow-desktop-only">${_jxYearCards(cards)}</div>`;
   const yr0 = years[0];
   const torneosYear = _anualesSourceB().filter(t => t.anio === yr0);
   const total = torneosYear.reduce((acc, t) => {
@@ -19101,7 +19077,7 @@ function _anualesBuildTable(year) {
 }
 
 let _debutsAReady = false; // true una vez que el fetch en vivo resolvió (éxito o error)
-function renderDebuts() {
+function _renderDebutsLegacy() {
   if (!_debutsAReady) {
     _ensureDebutsA().then(() => {
       _debutsAReady = true;
@@ -19340,7 +19316,7 @@ async function _loadInferioresA() {
   _inferiorosALoaded = true;
 }
 
-function renderInferiores() {
+function _renderInferioresLegacy() {
   const backBtn = _volverBtnHtml('margin-bottom:20px');
 
   const categorias = (INFERIORES_LIVE && INFERIORES_LIVE.categorias.length) ? INFERIORES_LIVE.categorias : INFERIORES_DATA;
@@ -23461,6 +23437,258 @@ async function loadLiveData() {
 // scroll-fade: shows a right-edge gradient + "›" hint while there's more tab
 // content to scroll to, hides it once scrolled to the end. Delegated so it
 // works across all 6+ tournament tab-nav instances without touching each one.
+// ════════════════════════════════════════════════════════════════════
+// ESTADÍSTICAS JUGADORES v3 — Totales (A y B con un solo renderer),
+// selector de temporadas de Anuales, Debuts e Inferiores rediseñados.
+// Los datos y su carga son los de siempre (_ensureJugTotalesA/B,
+// _anualesComputeYear/_anualesSourceB, _debutsData, INFERIORES_LIVE).
+// Estilos: redesign/csb-v3.css ("JUGADORES v3").
+// ════════════════════════════════════════════════════════════════════
+const _jxEsc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const _jxJs = s => String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+const _jxIni = n => String(n || '').trim().split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+const _jxNum = v => { if (v == null || v === '' || v === '-' || v === '\\-' || /#DIV/i.test(String(v))) return 0; const n = parseFloat(String(v).replace(',', '.')); return isNaN(n) ? 0 : n; };
+
+// ── TOTALES ──
+const _JX_META = {
+  pj: { l: 'Partidos', s: 'PJ', c: '#eef6f1' }, goles: { l: 'Goles', s: 'Goles', c: '#ef9f27' }, asist: { l: 'Asistencias', s: 'Asist.', c: '#97c459' },
+  gmas: { l: 'Goles + Asist.', s: 'G+A', c: '#af9ec6' }, capitan: { l: 'Capitán', s: 'Cap.', c: '#f3c24f' }, titulos: { l: 'Títulos', s: 'Títulos', c: '#f3c24f' },
+  ascensos: { l: 'Ascensos', s: 'Asc.', c: '#8ef0b6' }, rojas: { l: 'Rojas', s: 'Rojas', c: '#ff7b7b' }, titular: { l: 'Titular', s: 'Tit.', c: '#eef6f1' },
+  suplente: { l: 'Suplente', s: 'Sup.', c: '#a3bbad' }, promGol: { l: 'Prom. goles', s: 'Prom. G', c: '#ef9f27', f: 1 }, promAsist: { l: 'Prom. asist.', s: 'Prom. A', c: '#97c459', f: 1 },
+  promGmas: { l: 'Prom. G+A', s: 'Prom. G+A', c: '#af9ec6', f: 1 }, vallas: { l: 'Vallas invictas', s: 'Vallas', c: '#85b7eb' }, vallasProm: { l: 'Prom. vallas', s: 'Prom. V', c: '#85b7eb', f: 1 },
+};
+const _JX_TABS = [
+  { k: 'general', l: 'General', cols: ['pj', 'goles', 'asist', 'gmas'], sort: 'pj' },
+  { k: 'liderazgo', l: 'Liderazgo', cols: ['pj', 'capitan', 'titulos', 'ascensos'], sort: 'capitan' },
+  { k: 'disciplina', l: 'Disciplina', cols: ['pj', 'rojas'], sort: 'rojas' },
+  { k: 'participacion', l: 'Participación', cols: ['pj', 'titular', 'suplente'], sort: 'titular' },
+  { k: 'rendimiento', l: 'Rendimiento', cols: ['pj', 'promGol', 'promAsist', 'promGmas'], sort: 'promGmas' },
+  { k: 'vallas', l: 'Vallas', cols: ['pj', 'vallas', 'vallasProm'], sort: 'vallas' },
+];
+const _JX_POSG = { ARQ: 'ARQ', LI: 'DEF', LD: 'DEF', DFI: 'DEF', DFD: 'DEF', DFC: 'DEF', DEF: 'DEF', MC: 'MC', MCO: 'MC', MD: 'MC', MI: 'MC', DEL: 'DEL', DC: 'DEL', ED: 'DEL', EI: 'DEL' };
+const _jxState = { a: { tab: 'general', sort: 'pj', asc: false, q: '', pos: 'todas' }, b: { tab: 'general', sort: 'pj', asc: false, q: '', pos: 'todas' } };
+function _jxCfg(isA) {
+  return isA
+    ? { key: 'a', COL: JUG_COL, rows: () => _jugTotalesData, ensure: _ensureJugTotalesA, label: 'Primera A' }
+    : { key: 'b', COL: JUG_COL_B, rows: () => _jugBData, ensure: _ensureJugTotalesB, label: 'Primera B' };
+}
+function _jxPlayers(cfg) {
+  const raw = cfg.rows() || [];
+  return raw.map(r => {
+    const o = { nombre: r[cfg.COL.nombre], pos: String(r[cfg.COL.pos] || '').toUpperCase().trim() };
+    Object.keys(_JX_META).forEach(k => { o[k] = cfg.COL[k] === undefined ? null : _jxNum(r[cfg.COL[k]]); });
+    if (!o.gmas && (o.goles || o.asist)) o.gmas = (o.goles || 0) + (o.asist || 0);
+    return o;
+  }).filter(p => p.nombre);
+}
+function renderJugadoresTotales() { _jxRenderTotales(true); }
+function renderJugadoresTotalesB() { _jxRenderTotales(false); }
+function _jxRenderTotales(isA) {
+  const cfg = _jxCfg(isA);
+  const wrap = document.getElementById('jug-totales-content');
+  if (!wrap) return;
+  if (!cfg.rows()) {
+    wrap.innerHTML = `<div class="jx"><div class="jx-loading"><span class="nv3-spin"></span>Cargando estadísticas…</div></div>`;
+    Promise.resolve(cfg.ensure()).then(() => { if (cfg.rows()) _jxRenderTotales(isA); });
+    return;
+  }
+  // A arranca con datos semilla: cuando llega la planilla real se repinta
+  if (isA && !_jugTotalesAReady) Promise.resolve(cfg.ensure()).then(() => { _jugTotalesAReady = true; if (document.getElementById('tab-jug-totales')?.style.display !== 'none' && currentData !== DATA_B) _jxRenderTotales(true); });
+  const all = _jxPlayers(cfg);
+  const st = _jxState[cfg.key];
+  const sum = k => all.reduce((a, p) => a + (p[k] || 0), 0);
+  const top = k => [...all].sort((a, b) => (b[k] || 0) - (a[k] || 0))[0];
+  const tg = top('goles'), tp = top('pj');
+  const tabs = _JX_TABS.map(t => ({ ...t, cols: t.cols.filter(c => cfg.COL[c] !== undefined) })).filter(t => t.cols.length > 1);
+  const posCnt = g => all.filter(p => _JX_POSG[p.pos] === g).length;
+  wrap.innerHTML = `<div class="jx" data-team="${cfg.key}">
+    <section class="jx-head">
+      <div><span class="jx-kicker">${cfg.label} · Todas las temporadas</span><h2 class="jx-h">Estadísticas totales</h2></div>
+      <div class="jx-kpis">
+        <div><b>${all.length}</b><span>Jugadores</span></div>
+        <div><b style="color:#ef9f27">${sum('goles')}</b><span>Goles</span></div>
+        <div><b style="color:#97c459">${sum('asist')}</b><span>Asistencias</span></div>
+        ${tg ? `<div class="jx-kpi-lead" onclick="goToPlayer('${_jxJs(tg.nombre)}')"><span>Goleador histórico</span><b>${_jxEsc(tg.nombre)}</b><em>${tg.goles} goles</em></div>` : ''}
+        ${tp ? `<div class="jx-kpi-lead" onclick="goToPlayer('${_jxJs(tp.nombre)}')"><span>Más partidos</span><b>${_jxEsc(tp.nombre)}</b><em>${tp.pj} PJ</em></div>` : ''}
+      </div>
+    </section>
+    <section class="jx-controls">
+      <label class="jx-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" placeholder="Buscar entre ${all.length} jugadores…" value="${_jxEsc(st.q)}" oninput="_jxSet('${cfg.key}','q',this.value)"></label>
+      <label class="nv3-select${st.pos !== 'todas' ? ' on' : ''}"><span>Posición</span><select onchange="_jxSet('${cfg.key}','pos',this.value)">
+        ${[['todas', `Todas (${all.length})`], ['ARQ', `Arqueros (${posCnt('ARQ')})`], ['DEF', `Defensores (${posCnt('DEF')})`], ['MC', `Mediocampistas (${posCnt('MC')})`], ['DEL', `Delanteros (${posCnt('DEL')})`]].map(([v, l]) => `<option value="${v}"${st.pos === v ? ' selected' : ''}>${l}</option>`).join('')}
+      </select></label>
+      <div class="jx-tabs">${tabs.map(t => `<button class="${st.tab === t.k ? 'on' : ''}" onclick="_jxTab('${cfg.key}','${t.k}')">${t.l}</button>`).join('')}</div>
+    </section>
+    <div id="jx-body-${cfg.key}"></div>
+  </div>`;
+  _jxBody(cfg.key);
+}
+function _jxSet(team, k, v) { _jxState[team][k] = v; if (k === 'pos') return _jxRenderTotales(team === 'a'); _jxBody(team); }
+function _jxTab(team, t) { const tab = _JX_TABS.find(x => x.k === t); _jxState[team].tab = t; _jxState[team].sort = tab ? tab.sort : 'pj'; _jxState[team].asc = false; _jxRenderTotales(team === 'a'); }
+function _jxSort(team, k) { const st = _jxState[team]; if (st.sort === k) st.asc = !st.asc; else { st.sort = k; st.asc = false; } _jxBody(team); }
+function _jxBody(team) {
+  const isA = team === 'a';
+  const cfg = _jxCfg(isA), st = _jxState[team];
+  const el = document.getElementById('jx-body-' + team);
+  if (!el) return;
+  const tab = _JX_TABS.find(t => t.k === st.tab) || _JX_TABS[0];
+  const cols = tab.cols.filter(c => cfg.COL[c] !== undefined);
+  const q = String(st.q || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  let list = _jxPlayers(cfg).filter(p => (st.pos === 'todas' || _JX_POSG[p.pos] === st.pos) && (!q || p.nombre.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().includes(q)));
+  const k = st.sort;
+  list.sort((a, b) => ((a[k] || 0) - (b[k] || 0)) * (st.asc ? 1 : -1) || (b.pj || 0) - (a.pj || 0));
+  const m = _JX_META[k] || _JX_META.pj;
+  const fmt = (v, key) => (_JX_META[key] || {}).f ? (v || 0).toFixed(2).replace('.', ',') : (v || 0);
+  const max = Math.max(1, ...list.map(p => p[k] || 0));
+  const podium = (!st.asc && !q && list.length >= 3 && (list[0][k] || 0) > 0) ? `<div class="nv3-podium">${[1, 0, 2].map(i => {
+    const p = list[i];
+    return `<button class="nv3-pod nv3-pod-${i + 1}" onclick="goToPlayer('${_jxJs(p.nombre)}')"><span class="nv3-pod-place">${i + 1}º</span>
+      <span class="nv3-av nv3-av-lg" style="--pc:${_plantelPosColor(p.pos)}">${_jxEsc(_jxIni(p.nombre))}</span>
+      <span class="nv3-pod-name">${_jxEsc(p.nombre)}</span><span class="nv3-pod-val">${fmt(p[k], k)}</span><span class="nv3-pod-lbl">${_jxEsc(m.l)}</span></button>`;
+  }).join('')}</div>` : '';
+  const rows = list.map((p, i) => `<tr onclick="goToPlayer('${_jxJs(p.nombre)}')">
+    <td class="jx-rk${!st.asc && i < 3 ? ' m' + (i + 1) : ''}">${i + 1}</td>
+    <td class="jx-pl"><span class="nv3-av" style="--pc:${_plantelPosColor(p.pos)}">${_jxEsc(_jxIni(p.nombre))}</span><span class="jx-pl-id"><b>${_jxEsc(p.nombre)}</b>${p.pos ? `<span class="nv3-pos" style="--pc:${_plantelPosColor(p.pos)}">${_jxEsc(p.pos)}</span>` : ''}</span></td>
+    ${cols.map(c => {
+      const on = c === k, v = p[c] || 0, mm = _JX_META[c] || {};
+      return `<td class="jx-num${on ? ' on' : ''}" style="${on ? `--c:${mm.c}` : ''}"><span style="${v ? `color:${mm.c}` : ''}">${v ? fmt(v, c) : '<i>0</i>'}</span>${on ? `<u><s style="width:${Math.max(3, Math.round(v / max * 100))}%;background:${mm.c}"></s></u>` : ''}</td>`;
+    }).join('')}
+  </tr>`).join('');
+  el.innerHTML = `${podium}
+    <div class="jx-status"><b>${list.length}</b> jugadores · ordenado por <b>${_jxEsc(m.l)}</b> ${st.asc ? '↑' : '↓'}</div>
+    <div class="jx-table-wrap"><table class="jx-table">
+      <thead><tr><th class="jx-rk">#</th><th>Jugador</th>${cols.map(c => `<th class="jx-num${c === k ? ' on' : ''}" onclick="_jxSort('${team}','${c}')">${_jxEsc((_JX_META[c] || {}).s || c)}${c === k ? (st.asc ? ' ▲' : ' ▼') : ''}</th>`).join('')}</tr></thead>
+      <tbody>${rows || `<tr><td colspan="${cols.length + 2}" class="jx-empty">No hay jugadores con esos filtros.</td></tr>`}</tbody>
+    </table></div>`;
+}
+
+// ── ANUALES: selector de temporadas ──
+function _jxYearCards(cards) {
+  return `<div class="jx">
+    <section class="jx-head"><div><span class="jx-kicker">${currentData.nombre} · Temporada por temporada</span><h2 class="jx-h">Estadísticas anuales</h2></div></section>
+    <div class="jxy-grid">${cards.map(c => {
+      const tot = Math.max(1, c.g + c.e + c.p);
+      const dg = c.gf - c.gc;
+      return `<button class="jxy-card" onclick="${c.onclick}">
+        <div class="jxy-top"><span class="jxy-year">${c.year}</span>${c.live ? '<span class="jxy-live">En curso</span>' : ''}</div>
+        <div class="jxy-rec"><span class="w">${c.g}</span><span class="d">${c.e}</span><span class="l">${c.p}</span></div>
+        <div class="jxy-bar"><i class="w" style="width:${(c.g / tot * 100).toFixed(1)}%"></i><i class="d" style="width:${(c.e / tot * 100).toFixed(1)}%"></i><i class="l" style="width:${(c.p / tot * 100).toFixed(1)}%"></i></div>
+        <div class="jxy-meta"><span><b>${c.pj}</b> PJ</span><span><b>${c.gf}</b>:<b>${c.gc}</b> goles</span><span class="${dg >= 0 ? 'pos' : 'neg'}">${dg >= 0 ? '+' : ''}${dg}</span></div>
+        <div class="jxy-torneos">${c.torneos.map(t => `<span>${_jxEsc(t.n)}<em>${_jxEsc(t.pos || '')}</em></span>`).join('')}</div>
+        <span class="jxy-go">Ver temporada →</span>
+      </button>`;
+    }).join('')}</div>
+  </div>`;
+}
+
+// ── DEBUTS ──
+let _jxDebYear = 'all';
+function renderDebuts() {
+  if (!_debutsAReady) {
+    _ensureDebutsA().then(() => {
+      _debutsAReady = true;
+      if (document.getElementById('tab-jug-debuts')?.classList.contains('active')) renderDebuts();
+    });
+  }
+  const data = _debutsData || [];
+  const years = [...new Set(data.map(d => d.year))].sort((a, b) => a - b);
+  const res = r => { if (!r) return null; const [g, c] = String(r).split('-').map(Number); return isNaN(g) || isNaN(c) ? null : g > c ? 'w' : g === c ? 'd' : 'l'; };
+  const youngest = [...data].filter(d => d.edad).sort((a, b) => a.edad - b.edad)[0];
+  const conGol = data.filter(d => d.gol).length, conAsist = data.filter(d => d.asist).length;
+  const byYear = {}; data.forEach(d => { byYear[d.year] = (byYear[d.year] || 0) + 1; });
+  const maxY = Math.max(1, ...Object.values(byYear));
+  const rec = { w: 0, d: 0, l: 0 }; data.forEach(d => { const r = res(d.resultado); if (r) rec[r]++; });
+  const recT = Math.max(1, rec.w + rec.d + rec.l);
+  const rivalCount = {}; data.filter(d => d.rival).forEach(d => { rivalCount[d.rival] = (rivalCount[d.rival] || 0) + 1; });
+  const topRivals = Object.entries(rivalCount).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const crest = n => (typeof _crestImgHtml === 'function' ? _crestImgHtml(n) : '');
+
+  const cardsFor = subset => {
+    const grouped = {};
+    subset.forEach(d => { (grouped[d.year] = grouped[d.year] || []).push(d); });
+    return Object.keys(grouped).sort((a, b) => b - a).map(yr => `<section class="jxd-year">
+      <div class="jxd-year-h"><span>${yr}</span><em>${grouped[yr].length} debut${grouped[yr].length > 1 ? 's' : ''}</em><i></i></div>
+      <div class="jxd-cards">${grouped[yr].map(p => {
+        const r = res(p.resultado);
+        return `<div class="jxd-card" onclick="goToPlayer('${_jxJs(p.nombre)}')">
+          <div class="jxd-card-top"><span class="nv3-av">${_jxEsc(_jxIni(p.nombre))}</span><div class="jxd-card-id"><b>${_jxEsc(p.nombre)}</b>${p.edad ? `<small>${p.edad} años en su debut</small>` : ''}</div></div>
+          ${p.rival ? `<div class="jxd-match"><span class="jxd-crest">${crest(p.rival)}</span><span class="jxd-vs">vs ${_jxEsc(p.rival)}</span>${p.resultado ? `<span class="jxd-res ${r || ''}">${_jxEsc(p.resultado)}</span>` : ''}</div>` : ''}
+          ${(p.gol || p.asist) ? `<div class="jxd-badges">${p.gol ? '<span class="g">⚽ Gol en el debut</span>' : ''}${p.asist ? '<span class="a">👟 Asistencia</span>' : ''}</div>` : ''}
+        </div>`;
+      }).join('')}</div>
+    </section>`).join('') || '<div class="jx-empty">Sin debuts para ese año.</div>';
+  };
+  const subset = _jxDebYear === 'all' ? data : data.filter(d => String(d.year) === String(_jxDebYear));
+  document.getElementById('jug-debuts-content').innerHTML = `<div class="jx">
+    <section class="jx-head">
+      <div><span class="jx-kicker">Primera A · Historia del club</span><h2 class="jx-h">Debuts</h2></div>
+      <div class="jx-kpis">
+        <div><b>${data.length}</b><span>Debutantes</span></div>
+        <div><b>${years.length}</b><span>Temporadas</span></div>
+        <div><b style="color:#ef9f27">${conGol}</b><span>Gol en el debut</span></div>
+        <div><b style="color:#97c459">${conAsist}</b><span>Asistencia en el debut</span></div>
+        ${youngest ? `<div class="jx-kpi-lead" onclick="goToPlayer('${_jxJs(youngest.nombre)}')"><span>Debut más joven</span><b>${_jxEsc(youngest.nombre)}</b><em>${youngest.edad} años</em></div>` : ''}
+      </div>
+    </section>
+    <div class="jxd-grid">
+      <div class="v3-card jxd-chart-card">
+        <div class="jxd-card-h">Debuts por temporada <small>Tocá un año para filtrar</small></div>
+        <div class="jxd-chart">${years.map(y => `<button class="jxd-bar${String(_jxDebYear) === String(y) ? ' on' : ''}${_jxDebYear !== 'all' && String(_jxDebYear) !== String(y) ? ' dim' : ''}" onclick="_jxDebFilter('${y}')"><span class="jxd-bar-n">${byYear[y]}</span><span class="jxd-bar-c" style="height:${Math.max(8, Math.round(byYear[y] / maxY * 100))}%"></span><span class="jxd-bar-y">'${String(y).slice(-2)}</span></button>`).join('')}</div>
+      </div>
+      <div class="v3-card">
+        <div class="jxd-card-h">Resultado del partido debut</div>
+        <div class="jxd-rec">
+          <div class="w"><b>${rec.w}</b><span>Ganados</span></div><div class="d"><b>${rec.e || rec.d}</b><span>Empatados</span></div><div class="l"><b>${rec.l}</b><span>Perdidos</span></div>
+        </div>
+        <div class="jxy-bar" style="margin-top:12px"><i class="w" style="width:${(rec.w / recT * 100).toFixed(1)}%"></i><i class="d" style="width:${(rec.d / recT * 100).toFixed(1)}%"></i><i class="l" style="width:${(rec.l / recT * 100).toFixed(1)}%"></i></div>
+        <div class="jxd-card-h" style="margin-top:18px">Rivales más frecuentes</div>
+        ${topRivals.map(([r, c]) => `<div class="jxd-rival"><span class="jxd-crest">${crest(r)}</span><span>${_jxEsc(r)}</span><b>${c}</b></div>`).join('')}
+      </div>
+    </div>
+    <div class="jxd-filter">
+      <button class="${_jxDebYear === 'all' ? 'on' : ''}" onclick="_jxDebFilter('all')">Todos</button>
+      ${[...years].reverse().map(y => `<button class="${String(_jxDebYear) === String(y) ? 'on' : ''}" onclick="_jxDebFilter('${y}')">${y}</button>`).join('')}
+    </div>
+    <div class="jxd-timeline">${cardsFor(subset)}</div>
+  </div>`;
+}
+function _jxDebFilter(y) { _jxDebYear = (String(_jxDebYear) === String(y) && y !== 'all') ? 'all' : y; renderDebuts(); }
+window.debutsFilter = function (yr) { _jxDebFilter(yr); };
+
+// ── INFERIORES ──
+function renderInferiores() {
+  const categorias = (INFERIORES_LIVE && INFERIORES_LIVE.categorias.length) ? INFERIORES_LIVE.categorias : INFERIORES_DATA;
+  const kpis = { ...INFERIORES_KPIS_FALLBACK, ...(INFERIORES_LIVE ? INFERIORES_LIVE.kpis : {}) };
+  const pct = v => Math.min(100, parseFloat(String(v).replace('%', '').replace(',', '.')) || 0);
+  const maxPj = Math.max(1, ...categorias.map(c => c.pj || 0));
+  const maxG = Math.max(1, ...categorias.map(c => c.goles || 0));
+  document.getElementById('jug-inferiores-content').innerHTML = `<div class="jx">
+    <section class="jx-head">
+      <div><span class="jx-kicker">Primera A · Hechos en casa</span><h2 class="jx-h">Inferiores</h2><p class="jxi-lead">Los jugadores que surgieron de las inferiores del club, camada por camada.</p></div>
+    </section>
+    <div class="jxi-kpis">
+      <div class="v3-card"><span>Jugadores de inferiores en la A</span><b>${_jxEsc(kpis.jugadores)}</b></div>
+      <div class="v3-card"><span>Del plantel surgió de inferiores</span><b style="color:var(--v3-brand)">${_jxEsc(kpis.pctJugadores)}</b><div class="jxi-bar"><i style="width:${pct(kpis.pctJugadores)}%"></i></div></div>
+      <div class="v3-card"><span>Goles aportados por inferiores</span><b style="color:#ef9f27">${_jxEsc(kpis.goles)}</b></div>
+      <div class="v3-card"><span>De los goles del club</span><b style="color:#ef9f27">${_jxEsc(kpis.pctGoles)}</b><div class="jxi-bar"><i style="width:${pct(kpis.pctGoles)}%;background:#ef9f27"></i></div></div>
+    </div>
+    <div class="jxi-grid">${categorias.map(d => `<article class="jxi-cam">
+      <div class="jxi-cam-h"><div><small>Camada</small><b>${_jxEsc(d.cat)}</b></div><span>${d.aportes} jugador${d.aportes > 1 ? 'es' : ''}</span></div>
+      <div class="jxi-stats">
+        <div><span>Partidos</span><b>${d.pj}</b><i><u style="width:${Math.round((d.pj || 0) / maxPj * 100)}%"></u></i></div>
+        <div><span>Goles</span><b style="color:#ef9f27">${d.goles || 0}</b><i><u style="width:${Math.round((d.goles || 0) / maxG * 100)}%;background:#ef9f27"></u></i></div>
+      </div>
+      <div class="jxi-hitos">
+        <div><span>⏱ Primer debut</span><b>${_jxEsc(d.debutante || '—')}</b></div>
+        <div><span>⚽ Primer gol</span><b>${_jxEsc(d.primerGol || '—')}</b></div>
+      </div>
+      ${d.obs ? `<p class="jxi-obs">${_jxEsc(d.obs)}</p>` : ''}
+      <div class="jxi-players">${d.jugadores.map(j => `<span onclick="goToPlayer('${_jxJs(j)}')">${_jxEsc(j)}</span>`).join('')}</div>
+    </article>`).join('')}</div>
+  </div>`;
+  if (!_inferiorosALoaded) _loadInferioresA().then(() => { if (INFERIORES_LIVE) renderInferiores(); });
+}
+
 function _updateTabNavFade(nav) {
   if (!nav) return;
   const overflowing = nav.scrollWidth > nav.clientWidth + 2;
