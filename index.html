@@ -9065,6 +9065,17 @@ function _trySyncOpenSectionFromHash() {
   const section = parts[0];
   if (section !== 'a' && section !== 'b' && section !== 'nido') return false;
   openSection(section);
+  // El Nido: openSection('nido') reescribe el hash a "#nido" a secas, así
+  // que los filtros del link (team/pos/rank|col) se aplican acá mismo, antes
+  // de perderlos — si no, la restauración completa de después del fetch ya
+  // no los encuentra (un link compartido de El Nido abría sin filtros).
+  if (section === 'nido') {
+    const r = parts.slice(1);
+    if (r[0] === 'team' && r[1] != null && window._nidoTeam) window._nidoTeam(r[1]);
+    if (r[2] === 'pos' && r[3] != null && window._nidoPosSelect) window._nidoPosSelect(r[3]);
+    if (r[4] === 'rank' && r[5] != null && window._nidoRankMode) window._nidoRankMode(r[5]);
+    else if (r[4] === 'col' && r[5] != null && r[6] === 'dir' && r[7] != null && window._nidoSort) window._nidoSort(r[5], r[7] === 'asc');
+  }
   if (section !== 'nido' && parts[1] === 'tab' && parts[2]) {
     const tabName = parts[2];
     const idx = _ROUTE_MAIN_TABS.indexOf(tabName);

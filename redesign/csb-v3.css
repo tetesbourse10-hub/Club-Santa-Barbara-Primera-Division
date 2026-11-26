@@ -539,7 +539,7 @@ body.v3-profile #v3-topbar, body.v3-profile #v3-bottomnav { display: none !impor
 
 /* Controles */
 .nv3-controls {
-  position: sticky; top: var(--v3-top-h); z-index: 30; display: flex; flex-direction: column; gap: 10px;
+  position: relative; z-index: 3; display: flex; flex-direction: column; gap: 10px;
   background: rgba(8, 19, 13, 0.92); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
   border: 1px solid var(--v3-line-2); border-radius: 18px; padding: 14px;
 }
@@ -693,7 +693,6 @@ body.v3-profile #v3-topbar, body.v3-profile #v3-bottomnav { display: none !impor
   .nv3-hero { grid-template-columns: 1fr; }
   .nv3-kpis { grid-template-columns: repeat(4, 1fr) minmax(200px, 1.6fr); }
 }
-@media (max-width: 1024px) { .nv3-controls { top: calc(var(--v3-top-h) + env(safe-area-inset-top, 0px)); } }
 @media (max-width: 768px) {
   .nv3 { gap: 14px; }
   .nv3-hero { padding: 20px 18px; border-radius: 20px; gap: 16px; }
