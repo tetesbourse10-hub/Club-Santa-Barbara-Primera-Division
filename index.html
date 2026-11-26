@@ -8636,10 +8636,11 @@ function _ppV2Render() {
   const kpis = `<section class="ppv3-kpis${showVallasSector ? ' five' : ''}">
     ${kpi('todos', 'Partidos', cs.pj, `<b>${cs.titular}</b> titular · <b>${cs.sup}</b> suplente`, '#eef6f1',
       cs.pj ? `<span class="ppv3-kpi-split"><i style="width:${(cs.titular / cs.pj * 100).toFixed(1)}%"></i></span>` : '')}
+    ${st.isArquero ? kpi('vallas', 'Vallas invictas', cs.vallas, `<b>${cs.pj ? (cs.vallas / cs.pj * 100).toFixed(0) : 0}%</b> de los partidos`, _PPV3_C.vallas) : ''}
     ${kpi('goles', 'Goles', cs.goles, `<b>${_ppv3Num(cs.promGol, 2)}</b> por partido`, _PPV3_C.goles)}
     ${kpi('asist', 'Asistencias', cs.asist, `<b>${_ppv3Num(cs.promAsist, 2)}</b> por partido`, _PPV3_C.asist)}
     ${kpi('ga', 'Goles + Asist.', cs.goles + cs.asist, `Participa en el <b>${cs.efectividadGA.toFixed(0)}%</b>`, _PPV3_C.ga)}
-    ${showVallasSector ? kpi('vallas', 'Vallas invictas', cs.vallas, `<b>${cs.pj ? (cs.vallas / cs.pj * 100).toFixed(0) : 0}%</b> de los partidos`, _PPV3_C.vallas) : ''}
+    ${showVallasSector && !st.isArquero ? kpi('vallas', 'Vallas invictas', cs.vallas, `<b>${cs.pj ? (cs.vallas / cs.pj * 100).toFixed(0) : 0}%</b> de los partidos`, _PPV3_C.vallas) : ''}
   </section>`;
 
   // ── Récord / Rivales / Club ──
