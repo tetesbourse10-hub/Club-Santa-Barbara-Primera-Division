@@ -372,7 +372,7 @@
       const pos = own ? String(own.pos).replace(/[°º]/g, '') : '–';
       const d = getData(k);
       const est = own && g('_csbEstadoTorneo') ? safe(() => _csbEstadoTorneo(d.tabla)) : null;
-      const tag = est && est.estado === 'campeon' ? '<span class="v3-hs-tag gold">🏆 Campeón</span>' : est && est.estado === 'descendido' ? '<span class="v3-hs-tag red">Descendido</span>' : '';
+      const tag = est && est.estado === 'campeon' ? '<span class="v3-hs-tag gold">Campeón</span>' : est && est.estado === 'descendido' ? '<span class="v3-hs-tag red">Descendido</span>' : '';
       items.push(`<div class="v3-hero-stat${est && est.estado === 'campeon' ? ' is-champ' : ''}" data-nav="resumen" data-sq-target="${k}">
         <div class="v3-hero-stat-lbl">Primera ${k.toUpperCase()}</div>
         <div class="v3-hero-stat-val">${esc(pos)}<small style="margin-left:1px">º</small></div>

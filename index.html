@@ -19201,7 +19201,7 @@ function renderGraficos() {
   // Actuales" anymore, so this is what surfaces it in Torneos Antiguos/Gráficos).
   const source = _grafSource(currentData === DATA_B);
   // Sort newest first
-  const sorted = [...source].sort((a, b) => b.anio - a.anio || (b.competencia || '').localeCompare(a.competencia || ''));
+  const sorted = [...source].sort((a, b) => b.anio - a.anio || (b.live ? 1 : 0) - (a.live ? 1 : 0) || (b.competencia || '').localeCompare(a.competencia || ''));
   const byYear = [];
   sorted.forEach(t => {
     const last = byYear[byYear.length - 1];

@@ -2146,3 +2146,4 @@ em.pos { color: #8fe03a; } em.neg { color: #ff7b7b; } em.neu { color: #ffc83d; }
   .v3-nums-grid { grid-template-columns: repeat(2, 1fr); }
   .v3-nums-grid b { font-size: 1.6rem; }
 }
+.v3-hs-tag { white-space: nowrap; }
