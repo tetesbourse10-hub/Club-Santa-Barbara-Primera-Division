@@ -16262,7 +16262,8 @@ function renderHistorialDetalle(rival) {
     const splitCard = (lbl, s) => { const t = Math.max(1, s.g + s.e + s.p); return `<div class="hdx-split"><div class="hdx-split-h"><b>${lbl}</b><span>${s.pj} PJ · ${s.gf}:${s.gc}</span></div>
       <div class="hdx-split-rec"><span class="w">${s.g}</span><span class="d">${s.e}</span><span class="l">${s.p}</span></div>
       <span class="hvx-bar"><i class="w" style="width:${(s.g / t * 100).toFixed(1)}%"></i><i class="d" style="width:${(s.e / t * 100).toFixed(1)}%"></i><i class="l" style="width:${(s.p / t * 100).toFixed(1)}%"></i></span></div>`; };
-    const mLabel = m => m ? `${esc(m.resultado)} <small>${esc(m.torneo)} ${esc(m.anio)}</small>` : '—';
+    const tName = (t, y) => String(t || '').replace(new RegExp('\\s*' + y + '\\b'), '').trim();
+    const mLabel = m => m ? `${esc(m.resultado)} <small>${esc(tName(m.torneo, m.anio))} ${esc(m.anio)}</small>` : '—';
 
     const grouped = {}, order = [];
     matches.forEach(m => { const key = `${m.anio}|${m.torneo}`; if (!grouped[key]) { grouped[key] = []; order.push(key); } grouped[key].push(m); });
@@ -16274,7 +16275,7 @@ function renderHistorialDetalle(rival) {
       : order.map(key => {
         const [anio, torneo] = key.split('|');
         const g = grouped[key];
-        return `<div class="hdx-group"><div class="hdx-group-h"><span class="hdx-group-y">${esc(anio)}</span><b>${esc(torneo)}</b><i></i><small>${g.length} partido${g.length > 1 ? 's' : ''}</small></div>
+        return `<div class="hdx-group"><div class="hdx-group-h"><span class="hdx-group-y">${esc(anio)}</span><b>${esc(tName(torneo, anio))}</b><i></i><small>${g.length} partido${g.length > 1 ? 's' : ''}</small></div>
           ${g.map(m => {
             const locator = _histLocatorFor(m._nav);
             const clickable = !!m._nav && locator != null;
@@ -16294,6 +16295,7 @@ function renderHistorialDetalle(rival) {
           }).join('')}</div>`;
       }).join('');
 
+    window.scrollTo(0, 0);
     el.innerHTML = `${_volverBtnHtml()}
     <div class="jx hdx">
       <section class="jx-head hdx-head">

@@ -2037,3 +2037,4 @@ em.pos { color: #8fe03a; } em.neg { color: #ff7b7b; } em.neu { color: #ffc83d; }
   .hdx-go { display: none; }
   .hdx-strip i { width: 10px; height: 18px; }
 }
+.section-title:empty { display: none !important; }
