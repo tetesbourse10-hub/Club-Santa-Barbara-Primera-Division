@@ -10082,7 +10082,16 @@ function buildEstadisticasDetalladasTabV2(matches, idPrefix) {
       if (p[key] !== prevVal) { rank = i + 1; prevVal = p[key]; }
       return { p, rank };
     });
-    const liHtml = r => `<div class="li"><span class="rk ${medalClass(r.rank)}">${r.rank}</span><span class="nm">${pl(r.p.nombre)}</span><span class="v ${valClass}">${r.p[key]}</span></div>`;
+    // Cada fila se abre con el desglose por rival (se había perdido al pasar
+    // a la v2 — vuelve igual que en la versión original).
+    const unit = key === 'goles' ? 'gol' : key === 'asist' ? 'asist.' : 'PJ';
+    const liHtml = r => {
+      const rid = `ed2-${idPrefix}-${key}-${normName(r.p.nombre).replace(/[^a-z0-9]/g, '')}`;
+      const rivales = Object.entries(r.p.porRival || {}).filter(([, v]) => v[key] > 0).sort((a, b) => b[1][key] - a[1][key])
+        .map(([riv, v]) => `<div class="edx-dr"><span class="edx-crest">${_crestImgHtml(riv)}</span><span class="edx-rn">${riv}</span><b>${v[key]}</b><small>${unit}</small></div>`).join('');
+      return `<div class="li edx-li" onclick="edToggle('${rid}')"><span class="rk ${medalClass(r.rank)}">${r.rank}</span><span class="nm">${pl(r.p.nombre)}</span><span class="v ${valClass}">${r.p[key]}</span><span class="edx-chev" id="${rid}-chev">▾</span></div>
+        <div class="edx-drill" id="${rid}" style="display:none">${rivales || '<div class="edx-dr">Sin desglose disponible.</div>'}</div>`;
+    };
     const visible = cap ? ranked.slice(0, cap) : ranked;
     const hidden = cap ? ranked.slice(cap) : [];
     const moreId = `ed2-${idPrefix}-${key}`;
@@ -10092,7 +10101,7 @@ function buildEstadisticasDetalladasTabV2(matches, idPrefix) {
     return `<div class="card"><div class="hd"><h3 style="color:${color}">${icon} ${title}</h3></div>${visible.map(liHtml).join('')}${moreBtn}</div>`;
   }
 
-  return `<div class="ann">▲ Empates comparten medalla y puesto · color por categoría · las tres columnas con la misma altura · Presencias limitada a 10 con "Ver todos"</div>
+  return `<div class="edx-hint">Tocá un jugador para ver contra qué rivales hizo sus goles, asistencias o partidos.</div>
   <div class="row cols3" style="align-items:start">
     ${rankList('Goleadores', '⚽', '#fb923c', 'goles', 'go', null)}
     ${rankList('Asistidores', '🎯', '#85b7eb', 'asist', 'as', null)}
@@ -10195,7 +10204,7 @@ function buildPitch(titulares) {
       // veía el nombre corto, sin indicar en qué posición jugó ese partido.
       const posLabel = (!isPlaceholder && jug.pos) ? `<div class="ap-ppos">${jug.pos}</div>` : '';
       const playerInner = `<div class="ap-player-wrap">
-          <div class="ap-pdot${isPlaceholder?' placeholder':isHat?' hat-trick':' csb'}">${initials}${topBadge}${rojaBadge}${subBadge}${capBadge}</div>
+          <div class="ap-pdot${isPlaceholder?' placeholder':isHat?' hat-trick':' csb'}"${isPlaceholder ? '' : ` style="--pc:${_plantelPosColor(jug.pos)}"`}>${initials}${topBadge}${rojaBadge}${subBadge}${capBadge}</div>
         </div>
         <div class="ap-pname${isPlaceholder?' ph':''}"${nameHl}>${displayName}</div>
         ${posLabel}`;
@@ -10807,22 +10816,24 @@ function buildFechaDetailHTML(basic, detail, fechaLabelOverride) {
   // para ver el equipo completo). Mismo patrón que ya usa mobile
   // (.ap-squad-tabs-m/_apSquadTabM), pero con las listas completas
   // (titRows/suplRows/cambios) en vez de las compactas.
+  // Desktop v3: las tres listas a la vista (sin pestañas), filas con el
+  // color de posición de El Nido.
+  const _sqRow = (j, extra) => {
+    const pc = _plantelPosColor(j.pos);
+    return `<div class="fdx-row">
+      <span class="fdx-pos" style="--pc:${pc}">${j.pos || '–'}</span>
+      <span class="fdx-name">${pl(j.nombre)}</span>
+      <span class="fdx-stats">${j.goles > 0 ? `<i class="g">⚽${j.goles > 1 ? ' ' + j.goles : ''}</i>` : ''}${j.asist > 0 ? `<i class="a">👟${j.asist > 1 ? ' ' + j.asist : ''}</i>` : ''}${j.rojas > 0 ? '<i class="r">🟥</i>' : ''}${extra || ''}</span>
+    </div>`;
+  };
   const squadTabsDesktop = `
-    <div class="ap-squad-tabs-d">
-      <div class="ap-squad-tabbar-d">
-        <button class="ap-squad-tabbtn-d active" onclick="_apSquadTabD(this,0)">11 Titular</button>
-        <button class="ap-squad-tabbtn-d" onclick="_apSquadTabD(this,1)">Banco de Suplentes</button>
-        <button class="ap-squad-tabbtn-d" onclick="_apSquadTabD(this,2)">Cambios</button>
-      </div>
-      <div class="ap-squad-tabpanel-d">${titRows}</div>
-      <div class="ap-squad-tabpanel-d" style="display:none">${suplRows}</div>
-      <div class="ap-squad-tabpanel-d" style="display:none">${cambios.length
-        ? cambios.map(c => `<div class="ap-change">
-            <span class="cin">Entró: ${pl(c.inp.nombre)}</span>
-            <span class="cmet">·</span>
-            <span class="cout">Salió: ${c.out ? pl(c.out.nombre) : '?'}</span>
-          </div>`).join('')
-        : `<div class="ap-squad-item"><span class="ap-squad-empty">Sin cambios en este partido.</span></div>`}</div>
+    <div class="fdx-squads">
+      <div class="fdx-sq"><div class="fdx-sq-h"><span>11 titular</span><em>${titulares.length}</em></div>
+        ${titulares.length ? titulares.map(j => _sqRow(j, j.salio ? '<i class="out" title="Salió">▼</i>' : '')).join('') : '<div class="fdx-empty">Sin alineación cargada.</div>'}</div>
+      <div class="fdx-sq"><div class="fdx-sq-h"><span>Suplentes</span><em>${banco.length}</em></div>
+        ${banco.length ? banco.map(j => _sqRow(j, (j.entro ? '<i class="in" title="Entró">▲</i>' : '') + (j.salio ? '<i class="out" title="Salió">▼</i>' : ''))).join('') : '<div class="fdx-empty">Sin suplentes cargados.</div>'}</div>
+      ${cambios.length ? `<div class="fdx-sq"><div class="fdx-sq-h"><span>Cambios</span><em>${cambios.length}</em></div>
+        ${cambios.map(c => `<div class="fdx-change"><span class="in">▲ ${pl(c.inp.nombre)}</span><span class="out">▼ ${c.out ? pl(c.out.nombre) : '?'}</span></div>`).join('')}</div>` : ''}
     </div>`;
 
   const pitchSection = `
@@ -12249,77 +12260,74 @@ function buildCentroDatosHtmlV2(matches, opts) {
   }
 
   const instanceId = 'cdv2-' + (opts.instanceKey || opts.tabFn || 'default');
-  const firstStrip = (mode) => byMode[mode].map(matchCard).join('');
-  const firstRows = (mode) => tableRows(mode);
-  const fxLabel = mode => mode === 't' ? 'Todos los partidos' : mode === 'l' ? 'Partidos de local' : 'Partidos de visitante';
-
-  // Guardado para que el selector Total/Local/Visitante (_cdv2Set) cambie
-  // los números, la tira de partidos y la tabla de abajo sin volver a
-  // renderizar nada — mismo patrón que el set(k) del mockup, con los 3
-  // juegos de datos ya calculados de antemano.
+  const _esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  // Filas v3: condición en su propia columna, escudo del rival, resultado
+  // con color propio (verde/amarillo/rojo) y crónica más corta.
+  function rowsV3(mode) {
+    return byMode[mode].map(m => {
+      const { csb, riv } = _cdCsbGoles(m);
+      const jugado = m.gf != null && m.gc != null;
+      const isNext = nextFecha && String(m.fecha) === nextFecha;
+      const res = jugado ? (csb > riv ? 'w' : csb === riv ? 'd' : 'l') : (isNext ? 'next' : 'pend');
+      const ck = _cdCondKey(m.local);
+      const cond = ck === 'local' ? '<span class="cdx-cond l">🏠 Local</span>' : ck === 'visitante' ? '<span class="cdx-cond v">✈️ Visitante</span>' : '<span class="cdx-cond">Neutral</span>';
+      let resHtml;
+      if (jugado) resHtml = `<span class="cdx-res ${res}"><i>${res === 'w' ? 'G' : res === 'd' ? 'E' : 'P'}</i>${_esc(m.resultado || (csb + '-' + riv))}</span>`;
+      else if (m.resultado && !/^[-—]*$/.test(String(m.resultado).trim())) resHtml = `<span class="cdx-res pend">${_esc(m.resultado)}</span>`;
+      else if (isNext) resHtml = `<span class="cdx-res next">⏱ ${nextDt ? _cdCountdownLabel(nextDt) : 'Próximo'}</span>`;
+      else resHtml = `<span class="cdx-res pend">Pendiente</span>`;
+      const posHtml = jugado ? _cdPosicion(m, false) : (isNext ? `Hoy: ${posActual || '—'} vs ${m.posRival || '—'}` : '<span class="cdx-dim">—</span>');
+      const obs = m.obs ? String(m.obs) : '';
+      const cron = obs
+        ? `<span class="cdx-cron" title="${_esc(obs)}">${_esc(obs.length > 42 ? obs.slice(0, 42) + '…' : obs)}</span>${obs.length > 42 ? ` <span class="cdx-more" onclick="event.stopPropagation();_cdv2ShowObs(this,'${obs.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, ' ').replace(/"/g, '&quot;')}')">más</span>` : ''}`
+        : '<span class="cdx-dim">—</span>';
+      return `<tr class="cdx-row cdx-${res}${isNext ? '' : ' cd-row-clickable'}" ${isNext ? '' : `onclick="_cdGoToFecha('${tabFn}','${fechaFn}',${parseInt(m.fecha) || 0})"`}>
+        <td class="cdx-f">F${_esc(m.fecha)}</td>
+        <td>${cond}</td>
+        <td><span class="cdx-rival"><span class="cdx-crest">${_crestImgHtml(m.rival)}</span>${_esc(m.rival)}</span></td>
+        <td>${resHtml}</td>
+        <td class="cdx-c">${jugado ? _cdParciales(m.parciales) : '<span class="cdx-dim">—</span>'}</td>
+        <td class="cdx-c">${posHtml}</td>
+        <td class="cdx-cron-td">${cron}</td>
+      </tr>`;
+    }).join('');
+  }
+  const headRow = `<thead><tr><th>Fecha</th><th>Condición</th><th>Rival</th><th>Resultado</th><th class="cdx-c">Parciales</th><th class="cdx-c">Pos. previa</th><th>Crónica</th></tr></thead>`;
   window._cdv2Data[instanceId] = ['t', 'l', 'v'].reduce((acc, mode) => {
     const s = S[mode];
     acc[mode] = {
-      pts: s.pts, pj: s.pj + (mode === 't' ? ' partidos jugados' : mode === 'l' ? ' partidos como local' : ' partidos como visitante'),
-      g: s.v, e: s.e, p: s.d,
-      ef: s.ef, efColor: s.ef >= 70 ? '#34d399' : '#60a5fa',
-      efs: `${s.pts} de ${s.pj * 3} puntos posibles`,
+      pts: s.pts, pj: s.pj, g: s.v, e: s.e, p: s.d, ef: s.ef,
       gf: s.gf, gfp: golesPorPartido(s.gf, s.pj), gc: s.gc, gcp: golesPorPartido(s.gc, s.pj),
       dg: (s.dg >= 0 ? '+' : '') + s.dg, vallas: s.vallas, vp: pctDePartidos(s.vallas, s.pj),
-      fxt: fxLabel(mode), fxc: `${byMode[mode].length} fechas`,
-      strip: firstStrip(mode), rows: firstRows(mode),
+      rows: rowsV3(mode), head: headRow,
     };
     return acc;
   }, {});
-
-  // BUG REAL encontrado (reportado: el diseño nuevo de escritorio se veía
-  // también en mobile): #cd no tenía ningún gate de ancho — el contenido
-  // nuevo se envuelve en .mrow-desktop-only (display:none ≤768px, ver esa
-  // clase) y se le agregan los MISMOS helpers de mobile que ya usaba
-  // buildCentroDatosHtml (_cdMobileSelectorHtml/_cdMobileCardsHtml, con sus
-  // propias clases .cd-m-* que ya son mobile-only), así mobile sigue
-  // exactamente igual que antes.
-  return `<div class="mrow-desktop-only" id="cd">
-    <div class="card" style="margin-bottom:16px">
-      <div class="sec"><h3>Rendimiento · ${opts.torneoName || ''}</h3><span class="l"></span><span class="badge">${medal} <b>${posActual || '—'}</b> en la tabla</span></div>
-      <div class="seg" id="${instanceId}-seg">
-        <button class="on" onclick="_cdv2Set('${instanceId}','t',this)">Total</button>
-        <button onclick="_cdv2Set('${instanceId}','l',this)">🏠 Local</button>
-        <button onclick="_cdv2Set('${instanceId}','v',this)">✈️ Visitante</button>
+  const T = window._cdv2Data[instanceId].t;
+  return `<div class="mrow-desktop-only cdx" id="cd">
+    <div class="cdx-sum">
+      <div class="cdx-sum-top">
+        <div class="cdx-seg" id="${instanceId}-seg">
+          <button class="on" onclick="_cdv2Set('${instanceId}','t',this)">Total</button>
+          <button onclick="_cdv2Set('${instanceId}','l',this)">🏠 Local</button>
+          <button onclick="_cdv2Set('${instanceId}','v',this)">✈️ Visitante</button>
+        </div>
+        <span class="cdx-pos">${medal} <b>${posActual || '—'}</b> en la tabla</span>
       </div>
-      <div class="ficha">
-        <div class="side1">
-          <span class="lab">Puntos</span>
-          <div class="pts a" id="${instanceId}-pts">${S.t.pts}</div>
-          <div style="color:#b8cdc2" id="${instanceId}-pj">${S.t.pj} partidos jugados</div>
-          <div class="pillrow">
-            <span class="pill p-g" id="${instanceId}-g">${S.t.v} G</span>
-            <span class="pill p-e" id="${instanceId}-e">${S.t.e} E</span>
-            <span class="pill p-p" id="${instanceId}-p">${S.t.d} P</span>
-          </div>
-        </div>
-        <div class="tiles">
-          <div class="tile eff">
-            <span class="lab">Efectividad</span>
-            <b id="${instanceId}-ef" style="color:${S.t.ef >= 70 ? '#34d399' : '#60a5fa'}">${S.t.ef}%</b>
-            <div class="bar"><i id="${instanceId}-efb" style="width:${S.t.ef}%;background:${S.t.ef >= 70 ? '#34d399' : '#60a5fa'}"></i></div>
-            <small id="${instanceId}-efs">${S.t.pts} de ${S.t.pj * 3} puntos posibles</small>
-          </div>
-          <div class="tile"><span class="lab">Goles a favor</span><b class="o" id="${instanceId}-gf">${S.t.gf}</b><small id="${instanceId}-gfp">${golesPorPartido(S.t.gf, S.t.pj)}</small></div>
-          <div class="tile"><span class="lab">Goles en contra</span><b class="r" id="${instanceId}-gc">${S.t.gc}</b><small id="${instanceId}-gcp">${golesPorPartido(S.t.gc, S.t.pj)}</small></div>
-          <div class="tile"><span class="lab">Diferencia de gol</span><b class="g" id="${instanceId}-dg">${S.t.dg >= 0 ? '+' : ''}${S.t.dg}</b><small>a favor − en contra</small></div>
-          <div class="tile"><span class="lab">Vallas invictas</span><b class="v" id="${instanceId}-v">${S.t.vallas}</b><small id="${instanceId}-vp">${pctDePartidos(S.t.vallas, S.t.pj)}</small></div>
-          <div class="tile eff mt">
-            <div class="mh"><span class="lab" id="${instanceId}-fxt">Todos los partidos</span><span style="display:flex;align-items:center"><span class="lab" id="${instanceId}-fxc">${asc.length} fechas</span><span class="arr"><button onclick="_cdv2Scroll('${instanceId}',-1)">‹</button><button onclick="_cdv2Scroll('${instanceId}',1)">›</button></span></span></div>
-            <div class="mg" id="${instanceId}-list">${firstStrip('t')}</div>
-          </div>
-        </div>
+      <div class="cdx-kpis">
+        <div class="cdx-kpi"><span>Puntos</span><b class="gold" id="${instanceId}-pts">${T.pts}</b><small><i id="${instanceId}-pj">${T.pj}</i> PJ</small></div>
+        <div class="cdx-kpi cdx-kpi-ged"><span>Resultados</span><div><b class="w" id="${instanceId}-g">${T.g}</b><b class="d" id="${instanceId}-e">${T.e}</b><b class="l" id="${instanceId}-p">${T.p}</b></div><small>Ganados · Empatados · Perdidos</small></div>
+        <div class="cdx-kpi"><span>Efectividad</span><b id="${instanceId}-ef">${T.ef}%</b><div class="cdx-bar"><i id="${instanceId}-efb" style="width:${T.ef}%"></i></div></div>
+        <div class="cdx-kpi"><span>Goles a favor</span><b class="gf" id="${instanceId}-gf">${T.gf}</b><small id="${instanceId}-gfp">${T.gfp}</small></div>
+        <div class="cdx-kpi"><span>Goles en contra</span><b class="gc" id="${instanceId}-gc">${T.gc}</b><small id="${instanceId}-gcp">${T.gcp}</small></div>
+        <div class="cdx-kpi"><span>Diferencia</span><b id="${instanceId}-dg">${T.dg}</b><small>a favor − en contra</small></div>
+        <div class="cdx-kpi"><span>Vallas invictas</span><b class="vi" id="${instanceId}-v">${T.vallas}</b><small id="${instanceId}-vp">${T.vp}</small></div>
       </div>
     </div>
-    <div class="card"><table id="${instanceId}-tbl">
-      <tr><th>Fecha</th><th>Rival</th><th>Resultado</th><th>Parciales</th><th>Pos. previa</th><th>Crónica</th></tr>
-      ${firstRows('t')}
-    </table></div>
+    <div class="cdx-table-card">
+      <div class="cdx-table-h"><span>Partido a partido</span><small>Tocá un partido para ver la ficha en Fecha a Fecha</small></div>
+      <div class="cdx-table-scroll"><table class="cdx-table" id="${instanceId}-tbl">${headRow}<tbody>${T.rows}</tbody></table></div>
+    </div>
   </div>
   ${_cdMobileSelectorHtml(asc, localList, visitList, opts.excludeStatsFechas)}
   ${_cdMobileCardsHtml(asc, opts)}`;
@@ -12351,30 +12359,12 @@ window._cdv2Set = function(instanceId, mode, btn) {
   const seg = document.getElementById(instanceId + '-seg');
   if (seg) seg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === btn));
   const q = suf => document.getElementById(instanceId + suf);
-  if (q('-pts')) q('-pts').textContent = d.pts;
-  if (q('-pj')) q('-pj').textContent = d.pj;
-  if (q('-g')) q('-g').textContent = d.g + ' G';
-  if (q('-e')) q('-e').textContent = d.e + ' E';
-  if (q('-p')) q('-p').textContent = d.p + ' P';
-  if (q('-ef')) { q('-ef').textContent = d.ef + '%'; q('-ef').style.color = d.efColor; }
-  if (q('-efb')) { q('-efb').style.width = d.ef + '%'; q('-efb').style.background = d.efColor; }
-  if (q('-efs')) q('-efs').textContent = d.efs;
-  if (q('-gf')) q('-gf').textContent = d.gf;
-  if (q('-gfp')) q('-gfp').textContent = d.gfp;
-  if (q('-gc')) q('-gc').textContent = d.gc;
-  if (q('-gcp')) q('-gcp').textContent = d.gcp;
-  if (q('-dg')) q('-dg').textContent = d.dg;
-  if (q('-v')) q('-v').textContent = d.vallas;
-  if (q('-vp')) q('-vp').textContent = d.vp;
-  if (q('-fxt')) q('-fxt').textContent = d.fxt;
-  if (q('-fxc')) q('-fxc').textContent = d.fxc;
-  if (q('-list')) { q('-list').innerHTML = d.strip; q('-list').scrollLeft = 0; }
+  const set = (suf, v) => { const el = q(suf); if (el) el.textContent = v; };
+  set('-pts', d.pts); set('-pj', d.pj); set('-g', d.g); set('-e', d.e); set('-p', d.p);
+  set('-ef', d.ef + '%'); if (q('-efb')) q('-efb').style.width = d.ef + '%';
+  set('-gf', d.gf); set('-gfp', d.gfp); set('-gc', d.gc); set('-gcp', d.gcp); set('-dg', d.dg); set('-v', d.vallas); set('-vp', d.vp);
   const tbl = q('-tbl');
-  if (tbl) tbl.innerHTML = `<tr><th>Fecha</th><th>Rival</th><th>Resultado</th><th>Parciales</th><th>Pos. previa</th><th>Crónica</th></tr>${d.rows}`;
-  // Centra automáticamente la mini-tarjeta del próximo partido en la tira,
-  // igual que el mockup — nunca arranca la tira a mitad de camino.
-  const nx = q('-list') ? q('-list').querySelector('.next') : null;
-  if (nx) nx.scrollIntoView({ inline: 'center', block: 'nearest' });
+  if (tbl) tbl.innerHTML = (d.head || '') + `<tbody>${d.rows}</tbody>`;
 };
 window._cdv2Scroll = function(instanceId, dir) {
   const list = document.getElementById(instanceId + '-list');
@@ -12586,89 +12576,102 @@ function renderTorneoApertura() {
       return ` <span class="lab" style="text-transform:none"> · empatado con ${inicialYApellido}</span>`;
     };
 
-    // BUG REAL encontrado (el diseño nuevo de escritorio se veía también en
-    // mobile): .leader/.card son clases nuevas sin ningún gate de ancho —
-    // van adentro de .mrow-desktop-only (ver tableHtml más abajo), y mobile
-    // sigue mostrando las mismas 4 tarjetas KPI de siempre (.ap-plantel-kpi,
-    // sin tocar).
-    const leaderHtml = `<div class="mrow-desktop-only"><div class="leader">
-      <div class="card"><div class="lab">⚽ Máximo Goleador</div><div class="big" style="color:#fb923c">${numVal(topG?.goles)}</div><b>${topG?.nombre || '—'}</b></div>
-      <div class="card" style="border-top-color:#85b7eb"><div class="lab">🎯 Máximo Asistidor</div><div class="big" style="color:#85b7eb">${numVal(topA?.asist)}</div><b>${topA?.nombre || '—'}</b>${_empatadoCon(jugs, numVal(topA?.asist), topA)}</div>
-      <div class="card" style="border-top-color:#af9ec6"><div class="lab">✨ Más Goles + Asistencias</div><div class="big" style="color:#af9ec6">${numVal(topGA?.goles)+numVal(topGA?.asist)}</div><b>${topGA?.nombre || '—'}</b></div>
-      <div class="card" style="border-top-color:#8ef0b6"><div class="lab">🏃 Más Partidos</div><div class="big a">${numVal(topPJ?.pj) || numVal(topPJ?.titular)}</div><b>${jugs.filter(j => (numVal(j.pj) || numVal(j.titular)) === (numVal(topPJ?.pj) || numVal(topPJ?.titular))).length} jugadores</b></div>
-    </div></div>
-    <div class="rsm-mobile"><div class="ap-plantel-kpis">
-      <div class="ap-plantel-kpi"><div class="ap-plantel-kpi-icon">⚽</div><div class="ap-plantel-kpi-label">Máximo Goleador</div><div class="ap-plantel-kpi-val">${numVal(topG?.goles)}</div><div class="ap-plantel-kpi-name">${topG?.nombre || '—'}</div></div>
-      <div class="ap-plantel-kpi"><div class="ap-plantel-kpi-icon">🎯</div><div class="ap-plantel-kpi-label">Máximo Asistidor</div><div class="ap-plantel-kpi-val">${numVal(topA?.asist)}</div><div class="ap-plantel-kpi-name">${topA?.nombre || '—'}</div></div>
-      <div class="ap-plantel-kpi"><div class="ap-plantel-kpi-icon">🌟</div><div class="ap-plantel-kpi-label">Más Goles + Asistencias</div><div class="ap-plantel-kpi-val">${numVal(topGA?.goles)+numVal(topGA?.asist)}</div><div class="ap-plantel-kpi-name">${topGA?.nombre || '—'}</div></div>
-      <div class="ap-plantel-kpi"><div class="ap-plantel-kpi-icon">🏃</div><div class="ap-plantel-kpi-label">Más Partidos Jugados</div><div class="ap-plantel-kpi-val">${numVal(topPJ?.pj) || numVal(topPJ?.titular)}</div><div class="ap-plantel-kpi-name">${topPJ?.nombre || '—'}</div></div>
-    </div></div>`;
-
-    const tableId = 'ap-plantel-tbl';
-    const rows = jugs.map((j, idx) => {
-      const g   = numVal(j.goles);
-      const a   = numVal(j.asist);
-      const tr  = numVal(j.rojas);
-      const tit = numVal(j.titular);
-      const sup = numVal(j.entro);
-      const pj  = numVal(j.pj) || (tit + sup);
-      const cit = numVal(j.citado);
-      const pga = numVal(j.promGA) || (pj > 0 ? (g + a) / pj : 0);
-      const pos = posMap[j.nombre] || j.pos || '';
-      const grp = posGroup(pos);
-      return { j, g, a, tr, tit, sup, pj, cit, pga, pos, grp, idx };
-    });
-    const defaultSorted = [...rows].sort((a,b) => a.grp !== b.grp ? a.grp - b.grp : b.pj - a.pj);
-    const conMinutos = defaultSorted.filter(r => r.pj > 0);
-    const sinMinutos = defaultSorted.filter(r => r.pj === 0);
-
-    const z = v => v > 0 ? v : `<span style="color:#496758">0</span>`;
-    function rowHtml({ j, g, a, tr, tit, sup, pj, cit, pga, pos }) {
-      return `<tr data-nombre="${j.nombre.toLowerCase()}" data-pj="${pj}">
-        <td>${posTagHtml(pos)}${pl(j.nombre)}</td>
-        <td class="c">${z(pj)}</td>
-        <td class="c">${z(tit)}</td>
-        <td class="c" style="${sup > 0 ? '' : 'color:#496758'}">${z(sup)}</td>
-        <td class="c" style="color:${g > 0 ? '#fb923c' : '#496758'}">${z(g)}</td>
-        <td class="c" style="color:${a > 0 ? '#85b7eb' : '#496758'}">${z(a)}</td>
-        <td class="c" style="color:${(g+a) > 0 ? '#af9ec6' : '#496758'}">${z(g+a)}</td>
-        <td class="c">${z(cit)}</td>
-        <td class="c">${pga > 0 ? pga.toFixed(2) : '<span style="color:#496758">—</span>'}</td>
-      </tr>`;
+    // ── Plantel v3 ──
+    // Líderes: si hay empate en el máximo, se muestran TODOS los empatados.
+    const _escP = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const pjOf = j => numVal(j.pj) || (numVal(j.titular) + numVal(j.entro));
+    function leaderCard(icon, label, color, valFn) {
+      const max = Math.max(0, ...jugs.map(valFn));
+      const tied = max > 0 ? jugs.filter(j => valFn(j) === max) : [];
+      const shown = tied.slice(0, 3);
+      const names = shown.map(j => `<span class="plx-ln" onclick="goToPlayer('${j.nombre.replace(/'/g, "\\'")}')">${_escP(j.nombre)}</span>`).join('');
+      const extra = tied.length > 3 ? `<span class="plx-more" title="${_escP(tied.slice(3).map(j => j.nombre).join(', '))}">+${tied.length - 3} más</span>` : '';
+      return `<div class="plx-leader" style="--c:${color}">
+        <div class="plx-leader-top"><span class="plx-leader-lbl">${icon} ${label}</span>${tied.length > 1 ? `<span class="plx-tie">${tied.length} empatados</span>` : ''}</div>
+        <b class="plx-leader-val">${max}</b>
+        <div class="plx-names">${names || '<span class="plx-ln">—</span>'}${extra}</div>
+      </div>`;
     }
-    const sinMinutosRow = sinMinutos.length
-      ? `<tr><td colspan="9" style="text-align:center;color:#b8cdc2;background:#13211a;cursor:pointer" onclick="this.closest('table').querySelectorAll('tr[data-sinmin]').forEach(r=>r.style.display=r.style.display==='none'?'':'none');this.textContent=this.textContent.startsWith('▸')?this.textContent.replace('▸','▾'):this.textContent.replace('▾','▸')">▸ Sin minutos este torneo (${sinMinutos.length}): ${sinMinutos.map(r => r.j.nombre).join(' · ')}</td></tr>`
-        + sinMinutos.map(r => `<tr data-sinmin style="display:none">${rowHtml(r).replace('<tr', '').replace(/^.*?>/, '')}`).join('')
-      : '';
-
-    const theadHtml = `<tr><th>Jugador</th><th class="c">PJ</th><th class="c">TIT</th><th class="c">SUP</th><th class="c">GOL</th><th class="c">AST</th><th class="c">G+A</th><th class="c">CIT</th><th class="c">Prom. G+A</th></tr>`;
-    const chipHtml = `<div style="padding:14px 16px;display:flex;gap:10px;align-items:center;border-bottom:1px solid #20392d">
-      <span class="chip on" id="${tableId}-chip" onclick="_apPlantelToggleMin('${tableId}',this)">✓ Solo con minutos</span>
-      <span class="chip">Posición ▾</span>
-      <span class="chip">🔎 Buscar jugador</span>
+    const leaderHtml = `<div class="plx-leaders">
+      ${leaderCard('⚽', 'Máximo goleador', '#ef9f27', j => numVal(j.goles))}
+      ${leaderCard('👟', 'Máximo asistidor', '#97c459', j => numVal(j.asist))}
+      ${leaderCard('✨', 'Más goles + asistencias', '#af9ec6', j => numVal(j.goles) + numVal(j.asist))}
+      ${leaderCard('🏃', 'Más partidos', '#8ef0b6', pjOf)}
     </div>`;
-    window._apPlantelAllRows = { conMinutos, sinMinutos, rowHtml };
-    window._apPlantelToggleMin = function(tid, chip) {
-      chip.classList.toggle('on');
-      const solo = chip.classList.contains('on');
-      chip.textContent = (solo ? '✓' : '') + ' Solo con minutos';
-      const tbl = document.getElementById(tid);
-      const d2 = window._apPlantelAllRows;
-      tbl.querySelector('tbody').innerHTML = solo
-        ? d2.conMinutos.map(d2.rowHtml).join('') + (d2.sinMinutos.length ? `<tr><td colspan="9" style="text-align:center;color:#b8cdc2;background:#13211a;cursor:pointer" onclick="this.closest('table').querySelectorAll('tr[data-sinmin]').forEach(r=>r.style.display=r.style.display==='none'?'':'none')">▸ Sin minutos este torneo (${d2.sinMinutos.length}): ${d2.sinMinutos.map(r => r.j.nombre).join(' · ')}</td></tr>` + d2.sinMinutos.map(r => `<tr data-sinmin style="display:none">${d2.rowHtml(r).replace(/^<tr[^>]*>/, '<tr>')}`).join('') : '')
-        : [...d2.conMinutos, ...d2.sinMinutos].map(d2.rowHtml).join('');
-    };
 
-    const tableHtml = `<div class="mrow-desktop-only"><div class="card" style="padding:0;overflow:hidden">
-      ${chipHtml}
-      <div style="max-height:600px;overflow:auto">
-        <table class="sticky" id="${tableId}">
-          <thead>${theadHtml}</thead>
-          <tbody>${conMinutos.map(rowHtml).join('')}${sinMinutosRow}</tbody>
+    const PG = { ARQ:0, DFI:1, DFC:1, DFD:1, DEF:1, LI:1, LD:1, MI:2, MC:2, MCO:2, MD:2, MCI:2, MCD:2, DC:3, DEL:3, ED:3, EI:3, ATI:3, ATD:3 };
+    const grpOf = p => PG[String(p || '').toUpperCase()] ?? 4;
+    const allRows = jugs.map((j, idx) => {
+      const g = numVal(j.goles), a = numVal(j.asist), tit = numVal(j.titular), sup = numVal(j.entro);
+      const pj = numVal(j.pj) || (tit + sup);
+      const pos = posMap[j.nombre] || j.pos || '';
+      return { nombre: j.nombre, pos, grp: grpOf(pos), pj, tit, sup, g, a, ga: g + a, cit: numVal(j.citado), rojas: numVal(j.rojas),
+        pga: numVal(j.promGA) || (pj > 0 ? (g + a) / pj : 0), idx };
+    });
+    window._apPl = { rows: allRows, pos: 'todas', q: '', soloMin: true, sort: { col: null, dir: 'desc' } };
+    const tableId = 'ap-plantel-tbl';
+    const COLS = [['pj', 'PJ'], ['tit', 'Titular'], ['sup', 'Suplente'], ['g', 'Goles'], ['a', 'Asist.'], ['ga', 'G+A'], ['cit', 'Citado'], ['pga', 'Prom. G+A']];
+    window._apPlRender = function () {
+      const st = window._apPl; if (!st) return;
+      const nq = String(st.q || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+      let rows = st.rows.filter(r => (st.pos === 'todas' || String(r.grp) === st.pos) && (!nq || r.nombre.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().includes(nq)));
+      const sinMin = rows.filter(r => r.pj === 0);
+      if (st.soloMin) rows = rows.filter(r => r.pj > 0);
+      if (st.sort.col) {
+        const k = st.sort.col, dir = st.sort.dir === 'asc' ? 1 : -1;
+        rows = [...rows].sort((x, y) => (x[k] - y[k]) * dir || y.pj - x.pj);
+      } else rows = [...rows].sort((x, y) => x.grp - y.grp || y.pj - x.pj);
+      const z = v => v > 0 ? v : '<span class="plx-zero">0</span>';
+      const body = rows.map(r => {
+        const pc = _plantelPosColor(r.pos);
+        return `<tr>
+          <td class="plx-name-td"><span class="plx-pos" style="--pc:${pc}">${_escP(r.pos || '–')}</span><span class="plx-name">${pl(r.nombre)}</span></td>
+          <td class="c">${z(r.pj)}</td><td class="c">${z(r.tit)}</td><td class="c">${z(r.sup)}</td>
+          <td class="c plx-g">${z(r.g)}</td><td class="c plx-a">${z(r.a)}</td><td class="c plx-ga">${z(r.ga)}</td>
+          <td class="c">${z(r.cit)}</td><td class="c">${r.pga > 0 ? r.pga.toFixed(2).replace('.', ',') : '<span class="plx-zero">—</span>'}</td>
+        </tr>`;
+      }).join('');
+      const note = st.soloMin && sinMin.length
+        ? `<tr class="plx-note"><td colspan="9">Sin minutos este torneo (${sinMin.length}): ${sinMin.map(r => _escP(r.nombre)).join(' · ')} <button onclick="_apPlSet('soloMin',false)">Mostrar</button></td></tr>` : '';
+      const tb = document.querySelector('#' + tableId + ' tbody');
+      if (tb) tb.innerHTML = body + note || `<tr><td colspan="9" class="plx-empty">No hay jugadores con esos filtros.</td></tr>`;
+      document.querySelectorAll('#' + tableId + ' th[data-k]').forEach(th => {
+        const on = st.sort.col === th.dataset.k;
+        th.classList.toggle('on', on);
+        th.querySelector('em').textContent = on ? (st.sort.dir === 'desc' ? '▼' : '▲') : '';
+      });
+      const chip = document.getElementById(tableId + '-min');
+      if (chip) chip.classList.toggle('on', st.soloMin);
+      const cnt = document.getElementById(tableId + '-cnt');
+      if (cnt) cnt.textContent = rows.length + ' jugador' + (rows.length === 1 ? '' : 'es');
+    };
+    window._apPlSet = function (k, v) { if (!window._apPl) return; window._apPl[k] = v; window._apPlRender(); };
+    window._apPlSort = function (k) {
+      const st = window._apPl; if (!st) return;
+      st.sort = st.sort.col === k ? { col: k, dir: st.sort.dir === 'desc' ? 'asc' : 'desc' } : { col: k, dir: 'desc' };
+      window._apPlRender();
+    };
+    const posCount = g => allRows.filter(r => String(r.grp) === g).length;
+    const tableHtml = `<div class="mrow-desktop-only"><div class="plx-card">
+      <div class="plx-tools">
+        <label class="plx-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" placeholder="Buscar jugador…" oninput="_apPlSet('q', this.value)"></label>
+        <label class="plx-select"><span>Posición</span><select onchange="_apPlSet('pos', this.value)">
+          <option value="todas">Todas (${allRows.length})</option><option value="0">Arqueros (${posCount('0')})</option><option value="1">Defensores (${posCount('1')})</option><option value="2">Mediocampistas (${posCount('2')})</option><option value="3">Delanteros (${posCount('3')})</option>
+        </select></label>
+        <label class="plx-select"><span>Ordenar por</span><select onchange="this.value ? (window._apPl.sort = { col: this.value, dir: 'desc' }, _apPlRender()) : (window._apPl.sort = { col: null, dir: 'desc' }, _apPlRender())">
+          <option value="">Posición</option>${COLS.map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}
+        </select></label>
+        <button class="plx-chip on" id="${tableId}-min" onclick="_apPlSet('soloMin', !window._apPl.soloMin)">✓ Solo con minutos</button>
+        <span class="plx-cnt" id="${tableId}-cnt"></span>
+      </div>
+      <div class="plx-scroll">
+        <table class="plx-table" id="${tableId}">
+          <thead><tr><th>Jugador</th>${COLS.map(([k, l]) => `<th class="c" data-k="${k}" onclick="_apPlSort('${k}')">${l}<em></em></th>`).join('')}</tr></thead>
+          <tbody></tbody>
         </table>
       </div>
-    </div></div>${_plantelMobileCardsHtml(defaultSorted)}`;
-
+    </div></div>${_plantelMobileCardsHtml([...allRows].sort((x, y) => x.grp - y.grp || y.pj - x.pj).map(r => jugs[r.idx] ? { j: jugs[r.idx], g: r.g, a: r.a, tr: r.rojas, tit: r.tit, sup: r.sup, pj: r.pj, cit: r.cit, pga: r.pga, pos: r.pos, grp: r.grp, idx: r.idx } : null).filter(Boolean))}`;
+    setTimeout(() => window._apPlRender && window._apPlRender(), 0);
     return `${leaderHtml}${tableHtml}`;
   }
 
@@ -12682,26 +12685,36 @@ function renderTorneoApertura() {
   const resPill = m => { const { csb, riv } = _csbGoles(m); return csb > riv ? 'p-gr' : csb < riv ? 'p-rd' : 'p-am'; };
   const nextDtTabla = (next && detNext) ? _parseFechaHora(detNext.dia, detNext.hora, true) : null;
 
+  const _condTxt = l => /local/i.test(l || '') ? 'Local' : /visit/i.test(l || '') ? 'Visitante' : (l || '');
+  const _sideTeams = (m, scoreHtml) => {
+    const vis = /visit/i.test(m.local || '');
+    const csbT = `<div class="tbx-team"><span class="tbx-crest"><img src="logo-csb.webp" alt=""></span><b>Santa Bárbara</b></div>`;
+    const rivT = `<div class="tbx-team"><span class="tbx-crest">${_crestImgHtml(m.rival)}</span><b>${m.rival}</b></div>`;
+    return `<div class="tbx-match">${vis ? rivT : csbT}${scoreHtml}${vis ? csbT : rivT}</div>`;
+  };
   const lastCardDesktop = last ? `
-    <div class="card">
-      <h3 class="lab">⚽ Último partido</h3>
-      <span class="pill ${resPill(last)}">${resLabel(last)}</span>
-      <div style="font-weight:800;font-size:20px;margin:8px 0">vs ${last.rival}</div>
-      <div class="big" style="font-size:40px;color:${rc(last)}">${last.resultado}</div>
-      <div style="color:#b8cdc2;margin-top:6px">Fecha ${last.fecha}${last.local ? ' · ' + (/local/i.test(last.local||'')?'Local':/visit/i.test(last.local||'')?'Visitante':last.local) : ''}${detLast?.dia ? ' · ' + detLast.dia : ''}${detLast?.hora ? ' · ' + detLast.hora : ''}</div>
-      ${posActualTabla ? `<div style="margin-top:10px"><span class="pill p-gy">Hoy: ${posActualTabla} en la tabla</span></div>` : ''}
-    </div>` : `<div class="card"><h3 class="lab">⚽ Último partido</h3><div style="color:#7f9e8e;margin-top:8px">Sin partidos jugados</div></div>`;
+    <div class="tbx-side tbx-${resPill(last) === 'p-gr' ? 'w' : resPill(last) === 'p-rd' ? 'l' : 'd'}" onclick="apSwitchTab('fechas');selectFecha(${last.fecha})">
+      <div class="tbx-head"><span class="tbx-lbl">Último partido</span><span class="tbx-res">${resLabel(last)}</span></div>
+      ${_sideTeams(last, `<div class="tbx-score">${last.resultado}</div>`)}
+      <div class="tbx-meta">
+        <span><small>Fecha</small>${last.fecha}</span>
+        <span><small>Condición</small>${_condTxt(last.local) || '—'}</span>
+        <span><small>Día</small>${detLast?.dia || '—'}${detLast?.hora ? ' · ' + detLast.hora : ''}</span>
+      </div>
+      ${posActualTabla ? `<div class="tbx-foot">Hoy: <b>${posActualTabla}</b> en la tabla</div>` : ''}
+    </div>` : `<div class="tbx-side"><div class="tbx-head"><span class="tbx-lbl">Último partido</span></div><div class="tbx-empty">Sin partidos jugados</div></div>`;
 
   const nextCardDesktop = next ? `
-    <div class="card">
-      <h3 class="lab">🗓 Próximo partido</h3>
-      <span class="pill p-bl">${nextDtTabla ? '⏱ ' + _cdCountdownLabel(nextDtTabla) : 'Próximo'}</span>
-      <div style="font-weight:800;font-size:20px;margin:8px 0">vs ${next.rival}</div>
-      <div style="color:#b8cdc2">Fecha ${next.fecha}${next.local ? ' · ' + (/local/i.test(next.local||'')?'Local':/visit/i.test(next.local||'')?'Visitante':next.local) : ''}${detNext?.dia ? '<br>' + detNext.dia : ''}${detNext?.hora ? ' · ' + detNext.hora : ''}</div>
-    </div>` : `<div class="card"><h3 class="lab">🗓 Próximo partido</h3><div style="color:#7f9e8e;margin-top:8px">Torneo finalizado</div></div>`;
+    <div class="tbx-side tbx-next" onclick="apSwitchTab('fechas');selectFecha(${next.fecha})">
+      <div class="tbx-head"><span class="tbx-lbl">Próximo partido</span>${nextDtTabla ? `<span class="tbx-cd">⏱ ${_cdCountdownLabel(nextDtTabla)}</span>` : ''}</div>
+      ${_sideTeams(next, `<div class="tbx-vs">VS</div>`)}
+      <div class="tbx-meta">
+        <span><small>Fecha</small>${next.fecha}</span>
+        <span><small>Condición</small>${_condTxt(next.local) || '—'}</span>
+        <span><small>Día</small>${detNext?.dia || '—'}${detNext?.hora ? ' · ' + detNext.hora : ''}</span>
+      </div>
+    </div>` : `<div class="tbx-side"><div class="tbx-head"><span class="tbx-lbl">Próximo partido</span></div><div class="tbx-empty">Torneo finalizado</div></div>`;
 
-  // Mobile sin cambios: mantiene el markup .ap-match-card original (NO las
-  // clases nuevas .card/.pill, que ya son el diseño desktop de En Vivo v2).
   const lastCard = last ? `
     <div class="ap-match-card" onclick="apSwitchTab('fechas');selectFecha(${last.fecha})">
       <div class="ap-card-title">⚽ Último Partido</div>
@@ -12799,7 +12812,7 @@ function renderTorneoApertura() {
   const nextFechaNum = next ? parseInt(next.fecha) : null;
   const fechaBtns = allFechas.map(f => {
     const isNext = nextFechaNum !== null && f.n === nextFechaNum;
-    return `<button class="ap-fecha-btn ${f.played ? 'played' : 'pending'} p ${f.played ? 'ok' : isNext ? 'nx' : 'pe'}" data-fecha="${f.n}" onclick="selectFecha(${f.n})" title="${f.rival ? 'vs ' + f.rival : ''}">F${f.n}${isNext ? ' ⏱' : ''}</button>`;
+    return `<button class="ap-fecha-btn ${f.played ? 'played' : 'pending'} p ${f.played ? 'ok' : isNext ? 'nx' : 'pe'}" data-fecha="${f.n}" onclick="selectFecha(${f.n})" title="${f.rival ? 'vs ' + f.rival : ''}">F${f.n}${isNext ? ' ⏱' : ''}${f.rival ? `<span class="fbx-crest">${_crestImgHtml(f.rival)}</span><span class="fbx-rival">${f.rival}</span>` : ''}</button>`;
   }).join('');
 
   document.getElementById('torneo-apertura-content').innerHTML = `
@@ -16531,15 +16544,18 @@ const JUG_COL = {
 // Mismo código de colores que El Nido (ver posColor() dentro de su propio
 // IIFE) — usado en la columna de posición del Plantel, tanto en Torneos
 // Actuales como Antiguos, para que ambas vistas queden consistentes.
+// Mismos colores que El Nido v3 en todo el sitio: arqueros violeta,
+// laterales turquesa, centrales celeste, mediocampistas amarillo,
+// delanteros rojo.
 function _plantelPosColor(pos) {
   const C = {
-    ARQ:'#a855f7',
-    LI:'#22c55e', LD:'#22c55e', DFI:'#22c55e', DFD:'#22c55e',
-    DEF:'#3b82f6', DFC:'#3b82f6',
-    MC:'#f59e0b', MCO:'#f59e0b', MD:'#f59e0b', MI:'#f59e0b',
-    DEL:'#ef4444', DC:'#ef4444', ED:'#ef4444', EI:'#ef4444',
+    ARQ:'#c4b5fd',
+    LI:'#5eead4', LD:'#5eead4', DFI:'#5eead4', DFD:'#5eead4',
+    DEF:'#7dd3fc', DFC:'#7dd3fc',
+    MC:'#f3c24f', MCO:'#f3c24f', MD:'#f3c24f', MI:'#f3c24f', MCI:'#f3c24f', MCD:'#f3c24f',
+    DEL:'#fda4af', DC:'#fda4af', ED:'#fda4af', EI:'#fda4af', ATI:'#fda4af', ATD:'#fda4af',
   };
-  return C[String(pos || '').toUpperCase()] || '#6c7f76';
+  return C[String(pos || '').toUpperCase()] || '#a3bbad';
 }
 function _plantelPosBadgeHtml(pos) {
   if (!pos) return '';
