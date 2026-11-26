@@ -387,7 +387,13 @@ nav button.active, nav button:hover { border-bottom-color: var(--v3-brand) !impo
   .v3-hero-stat { min-width: 104px; padding: 11px 12px; flex: 1 0 auto; }
   .v3-hero-stat-val { font-size: 1.9rem; }
   .v3-sec-title { font-size: 1.35rem; }
-  #landing .landing-cards { grid-template-columns: 1fr; gap: 12px; }
+  #landing .landing-cards { grid-template-columns: 1fr 1fr; gap: 10px; }
+  #landing .landing-cards .landing-card:last-child { grid-column: 1 / -1; }
+  #landing .card-name { font-size: 1.2rem; }
+  #landing .next-match-row { display: none !important; }
+  #landing .pm-carousel-wrap { display: block !important; }
+  #landing .landing-logo { display: block !important; }
+  #landing .landing-title, #landing .landing-sub { display: block !important; }
   .v3-card { padding: 16px; border-radius: 18px; }
   .v3-quick { grid-template-columns: 1fr 1fr; }
 }
