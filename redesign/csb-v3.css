@@ -730,3 +730,41 @@ body.v3-profile #v3-topbar, body.v3-profile #v3-bottomnav { display: none !impor
   .nv3-table thead .nv3-th-player { z-index: 3; background: #0f2017; }
   .nv3-table .nv3-td-rank { display: none; }
 }
+
+/* El Nido — filtros compactos (v2) */
+.nv3-controls { gap: 10px; }
+.nv3-row-sel { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.nv3-select {
+  position: relative; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 34px 0 12px;
+  background: var(--v3-surface); border: 1px solid var(--v3-line-2); border-radius: 12px; cursor: pointer; min-width: 0;
+}
+.nv3-select::after {
+  content: ''; position: absolute; right: 13px; top: 50%; width: 7px; height: 7px; margin-top: -5px; pointer-events: none;
+  border-right: 2px solid var(--v3-muted); border-bottom: 2px solid var(--v3-muted); transform: rotate(45deg);
+}
+.nv3-select > span { font-size: 0.64rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--v3-dim); white-space: nowrap; pointer-events: none; }
+.nv3-select select {
+  appearance: none; -webkit-appearance: none; background: none; border: 0; outline: 0; color: #fff; cursor: pointer;
+  font: 700 0.86rem 'Inter', sans-serif; padding: 0; min-width: 0; max-width: 100%; text-overflow: ellipsis;
+}
+.nv3-select select option { background: #0e1f15; color: #fff; }
+.nv3-select:hover, .nv3-select:focus-within { border-color: rgba(52, 209, 123, 0.5); }
+.nv3-select.on { border-color: rgba(52, 209, 123, 0.55); background: rgba(52, 209, 123, 0.08); }
+.nv3-select.on select { color: var(--v3-brand); }
+.nv3-dirbtn {
+  width: 40px; height: 40px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+  background: var(--v3-surface); border: 1px solid var(--v3-line-2); border-radius: 12px; color: var(--v3-text);
+}
+.nv3-dirbtn svg { width: 18px; height: 18px; transition: transform .2s; }
+.nv3-dirbtn:hover { border-color: rgba(52, 209, 123, 0.5); color: var(--v3-brand); }
+.nv3-reset { background: none; border: 0; color: var(--v3-muted); font: 600 0.8rem 'Inter', sans-serif; cursor: pointer; padding: 0 6px; text-decoration: underline; text-underline-offset: 3px; }
+.nv3-reset:hover { color: #fff; }
+@media (max-width: 768px) {
+  .nv3-row-sel { display: grid; grid-template-columns: 1fr 1fr 40px; gap: 8px; }
+  .nv3-select { padding: 0 28px 0 10px; flex-direction: column; align-items: flex-start; justify-content: center; gap: 1px; height: 48px; }
+  .nv3-select::after { right: 11px; }
+  .nv3-select > span { font-size: 0.55rem; }
+  .nv3-select select { font-size: 0.8rem; width: 100%; }
+  .nv3-dirbtn { height: 48px; width: 40px; }
+  .nv3-reset { grid-column: 1 / -1; justify-self: start; padding: 2px 0; }
+}

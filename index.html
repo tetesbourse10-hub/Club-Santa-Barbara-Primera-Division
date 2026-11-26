@@ -22913,7 +22913,6 @@ async function loadLiveData() {
           <span><b>${p.titulos || 0}</b>Tít.</span><span><b>${p.vallas || 0}</b>VI</span>
           <button class="nv3-cmp" title="Comparar" onclick="event.stopPropagation();window.v3&&window.v3.compareWith&&window.v3.compareWith('${nv3Js(p.nombre)}')">⇄</button>
         </div>
-        ${nv3VedBar(p)}
       </div>`;
     }).join('');
     const more = rows.length > _nidoMobileVisible
@@ -22945,7 +22944,7 @@ async function loadLiveData() {
       }).join('');
       return `<tr class="nv3-tr${pod}" ${nv3Open(p)}>
         <td class="nv3-td-rank">${_nidoRank ? i + 1 : ''}</td>
-        <td class="nv3-td-player"><div class="nv3-player">${nv3Avatar(p)}<div class="nv3-player-id"><span class="nv3-player-name">${nv3Esc(p.nombre)}</span>${isPj ? nv3VedBar(p) : ''}</div></div></td>
+        <td class="nv3-td-player"><div class="nv3-player">${nv3Avatar(p)}<div class="nv3-player-id"><span class="nv3-player-name">${nv3Esc(p.nombre)}</span></div></div></td>
         <td class="nv3-td-pos">${nv3PosPill(p)}</td>
         <td class="nv3-td-team">${nv3Teams(p)}</td>
         ${cells}
@@ -23010,14 +23009,24 @@ async function loadLiveData() {
     const posCount = p => ds.filter(x => normPos(x.pos) === p).length;
     const seg = [{ k: 'todos', l: 'Todos' }, { k: 'a', l: 'Primera A' }, { k: 'b', l: 'Primera B' }]
       .map(f => `<button class="${_nidoTeam === f.k ? 'on' : ''}" data-t="${f.k}" onclick="window._nidoTeam('${f.k}')">${f.l}</button>`).join('');
-    const posChips = ['todas', ...POSICIONES].map(p => {
-      const on = _nidoPos === p;
+    // Filtros compactos: posición y orden como dos selectores, más el
+    // botón de sentido. Partidos ganados/empatados/perdidos van dentro del
+    // mismo "Ordenar por" (por dentro siguen siendo el ranking de Partidos
+    // con su sub-orden PG/PE/PP, igual que antes).
+    const posOpts = ['todas', ...POSICIONES].map(p => {
       const n = p === 'todas' ? ds.length : posCount(p);
-      return `<button class="nv3-chip${on ? ' on' : ''}" style="--pc:${p === 'todas' ? '#34d17b' : nv3PosC(p)}" onclick="window._nidoPosSelect('${p}')">${p === 'todas' ? 'Todas' : p}<span>${n}</span></button>`;
+      const lbl = p === 'todas' ? 'Todas' : `${p} · ${(NV3_POS[p] || {}).n || p}`;
+      return `<option value="${p}"${_nidoPos === p ? ' selected' : ''}>${nv3Esc(lbl)} (${n})</option>`;
     }).join('');
-    const rankChips = RANK_METRICS.map(m => `<button class="nv3-rchip${_nidoRank === m.key ? ' on' : ''}" onclick="window._nidoRankMode('${m.key}')">${nv3Esc((NV3_METRIC[m.key] || {}).label || m.label)}</button>`).join('');
-    const pjSub = _nidoRank === 'pj' ? `<div class="nv3-subsort"><span>Ordenar por</span>${['pj', 'pg', 'pe', 'pp'].map(c =>
-      `<button class="nv3-sub nv3-sub-${c}${_nidoPjSort.col === c ? ' on' : ''}" onclick="window._nidoPjSortBy('${c}')">${c.toUpperCase()}</button>`).join('')}</div>` : '';
+    const ORDER_OPTS = [
+      ['pj', 'Partidos jugados'], ['pg', 'Partidos ganados'], ['pe', 'Partidos empatados'], ['pp', 'Partidos perdidos'],
+      ['goles', 'Goles'], ['asist', 'Asistencias'], ['gmas', 'Goles + asistencias'], ['titulos', 'Títulos'], ['vallas', 'Vallas invictas'],
+      ['promGol', 'Promedio de gol'], ['promAsist', 'Promedio de asistencias'], ['promGmas', 'Promedio de G+A'], ['vallasProm', 'Promedio de vallas'],
+      ['nombre', 'Nombre'], ['pos', 'Posición'],
+    ];
+    const orderNow = _nidoRank === 'pj' ? _nidoPjSort.col : (_nidoRank || _nidoSort.col);
+    const orderOpts = ORDER_OPTS.map(([k, l]) => `<option value="${k}"${orderNow === k ? ' selected' : ''}>${l}</option>`).join('');
+    const isAscNow = nv3IsAsc();
     const view = nv3View();
 
     el.innerHTML = `<div class="nv3">
@@ -23040,11 +23049,16 @@ async function loadLiveData() {
             <button class="${view === 'cards' ? 'on' : ''}" onclick="window._nidoView('cards')" title="Tarjetas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></button>
           </div>
         </div>
-        <div class="nv3-row"><span class="nv3-lbl">Posición</span><div class="nv3-scroll">${posChips}</div></div>
-        <div class="nv3-row"><span class="nv3-lbl">Ranking</span><div class="nv3-scroll">${rankChips}
-          ${_nidoRank ? `<button class="nv3-dir" onclick="${_nidoRank === 'pj' ? `window._nidoPjSortBy('${_nidoPjSort.col}')` : `window._nidoSort('${_nidoRank}')`}" title="Invertir orden">${nv3IsAsc() ? '↑ Menor a mayor' : '↓ Mayor a menor'}</button>
-          <button class="nv3-clear" onclick="window._nidoRankMode(null)">✕ Quitar</button>` : ''}</div></div>
-        ${pjSub}
+        <div class="nv3-row nv3-row-sel">
+          <label class="nv3-select${_nidoPos !== 'todas' ? ' on' : ''}"><span>Posición</span>
+            <select onchange="window._nidoPosSelect(this.value)">${posOpts}</select></label>
+          <label class="nv3-select nv3-select-order"><span>Ordenar por</span>
+            <select onchange="window._nidoOrder(this.value)">${orderOpts}</select></label>
+          <button class="nv3-dirbtn" onclick="window._nidoOrderFlip()" title="${isAscNow ? 'Menor a mayor' : 'Mayor a menor'}" aria-label="Invertir orden">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(${isAscNow ? 180 : 0}deg)"><path d="M12 5v14M6 13l6 6 6-6"/></svg>
+          </button>
+          ${(_nidoPos !== 'todas' || _nidoTeam !== 'todos' || _nidoQuery || orderNow !== 'pj' || isAscNow) ? `<button class="nv3-reset" onclick="window._nidoResetAll()">Limpiar</button>` : ''}
+        </div>
       </section>
 
       <div id="nido-table-container">${renderTable()}</div>
@@ -23062,7 +23076,27 @@ async function loadLiveData() {
   };
   window._nidoResetAll = function () {
     _nidoPos = 'todas'; _nidoQuery = ''; _nidoTeam = 'todos';
+    _nidoRank = 'pj'; _nidoSort = { col: 'pj', asc: false }; _nidoPjSort = { col: 'pj', asc: false };
+    _nidoMobileVisible = 24;
     _renderNidoContent(); _nidoUpdateRoute();
+  };
+  // "Ordenar por" único: los rankings de siempre + PG/PE/PP (sub-orden del
+  // ranking de Partidos) + nombre/posición (orden simple, sin ranking).
+  window._nidoOrder = function (k) {
+    if (k === 'pj' || k === 'pg' || k === 'pe' || k === 'pp') {
+      if (_nidoRank !== 'pj') window._nidoRankMode('pj');
+      _nidoPjSort = { col: k, asc: false };
+      _nidoMobileVisible = 24;
+      _renderNidoContent();
+      return;
+    }
+    if (k === 'nombre' || k === 'pos') { window._nidoSort(k, true); return; }
+    window._nidoRankMode(k);
+  };
+  window._nidoOrderFlip = function () {
+    if (_nidoRank === 'pj') return window._nidoPjSortBy(_nidoPjSort.col);
+    if (_nidoRank) return window._nidoSort(_nidoRank);
+    return window._nidoSort(_nidoSort.col);
   };
 
   let _nidoLoadPromise = null;
