@@ -2690,3 +2690,39 @@ body { overflow-x: clip; }
   .tax-head .hvx-rec b, .hvx-head .hvx-rec b { font-size: 1.4rem !important; }
   .tax-head .hvx-rec > div, .hvx-head .hvx-rec > div { padding: 7px 9px !important; }
 }
+
+/* ════════════════ EN VIVO en modo app ════════════════ */
+@media (max-width: 768px) {
+  /* Pestañas: las 5 entran en el ancho, ícono arriba y nombre corto */
+  .ap-tab-nav { display: grid !important; grid-template-columns: repeat(5, 1fr) !important; gap: 2px !important; padding: 4px !important; overflow: visible !important; border-radius: 16px !important; mask-image: none !important; -webkit-mask-image: none !important; }
+  .ap-tab-nav::after, .ap-tab-nav::before { display: none !important; }
+  .ap-tab-btn { font-size: 0 !important; display: flex !important; flex-direction: column; align-items: center; gap: 2px; padding: 7px 2px !important; min-width: 0 !important; border-radius: 12px !important; white-space: nowrap; }
+  .ap-tab-btn .ap-tab-icon { font-size: 1.05rem !important; margin: 0 !important; line-height: 1; }
+  .ap-tab-btn::after { font-size: 0.6rem; font-weight: 800; letter-spacing: 0.01em; }
+  .ap-tab-btn[data-tab="datos"]::after { content: 'Resumen'; }
+  .ap-tab-btn[data-tab="plantel"]::after { content: 'Plantel'; }
+  .ap-tab-btn[data-tab="tabla"]::after { content: 'Tabla'; }
+  .ap-tab-btn[data-tab="fechas"]::after { content: 'Fechas'; }
+  .ap-tab-btn[data-tab="detalladas"]::after { content: 'Detalle'; }
+  /* Portada del torneo más baja */
+  #v3-tv-hero { padding: 14px !important; border-radius: 20px !important; gap: 10px !important; }
+  #v3-tv-hero h2, #v3-tv-hero .v3-tv-title { font-size: 1.45rem !important; }
+  #v3-tv-hero .v3-tv-kpis > div { padding: 7px 8px !important; }
+  #v3-tv-hero .v3-tv-kpis b { font-size: 1.2rem !important; }
+  /* Partidos del Centro de Datos: filas compactas */
+  .mrow-card[data-cd-cond] { display: grid !important; grid-template-columns: 1fr auto; gap: 4px 8px; padding: 10px 12px !important; border-radius: 16px !important; margin-bottom: 8px !important; }
+  .mrow-card[data-cd-cond] .cd-mcard-headrow { grid-column: 1 / -1; display: flex; gap: 8px; font-size: 0.6rem !important; margin: 0 !important; }
+  .mrow-card[data-cd-cond] .mrow-top { grid-column: 1 / -1; margin: 0 !important; }
+  .mrow-card[data-cd-cond] .mrow-title { font-size: 0.95rem !important; }
+  .mrow-card[data-cd-cond] .rival-avatar { width: 26px !important; height: 26px !important; }
+  .mrow-card[data-cd-cond] .cd-m-res-pill { font-size: 1rem !important; padding: 3px 10px !important; }
+  .mrow-card[data-cd-cond] .mrow-secondary { grid-column: 1 / -1; display: flex !important; gap: 12px !important; padding: 0 !important; margin: 0 !important; border: 0 !important; background: none !important; }
+  .mrow-card[data-cd-cond] .mrow-sec-item { flex-direction: row !important; align-items: baseline; gap: 4px; padding: 0 !important; background: none !important; border: 0 !important; }
+  .mrow-card[data-cd-cond] .mrow-sec-val { font-size: 0.74rem !important; order: 2; }
+  .mrow-card[data-cd-cond] .mrow-sec-label { font-size: 0.56rem !important; order: 1; }
+  .mrow-card[data-cd-cond] .mrow-sec-item + .mrow-sec-item .mrow-sec-label { font-size: 0; }
+  .mrow-card[data-cd-cond] .mrow-sec-item + .mrow-sec-item .mrow-sec-label::before { content: 'Pos.'; font-size: 0.56rem; }
+  .mrow-card[data-cd-cond] .cd-m-obs-wrap { grid-column: 1 / -1; margin: 2px 0 0 !important; font-size: 0.74rem !important; }
+  .mrow-card[data-cd-cond] .cd-m-obs-truncated { -webkit-line-clamp: 2 !important; }
+  .mrow-card[data-cd-cond] .cd-mcard-footer { display: none !important; }
+}
