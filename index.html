@@ -23503,7 +23503,7 @@ function _jxtTablaHtml(rows, opts) {
       <td class="jxt-tm">${team}</td>
       ${two ? `<td>${side(t.ap)}</td><td>${side(t.cl)}</td>` : `<td class="jxt-copa">${t.copas && t.copas !== '-' ? _anualesCopaBadgeSingle(t.copas) : '<span class="jxt-dash">—</span>'}</td>`}
       <td class="jxt-pts"><b>${t.pts}</b><u><s style="width:${(t.pts / maxPts * 100).toFixed(1)}%"></s></u></td>
-      <td>${t.pj}</td>
+      <td class="m-x">${t.pj}</td>
       <td class="w m-x">${t.pg}</td><td class="d m-x">${t.pe}</td><td class="l m-x">${t.pp}</td>
       <td class="jxt-form m-x"><span><i class="w" style="width:${(t.pg / pj * 100).toFixed(1)}%"></i><i class="d" style="width:${(t.pe / pj * 100).toFixed(1)}%"></i><i class="l" style="width:${(t.pp / pj * 100).toFixed(1)}%"></i></span></td>
       <td class="m-x">${t.gf}:${t.gc}</td>
@@ -23511,7 +23511,7 @@ function _jxtTablaHtml(rows, opts) {
     </tr>`;
   }).join('');
   return `<div class="jx-table-wrap jxt-wrap"><table class="jx-table jxt-table">
-    <thead><tr><th class="jxt-pos">#</th><th>Equipo</th>${two ? '<th>Apertura</th><th>Clausura</th>' : '<th>Clasificación</th>'}<th class="jx-num">Pts</th><th class="jx-num">PJ</th><th class="jx-num m-x">G</th><th class="jx-num m-x">E</th><th class="jx-num m-x">P</th><th class="m-x">Rendimiento</th><th class="jx-num m-x">Goles</th><th class="jx-num">Dif</th></tr></thead>
+    <thead><tr><th class="jxt-pos">#</th><th>Equipo</th>${two ? '<th>Apertura</th><th>Clausura</th>' : '<th>Clasificación</th>'}<th class="jx-num">Pts</th><th class="jx-num m-x">PJ</th><th class="jx-num m-x">G</th><th class="jx-num m-x">E</th><th class="jx-num m-x">P</th><th class="m-x">Rendimiento</th><th class="jx-num m-x">Goles</th><th class="jx-num">Dif</th></tr></thead>
     <tbody>${trs}</tbody></table></div>`;
 }
 function _jxtLegend() {
