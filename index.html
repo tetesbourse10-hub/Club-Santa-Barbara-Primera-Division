@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <link rel="icon" type="image/webp" href="logo-csb.webp" />
+  <link rel="icon" type="image/webp" href="logo-csb.webp?v=2" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Club Santa Bárbara</title>
   <!-- "Agregar a pantalla de inicio" (mobile) — el sitio queda con el
@@ -14,8 +14,8 @@
        despliegue se ve ahí también, sin tener que reinstalar nada. El único
        Service Worker que corre acá es el de OneSignal (ver más abajo),
        que existe solo para poder recibir push, no para cachear nada. -->
-  <link rel="manifest" href="/manifest.json" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/manifest.json?v=2" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon-v2.png" />
   <meta name="apple-mobile-web-app-title" content="Santa Bárbara" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -4465,7 +4465,7 @@
 
     <div class="landing-card lc-card-nido" onclick="openSection('nido')" tabindex="0" role="button">
       <div class="lc-topline lc-topline-nido"></div>
-      <div class="lc-row lc-row-icon"><span class="lc-crest lc-crest-nido"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.6"/><path d="M15.5 14.2c3 .2 5.5 2.6 5.5 5.8"/></svg></span></div>
+      <div class="lc-row lc-row-icon"><span class="lc-crest lc-crest-nido"><span class="lc-nido-emoji">🪺</span><b>⚽</b></span></div>
       <div class="lc-row lc-row-title"><span class="card-name">El Nido</span><span class="lc-title-arrow">›</span></div>
       <div class="lc-row lc-row-badge" id="lc-badge-nido"></div>
       <div class="lc-row lc-row-torneo"><span class="card-badge badge-green">Nuestros jugadores</span></div>
@@ -14906,7 +14906,7 @@ function renderResumen() {
   if (tablaIdx !== -1 && d.tabla.length) {
     const tabla = d.tabla, total = tabla.length;
     if (isA) {
-      const want = Math.min(4, total);
+      const want = Math.min(6, total);
       if (total <= want) {
         tablaCorta = tabla.slice(0, total);
       } else if (tablaIdx < want) {
@@ -14918,7 +14918,7 @@ function renderResumen() {
         // ninguno abajo, ej. CSB último) para llegar a `want` equipos
         // reales, más el 1° aparte con su "···" si hace falta.
         const belowAvail = total - 1 - tablaIdx;
-        const belowCount = Math.min(1, belowAvail);
+        const belowCount = Math.min(2, belowAvail);
         const aboveCount = (want - 2) - belowCount;
         const start = tablaIdx - aboveCount, end = tablaIdx + belowCount;
         const rows = [tabla[0]];
@@ -14926,7 +14926,7 @@ function renderResumen() {
         tablaCorta = [...rows, ...tabla.slice(start, end + 1)];
       }
     } else {
-      const start = Math.max(0, tablaIdx - 3);
+      const start = Math.max(0, tablaIdx - 5);
       tablaCorta = tabla.slice(start, tablaIdx + 1);
       // "A N pts de salir del descenso · Xº Equipo (M pts)" — la zona de
       // "Descenso" sale de la propia etiqueta de la tabla (columna "copas"
@@ -15221,12 +15221,12 @@ function renderResumen() {
   const _tablaCard = `<div class="rv4-card">
     <div class="rv4-card-head"><span class="rv4-h3">Tabla de posiciones</span><span class="rv4-meta">${_e(d.badge.replace(/ \d{4}$/, ''))}</span></div>
     ${tablaCorta ? `<div class="rv4-table">
-      <div class="rv4-tr rv4-th"><span>#</span><span>Equipo</span><span>PJ</span><span>DG</span><span>Pts</span></div>
+      <div class="rv4-tr rv4-th"><span>#</span><span>Equipo</span><span>PJ</span><span>G</span><span>E</span><span>P</span><span>DG</span><span>Pts</span></div>
       ${tablaCorta.map(t => {
         if (t._gap) return `<div class="rv4-tr rv4-gap"><span></span><span>···</span></div>`;
         const enZona = !isA && !t.csb && /descenso/i.test(t.copas || '');
         const dg = (Number(t.gf) || 0) - (Number(t.gc) || 0);
-        return `<div class="rv4-tr${t.csb ? ' rv4-me' : ''}${enZona ? ' rv4-dz' : ''}"><span>${_posN(t.pos)}</span><span class="rv4-tteam"><i>${t.csb ? '<img src="logo-csb.webp" alt="">' : _crestImgHtml(t.equipo)}</i>${_e(t.equipo)}</span><span>${_e(t.pj)}</span><span>${dg >= 0 ? '+' : ''}${dg}</span><span><b>${_e(t.pts)}</b></span></div>`;
+        return `<div class="rv4-tr${t.csb ? ' rv4-me' : ''}${enZona ? ' rv4-dz' : ''}"><span>${_posN(t.pos)}</span><span class="rv4-tteam"><i>${t.csb ? '<img src="logo-csb.webp" alt="">' : _crestImgHtml(t.equipo)}</i>${_e(t.equipo)}</span><span>${_e(t.pj)}</span><span class="rv4-cg">${_e(t.pg)}</span><span class="rv4-ce">${_e(t.pe)}</span><span class="rv4-cp">${_e(t.pp)}</span><span>${dg >= 0 ? '+' : ''}${dg}</span><span><b>${_e(t.pts)}</b></span></div>`;
       }).join('')}
     </div>
     ${(_estado && _estado.estado === 'descendido') ? `<div class="rv4-note">Ya no alcanza a los puestos que se salvan: <b>descendido</b>.</div>` : tablaZonaInfo ? `<div class="rv4-note">A <b>${tablaZonaInfo.n} pts</b> de salir del descenso · ${_e(tablaZonaInfo.pos)}° ${_e(tablaZonaInfo.equipo)} (${_e(tablaZonaInfo.pts)} pts)</div>` : ''}` : '<div class="rv4-empty">Tabla no disponible</div>'}
@@ -15271,13 +15271,13 @@ function renderResumen() {
     <div class="rv4-tot-top">
       <div class="rv4-ring" style="--w:${_pctOfPJ(h.pg)};--d:${_pctOfPJ(h.pe)}"><div><b>${efectividad}%</b><span>efectividad</span></div></div>
       <div class="rv4-tot-main">
-        <div class="rv4-tot-pj"><b>${h.pj}</b><span>partidos jugados</span></div>
+        <div class="rv4-tot-pj rv4-tot-pj-c"><b>${h.pj}</b><span>partidos jugados</span></div>
         <div class="rv4-ged rv4-ged-sm">
           <div class="g"><b>${h.pg}</b><span>Ganados · ${_pctOfPJ(h.pg)}%</span></div>
           <div class="e"><b>${h.pe}</b><span>Empatados · ${_pctOfPJ(h.pe)}%</span></div>
           <div class="p"><b>${h.pp}</b><span>Perdidos · ${_pctOfPJ(h.pp)}%</span></div>
         </div>
-        <div class="rv4-pts-line">${_histPts} de ${3 * h.pj} puntos posibles</div>
+        <div class="rv4-pts-chip"><b>${_histPts}</b> de ${3 * h.pj} puntos posibles</div>
       </div>
     </div>
     <div class="rv4-tot-grid">
@@ -15560,8 +15560,8 @@ function renderHistorial() {
     const elig = d.filter(r => r.pj >= 3);
     const hl = [
       ['Rival más frecuente', pick(d, (r, b) => r.pj > b.pj), r => `${r.pj} partidos`, 'brand'],
-      ['Víctima favorita', pick(elig, (r, b) => r.dh > b.dh || (r.dh === b.dh && r.pg > b.pg)), r => `${r.pg}G ${r.pe}E ${r.pp}P`, 'win'],
-      ['Bestia negra', pick(elig, (r, b) => r.dh < b.dh || (r.dh === b.dh && r.pp > b.pp)), r => `${r.pg}G ${r.pe}E ${r.pp}P`, 'loss'],
+      ['Víctima favorita', pick(elig, (r, b) => r.dh > b.dh || (r.dh === b.dh && r.pg > b.pg)), r => `<em class="hvx-g">${r.pg}G</em> <em class="hvx-e">${r.pe}E</em> <em class="hvx-p">${r.pp}P</em>`, 'win'],
+      ['Bestia negra', pick(elig, (r, b) => r.dh < b.dh || (r.dh === b.dh && r.pp > b.pp)), r => `<em class="hvx-g">${r.pg}G</em> <em class="hvx-e">${r.pe}E</em> <em class="hvx-p">${r.pp}P</em>`, 'loss'],
       ['Más goles le hicimos', pick(d, (r, b) => r.gf > b.gf), r => `${r.gf} goles`, 'gold'],
     ].filter(h => h[1]);
     return `<section class="jx-head hvx-head">
@@ -16350,8 +16350,8 @@ function renderHistorialDetalle(rival) {
       </section>
       <div class="hdx-layout">
         <div class="hdx-main">
-          ${played.length ? `<div class="v3-card hdx-strip-card"><div class="hdx-card-h">Todos los partidos <small>del primero al último</small></div>
-            <div class="hdx-strip">${played.map(m => `<i class="r-${rc(m)}" title="${esc(m.anio)} ${esc(m.torneo)} · ${esc(m.resultado)}"></i>`).join('')}</div></div>` : ''}
+          ${played.length ? `<div class="v3-card hdx-strip-card"><div class="hdx-card-h">Todos los partidos <small>del más reciente (izquierda) al más antiguo</small></div>
+            <div class="hdx-strip">${[...played].reverse().map(m => `<i class="r-${rc(m)}" title="${esc(m.anio)} ${esc(m.torneo)} · ${esc(m.resultado)}"></i>`).join('')}</div></div>` : ''}
           ${groupsHtml}
         </div>
         <aside class="hdx-aside">
@@ -20915,70 +20915,32 @@ function _renderNextMatchBox(elId, boxClass, label, m, navKey) {
   // _nmbPosLineHtml — pero el historial siempre tiene algo para mostrar,
   // aunque sea "Primer partido entre ambos").
   const footHtml = m.rival ? `<div class="nmb-foot relative z-10">${posLine}<span class="nmb-foot-hist" id="${histTargetId}" data-rival="${String(m.rival || '').replace(/"/g, '&quot;')}"></span></div>` : '';
+  // ── Diseño v3: enfrentamiento + ubicación visible con mapa y "Cómo llegar" ──
+  const isVisitante = /visit/i.test(m.local || '');
+  const usT = `<div class="nmx-team"><span class="nmx-crest nmx-us"><img src="logo-csb.webp" alt=""></span><b>Santa Bárbara</b></div>`;
+  const rivT = `<div class="nmx-team"><span class="nmx-crest">${_crestImgHtml(m.rival)}</span><b>${m.rival}</b></div>`;
+  const mapsUrl = _mapsUrlFor(m);
+  const mapQ = (m.lugar || m.estadio || '').trim();
+  const mapEmbed = mapQ ? `https://maps.google.com/maps?q=${encodeURIComponent(mapQ)}&z=15&output=embed` : '';
+  const pin = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>';
+  const center = m.isLive
+    ? `<div class="nmx-vs nmx-live${m.final ? ' fin' : ''}"><b>${m.marcadorTxt || 'VS'}</b><span>${m.final ? 'Final' : (m.clockLabel || 'En vivo')}</span></div>`
+    : `<div class="nmx-vs"><b>VS</b><span>${meta.weekday ? meta.weekday.slice(0, 3) + ' ' : ''}${meta.diaMes || 'A confirmar'}</span>${meta.horaTxt ? `<em>${meta.horaTxt}</em>` : ''}</div>`;
   _softSetHtml(el, `
-    <div class="pm2-card ${isA ? 'pm2-a' : 'pm2-b'} group p-3${clickAttr ? ' cursor-pointer' : ''}"${clickAttr}>
-      <div class="absolute -top-12 -left-12 w-32 h-32 ${c.glow} rounded-full blur-2xl pointer-events-none"></div>
-
-      <div class="flex items-center justify-between pb-2 border-b border-slate-800/80 relative z-10">
-        <div class="flex items-center gap-2.5">
-          <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-extrabold tracking-wide uppercase ${c.badge} shadow-sm">${label}</span>
-          ${m.fecha ? `<span class="text-xs font-semibold text-slate-400">Fecha ${m.fecha}</span>` : ''}
-        </div>
-        ${liveBadge || (cd ? `<div class="flex items-center gap-2 bg-slate-900/90 border border-slate-700/60 px-3.5 py-1 rounded-xl text-base font-extrabold ${c.cdText} shadow-inner">
-          <svg class="w-5 h-5 ${c.cdText} animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          <span>${cdVal}</span>
-          <span class="text-xs text-slate-500 font-normal uppercase tracking-wider hidden sm:inline">restantes</span>
-        </div>` : '')}
+    <div class="nmx${clickAttr ? ' is-link' : ''}"${clickAttr}>
+      <div class="nmx-head">
+        <span class="nmx-sq">${label}</span>${m.fecha ? `<span class="nmx-fecha">Fecha ${m.fecha}</span>` : ''}
+        ${meta.localTxt ? `<span class="nmx-loc">${meta.localTxt}</span>` : ''}
+        ${m.isLive ? '' : (cd ? `<span class="nmx-cd"><i></i>Faltan <b>${cdVal}</b></span>` : '')}
       </div>
-
-      ${(() => {
-        // Si Santa Bárbara juega de visitante, este bloque (escudo+"vs
-        // Rival") pasa al lado derecho y el recuadro de fecha/cancha al
-        // izquierdo — mismo criterio Local-izquierda/Visitante-derecha que
-        // ya usa el carrusel mobile (ver _pmCard), ahora también en
-        // desktop (antes quedaba siempre fijo a la izquierda sin importar
-        // la localía real).
-        const isVisitante = /visit/i.test(m.local || '');
-        return `<div class="flex items-center justify-between pt-2 relative z-10${isVisitante ? ' flex-row-reverse' : ''}">
-        <div class="flex items-center gap-3.5 min-w-0">
-          <div class="relative group-hover:scale-105 transition-transform duration-300 shrink-0">
-            <div class="w-12 h-12 rounded-2xl bg-gradient-to-b from-slate-800 to-slate-900 p-2 border border-slate-700/80 shadow-md flex items-center justify-center overflow-hidden">${_crestImgHtml(m.rival)}</div>
-          </div>
-          <div class="min-w-0">
-            ${meta.localTxt ? `<div class="flex items-center gap-2 mb-0.5">
-              <span class="text-xs font-bold uppercase tracking-wider text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20">${meta.localTxt}</span>
-            </div>` : ''}
-            <h3 class="text-base font-extrabold text-white truncate tracking-tight">
-              <span class="text-slate-400 font-normal text-sm mr-1">vs</span>${m.rival}
-            </h3>
-          </div>
-        </div>
-        <div class="text-right shrink-0 pl-2">
-          <div class="inline-block bg-slate-900/60 px-2.5 py-1 rounded-lg border border-slate-800/80">
-            <p class="text-xs font-bold text-slate-100">${m.isLive ? (m.final ? 'Finalizado' : 'En vivo') : (metaLine || 'Fecha a confirmar')}</p>
-            ${m.lugar ? (_mapsUrlFor(m) ? `
-            <a href="${_mapsUrlFor(m)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Cómo llegar" class="text-xs ${c.pinText} font-semibold flex items-center justify-end gap-1 mt-0.5">
-              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-              ${m.lugar}
-            </a>` : `
-            <p class="text-xs text-slate-400 font-medium flex items-center justify-end gap-1 mt-0.5">
-              <svg class="w-3 h-3 ${c.pinText}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-              ${m.lugar}
-            </p>`) : ''}
-          </div>
-        </div>
-      </div>`;
-      })()}
+      <div class="nmx-match">${isVisitante ? rivT : usT}${center}${isVisitante ? usT : rivT}</div>
+      ${mapQ ? `<div class="nmx-place" onclick="event.stopPropagation()">
+        ${mapEmbed ? `<iframe class="nmx-map" src="${mapEmbed}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Mapa de ${mapQ.replace(/"/g, '&quot;')}"></iframe>` : ''}
+        <div class="nmx-place-row"><span class="nmx-pin">${pin}</span><span class="nmx-place-n"><small>Cancha</small><b>${m.lugar || mapQ}</b></span>
+          ${mapsUrl ? `<a class="nmx-go" href="${mapsUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${pin}Cómo llegar</a>` : ''}</div>
+      </div>` : ''}
       ${footHtml}
     </div>`);
-  // BUG REAL encontrado (el historial nunca pintaba con datos que resuelven
-  // rápido): _softSetHtml recién escribe el innerHTML real en el próximo
-  // frame (requestAnimationFrame), pero esta llamada se disparaba en el
-  // mismo tick — si la promesa de historial resolvía por un microtask (ej.
-  // una caché ya tibia) terminaba buscando el span por id ANTES de que
-  // existiera en el DOM. Encolar esto también con requestAnimationFrame lo
-  // sincroniza con el mismo frame en el que _softSetHtml ya escribió el
-  // nuevo HTML.
   if (footHtml) requestAnimationFrame(() => _nmbHistLineHtml(navKey, m.rival, histTargetId));
 }
 // Escudos reales de rivales, tomados del propio sitio de AIFA (URLs
