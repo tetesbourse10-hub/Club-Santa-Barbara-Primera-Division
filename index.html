@@ -20920,7 +20920,9 @@ function _renderNextMatchBox(elId, boxClass, label, m, navKey) {
   const usT = `<div class="nmx-team"><span class="nmx-crest nmx-us"><img src="logo-csb.webp" alt=""></span><b>Santa Bárbara</b></div>`;
   const rivT = `<div class="nmx-team"><span class="nmx-crest">${_crestImgHtml(m.rival)}</span><b>${m.rival}</b></div>`;
   const mapsUrl = _mapsUrlFor(m);
-  const mapQ = (m.lugar || m.estadio || '').trim();
+  // De local no hace falta ubicación: todos saben dónde queda el club.
+  const esLocal = /local/i.test(m.local || '') && !isVisitante;
+  const mapQ = esLocal ? '' : (m.lugar || m.estadio || '').trim();
   const mapEmbed = mapQ ? `https://maps.google.com/maps?q=${encodeURIComponent(mapQ)}&z=15&output=embed` : '';
   const pin = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>';
   const center = m.isLive

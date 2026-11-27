@@ -2294,3 +2294,127 @@ button.v3-h2h-vs:hover { color: #fff; }
 .hvx-hl-main small em { font-style: normal; font-weight: 800; }
 em.hvx-g { color: #8fe03a; } em.hvx-e { color: #ffc83d; } em.hvx-p { color: #ff7b7b; }
 @media (min-width: 769px) { .rv4-dest { flex: 1; display: flex; flex-direction: column; justify-content: space-around; } }
+
+/* ════════════════════════════════════════════════════════════════════
+   MODO APP (celular): sensación de aplicación nativa
+   ════════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  html.v3-app, html.v3-app body { overscroll-behavior-y: none; -webkit-tap-highlight-color: transparent; }
+  html.v3-app button, html.v3-app [role="button"], html.v3-app #v3-bottomnav, html.v3-app #v3-topbar, html.v3-app .v3-tab, html.v3-app .jx-tabs { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  html.v3-app button:active, html.v3-app [role="button"]:active, html.v3-app .landing-card:active, html.v3-app .nmx:active, html.v3-app .jxd-card:active, html.v3-app .hvx-card:active, html.v3-app .tax-card:active, html.v3-app .jxy-card:active { transform: scale(0.97); transition: transform .08s; }
+  /* Barra superior: transparente arriba, vidrio esmerilado al scrollear */
+  #v3-topbar { transition: background .2s, box-shadow .2s, border-color .2s; }
+  #v3-topbar.scrolled { background: rgba(6, 16, 11, 0.82) !important; backdrop-filter: blur(18px) saturate(160%); -webkit-backdrop-filter: blur(18px) saturate(160%); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35); border-bottom-color: var(--v3-line-2) !important; }
+  /* Barra inferior estilo app */
+  #v3-bottomnav { border-radius: 24px; padding: 6px 6px; }
+  #v3-bottomnav button { position: relative; font-size: 0.6rem; transition: color .15s, background .2s, transform .1s; }
+  #v3-bottomnav button.active { background: none; }
+  #v3-bottomnav button.active svg { stroke-width: 2.3; }
+  #v3-bottomnav button.active::before { content: ''; position: absolute; top: 3px; left: 50%; width: 38px; height: 28px; transform: translateX(-50%); border-radius: 12px; background: rgba(52, 209, 123, 0.16); z-index: -1; }
+  #v3-bottomnav button.active::after { content: ''; position: absolute; bottom: 1px; left: 50%; width: 4px; height: 4px; border-radius: 50%; background: var(--v3-brand); transform: translateX(-50%); }
+  /* Transición entre pantallas */
+  .v3-enter { animation: v3Enter .26s cubic-bezier(.2, .8, .2, 1); }
+  /* Hojas inferiores (bottom sheets) */
+  .v3-more-sheet { border-radius: 26px 26px 0 0 !important; padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px)) !important; animation: v3SheetUp .28s cubic-bezier(.2, .8, .2, 1); }
+  #v3-h2h.open .v3-h2h-box { position: fixed; left: 0; right: 0; bottom: 0; top: auto; height: 94vh; max-height: 94vh; border-radius: 26px 26px 0 0; animation: v3SheetUp .3s cubic-bezier(.2, .8, .2, 1); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .v3-h2h-box::before, .v3-tt-box::before { content: ''; display: block; width: 40px; height: 5px; border-radius: 5px; background: rgba(186, 240, 210, 0.25); margin: 8px auto 0; }
+  .v3-h2h-head { padding: 10px 16px 12px; }
+  #v3-titles { align-items: flex-end; padding: 0; }
+  .v3-tt-box { width: 100%; max-height: 88vh; border-radius: 26px 26px 0 0; animation: v3SheetUp .3s cubic-bezier(.2, .8, .2, 1); padding-bottom: env(safe-area-inset-bottom, 0px) !important; }
+}
+@keyframes v3Enter { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes v3SheetUp { from { transform: translateY(100%); } to { transform: none; } }
+/* Deslizar para actualizar */
+#v3-ptr { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 6px); left: 50%; z-index: 1200; width: 40px; height: 40px; margin-top: -48px; border-radius: 50%; background: #10241a; border: 1px solid var(--v3-line-2); box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45); display: none; align-items: center; justify-content: center; color: var(--v3-muted); transform: translate(-50%, 0); transition: color .15s; pointer-events: none; }
+#v3-ptr.vis { display: flex; }
+#v3-ptr.ready { color: var(--v3-brand); }
+#v3-ptr span { display: flex; } #v3-ptr svg { width: 20px; height: 20px; }
+#v3-ptr.spin span { animation: v3Spin .7s linear infinite; color: var(--v3-brand); }
+@keyframes v3Spin { to { transform: rotate(360deg); } }
+/* Indicador de "volver" desde el borde */
+#v3-edge { position: fixed; left: 0; top: 50%; width: 34px; height: 64px; margin-top: -32px; border-radius: 0 32px 32px 0; background: rgba(52, 209, 123, 0.22); z-index: 1200; opacity: 0; pointer-events: none; transition: opacity .15s; }
+/* Aviso flotante */
+#v3-toast { position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 20px); opacity: 0; z-index: 1300; background: #12281c; color: #fff; border: 1px solid rgba(52, 209, 123, 0.4); border-radius: 999px; padding: 10px 18px; font: 700 0.84rem 'Inter', sans-serif; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); transition: opacity .2s, transform .2s; pointer-events: none; }
+#v3-toast.show { opacity: 1; transform: translate(-50%, 0); }
+/* Pantalla de arranque (web app instalada) */
+#v3-splash { position: fixed; inset: 0; z-index: 5000; background: radial-gradient(400px 300px at 50% 40%, rgba(52, 209, 123, 0.18), transparent 70%), #06100b; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; transition: opacity .45s; }
+#v3-splash img { width: 96px; animation: v3Pop .6s cubic-bezier(.2, 1.4, .4, 1); filter: drop-shadow(0 10px 30px rgba(52, 209, 123, 0.35)); }
+#v3-splash b { font: 800 1.8rem var(--v3-display); text-transform: uppercase; color: #fff; margin-top: 10px; }
+#v3-splash span { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; color: var(--v3-brand); }
+#v3-splash.out { opacity: 0; }
+@keyframes v3Pop { from { transform: scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* ── INICIO en modo app ── */
+#v3-qa { display: none; }
+@media (max-width: 768px) {
+  .v3-home { gap: 18px !important; }
+  .v3-home .v3-sec-head { margin-bottom: 10px; }
+  .v3-home .v3-sec-title { font-size: 1.2rem; }
+  .v3-home .v3-sec-sub { display: none; }
+  /* Portada compacta */
+  .v3-home .v3-hero { padding: 16px !important; gap: 12px !important; border-radius: 22px !important; }
+  .v3-home .v3-hero .landing-logo { width: 54px !important; height: auto !important; }
+  .v3-home .v3-hero .landing-title { font-size: 1.55rem !important; line-height: 0.95 !important; }
+  .v3-home .v3-hero .landing-sub { font-size: 0.6rem !important; }
+  .v3-home .v3-hero #landing-sub-meta { display: none !important; }
+  .v3-home .v3-hero-stats { gap: 8px; }
+  .v3-home .v3-hero-stat { padding: 10px !important; border-radius: 14px !important; }
+  .v3-home .v3-hero-stat-val { font-size: 1.9rem; margin-top: 2px; }
+  /* Banner de campeón compacto */
+  .v3-champ { grid-template-columns: auto 1fr !important; padding: 14px !important; gap: 10px 12px !important; }
+  .v3-champ-cup { font-size: 2.2rem !important; }
+  .v3-champ-id h2 { font-size: 1.35rem !important; margin: 2px 0 0 !important; }
+  .v3-champ-id p { display: none; }
+  .v3-champ-nums { grid-template-columns: repeat(4, 1fr) !important; gap: 6px !important; }
+  .v3-champ-nums > div { padding: 7px 6px !important; border-radius: 11px !important; align-items: center; }
+  .v3-champ-nums b { font-size: 1.15rem !important; }
+  .v3-champ-nums span { font-size: 0.5rem !important; }
+  .v3-champ-act { gap: 6px !important; }
+  .v3-champ-act .v3-btn, .v3-champ-act .v3-btn-ghost { padding: 9px 10px; font-size: 0.78rem; justify-content: center; }
+  /* Accesos rápidos estilo app */
+  #v3-qa { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  #v3-qa button { display: flex; flex-direction: column; align-items: center; gap: 6px; background: none; border: 0; padding: 0; color: var(--v3-text); cursor: pointer; font-family: inherit; }
+  #v3-qa span { width: 54px; height: 54px; border-radius: 18px; display: flex; align-items: center; justify-content: center; color: var(--v3-brand);
+    background: linear-gradient(160deg, rgba(52, 209, 123, 0.2), rgba(52, 209, 123, 0.05)); border: 1px solid rgba(52, 209, 123, 0.3); }
+  #v3-qa svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+  #v3-qa b { font-size: 0.66rem; font-weight: 700; color: var(--v3-muted); white-space: nowrap; }
+  /* Próximos partidos: carrusel deslizable */
+  #landing .pm-carousel-wrap { display: none !important; }
+  #landing .next-match-row { display: flex !important; overflow-x: auto; scroll-snap-type: x mandatory; gap: 10px; margin: 0 -14px; padding: 2px 14px 6px; scrollbar-width: none; }
+  #landing .next-match-row::-webkit-scrollbar { display: none; }
+  #landing .next-match-row > div { flex: 0 0 86%; scroll-snap-align: center; animation: none !important; }
+  .nmx { padding: 14px; gap: 11px; border-radius: 20px; }
+  .nmx-crest { width: 50px; height: 50px; }
+  .nmx-vs b { font-size: 1.5rem; }
+  .nmx-team b { font-size: 0.78rem; }
+  .nmx-map { height: 96px; }
+  .nmx-cd { margin-left: auto; }
+  .nmx .nmb-foot { font-size: 0.7rem; }
+  /* Planteles: tarjetas deslizables y compactas */
+  #landing .landing-cards { display: flex !important; overflow-x: auto; scroll-snap-type: x mandatory; gap: 10px !important; margin: 0 -14px !important; padding: 2px 14px 6px !important; scrollbar-width: none; width: auto !important; }
+  #landing .landing-cards::-webkit-scrollbar { display: none; }
+  #landing .landing-card { flex: 0 0 80%; scroll-snap-align: center; display: grid !important; grid-template-columns: auto 1fr auto; column-gap: 12px; row-gap: 3px; align-items: center; padding: 16px 14px 12px !important; text-align: left; grid-column: auto !important; }
+  #landing .landing-card > .lc-topline { grid-column: 1 / -1; }
+  #landing .landing-card .lc-row { justify-content: flex-start; min-height: 0 !important; margin-top: 0 !important; }
+  #landing .landing-card .lc-row-icon { grid-column: 1; grid-row: 1 / span 3; }
+  #landing .landing-card .lc-row-icon .lc-crest { margin-bottom: 0; }
+  #landing .landing-card .lc-row-title { grid-column: 2; grid-row: 1; }
+  #landing .landing-card .lc-row-badge { grid-column: 2; grid-row: 2; }
+  #landing .landing-card .lc-row-torneo { grid-column: 2; grid-row: 3; }
+  #landing .landing-card .lc-row-torneo .card-badge { font-size: 0.6rem !important; }
+  #landing .landing-card .lc-row-bignum { grid-column: 3; grid-row: 1 / span 3; justify-content: flex-end; }
+  #landing .landing-card .lc-row-progress { grid-column: 1 / -1; margin-top: 8px !important; align-items: stretch; }
+  #landing .landing-card .lc-row-objetivo, #landing .landing-card .lc-divider, #landing .landing-card .lc-row-racha { grid-column: 1 / -1; justify-content: center; }
+  #landing .landing-card .card-name { font-size: 1.2rem; }
+  /* El club en números */
+  .v3-nums-rec { padding: 10px; gap: 6px; }
+  .v3-nums-rec > div { padding: 8px 9px; }
+  .v3-nums-rec b { font-size: 1.5rem; }
+  .v3-nums-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 6px; }
+  .v3-nums-grid > div { padding: 9px 10px; border-radius: 13px; }
+  .v3-nums-grid b { font-size: 1.35rem !important; }
+  .v3-nums-grid span { font-size: 0.52rem; }
+  /* Cara a cara: solo los tres modos (los accesos ya están arriba) */
+  .v3-h2h-teaser > p, .v3-h2h-teaser .v3-quick, .v3-h2h-teaser .v3-quick-h { display: none !important; }
+  .v3-h2h-teaser::after { display: none; }
+}

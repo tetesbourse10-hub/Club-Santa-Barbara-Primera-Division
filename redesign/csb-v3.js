@@ -211,6 +211,7 @@
   function queueSync() { if (syncQueued) return; syncQueued = true; requestAnimationFrame(() => { syncQueued = false; sync(); }); }
   function sync() {
     if (!$('#v3-kicker') || !$('#v3-title')) return;
+    safe(animateView);
     const v = view();
     let active = 'home', kicker = 'Club Santa Bárbara', title = 'Inicio';
     const sqLabel = v.sq === 'b' ? 'Primera B' : 'Primera A';
@@ -1061,6 +1062,140 @@
     window.showJugSub = w;
   }
 
+
+  // ════════════════ MODO APP (celular / web app instalada) ════════════════
+  const mqApp = window.matchMedia('(max-width: 768px)');
+  const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  const haptic = ms => { try { if (navigator.vibrate) navigator.vibrate(ms || 8); } catch (e) {} };
+  function toast(msg) {
+    let t = $('#v3-toast');
+    if (!t) { t = document.createElement('div'); t.id = 'v3-toast'; document.body.appendChild(t); }
+    t.textContent = msg; t.classList.remove('show'); void t.offsetWidth; t.classList.add('show');
+    clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 2200);
+  }
+  function doBack() {
+    const v = view();
+    if ($('#v3-h2h.open')) { closeH2H(); return true; }
+    if ($('#v3-titles')) { closeTitles(); return true; }
+    if ($('#v3-more.open')) { closeMore(); return true; }
+    if (v.profileOn && g('_ppVolver')) { _ppVolver(); return true; }
+    if (v.landingOn) return false;
+    const btn = $$('#app .volver-btn, #app [onclick*="volverAtras"], #app [onclick*="goBack"]').find(b => b.offsetParent);
+    if (btn) { btn.click(); return true; }
+    if (g('volverAtras')) { volverAtras(); return true; }
+    goHome(); return true;
+  }
+  // Transición suave al cambiar de pantalla
+  let lastKey = '';
+  function animateView() {
+    if (!mqApp.matches) return;
+    const v = view();
+    const key = [v.landingOn, v.nidoOn, v.profileOn, v.idx, v.sq, location.hash].join('|');
+    if (key === lastKey) return;
+    lastKey = key;
+    const target = v.profileOn ? $('#player-profile-overlay') : v.landingOn ? $('#landing') : $('#app .panel.active') || $('#app');
+    if (!target) return;
+    target.classList.remove('v3-enter'); void target.offsetWidth; target.classList.add('v3-enter');
+  }
+  // Barra superior que se "asienta" al scrollear
+  function initTopbarScroll() {
+    const tb = $('#v3-topbar');
+    let ticking = false;
+    window.addEventListener('scroll', () => {
+      if (ticking) return; ticking = true;
+      requestAnimationFrame(() => { ticking = false; if (tb) tb.classList.toggle('scrolled', window.scrollY > 8); });
+    }, { passive: true });
+  }
+  // Deslizar hacia abajo para actualizar
+  function initPullToRefresh() {
+    const ptr = document.createElement('div');
+    ptr.id = 'v3-ptr';
+    ptr.innerHTML = '<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg></span>';
+    document.body.appendChild(ptr);
+    let y0 = null, dy = 0, busy = false;
+    const blocked = el => el.closest('#v3-h2h,#v3-search,#v3-titles,#v3-more,.v3-tt-box,input,select,textarea,iframe,[data-noptr]');
+    document.addEventListener('touchstart', e => {
+      if (!mqApp.matches || busy || window.scrollY > 0 || blocked(e.target)) { y0 = null; return; }
+      y0 = e.touches[0].clientY; dy = 0;
+    }, { passive: true });
+    document.addEventListener('touchmove', e => {
+      if (y0 == null) return;
+      dy = e.touches[0].clientY - y0;
+      if (dy <= 0 || window.scrollY > 0) { ptr.style.transform = ''; ptr.classList.remove('vis', 'ready'); return; }
+      const d = Math.min(110, dy * 0.5);
+      ptr.classList.add('vis');
+      ptr.style.transform = `translate(-50%, ${d}px) rotate(${d * 3}deg)`;
+      ptr.classList.toggle('ready', d >= 64);
+    }, { passive: true });
+    document.addEventListener('touchend', () => {
+      if (y0 == null) return;
+      const ready = ptr.classList.contains('ready');
+      y0 = null;
+      if (!ready) { ptr.style.transform = ''; ptr.classList.remove('vis'); return; }
+      busy = true; haptic(12);
+      ptr.classList.add('spin'); ptr.style.transform = 'translate(-50%, 64px)';
+      Promise.resolve(g('loadLiveData') ? window.loadLiveData() : null).catch(() => {}).then(() => {
+        safe(renderHeroStats);
+        busy = false; ptr.classList.remove('spin', 'vis', 'ready'); ptr.style.transform = '';
+        toast('Datos actualizados');
+      });
+    });
+  }
+  // Deslizar desde el borde izquierdo para volver
+  function initEdgeBack() {
+    let x0 = null, y0 = 0;
+    const hint = document.createElement('div'); hint.id = 'v3-edge'; document.body.appendChild(hint);
+    document.addEventListener('touchstart', e => {
+      const t = e.touches[0];
+      x0 = (mqApp.matches && t.clientX < 24) ? t.clientX : null; y0 = t.clientY;
+    }, { passive: true });
+    document.addEventListener('touchmove', e => {
+      if (x0 == null) return;
+      const dx = e.touches[0].clientX - x0;
+      hint.style.opacity = Math.min(1, dx / 90); hint.style.transform = `translateX(${Math.min(40, dx / 3)}px)`;
+    }, { passive: true });
+    document.addEventListener('touchend', e => {
+      if (x0 == null) return;
+      const t = e.changedTouches[0], dx = t.clientX - x0, dyy = Math.abs(t.clientY - y0);
+      x0 = null; hint.style.opacity = 0; hint.style.transform = '';
+      if (dx > 90 && dyy < 70 && doBack()) haptic(10);
+    });
+  }
+  // Pantalla de inicio (solo web app instalada)
+  function splash() {
+    if (!isStandalone() || sessionStorage.getItem('v3splash')) return;
+    sessionStorage.setItem('v3splash', '1');
+    const s = document.createElement('div');
+    s.id = 'v3-splash';
+    s.innerHTML = '<img src="logo-csb.webp" alt=""><b>Santa Bárbara</b><span>Estadísticas</span>';
+    document.body.appendChild(s);
+    setTimeout(() => s.classList.add('out'), 900);
+    setTimeout(() => s.remove(), 1400);
+  }
+  // Accesos rápidos tipo app en el Inicio
+  function buildQuickActions() {
+    const home = $('.v3-home'); if (!home || $('#v3-qa', home)) return;
+    const qa = document.createElement('section');
+    qa.id = 'v3-qa';
+    const it = (attrs, icon, label) => `<button ${attrs}><span>${icon}</span><b>${label}</b></button>`;
+    qa.innerHTML = it('data-nav="nido"', I.nido, 'El Nido') + it('data-nav="h2h"', I.h2h, 'Cara a cara') + it('data-nav="graficos"', I.torneos, 'Torneos') + it('data-nav="historial"', I.historial, 'vs Clubes') + it('data-act="search"', I.search, 'Buscar');
+    const champ = $('#v3-champ', home);
+    (champ || home.firstChild).after(qa);
+  }
+  function initApp() {
+    document.documentElement.classList.toggle('v3-app', mqApp.matches);
+    document.documentElement.classList.toggle('v3-standalone', isStandalone());
+    mqApp.addEventListener && mqApp.addEventListener('change', () => document.documentElement.classList.toggle('v3-app', mqApp.matches));
+    splash();
+    buildQuickActions();
+    initTopbarScroll();
+    initPullToRefresh();
+    initEdgeBack();
+    document.addEventListener('click', e => { if (e.target.closest('#v3-bottomnav button, .v3-tab, .jx-tabs button, #v3-qa button')) haptic(6); }, true);
+    // Botón "atrás" de Android en la web app: cierra hojas abiertas antes de salir
+    window.addEventListener('popstate', () => { closeMore(); closeTitles(); });
+  }
+
   // ════════════════ ARRANQUE ════════════════
   function boot() {
     if (!$('#landing') || !$('#app')) return;
@@ -1071,6 +1206,7 @@
     wrapNav();
     wrapJugSub();
     watchTorneo();
+    initApp();
     sync(); syncNotif(); syncUpdated();
     // Las cifras del hero dependen de la tabla en vivo — se refrescan cuando llega.
     let tries = 0;
