@@ -439,10 +439,15 @@ async function main() {
         partidos: historicoPartidos,
         generatedAt,
       }));
+      // Vallas invictas (partidos jugados en los que el rival no hizo gol)
+      // del histórico cerrado, para TODOS los jugadores (no solo arqueros y
+      // defensores) — el navegador le suma la temporada en curso y lo usa
+      // cuando la planilla no trae el dato (ver _csbVallasPatchRows).
+      const viOf = list => list.filter(p => p.gf != null && p.gc != null && window._csbGoles(p).riv === 0).length;
       recordsIndex[slug] = {
-        v: vedHistorico.v, e: vedHistorico.e, d: vedHistorico.d, pj: s.pj,
-        a: { v: vedHistoricoA.v, e: vedHistoricoA.e, d: vedHistoricoA.d },
-        b: { v: vedHistoricoB.v, e: vedHistoricoB.e, d: vedHistoricoB.d },
+        v: vedHistorico.v, e: vedHistorico.e, d: vedHistorico.d, pj: s.pj, vi: viOf(historicoPartidos),
+        a: { v: vedHistoricoA.v, e: vedHistoricoA.e, d: vedHistoricoA.d, vi: viOf(historicoPartidos.filter(p => p.categoria === 'Primera A')) },
+        b: { v: vedHistoricoB.v, e: vedHistoricoB.e, d: vedHistoricoB.d, vi: viOf(historicoPartidos.filter(p => p.categoria === 'Primera B')) },
       };
 
       ok++;

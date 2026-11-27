@@ -692,7 +692,7 @@
       o = { pj: p.pj || 0, titular: p.titular || 0, sup: p.suplente != null ? p.suplente : (p.sup || 0), goles: p.goles || 0, asist: p.asist || 0, titulos: p.titulos || 0, vallas: p.vallas || 0, rojas: p.rojas || 0 };
     } else {
       o = { pj: list.length, titular: list.filter(m => m.condCorta === 'Titular').length, sup: list.filter(m => m.condCorta === 'Suplente').length,
-        goles: sum('goles'), asist: sum('asist'), titulos: titlesIn(list), vallas: isGK(p) ? list.filter(rivZero).length : 0, rojas: sum('rojas') };
+        goles: sum('goles'), asist: sum('asist'), titulos: titlesIn(list), vallas: list.filter(rivZero).length, rojas: sum('rojas') };
     }
     o.gmas = o.goles + o.asist;
     o.promGol = o.pj ? o.goles / o.pj : 0; o.promAsist = o.pj ? o.asist / o.pj : 0; o.promGmas = o.pj ? o.gmas / o.pj : 0;
@@ -705,7 +705,7 @@
     { key: 'pj', label: 'Partidos' }, { key: 'titular', label: 'Titular' }, { key: 'sup', label: 'Suplente', neutral: true },
     { key: 'goles', label: 'Goles' }, { key: 'asist', label: 'Asistencias' }, { key: 'gmas', label: 'G + A' },
     { key: 'promGol', label: 'Prom. gol', f: 2 }, { key: 'promAsist', label: 'Prom. asist.', f: 2 }, { key: 'promGmas', label: 'Prom. G+A', f: 2 },
-    { key: 'titulos', label: 'Títulos' }, { key: 'vallas', label: 'Vallas inv.', gk: true }, { key: 'capitan', label: 'Capitán' },
+    { key: 'titulos', label: 'Títulos' }, { key: 'vallas', label: 'Vallas inv.' }, { key: 'capitan', label: 'Capitán' },
     { sep: 'Resultados del equipo con él en cancha' },
     { key: 'w', label: 'Ganados' }, { key: 'd', label: 'Empatados', neutral: true }, { key: 'l', label: 'Perdidos', low: true },
     { key: 'efec', label: 'Efectividad', suf: '%' }, { key: 'rojas', label: 'Rojas', low: true },

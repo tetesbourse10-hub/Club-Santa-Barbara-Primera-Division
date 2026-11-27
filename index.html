@@ -6307,6 +6307,35 @@ function _collectPlayerTitulos(cTitulosA, cTitulosB) {
 // Memoizado por jugador — se invalida junto con _playerMatchIndex en
 // loadLiveData() (ver _invalidatePlayerMatchIndex).
 let _playerPartidosCache = {};
+// ── Vallas invictas para TODOS los jugadores ──
+// La planilla solo trae vallas de arqueros y defensores. Para el resto se
+// calcula: partidos jugados (histórico precalculado en data/records.json +
+// temporada en curso en memoria) en los que el rival no hizo gol, separado
+// por plantel. Si la planilla ya trae un valor (> 0) se respeta ese.
+function _csbVallasComputed(nombre, team) {
+  const rec = _nidoStaticRecords && _nidoStaticRecords[slugify(nombre)];
+  const hist = rec && rec[team] && typeof rec[team].vi === 'number' ? rec[team].vi : 0;
+  const cat = team === 'b' ? 'Primera B' : 'Primera A';
+  const live = (_buildPlayerLivePartidos(nombre) || []).filter(p => p.categoria === cat && p.gf != null && p.gc != null && _csbGoles(p).riv === 0).length;
+  return hist + live;
+}
+function _csbVallasPatchRows() {
+  if (!_nidoStaticRecords) return false;
+  let changed = false;
+  [[_jugTotalesData, JUG_COL, 'a'], [_jugBData, JUG_COL_B, 'b']].forEach(([rows, C, team]) => {
+    (rows || []).forEach(r => {
+      const nombre = String(r[C.nombre] || '').trim();
+      if (!nombre) return;
+      if (r._vSheet === undefined) r._vSheet = parseInt(r[C.vallas]) || 0;
+      if (r._vSheet > 0) return;
+      const v = _csbVallasComputed(nombre, team);
+      if (String(r[C.vallas]) !== String(v)) { r[C.vallas] = v; changed = true; }
+      if (C.vallasProm !== undefined) { const pj = parseInt(r[C.pj]) || 0; r[C.vallasProm] = pj ? +(v / pj).toFixed(2) : 0; }
+    });
+  });
+  return changed;
+}
+window._csbVallasPatchRows = _csbVallasPatchRows;
 function _invalidatePlayerPartidosCache() { _playerPartidosCache = {}; _playerLivePartidosCache = {}; }
 
 // Historial de Torneos Antiguos (2016-2025, incluida Apertura AIFA D 2024)
@@ -8907,7 +8936,7 @@ function renderPlayerProfile(nombre) {
   // para las que Vallas Invictas importa mostrar en el dashboard superior,
   // separado de Participación en Goles (ver participacionCard).
   const isDefensor = ['LI', 'LD', 'DFI', 'DFD', 'DEF', 'DFC'].includes(s.pos);
-  const showVallasSector = isArquero || isDefensor;
+  const showVallasSector = true; // vallas invictas para todos los jugadores
 
   const metricsTabs = `
     <div class="pp-metric-tabs" id="pp-metric-tabs">
@@ -22234,6 +22263,7 @@ async function loadLiveData() {
   _invalidatePlayerMatchIndex();
   _invalidatePlayerPartidosCache();
   if (window._nidoInvalidateVEDCache) window._nidoInvalidateVEDCache();
+  if (window._csbVallasRefresh) window._csbVallasRefresh();
   // Recién ahora (después de invalidar) hay una carga completa disponible
   // para calcular V-E-D con confianza — ver _matchDataReadyOnce.
   _matchDataReadyOnce = true;
@@ -22886,7 +22916,9 @@ async function loadLiveData() {
     _nidoLoadPromise = Promise.allSettled([
       _ensureJugTotalesA(),
       _ensureJugTotalesB(),
+      _nidoEnsureStaticRecords(),
     ]).then(() => {
+      _csbVallasPatchRows();
       const rowsA = _jugTotalesData || [];
       const rowsB = _jugBData || [];
       _nidoDataA  = rowsA.map(normA).filter(Boolean);
@@ -22947,6 +22979,16 @@ async function loadLiveData() {
   // Llamado desde loadLiveData() al terminar cada carga/refresco — ver el
   // comentario en _nidoVEDCache más arriba.
   window._nidoInvalidateVEDCache = function() { _nidoVEDCache = {}; };
+  // Recalcula las vallas invictas cuando termina de cargar la temporada en
+  // curso y reconstruye las listas de El Nido con los valores nuevos.
+  window._csbVallasRefresh = function () {
+    return _nidoEnsureStaticRecords().then(() => {
+      if (!_csbVallasPatchRows() || _nidoMerged === null) return;
+      _nidoDataA = (_jugTotalesData || []).map(normA).filter(Boolean);
+      _nidoDataB = (_jugBData || []).map(normB).filter(Boolean);
+      _nidoMerged = mergeAB(_nidoDataA, _nidoDataB);
+    });
+  };
 
   // Ver _tryRestoreRouteFromHash (sección "nido") — refleja team/pos/orden
   // en la URL. La búsqueda de texto (_nidoQuery) queda afuera a propósito
@@ -23073,6 +23115,7 @@ function _jxCfg(isA) {
     : { key: 'b', COL: JUG_COL_B, rows: () => _jugBData, ensure: _ensureJugTotalesB, label: 'Primera B' };
 }
 function _jxPlayers(cfg) {
+  try { _csbVallasPatchRows(); } catch (e) {}
   const raw = cfg.rows() || [];
   return raw.map(r => {
     const o = { nombre: r[cfg.COL.nombre], pos: String(r[cfg.COL.pos] || '').toUpperCase().trim() };
