@@ -2762,3 +2762,43 @@ body { overflow-x: clip; }
   .mrow-card[data-cd-cond] .cd-m-obs-toggle { font-size: 0.66rem !important; padding: 0 !important; margin-top: 2px; }
   .mrow-card[data-cd-cond] .cd-m-obs-wrap { color: var(--v3-muted); }
 }
+
+/* ════════════════ PERFIL DE JUGADOR en modo app ════════════════ */
+.ppv3-mtabs, .ppv3-more-m { display: none; }
+@media (max-width: 768px) {
+  .ppv3 { gap: 12px !important; padding-bottom: 30px; }
+  .ppv3 [data-mpane] { display: none; }
+  .ppv3[data-pane="res"] [data-mpane="res"], .ppv3[data-pane="temp"] [data-mpane="temp"], .ppv3[data-pane="part"] [data-mpane="part"] { display: flex; flex-direction: column; gap: 12px; }
+  .ppv3-mtabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; border-radius: 14px; background: rgba(10, 22, 15, 0.94); border: 1px solid var(--v3-line-2);
+    position: sticky; top: 6px; z-index: 30; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+  .ppv3-mtabs button { border: 0; background: none; color: var(--v3-muted); font: 700 0.8rem 'Inter', sans-serif; padding: 9px 4px; border-radius: 10px; cursor: pointer; }
+  .ppv3-mtabs button.on { background: var(--v3-brand); color: var(--v3-brand-ink); }
+  /* Portada compacta */
+  .ppv3-hero { padding: 14px !important; gap: 10px !important; border-radius: 20px !important; }
+  .ppv3-avatar { width: 56px !important; height: 56px !important; font-size: 1.1rem !important; }
+  .ppv3-hero h1, .ppv3-name { font-size: 1.5rem !important; }
+  .ppv3-logros { flex-wrap: nowrap !important; overflow-x: auto; scrollbar-width: none; gap: 5px !important; }
+  .ppv3-logros::-webkit-scrollbar { display: none; }
+  .ppv3-logros > * { flex-shrink: 0; font-size: 0.62rem !important; }
+  /* Números: 3 + 2 más bajos */
+  .ppv3-kpis { display: grid !important; grid-template-columns: repeat(6, 1fr) !important; gap: 6px !important; }
+  .ppv3-kpis .ppv3-kpi { grid-column: span 2; padding: 10px !important; min-height: 0 !important; border-radius: 14px !important; }
+  .ppv3-kpis.five .ppv3-kpi:nth-child(n+4) { grid-column: span 3; }
+  .ppv3-kpi b, .ppv3-kpi .ppv3-kpi-val { font-size: 1.7rem !important; }
+  .ppv3-kpi small, .ppv3-kpi .ppv3-kpi-sub { font-size: 0.6rem !important; }
+  .ppv3-kpi .ppv3-kpi-lbl, .ppv3-kpi > span:first-child { font-size: 0.56rem !important; }
+  .ppv3-grid3 { display: flex !important; flex-direction: column; gap: 12px !important; }
+  .ppv3-card { padding: 14px !important; border-radius: 18px !important; }
+  /* Partidos: filas compactas y de a 30 */
+  .ppv3-matches:not(.all) > .ppv3-match:nth-child(n+31) { display: none !important; }
+  .ppv3-more-m { display: block; width: 100%; margin-top: 8px; padding: 12px; border-radius: 14px; border: 1px solid rgba(52, 209, 123, 0.35); background: rgba(52, 209, 123, 0.08); color: var(--v3-brand); font: 800 0.84rem 'Inter', sans-serif; cursor: pointer; }
+  .ppv3-match { padding: 9px 11px !important; gap: 5px !important; border-radius: 14px !important; }
+  .ppv3-match-when { font-size: 0.6rem !important; gap: 6px !important; }
+  .ppv3-match-game { gap: 6px !important; }
+  .ppv3-match-game .ppv3-team-name { font-size: 0.78rem !important; }
+  .ppv3-match-game .ppv3-crest { width: 22px !important; height: 22px !important; }
+  .ppv3-score { font-size: 1.1rem !important; }
+  .ppv3-match-me { font-size: 0.64rem !important; gap: 5px !important; }
+  .ppv3-filters { gap: 6px !important; }
+  .ppv3-hist-head .ppv3-h2 { font-size: 1.1rem !important; }
+}

@@ -5754,6 +5754,7 @@ function _rivalAvatarColor(nombre) {
 
 let _ppReturnHash = '';
 function goToPlayer(nombre) {
+  window._ppPane = 'res';
   if (!nombre) return;
   // Snapshot which top-level section is showing right now (not a live query
   // — captured here, at open time) so the profile's own "← Volver" can get
@@ -8565,6 +8566,15 @@ function _ppV3MatchRow(p) {
   </div>`;
 }
 
+function _ppSetPane(k) {
+  window._ppPane = k;
+  const r = document.querySelector('#player-profile-overlay .ppv3');
+  if (r) r.dataset.pane = k;
+  document.querySelectorAll('#player-profile-overlay .ppv3-mtabs button').forEach(b => b.classList.toggle('on', b.getAttribute('onclick').includes("'" + k + "'")));
+  const ov = document.getElementById('player-profile-overlay');
+  const bar = document.querySelector('#player-profile-overlay .ppv3-mtabs');
+  if (ov && bar && bar.getBoundingClientRect().top < 0) ov.scrollTop = bar.offsetTop - 8;
+}
 function _ppV3RivalRows(rows) {
   if (!rows.length) return `<div class="ppv3-empty">Sin partidos para este filtro.</div>`;
   const sort = window._pp2ResumenSort || { col: 'pj', dir: 'desc' };
@@ -8768,10 +8778,12 @@ function _ppV2Render() {
     ${partial}
     ${view === 'resumen'
       ? _ppV3RivalRows(_pp2SortRivalRows(_pp2RivalSummaryRows(filtered), window._pp2ResumenSort || { col: 'pj', dir: 'desc' }))
-      : (filtered.length ? `<div class="ppv3-matches">${filtered.map(_ppV3MatchRow).join('')}</div>` : `<div class="ppv3-empty">Sin partidos para este filtro.</div>`)}
+      : (filtered.length ? `<div class="ppv3-matches">${filtered.map(_ppV3MatchRow).join('')}</div>${filtered.length > 30 ? `<button class="ppv3-more-m" onclick="this.previousElementSibling.classList.add('all');this.remove()">Ver los ${filtered.length} partidos</button>` : ''}` : `<div class="ppv3-empty">Sin partidos para este filtro.</div>`)}
   </section>`;
 
-  wrap.innerHTML = `<div class="ppv3">${hero}${kpis}<div class="ppv3-grid3">${recordCard}${rivalsCard}${clubCard}</div>${_ppV3SeasonChart(catList)}${!s.nidoReady ? '<div class="ppv3-note">Sincronizando con El Nido…</div>' : ''}${hist}</div>`;
+  const _pane = window._ppPane || 'res';
+  const _pt = (k, l) => `<button class="${_pane === k ? 'on' : ''}" onclick="_ppSetPane('${k}')">${l}</button>`;
+  wrap.innerHTML = `<div class="ppv3" data-pane="${_pane}">${hero}<div class="ppv3-mtabs">${_pt('res', 'Resumen')}${_pt('temp', 'Temporadas')}${_pt('part', 'Partidos')}</div><div data-mpane="res">${kpis}<div class="ppv3-grid3">${recordCard}${rivalsCard}${clubCard}</div></div><div data-mpane="temp">${_ppV3SeasonChart(catList)}</div>${!s.nidoReady ? '<div class="ppv3-note">Sincronizando con El Nido…</div>' : ''}<div data-mpane="part">${hist}</div></div>`;
 
   // Modales (mismos ids que antes: los abre _ppV2OpenModal)
   const closeX = id => `<button class="ppv3-x" onclick="_ppV2CloseModal('${id}')" aria-label="Cerrar">✕</button>`;
