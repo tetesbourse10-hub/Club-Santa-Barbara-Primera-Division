@@ -2458,3 +2458,7 @@ em.hvx-g { color: #8fe03a; } em.hvx-e { color: #ffc83d; } em.hvx-p { color: #ff7
   /* Tablas de datos: scroll suave horizontal */
   .jx-table-wrap, .tax-table, .jxt-wrap { -webkit-overflow-scrolling: touch; }
 }
+@media (max-width: 768px) {
+  #landing .landing-card .lc-row-bignum { font-size: 0.78em; white-space: nowrap; }
+  #landing .landing-card { flex-basis: 84%; }
+}
