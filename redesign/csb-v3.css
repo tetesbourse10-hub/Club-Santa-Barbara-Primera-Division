@@ -2627,3 +2627,43 @@ body { overflow-x: clip; }
   .rv4-hero-crest { width: 40px !important; }
   .rv4-title { font-size: 1.5rem !important; }
 }
+
+/* ── EL NIDO en modo app: lista compacta ── */
+@media (max-width: 768px) {
+  .nv3-hero { padding: 14px !important; border-radius: 20px !important; gap: 10px !important; }
+  .nv3-hero .nv3-lead, .nv3-hero .nv3-posbar, .nv3-hero .nv3-poslegend, .nv3-hero [class*="nv3-pos-"] { display: none !important; }
+  .nv3-controls { position: sticky; top: calc(var(--v3-top-h) + env(safe-area-inset-top, 0px) + 4px); z-index: 30; padding: 8px !important; border-radius: 16px !important; background: rgba(10, 22, 15, 0.94) !important; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); gap: 6px !important; }
+  .nv3-controls .nv3-row { gap: 6px !important; }
+  .nv3-podium { display: none !important; }
+  .nv3-cards { gap: 0 !important; border-radius: 18px; overflow: hidden; border: 1px solid var(--v3-line-2); background: var(--v3-surface); }
+  .nv3-card { display: flex !important; flex-direction: column; gap: 4px; padding: 10px 12px !important; border: 0 !important; border-bottom: 1px solid var(--v3-line) !important; border-radius: 0 !important; background: none !important; box-shadow: none !important; }
+  .nv3-card:last-child { border-bottom: 0 !important; }
+  .nv3-card-top { display: flex !important; align-items: center; gap: 10px !important; }
+  .nv3-card-rank { width: 22px; font-size: 0.8rem !important; flex-shrink: 0; }
+  .nv3-card-top .nv3-av { width: 36px !important; height: 36px !important; font-size: 0.72rem !important; flex-shrink: 0; }
+  .nv3-card-id { flex: 1; min-width: 0; }
+  .nv3-card-name { font-size: 0.9rem !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .nv3-card-big { display: flex !important; flex-direction: column; align-items: flex-end; }
+  .nv3-card-big b { font-size: 1.6rem !important; line-height: 1 !important; }
+  .nv3-card-big small { font-size: 0.55rem !important; }
+  .nv3-meter { display: none !important; }
+  .nv3-card-stats { display: flex !important; align-items: center; gap: 10px !important; font-size: 0.68rem !important; padding-left: 78px; margin: 0 !important; }
+  .nv3-card-stats b { font-size: 0.8rem !important; }
+  .nv3-cmp { margin-left: auto; width: 28px !important; height: 24px !important; font-size: 0.8rem !important; }
+}
+@media (max-width: 768px) {
+  .nv3-hero .nv3-hero-txt { display: none !important; }
+  .nv3-hero .nv3-kpi-pos { display: none !important; }
+  .nv3-kpis { display: grid !important; grid-template-columns: repeat(4, 1fr) !important; gap: 6px !important; width: 100%; }
+  .nv3-kpi { padding: 8px 6px !important; min-width: 0 !important; text-align: center; align-items: center; }
+  .nv3-kpi b { font-size: 1.3rem !important; }
+  .nv3-kpi span { font-size: 0.5rem !important; letter-spacing: 0.06em !important; }
+  .nv3-hero { padding: 8px !important; background: none !important; border: 0 !important; }
+  .nv3-hero::before { display: none !important; }
+  .nv3-viewtoggle { display: none !important; }
+  .nv3-seg { flex: 1; }
+  .nv3-card .nv3-av { width: 36px !important; height: 36px !important; font-size: 0.72rem !important; }
+  .nv3-card-stats { padding-left: 68px !important; }
+  .nv3-card-meta { gap: 4px !important; }
+  .nv3-card-meta .nv3-pos, .nv3-card-meta span { font-size: 0.56rem !important; padding: 2px 5px !important; }
+}
