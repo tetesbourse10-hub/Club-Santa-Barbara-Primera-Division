@@ -2186,3 +2186,4 @@ em.pos { color: #8fe03a; } em.neg { color: #ff7b7b; } em.neu { color: #ffc83d; }
 .v3-tt-y { font: 800 1.25rem var(--v3-display); color: var(--v3-gold); }
 .v3-tt-go { margin-top: auto; align-self: flex-start; background: none; border: 0; padding: 4px 0 0; color: var(--v3-brand); font: 700 0.76rem 'Inter', sans-serif; cursor: pointer; }
 @media (max-width: 600px) { .v3-tt-body { grid-template-columns: 1fr; padding: 0 14px 16px; } .v3-tt-head { padding: 16px 16px 12px; } }
+#landing .lc-row-icon .lc-crest { margin-bottom: 10px; }
