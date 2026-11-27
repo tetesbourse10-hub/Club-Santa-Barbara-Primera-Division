@@ -192,6 +192,8 @@
       else goTab(nav, el.dataset.sqTarget);
       return;
     }
+    if (act === 'titles') { openTitles(); return; }
+    if (act === 'close-titles') { closeTitles(); return; }
     if (act === 'search') { closeMore(); openSearch(); }
     else if (act === 'notif') { closeMore(); if (window._togglePush) window._togglePush(); setTimeout(syncNotif, 400); }
     else if (act === 'close-more') closeMore();
@@ -379,12 +381,44 @@
         <div class="v3-hero-stat-sub">${own ? `${esc(own.pts)} pts · ${esc(own.pj != null ? own.pj + ' PJ' : 'Clausura')}` : 'Cargando…'}</div>${tag}</div>`);
     });
     const tit = ((getData('a') || {}).titulos || []).length + ((getData('b') || {}).titulos || []).length;
-    items.push(`<div class="v3-hero-stat" data-nav="resumen"><div class="v3-hero-stat-lbl">Títulos</div><div class="v3-hero-stat-val">${tit || '–'}</div><div class="v3-hero-stat-sub">Primera A + B</div></div>`);
+    items.push(`<div class="v3-hero-stat" data-act="titles" role="button" tabindex="0"><div class="v3-hero-stat-lbl">Títulos</div><div class="v3-hero-stat-val">${tit || '–'}</div><div class="v3-hero-stat-sub">Primera A + B</div></div>`);
     const html = items.join('');
     if (box.__last !== html) { box.innerHTML = html; box.__last = html; }
     renderChamp();
     renderClubNums();
   }
+
+  // ── Cartel de títulos (Primera A + Primera B) ──
+  function openTitles() {
+    closeTitles();
+    const block = k => {
+      const d = getData(k) || {};
+      const list = [...(d.titulos || [])].sort((a, b) => String(b.anio).localeCompare(String(a.anio)));
+      return `<div class="v3-tt-sq"><div class="v3-tt-sq-h"><span class="lc-crest sm"><img src="logo-csb.webp" alt=""><b>${k.toUpperCase()}</b></span><b>Primera ${k.toUpperCase()}</b><small>${list.length} título${list.length !== 1 ? 's' : ''}</small></div>
+        ${list.length ? list.map(t => `<div class="v3-tt-row"><span class="v3-tt-cup">🏆</span><span class="v3-tt-n">${esc(String(t.nombre || '').replace(/^Campe[oó]n\s+/i, ''))}</span><span class="v3-tt-y">${esc(t.anio)}</span></div>`).join('') : '<div class="v3-empty">Todavía sin títulos.</div>'}
+        <button class="v3-tt-go" data-nav="graficos" data-sq-target="${k}">Ver todos los torneos de Primera ${k.toUpperCase()} ›</button></div>`;
+    };
+    const total = ['a', 'b'].reduce((n, k) => n + ((getData(k) || {}).titulos || []).length, 0);
+    const wrap = document.createElement('div');
+    wrap.id = 'v3-titles';
+    wrap.innerHTML = `<div class="v3-tt-back" data-act="close-titles"></div>
+      <div class="v3-tt-box v3-home" role="dialog" aria-label="Títulos del club">
+        <div class="v3-tt-head"><span class="v3-tt-big">🏆</span><div><span class="v3-champ-k">Palmarés del club</span><h3>${total} título${total !== 1 ? 's' : ''}</h3></div>
+          <button class="v3-tt-x" data-act="close-titles" aria-label="Cerrar">✕</button></div>
+        <div class="v3-tt-body">${block('a')}${block('b')}</div>
+      </div>`;
+    wrap.addEventListener('click', e => {
+      const el = e.target.closest('[data-act="close-titles"],[data-nav]');
+      if (!el) return;
+      e.preventDefault(); e.stopPropagation();
+      closeTitles();
+      if (el.dataset.nav) goTab(el.dataset.nav, el.dataset.sqTarget);
+    });
+    document.body.appendChild(wrap);
+    document.addEventListener('keydown', titlesEsc);
+  }
+  function titlesEsc(e) { if (e.key === 'Escape') closeTitles(); }
+  function closeTitles() { const w = $('#v3-titles'); if (w) w.remove(); document.removeEventListener('keydown', titlesEsc); }
 
   // ── Banner de campeón (torneo en curso) ──
   function renderChamp() {
@@ -402,10 +436,15 @@
       const tabla = [...(d.tabla || [])].sort((a, b) => (parseInt(a.pos) || 0) - (parseInt(b.pos) || 0));
       const second = tabla[1];
       const diff = second ? pts - (Number(second.pts) || 0) : null;
+      const left = Math.max(0, 15 - pj);
+      const ventaja = diff != null ? ` con ${diff} punto${diff !== 1 ? 's' : ''} de ventaja sobre ${esc(second.equipo)}` : '';
+      const champText = left > 0
+        ? `Santa Bárbara ya es campeón asegurado con ${left === 1 ? 'una fecha' : left + ' fechas'} de anticipación: nadie lo puede alcanzar en lo que queda del torneo.`
+        : `Santa Bárbara se consagró campeón${ventaja}.`;
       out.push(`<div class="v3-champ">
         <div class="v3-champ-cup">🏆</div>
         <div class="v3-champ-id"><span class="v3-champ-k">Primera ${k.toUpperCase()} · ¡Campeones!</span><h2>${esc(torneo)}</h2>
-          <p>Santa Bárbara se consagró campeón${diff != null ? ` con ${diff} punto${diff !== 1 ? 's' : ''} de ventaja sobre ${esc(second.equipo)}` : ''}.</p></div>
+          <p>${champText}</p></div>
         <div class="v3-champ-nums">
           <div><b>${pts}</b><span>Puntos</span></div>
           <div><b>${own.pg}-${own.pe}-${own.pp}</b><span>G-E-P</span></div>
