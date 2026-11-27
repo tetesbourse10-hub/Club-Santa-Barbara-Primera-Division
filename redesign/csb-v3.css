@@ -2802,3 +2802,12 @@ body { overflow-x: clip; }
   .ppv3-filters { gap: 6px !important; }
   .ppv3-hist-head .ppv3-h2 { font-size: 1.1rem !important; }
 }
+@media (max-width: 768px) {
+  .pp-metrics-fav-mobile { display: none !important; }
+  /* Temporadas: todos los años entran en el ancho */
+  .ppv3-bars { display: grid !important; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 4px !important; overflow: visible !important; min-width: 0 !important; }
+  .ppv3-bar { min-width: 0 !important; width: auto !important; padding: 0 !important; }
+  .ppv3-bar-plot { min-width: 0 !important; }
+  .ppv3-bar * { font-size: 0.58rem; }
+  .ppv3-bar .ppv3-bar-y, .ppv3-bar > b:last-child { font-size: 0.68rem !important; }
+}
