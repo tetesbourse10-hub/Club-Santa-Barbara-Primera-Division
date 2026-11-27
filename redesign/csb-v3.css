@@ -2726,3 +2726,28 @@ body { overflow-x: clip; }
   .mrow-card[data-cd-cond] .cd-m-obs-truncated { -webkit-line-clamp: 2 !important; }
   .mrow-card[data-cd-cond] .cd-mcard-footer { display: none !important; }
 }
+@media (max-width: 768px) {
+  /* Plantel del torneo: líderes en grilla compacta */
+  .plx-leaders { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+  .plx-leader { padding: 10px !important; border-radius: 14px !important; gap: 4px !important; }
+  .plx-leader-lbl { font-size: 0.56rem !important; }
+  .plx-tie { font-size: 0.5rem !important; padding: 2px 5px !important; }
+  .plx-leader-val { font-size: 1.5rem !important; }
+  .plx-names { gap: 3px !important; }
+  .plx-ln { font-size: 0.66rem !important; padding: 2px 7px !important; }
+  .plx-names .plx-ln:nth-child(n+3), .plx-names > :not(.plx-ln) { display: none !important; }
+  /* Lista de jugadores del torneo: filas */
+  #pmf-list { display: flex !important; flex-direction: column; gap: 0 !important; border-radius: 16px; overflow: hidden; border: 1px solid var(--v3-line-2); background: var(--v3-surface); }
+  #pmf-list .mrow-card { display: grid !important; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 9px 12px !important; margin: 0 !important; border: 0 !important; border-bottom: 1px solid var(--v3-line) !important; border-radius: 0 !important; background: none !important; box-shadow: none !important; }
+  #pmf-list .mrow-card:last-child { border-bottom: 0 !important; }
+  #pmf-list .mrow-top { display: contents !important; }
+  #pmf-list .mrow-top-main { display: flex !important; flex-direction: row-reverse; justify-content: flex-end; align-items: center; gap: 6px; }
+  #pmf-list .mrow-badge { margin: 0 !important; font-size: 0.55rem !important; padding: 1px 5px !important; }
+  #pmf-list .mrow-title { font-size: 0.86rem !important; }
+  #pmf-list .mrow-highlight { grid-row: 1 / span 2; grid-column: 2; display: flex; flex-direction: column; align-items: flex-end; justify-content: center; }
+  #pmf-list .mrow-highlight-val { font-size: 1.35rem !important; line-height: 1; }
+  #pmf-list .mrow-secondary { display: flex !important; gap: 10px !important; padding: 0 !important; margin: 0 !important; border: 0 !important; background: none !important; }
+  #pmf-list .mrow-sec-item { flex-direction: row !important; gap: 3px; align-items: baseline; padding: 0 !important; background: none !important; border: 0 !important; }
+  #pmf-list .mrow-sec-val { font-size: 0.74rem !important; }
+  #pmf-list .mrow-sec-label { font-size: 0.56rem !important; }
+}
