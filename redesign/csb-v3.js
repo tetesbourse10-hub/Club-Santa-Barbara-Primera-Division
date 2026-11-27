@@ -29,7 +29,8 @@
   const getNavStackLen = () => safe(() => _navStack.length) || 0;
 
   const TABS = ['resumen', 'posiciones', 'jugadores', 'historial', 'graficos'];
-  const TAB_TITLES = ['Equipo', 'En Vivo', 'Estadísticas', 'vs Clubes', 'Torneos'];
+  const TAB_TITLES = ['Resumen', 'En Vivo', 'Jugadores', 'Historial vs Clubes', 'Torneos'];
+  const TAB_TITLES_M = ['Equipo', 'En Vivo', 'Estadísticas', 'vs Clubes', 'Torneos'];
 
   // ── Íconos (trazos simples, mismo grosor en todo el shell) ──
   const I = {
@@ -234,7 +235,7 @@
     if (v.profileOn) { active = null; kicker = 'El Nido'; title = 'Perfil de jugador'; }
     else if (v.landingOn) { active = 'home'; }
     else if (v.nidoOn) { active = 'nido'; kicker = 'Jugadores'; title = 'El Nido'; }
-    else if (v.idx >= 0) { active = TABS[v.idx]; kicker = (v.idx === 2 ? 'Jugadores · ' : v.idx >= 3 ? 'Historia · ' : '') + sqLabel; title = TAB_TITLES[v.idx]; }
+    else if (v.idx >= 0) { active = TABS[v.idx]; kicker = (v.idx === 2 ? 'Jugadores · ' : v.idx >= 3 ? 'Historia · ' : '') + sqLabel; title = (window.matchMedia('(max-width: 768px)').matches ? TAB_TITLES_M : TAB_TITLES)[v.idx]; }
     $$('#v3-sidebar [data-nav], #v3-bottomnav [data-nav], #v3-more [data-nav]').forEach(b => b.classList.toggle('active', b.dataset.nav === active));
     const catKey = ['nido', 'jugadores'].includes(active) ? 'jug' : ['graficos', 'historial'].includes(active) ? 'hist' : '';
     $$('#v3-bottomnav [data-cat]').forEach(b => b.classList.toggle('active', b.dataset.cat === catKey));
