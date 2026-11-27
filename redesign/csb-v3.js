@@ -187,7 +187,7 @@
       e.preventDefault();
       if (nav === 'home') goHome();
       else if (nav === 'nido') goNido();
-      else if (nav === 'h2h') { closeMore(); openH2H(); }
+      else if (nav === 'h2h') { closeMore(); openH2H(el.dataset.h2hMode); }
       else if (nav === 'more') toggleMore();
       else goTab(nav, el.dataset.sqTarget);
       return;
@@ -345,8 +345,13 @@
       </div>
       <div class="v3-card v3-h2h-teaser">
         <div class="v3-sec-head" style="margin:0"><span class="v3-sec-title">Cara a cara</span></div>
-        <p>Elegí dos jugadores del club y comparalos estadística por estadística: partidos, goles, asistencias, títulos, vallas invictas y promedios.</p>
-        <div><button class="v3-btn" data-nav="h2h">${I.h2h.replace('<svg', '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"')} Comparar jugadores</button></div>
+        <p>Compará estadística por estadística: dos jugadores, un mismo jugador en dos temporadas o torneos, o dos campañas del equipo.</p>
+        <div class="v3-h2h-modes-teaser">
+          <button data-nav="h2h" data-h2h-mode="pp">${I.h2h}<span>Jugador vs jugador<small>Carrera, temporada o torneo</small></span></button>
+          <button data-nav="h2h" data-h2h-mode="self">${I.jugadores}<span>Un jugador, dos épocas<small>Por ejemplo 2024 vs 2026</small></span></button>
+          <button data-nav="h2h" data-h2h-mode="team">${I.torneos}<span>Equipo vs equipo<small>Cualquier torneo de la A o la B</small></span></button>
+        </div>
+        <div class="v3-quick-h">Accesos rápidos</div>
         <div class="v3-quick">
           <button data-act="search">${I.search.replace(' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"', '')}<span>Buscar jugador<small>Ir directo a su perfil</small></span></button>
           <button data-nav="historial">${I.historial}<span>vs Clubes<small>Récord contra cada rival</small></span></button>
@@ -640,48 +645,223 @@
   }
 
   // ════════════════ CARA A CARA ════════════════
-  const H2H_ROWS = [
-    { key: 'pj', label: 'Partidos' },
-    { key: 'titular', label: 'Titular' },
-    { key: 'goles', label: 'Goles' },
-    { key: 'asist', label: 'Asistencias' },
-    { key: 'gmas', label: 'G + A' },
-    { key: 'promGol', label: 'Prom. gol', f: 2 },
-    { key: 'promAsist', label: 'Prom. asist.', f: 2 },
-    { key: 'promGmas', label: 'Prom. G+A', f: 2 },
-    { key: 'titulos', label: 'Títulos' },
-    { key: 'vallas', label: 'Vallas inv.' },
-    { key: 'rojas', label: 'Rojas', low: true },
+  const h2h = { mode: 'pp', l: null, r: null, lp: 'all', rp: 'all', self: null, sl: '', sr: '', tl: '', tr: '' };
+  const matchCache = {};
+  function playerMatches(nombre) {
+    const k = norm(nombre);
+    if (!matchCache[k]) {
+      matchCache[k] = (g('_csbPlayerMatches') ? Promise.resolve(window._csbPlayerMatches(nombre)) : Promise.resolve([]))
+        .catch(() => []).then(list => { matchCache[k] = Array.isArray(list) ? list : []; return matchCache[k]; });
+    }
+    return Promise.resolve(matchCache[k]);
+  }
+  const cachedMatches = nombre => { const v = matchCache[norm(nombre)]; return Array.isArray(v) ? v : null; };
+  const isGK = p => /ARQ/i.test((p && p.pos) || '');
+  const resOf = m => { if (m.gf == null || m.gc == null) return null; const gg = safe(() => _csbGoles(m)) || { csb: m.gf, riv: m.gc }; return gg.csb > gg.riv ? 'w' : gg.csb < gg.riv ? 'l' : 'd'; };
+  const rivZero = m => { if (m.gf == null || m.gc == null) return false; const gg = safe(() => _csbGoles(m)) || { csb: m.gf, riv: m.gc }; return gg.riv === 0; };
+  function clubTitles() { return ['a', 'b'].flatMap(k => ((getData(k) || {}).titulos || []).map(t => ({ ...t, k }))); }
+  function titlesIn(list) {
+    const ts = new Set(list.map(m => `${m.torneo}`));
+    return clubTitles().filter(t => [...ts].some(tn => norm(tn).includes(norm(String(t.nombre).replace(/^Campe[oó]n\s+/i, ''))) && String(tn).includes(String(t.anio)))).length;
+  }
+  function periodOptions(list) {
+    const years = [...new Set(list.map(m => String(m.anio)).filter(Boolean))].sort((a, b) => b - a);
+    const torneos = [];
+    list.forEach(m => { if (m.torneo && !torneos.includes(m.torneo)) torneos.push(m.torneo); });
+    return { years, torneos };
+  }
+  function periodLabel(p) { return p === 'all' ? 'Toda la carrera' : p.startsWith('y:') ? 'Temporada ' + p.slice(2) : p.slice(2); }
+  function periodSelect(side, list, val) {
+    const o = periodOptions(list || []);
+    return `<select class="v3-h2h-period" data-period="${side}">
+      <option value="all"${val === 'all' ? ' selected' : ''}>Toda la carrera</option>
+      ${o.years.length ? `<optgroup label="Temporadas">${o.years.map(y => `<option value="y:${y}"${val === 'y:' + y ? ' selected' : ''}>Temporada ${y}</option>`).join('')}</optgroup>` : ''}
+      ${o.torneos.length ? `<optgroup label="Torneos">${o.torneos.map(t => `<option value="t:${esc(t)}"${val === 't:' + t ? ' selected' : ''}>${esc(t)}</option>`).join('')}</optgroup>` : ''}
+    </select>`;
+  }
+  // Estadísticas de un jugador en un período
+  function playerStats(p, period) {
+    const all = cachedMatches(p.nombre) || [];
+    const list = period === 'all' ? all : period.startsWith('y:') ? all.filter(m => String(m.anio) === period.slice(2)) : all.filter(m => m.torneo === period.slice(2));
+    const rec = { w: 0, d: 0, l: 0 };
+    list.forEach(m => { const r = resOf(m); if (r) rec[r]++; });
+    const n = rec.w + rec.d + rec.l;
+    const sum = k => list.reduce((a, m) => a + (Number(m[k]) || 0), 0);
+    let o;
+    if (period === 'all') {
+      o = { pj: p.pj || 0, titular: p.titular || 0, sup: p.suplente != null ? p.suplente : (p.sup || 0), goles: p.goles || 0, asist: p.asist || 0, titulos: p.titulos || 0, vallas: p.vallas || 0, rojas: p.rojas || 0 };
+    } else {
+      o = { pj: list.length, titular: list.filter(m => m.condCorta === 'Titular').length, sup: list.filter(m => m.condCorta === 'Suplente').length,
+        goles: sum('goles'), asist: sum('asist'), titulos: titlesIn(list), vallas: isGK(p) ? list.filter(rivZero).length : 0, rojas: sum('rojas') };
+    }
+    o.gmas = o.goles + o.asist;
+    o.promGol = o.pj ? o.goles / o.pj : 0; o.promAsist = o.pj ? o.asist / o.pj : 0; o.promGmas = o.pj ? o.gmas / o.pj : 0;
+    o.w = rec.w; o.d = rec.d; o.l = rec.l; o.efec = n ? Math.round((rec.w * 3 + rec.d) / (n * 3) * 100) : 0;
+    o.capitan = list.filter(m => m.esCapitan).length;
+    o._matches = list.length;
+    return o;
+  }
+  const PLAYER_ROWS = [
+    { key: 'pj', label: 'Partidos' }, { key: 'titular', label: 'Titular' }, { key: 'sup', label: 'Suplente', neutral: true },
+    { key: 'goles', label: 'Goles' }, { key: 'asist', label: 'Asistencias' }, { key: 'gmas', label: 'G + A' },
+    { key: 'promGol', label: 'Prom. gol', f: 2 }, { key: 'promAsist', label: 'Prom. asist.', f: 2 }, { key: 'promGmas', label: 'Prom. G+A', f: 2 },
+    { key: 'titulos', label: 'Títulos' }, { key: 'vallas', label: 'Vallas inv.', gk: true }, { key: 'capitan', label: 'Capitán' },
+    { sep: 'Resultados del equipo con él en cancha' },
+    { key: 'w', label: 'Ganados' }, { key: 'd', label: 'Empatados', neutral: true }, { key: 'l', label: 'Perdidos', low: true },
+    { key: 'efec', label: 'Efectividad', suf: '%' }, { key: 'rojas', label: 'Rojas', low: true },
   ];
-  const h2h = { l: null, r: null };
+  // Campañas (equipo)
+  function teamCampaigns() {
+    const out = [];
+    [['a', false], ['b', true]].forEach(([k, isB]) => {
+      (safe(() => window._grafSource(isB)) || []).forEach(t => {
+        if (t.pj == null) return;
+        out.push({ ...t, k, id: `${k}|${t.anio}|${t.competencia}` });
+      });
+    });
+    return out.sort((a, b) => b.anio - a.anio || a.k.localeCompare(b.k) || String(a.competencia).localeCompare(String(b.competencia)));
+  }
+  function posNum(t) {
+    const p = String(t.pos || '');
+    if (t.forceColor === 'oro' || (/campe[oó]n/i.test(p) && !/subcampe/i.test(p))) return 1;
+    if (t.forceColor === 'plata' || /subcampe/i.test(p)) return 2;
+    const n = parseInt(p); return isNaN(n) ? null : n;
+  }
+  function teamStats(t) {
+    const pj = t.pj || 0, w = t.pg || 0, d = t.pe || 0, l = t.pp || 0;
+    return { pos: posNum(t), pts: t.pts, pj, w, d, l, gf: t.gf || 0, gc: t.gc || 0, dif: (t.gf || 0) - (t.gc || 0),
+      efec: pj ? Math.round((w * 3 + d) / (pj * 3) * 100) : 0, promGf: pj ? (t.gf || 0) / pj : 0, promGc: pj ? (t.gc || 0) / pj : 0, vi: t.vi };
+  }
+  const TEAM_ROWS = [
+    { key: 'pos', label: 'Posición', low: true, fmt: v => v == null ? '—' : v + '°' },
+    { key: 'pts', label: 'Puntos' }, { key: 'pj', label: 'Partidos', neutral: true },
+    { key: 'w', label: 'Ganados' }, { key: 'd', label: 'Empatados', neutral: true }, { key: 'l', label: 'Perdidos', low: true },
+    { key: 'gf', label: 'Goles a favor' }, { key: 'gc', label: 'Goles en contra', low: true }, { key: 'dif', label: 'Diferencia', sign: true },
+    { key: 'efec', label: 'Efectividad', suf: '%' }, { key: 'promGf', label: 'Gol a favor x PJ', f: 2 }, { key: 'promGc', label: 'Gol en contra x PJ', f: 2, low: true },
+    { key: 'vi', label: 'Vallas invictas' },
+  ];
+  function fmtN(v, f) { const n = Number(v) || 0; return f ? n.toFixed(f).replace('.', ',') : String(n); }
+  function compareRows(rows, A, B, opts) {
+    let wl = 0, wr = 0, n = 0;
+    const html = rows.map(m => {
+      if (m.sep) return `<div class="v3-h2h-sep">${m.sep}</div>`;
+      if (m.gk && !opts.gk) return '';
+      const av = A[m.key], bv = B[m.key];
+      if ((av == null || av === '') && (bv == null || bv === '')) return '';
+      const a = Number(av) || 0, b = Number(bv) || 0;
+      const comparable = av != null && bv != null && !m.neutral;
+      const lw = comparable && (m.low ? a < b : a > b), rw = comparable && (m.low ? b < a : b > a);
+      if (comparable) { n++; if (lw) wl++; if (rw) wr++; }
+      const max = Math.max(Math.abs(a), Math.abs(b)) || 1;
+      const f = v => v == null ? '—' : m.fmt ? m.fmt(v) : (m.sign && v > 0 ? '+' : '') + fmtN(v, m.f) + (m.suf || '');
+      const wa = m.key === 'pos' ? (av == null ? 0 : 100 / Math.max(1, a)) : Math.abs(a) / max * 100;
+      const wb = m.key === 'pos' ? (bv == null ? 0 : 100 / Math.max(1, b)) : Math.abs(b) / max * 100;
+      return `<div class="v3-h2h-row">
+        <span class="v3-h2h-val l${lw ? ' win' : ''}">${f(av)}</span>
+        <div class="v3-h2h-track l"><i style="width:${Math.round(wa)}%"></i></div>
+        <span class="v3-h2h-lbl">${m.label}</span>
+        <div class="v3-h2h-track r"><i style="width:${Math.round(wb)}%"></i></div>
+        <span class="v3-h2h-val r${rw ? ' win' : ''}">${f(bv)}</span></div>`;
+    }).join('');
+    return { html, wl, wr, n };
+  }
+  function verdictHtml(r, nameL, nameR, note) {
+    const v = r.wl === r.wr ? `Empate técnico: <b>${r.wl}</b> rubros para cada lado.`
+      : `<b>${esc(r.wl > r.wr ? nameL : nameR)}</b> gana en ${Math.max(r.wl, r.wr)} de ${r.n} rubros (contra ${Math.min(r.wl, r.wr)}).`;
+    return `<div class="v3-h2h-verdict">${v} <span style="color:var(--v3-muted)">${note}</span></div>`;
+  }
+
   function buildH2H() {
     const el = document.createElement('div');
     el.id = 'v3-h2h';
     el.innerHTML = `<div class="v3-modal-backdrop" data-close></div>
       <div class="v3-h2h-box" role="dialog" aria-label="Cara a cara">
         <div class="v3-h2h-head"><span style="color:var(--v3-brand);display:inline-flex">${I.h2h.replace('<svg', '<svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"')}</span><h3>Cara a cara</h3><button class="v3-icon-btn" data-close aria-label="Cerrar">${I.close}</button></div>
-        <div class="v3-h2h-pickers">
-          <div class="v3-h2h-pick" data-side="l"><label>Jugador 1</label><input placeholder="Escribí un nombre…" autocomplete="off"><div class="v3-h2h-sugg"></div></div>
-          <div class="v3-h2h-vs">VS</div>
-          <div class="v3-h2h-pick" data-side="r"><label>Jugador 2</label><input placeholder="Escribí un nombre…" autocomplete="off"><div class="v3-h2h-sugg"></div></div>
+        <div class="v3-h2h-modes">
+          <button data-mode="pp">Jugador vs jugador</button>
+          <button data-mode="self">Un jugador, dos épocas</button>
+          <button data-mode="team">Equipo vs equipo</button>
         </div>
+        <div id="v3-h2h-pickers"></div>
         <div id="v3-h2h-body"></div>
       </div>`;
     document.body.appendChild(el);
     el.addEventListener('click', e => {
       if (e.target.closest('[data-close]')) { closeH2H(); return; }
+      const md = e.target.closest('[data-mode]');
+      if (md) { setMode(md.dataset.mode); return; }
       const s = e.target.closest('[data-pick]');
       if (s) { const side = s.closest('.v3-h2h-pick').dataset.side; pickH2H(side, s.dataset.pick); return; }
+      const sw = e.target.closest('[data-swap]');
+      if (sw) { swapSides(); return; }
       const c = e.target.closest('[data-player]'); if (c) openPlayer(c.dataset.player);
       if (!e.target.closest('.v3-h2h-pick')) $$('.v3-h2h-sugg', el).forEach(x => x.classList.remove('open'));
     });
-    $$('.v3-h2h-pick input', el).forEach(inp => {
-      inp.addEventListener('input', () => suggest(inp));
-      inp.addEventListener('focus', () => suggest(inp));
-      inp.addEventListener('keydown', e => {
-        if (e.key === 'Enter') { const f = $('.v3-h2h-sugg [data-pick]', inp.parentNode); if (f) pickH2H(inp.parentNode.dataset.side, f.dataset.pick); }
-      });
+    el.addEventListener('change', e => {
+      const sel = e.target.closest('select');
+      if (!sel) return;
+      const k = sel.dataset.period || sel.dataset.team;
+      if (sel.dataset.period) { if (k === 'l') h2h.lp = sel.value; else if (k === 'r') h2h.rp = sel.value; else if (k === 'sl') h2h.sl = sel.value; else if (k === 'sr') h2h.sr = sel.value; }
+      if (sel.dataset.team) { if (k === 'l') h2h.tl = sel.value; else h2h.tr = sel.value; }
+      renderH2H();
     });
+    el.addEventListener('input', e => { const inp = e.target.closest('.v3-h2h-pick input'); if (inp) suggest(inp); });
+    el.addEventListener('focusin', e => { const inp = e.target.closest('.v3-h2h-pick input'); if (inp) suggest(inp); });
+    el.addEventListener('keydown', e => {
+      const inp = e.target.closest('.v3-h2h-pick input');
+      if (inp && e.key === 'Enter') { const f = $('.v3-h2h-sugg [data-pick]', inp.parentNode); if (f) pickH2H(inp.parentNode.dataset.side, f.dataset.pick); }
+    });
+    renderPickers();
+  }
+  function pickBox(side, label, p) {
+    return `<div class="v3-h2h-pick" data-side="${side}"><label>${label}</label><input placeholder="Escribí un nombre…" autocomplete="off" value="${p ? esc(p.nombre) : ''}"><div class="v3-h2h-sugg"></div></div>`;
+  }
+  function teamSelect(side, val) {
+    const camps = teamCampaigns();
+    const lbl = t => `${t.k === 'a' ? 'Primera A' : 'Primera B'} · ${t.competencia} ${t.anio}${t.pos ? ' · ' + t.pos : ''}${t.live ? ' (actual)' : ''}`;
+    const years = [...new Set(camps.map(t => t.anio))];
+    return `<div class="v3-h2h-pick" data-side="${side}"><label>Equipo ${side === 'l' ? '1' : '2'}</label>
+      <select class="v3-h2h-period v3-h2h-team" data-team="${side}">${years.map(y => `<optgroup label="${y}">${camps.filter(t => t.anio === y).map(t => `<option value="${esc(t.id)}"${t.id === val ? ' selected' : ''}>${esc(lbl(t))}</option>`).join('')}</optgroup>`).join('')}</select></div>`;
+  }
+  function renderPickers() {
+    const box = $('#v3-h2h-pickers');
+    if (!box) return;
+    $$('#v3-h2h [data-mode]').forEach(b => b.classList.toggle('on', b.dataset.mode === h2h.mode));
+    const swap = `<button class="v3-h2h-vs" data-swap title="Invertir lados">VS<small>⇄</small></button>`;
+    if (h2h.mode === 'pp') {
+      box.innerHTML = `<div class="v3-h2h-pickers">
+        <div>${pickBox('l', 'Jugador 1', h2h.l)}${h2h.l ? periodSelect('l', cachedMatches(h2h.l.nombre), h2h.lp) : ''}</div>${swap}
+        <div>${pickBox('r', 'Jugador 2', h2h.r)}${h2h.r ? periodSelect('r', cachedMatches(h2h.r.nombre), h2h.rp) : ''}</div></div>`;
+    } else if (h2h.mode === 'self') {
+      const list = h2h.self ? cachedMatches(h2h.self.nombre) : null;
+      box.innerHTML = `<div class="v3-h2h-pickers v3-h2h-self">
+        <div class="v3-h2h-self-name">${pickBox('s', 'Jugador', h2h.self)}</div>
+        <div><label class="v3-h2h-mini">Época 1</label>${h2h.self ? periodSelect('sl', list, h2h.sl) : '<div class="v3-h2h-ph">Elegí un jugador</div>'}</div>${swap}
+        <div><label class="v3-h2h-mini">Época 2</label>${h2h.self ? periodSelect('sr', list, h2h.sr) : '<div class="v3-h2h-ph">Elegí un jugador</div>'}</div></div>`;
+    } else {
+      box.innerHTML = `<div class="v3-h2h-pickers">${teamSelect('l', h2h.tl)}${swap}${teamSelect('r', h2h.tr)}</div>`;
+    }
+  }
+  function swapSides() {
+    if (h2h.mode === 'pp') { [h2h.l, h2h.r] = [h2h.r, h2h.l]; [h2h.lp, h2h.rp] = [h2h.rp, h2h.lp]; }
+    else if (h2h.mode === 'self') { [h2h.sl, h2h.sr] = [h2h.sr, h2h.sl]; }
+    else { [h2h.tl, h2h.tr] = [h2h.tr, h2h.tl]; }
+    renderPickers(); renderH2H();
+  }
+  function setMode(m) {
+    h2h.mode = m;
+    if (m === 'team' && (!h2h.tl || !h2h.tr)) {
+      const camps = teamCampaigns();
+      const isC = t => posNum(t) === 1;
+      const a = camps.find(t => t.k === 'a' && isC(t)) || camps[0];
+      const b = camps.find(t => t.k === 'b' && isC(t)) || camps.find(t => t !== a);
+      h2h.tl = a ? a.id : ''; h2h.tr = b ? b.id : '';
+    }
+    if (m === 'self' && !h2h.self) {
+      const base = h2h.l || [...(nidoList() || [])].sort((a, b) => (b.pj || 0) - (a.pj || 0))[0];
+      if (base) { pickH2H('s', base.nombre); return; }
+    }
+    renderPickers(); renderH2H();
   }
   function suggest(inp) {
     const box = $('.v3-h2h-sugg', inp.parentNode);
@@ -692,27 +872,38 @@
   }
   function findPlayer(n) { return (nidoList() || []).find(p => norm(p.nombre) === norm(n)) || null; }
   function pickH2H(side, nombre) {
-    h2h[side] = findPlayer(nombre);
-    const pick = $(`#v3-h2h .v3-h2h-pick[data-side="${side}"]`);
-    $('input', pick).value = nombre;
-    $('.v3-h2h-sugg', pick).classList.remove('open');
-    renderH2H();
+    const p = findPlayer(nombre);
+    if (!p) return;
+    if (side === 'l') { h2h.l = p; h2h.lp = 'all'; }
+    else if (side === 'r') { h2h.r = p; h2h.rp = 'all'; }
+    else { h2h.self = p; h2h.sl = ''; h2h.sr = ''; }
+    renderPickers(); renderH2H();
+    playerMatches(p.nombre).then(list => {
+      if (side === 's' && h2h.self === p) {
+        const ys = periodOptions(list).years;
+        h2h.sl = ys[1] ? 'y:' + ys[1] : 'all'; h2h.sr = ys[0] ? 'y:' + ys[0] : 'all';
+      }
+      renderPickers(); renderH2H();
+    });
   }
-  function openH2H() {
+  function openH2H(mode) {
     closeSearch();
     $('#v3-h2h').classList.add('open');
-    renderH2H();
+    if (mode && typeof mode === 'string') h2h.mode = mode;
+    renderPickers(); renderH2H();
     ensureNido().then(list => {
       if (!h2h.l && !h2h.r && list.length) {
         const byG = [...list].sort((a, b) => (b.goles || 0) - (a.goles || 0));
         if (byG[0]) pickH2H('l', byG[0].nombre);
         if (byG[1]) pickH2H('r', byG[1].nombre);
-      } else renderH2H();
+      }
+      setMode(h2h.mode);
     });
   }
   // Abre Cara a cara con un jugador ya elegido (botón ⇄ de El Nido)
   function compareWith(nombre) {
     closeSearch();
+    h2h.mode = 'pp';
     $('#v3-h2h').classList.add('open');
     ensureNido().then(list => {
       pickH2H('l', nombre);
@@ -725,31 +916,46 @@
     });
   }
   function closeH2H() { const el = $('#v3-h2h'); if (el) el.classList.remove('open'); }
-  function fmtN(v, f) { const n = Number(v) || 0; return f ? n.toFixed(f).replace('.', ',') : String(n); }
+  function pCard(p, side, sub) {
+    return `<div class="v3-h2h-card" data-side="${side}" data-player="${esc(p.nombre)}" title="Ver perfil">
+      <span class="v3-avatar">${esc(initials(p.nombre))}</span>
+      <div><div class="v3-h2h-card-name">${esc(p.nombre)}</div><div class="v3-h2h-card-sub">${sub}</div></div></div>`;
+  }
   function renderH2H() {
     const body = $('#v3-h2h-body');
     if (!body) return;
-    const L = h2h.l, R = h2h.r;
+    if (h2h.mode === 'team') {
+      const camps = teamCampaigns();
+      const A = camps.find(t => t.id === h2h.tl), B = camps.find(t => t.id === h2h.tr);
+      if (!A || !B) { body.innerHTML = '<div class="v3-h2h-rows"><div class="v3-empty">Elegí dos campañas para compararlas.</div></div>'; return; }
+      const tcard = (t, side) => `<div class="v3-h2h-card v3-h2h-tcard" data-side="${side}">
+        <span class="lc-crest sm"><img src="logo-csb.webp" alt=""><b>${t.k.toUpperCase()}</b></span>
+        <div><div class="v3-h2h-card-name">${esc(t.competencia)} ${t.anio}</div><div class="v3-h2h-card-sub">Primera ${t.k.toUpperCase()} · ${esc(t.pos || '—')}${t.live ? ' · torneo actual' : ''}</div></div></div>`;
+      const r = compareRows(TEAM_ROWS, teamStats(A), teamStats(B), {});
+      const nm = t => `${t.competencia} ${t.anio}`;
+      body.innerHTML = `<div class="v3-h2h-cards">${tcard(A, 'l')}${tcard(B, 'r')}</div><div class="v3-h2h-rows">${r.html}</div>${verdictHtml(r, nm(A), nm(B), 'Los torneos pueden tener distinta cantidad de partidos: mirá la efectividad y los promedios por partido.')}`;
+      return;
+    }
     if (!nidoList()) { body.innerHTML = '<div class="v3-h2h-rows"><div class="v3-skel"></div><div class="v3-skel"></div><div class="v3-skel"></div></div>'; return; }
+    if (h2h.mode === 'self') {
+      const p = h2h.self;
+      if (!p) { body.innerHTML = '<div class="v3-h2h-rows"><div class="v3-empty">Elegí un jugador para comparar dos momentos de su carrera.</div></div>'; return; }
+      if (!cachedMatches(p.nombre)) { body.innerHTML = '<div class="v3-h2h-rows"><div class="v3-skel"></div><div class="v3-skel"></div></div>'; return; }
+      const A = playerStats(p, h2h.sl || 'all'), B = playerStats(p, h2h.sr || 'all');
+      const sub = per => `${esc(periodLabel(per || 'all'))}`;
+      const r = compareRows(PLAYER_ROWS, A, B, { gk: isGK(p) });
+      body.innerHTML = `<div class="v3-h2h-cards">${pCard(p, 'l', sub(h2h.sl))}${pCard(p, 'r', sub(h2h.sr))}</div><div class="v3-h2h-rows">${r.html}</div>
+        ${verdictHtml(r, periodLabel(h2h.sl || 'all'), periodLabel(h2h.sr || 'all'), 'Por temporada o torneo se cuentan los partidos cargados en el Fecha a Fecha.')}`;
+      return;
+    }
+    const L = h2h.l, R = h2h.r;
     if (!L || !R) { body.innerHTML = '<div class="v3-h2h-rows"><div class="v3-empty">Elegí dos jugadores para compararlos.</div></div>'; return; }
-    const card = (p, side) => `<div class="v3-h2h-card" data-side="${side}" data-player="${esc(p.nombre)}" title="Ver perfil">
-      <span class="v3-avatar">${esc(initials(p.nombre))}</span>
-      <div><div class="v3-h2h-card-name">${esc(p.nombre)}</div><div class="v3-h2h-card-sub">${esc(p.pos || 'Jugador')} · ${(p.teams || []).map(t => 'Primera ' + t.toUpperCase()).join(' y ')}</div></div></div>`;
-    let wl = 0, wr = 0;
-    const rows = H2H_ROWS.map(m => {
-      const a = Number(L[m.key]) || 0, b = Number(R[m.key]) || 0, max = Math.max(a, b) || 1;
-      const lw = m.low ? a < b : a > b, rw = m.low ? b < a : b > a;
-      if (lw) wl++; if (rw) wr++;
-      return `<div class="v3-h2h-row">
-        <span class="v3-h2h-val l${lw ? ' win' : ''}">${fmtN(a, m.f)}</span>
-        <div class="v3-h2h-track l"><i style="width:${Math.round((a / max) * 100)}%"></i></div>
-        <span class="v3-h2h-lbl">${m.label}</span>
-        <div class="v3-h2h-track r"><i style="width:${Math.round((b / max) * 100)}%"></i></div>
-        <span class="v3-h2h-val r${rw ? ' win' : ''}">${fmtN(b, m.f)}</span></div>`;
-    }).join('');
-    const verdict = wl === wr ? `Empate técnico: <b>${wl}</b> rubros para cada uno.`
-      : `<b>${esc(wl > wr ? L.nombre : R.nombre)}</b> gana en ${Math.max(wl, wr)} de ${H2H_ROWS.length} rubros (contra ${Math.min(wl, wr)}).`;
-    body.innerHTML = `<div class="v3-h2h-cards">${card(L, 'l')}${card(R, 'r')}</div><div class="v3-h2h-rows">${rows}</div><div class="v3-h2h-verdict">${verdict} <span style="color:var(--v3-muted)">Totales de carrera en el club (Primera A + B). Tocá un jugador para ver su perfil completo.</span></div>`;
+    const A = playerStats(L, h2h.lp), B = playerStats(R, h2h.rp);
+    const sub = (p, per) => `${esc(p.pos || 'Jugador')} · ${esc(periodLabel(per))}`;
+    const r = compareRows(PLAYER_ROWS, A, B, { gk: isGK(L) || isGK(R) });
+    const partial = h2h.lp !== 'all' || h2h.rp !== 'all';
+    body.innerHTML = `<div class="v3-h2h-cards">${pCard(L, 'l', sub(L, h2h.lp))}${pCard(R, 'r', sub(R, h2h.rp))}</div><div class="v3-h2h-rows">${r.html}</div>
+      ${verdictHtml(r, L.nombre, R.nombre, partial ? 'Por temporada o torneo se cuentan los partidos cargados en el Fecha a Fecha. Los resultados del equipo salen de esos mismos partidos.' : 'Totales de carrera en el club (Primera A + B). Los resultados del equipo salen de los partidos cargados en el Fecha a Fecha.')}`;
   }
 
 

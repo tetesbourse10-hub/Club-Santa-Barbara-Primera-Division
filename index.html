@@ -6472,6 +6472,14 @@ function _buildPlayerPartidos(nombre) {
 // "en vivo" del perfil de jugador cuando la mitad "histórica" viene del JSON
 // precalculado (ver data/jugador/<slug>.json / _ppFetchStaticRecord).
 let _playerLivePartidosCache = {};
+// Partidos de un jugador (histórico precalculado + temporada en curso) para
+// Cara a cara: estadísticas por temporada o torneo.
+window._csbPlayerMatches = async function (nombre) {
+  let hist = null;
+  try { const r = await _ppFetchStaticRecord(nombre); hist = r && r.data ? r.data.partidos : null; } catch (e) {}
+  const live = _buildPlayerLivePartidos(nombre) || [];
+  return hist ? _ppMergePartidos(hist, live) : _buildPlayerPartidos(nombre);
+};
 function _buildPlayerLivePartidos(nombre) {
   const target = normName(nombre);
   if (_playerLivePartidosCache[target]) return _playerLivePartidosCache[target];
