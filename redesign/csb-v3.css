@@ -2293,3 +2293,4 @@ button.v3-h2h-vs:hover { color: #fff; }
 @media (max-width: 768px) { .lc-nido-emoji { font-size: 1.6rem; } }
 .hvx-hl-main small em { font-style: normal; font-weight: 800; }
 em.hvx-g { color: #8fe03a; } em.hvx-e { color: #ffc83d; } em.hvx-p { color: #ff7b7b; }
+@media (min-width: 769px) { .rv4-dest { flex: 1; display: flex; flex-direction: column; justify-content: space-around; } }
