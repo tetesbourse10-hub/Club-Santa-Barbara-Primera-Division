@@ -2751,3 +2751,14 @@ body { overflow-x: clip; }
   #pmf-list .mrow-sec-val { font-size: 0.74rem !important; }
   #pmf-list .mrow-sec-label { font-size: 0.56rem !important; }
 }
+@media (max-width: 768px) {
+  .ap-tab-nav .ap-tab-btn::after { display: block !important; position: static !important; width: auto !important; height: auto !important; background: none !important; border: 0 !important; opacity: 1 !important; transform: none !important; font-size: 0.6rem !important; font-weight: 800 !important; color: inherit !important; }
+  .ap-tab-nav .ap-tab-btn[data-tab="datos"]::after { content: 'Resumen' !important; }
+  .ap-tab-nav .ap-tab-btn[data-tab="plantel"]::after { content: 'Plantel' !important; }
+  .ap-tab-nav .ap-tab-btn[data-tab="tabla"]::after { content: 'Tabla' !important; }
+  .ap-tab-nav .ap-tab-btn[data-tab="fechas"]::after { content: 'Fechas' !important; }
+  .ap-tab-nav .ap-tab-btn[data-tab="detalladas"]::after { content: 'Detalle' !important; }
+  .mrow-card[data-cd-cond] .mrow-sec-item + .mrow-sec-item .mrow-sec-label { font-size: 0 !important; }
+  .mrow-card[data-cd-cond] .cd-m-obs-toggle { font-size: 0.66rem !important; padding: 0 !important; margin-top: 2px; }
+  .mrow-card[data-cd-cond] .cd-m-obs-wrap { color: var(--v3-muted); }
+}
