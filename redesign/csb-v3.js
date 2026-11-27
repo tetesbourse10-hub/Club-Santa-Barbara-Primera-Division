@@ -180,7 +180,7 @@
 
   function onShellClick(e) {
     const el = e.target.closest('[data-nav],[data-act],[data-sq]');
-    if (!el || !el.closest('#v3-sidebar,#v3-topbar,#v3-bottomnav,#v3-more,.v3-home')) return;
+    if (!el || !el.closest('#v3-sidebar,#v3-topbar,#v3-bottomnav,#v3-more,.v3-home,#v3-mhome')) return;
     if (el.matches('[data-sq]') && el.closest('.v3-squad-switch,.v3-top-sq')) { switchSquad(el.dataset.sq); return; }
     const nav = el.dataset.nav, act = el.dataset.act;
     if (nav) {
@@ -392,6 +392,7 @@
     if (box.__last !== html) { box.innerHTML = html; box.__last = html; }
     renderChamp();
     renderClubNums();
+    safe(renderMHome);
   }
 
   // ── Cartel de títulos (Primera A + Primera B) ──
@@ -1063,6 +1064,112 @@
   }
 
 
+
+  // ════════════════ INICIO MÓVIL (dashboard tipo app) ════════════════
+  let mhLeader = 'goles';
+  function mhSquad(k) {
+    const d = getData(k) || {}, own = ownRow(k);
+    const est = own ? safe(() => _csbEstadoTorneo(d.tabla)) : null;
+    const played = (d.partidos || []).filter(p => p.resultado != null && p.gf != null);
+    const res = p => { const gg = safe(() => _csbGoles(p)) || { csb: p.gf, riv: p.gc }; return gg.csb > gg.riv ? 'w' : gg.csb < gg.riv ? 'l' : 'd'; };
+    const last = played.slice(-5);
+    const tag = est && est.estado === 'campeon' ? '<em class="gold">Campeón</em>' : est && est.estado === 'descendido' ? '<em class="red">Descendido</em>' : '';
+    return `<button class="mh-sq${est && est.estado === 'campeon' ? ' champ' : ''}" data-nav="resumen" data-sq-target="${k}">
+      <span class="mh-sq-top"><span class="lc-crest sm"><img src="logo-csb.webp" alt=""><b>${k.toUpperCase()}</b></span><b>Primera ${k.toUpperCase()}</b></span>
+      <span class="mh-sq-pos">${own ? esc(String(own.pos).replace(/[°º]/g, '')) : '–'}<small>°</small></span>
+      <span class="mh-sq-sub">${own ? `${esc(own.pts)} pts · ${esc(own.pj)} PJ` : 'Cargando…'}</span>
+      ${tag ? `<span class="mh-sq-tag">${tag}</span>` : ''}
+      <span class="mh-sq-form">${last.map(p => `<i class="${res(p)}"></i>`).join('')}</span>
+    </button>`;
+  }
+  function mhMatch(k) {
+    const d = getData(k);
+    const m = k === 'a' ? (safe(() => _liveMatchInfo(d, 'a')) || safe(() => _primeraANextMatch())) : (safe(() => _liveMatchInfo(d, 'b')) || safe(() => _teamNextMatch(d, 'b')));
+    if (!m) return '';
+    const meta = safe(() => _fmtProximoMeta(m)) || {};
+    const cd = (!m.isLive && m.dt) ? safe(() => _countdownParts(m.dt)) : null;
+    const cdVal = cd ? (cd.days > 0 ? `${cd.days}d ${cd.hours}h` : `${cd.hours}h ${cd.minutes}m`) : '';
+    const vis = /visit/i.test(m.local || '');
+    const us = `<span class="mh-m-t"><span class="mh-m-c us"><img src="logo-csb.webp" alt=""></span><b>Santa Bárbara</b></span>`;
+    const rv = `<span class="mh-m-t"><span class="mh-m-c">${safe(() => _crestImgHtml(m.rival)) || ''}</span><b>${esc(m.rival)}</b></span>`;
+    const loc = m.locator != null ? m.locator : m.fecha;
+    const nk = m.navKey || k;
+    const maps = vis ? safe(() => _mapsUrlFor(m)) : null;
+    const center = m.isLive ? `<span class="mh-m-vs live"><b>${esc(m.marcadorTxt || 'VS')}</b><small>${m.final ? 'Final' : esc(m.clockLabel || 'En vivo')}</small></span>`
+      : `<span class="mh-m-vs"><b>${esc(meta.horaTxt || 'VS')}</b><small>${esc([meta.weekday ? meta.weekday.slice(0, 3) : '', meta.diaMes].filter(Boolean).join(' ') || 'A confirmar')}</small></span>`;
+    return `<div class="mh-m" ${loc != null ? `data-fecha-nav="${esc(nk)}" data-fecha-loc="${esc(String(loc))}"` : ''}>
+      <div class="mh-m-h"><span class="mh-chip">Primera ${k.toUpperCase()}</span>${m.fecha ? `<span>Fecha ${esc(m.fecha)}</span>` : ''}<span class="mh-m-lv">${vis ? 'Visitante' : 'Local'}</span>${cdVal ? `<span class="mh-m-cd">${esc(cdVal)}</span>` : ''}</div>
+      <div class="mh-m-row">${vis ? rv : us}${center}${vis ? us : rv}</div>
+      ${vis && m.lugar ? `<div class="mh-m-place"><span>📍 ${esc(m.lugar)}</span>${maps ? `<a href="${esc(maps)}" target="_blank" rel="noopener">Cómo llegar</a>` : ''}</div>` : ''}
+    </div>`;
+  }
+  function mhLeaders() {
+    const list = nidoList();
+    const M = [['goles', 'Goles'], ['asist', 'Asist.'], ['pj', 'Partidos'], ['vallas', 'Vallas'], ['titulos', 'Títulos']];
+    const top = (list || []).filter(p => (p[mhLeader] || 0) > 0).sort((a, b) => (b[mhLeader] || 0) - (a[mhLeader] || 0)).slice(0, 3);
+    return `<div class="mh-chips" data-noptr>${M.map(([k, l]) => `<button class="${k === mhLeader ? 'on' : ''}" data-mh-leader="${k}">${l}</button>`).join('')}</div>
+      <div class="mh-lead">${top.length ? top.map((p, i) => `<button class="mh-lead-r" data-player="${esc(p.nombre)}"><span class="mh-rk r${i + 1}">${i + 1}</span><span class="v3-avatar">${esc(initials(p.nombre))}</span><span class="mh-lead-n"><b>${esc(p.nombre)}</b><small>${esc(p.pos || '')} · ${p.pj || 0} PJ</small></span><span class="mh-lead-v">${p[mhLeader]}</span></button>`).join('') : '<div class="v3-skel"></div><div class="v3-skel"></div>'}</div>`;
+  }
+  function mhNums() {
+    const all = [...(safe(() => window._grafSource(false)) || []), ...(safe(() => window._grafSource(true)) || [])];
+    if (!all.length) return '';
+    const sum = k => all.reduce((s, t) => s + (Number(t[k]) || 0), 0);
+    const tit = ['a', 'b'].reduce((n, k) => n + ((getData(k) || {}).titulos || []).length, 0);
+    const items = [[sum('pj'), 'Partidos'], [sum('pg'), 'Ganados', 'w'], [sum('pe'), 'Empatados', 'd'], [sum('pp'), 'Perdidos', 'l'], [sum('gf'), 'Goles'], [all.length, 'Torneos'], [tit, 'Títulos', 'gold']];
+    return `<div class="mh-strip" data-noptr>${items.map(([v, l, c]) => `<div class="${c || ''}"><b>${v}</b><span>${l}</span></div>`).join('')}</div>`;
+  }
+  function renderMHome() {
+    const home = $('#v3-mhome'); if (!home) return;
+    const tit = ['a', 'b'].reduce((n, k) => n + ((getData(k) || {}).titulos || []).length, 0);
+    const champs = ['a', 'b'].filter(k => { const d = getData(k); const e = d && ownRow(k) ? safe(() => _csbEstadoTorneo(d.tabla)) : null; return e && e.estado === 'campeon'; });
+    const html = `
+      <header class="mh-head">
+        <img src="logo-csb.webp" alt="">
+        <div><small>Temporada 2026</small><b>Santa Bárbara</b></div>
+        <button class="mh-tit" data-act="titles">🏆 <b>${tit}</b></button>
+      </header>
+      ${champs.map(k => `<button class="mh-champ" data-nav="posiciones" data-sq-target="${k}"><span>🏆</span><span><small>¡Campeones! · Primera ${k.toUpperCase()}</small><b>${esc((getData(k) || {}).badge || 'Torneo')}</b></span><i>›</i></button>`).join('')}
+      <div class="mh-squads">${mhSquad('a')}${mhSquad('b')}</div>
+      <div class="mh-qa">
+        <button data-nav="nido"><span>${I.nido}</span>El Nido</button>
+        <button data-nav="jugadores"><span>${I.jugadores}</span>Jugadores</button>
+        <button data-nav="posiciones"><span>${I.vivo}</span>En Vivo</button>
+        <button data-nav="h2h"><span>${I.h2h}</span>Cara a cara</button>
+        <button data-nav="graficos"><span>${I.torneos}</span>Torneos</button>
+        <button data-nav="historial"><span>${I.historial}</span>vs Clubes</button>
+        <button data-act="titles"><span>🏆</span>Títulos</button>
+        <button data-act="search"><span>${I.search}</span>Buscar</button>
+      </div>
+      <section><div class="mh-sec"><b>Próximos partidos</b></div><div class="mh-matches" data-noptr>${mhMatch('a')}${mhMatch('b')}</div></section>
+      <section><div class="mh-sec"><b>Líderes históricos</b><button data-nav="nido">Ver todos ›</button></div>${mhLeaders()}</section>
+      <section><div class="mh-sec"><b>El club en números</b><button data-nav="graficos">Torneos ›</button></div>${mhNums()}</section>
+      <section><div class="mh-sec"><b>Cara a cara</b></div><div class="mh-h2h">
+        <button data-nav="h2h" data-h2h-mode="pp">${I.h2h}<span>Jugador<br>vs jugador</span></button>
+        <button data-nav="h2h" data-h2h-mode="self">${I.jugadores}<span>Un jugador,<br>dos épocas</span></button>
+        <button data-nav="h2h" data-h2h-mode="team">${I.torneos}<span>Equipo<br>vs equipo</span></button>
+      </div></section>`;
+    if (home.__last !== html) { home.innerHTML = html; home.__last = html; }
+  }
+  function buildMHome() {
+    const landing = $('#landing');
+    if (!landing || $('#v3-mhome')) return;
+    const el = document.createElement('div');
+    el.id = 'v3-mhome';
+    landing.appendChild(el);
+    el.addEventListener('click', e => {
+      const lb = e.target.closest('[data-mh-leader]');
+      if (lb) { mhLeader = lb.dataset.mhLeader; renderMHome(); return; }
+      const pl = e.target.closest('[data-player]');
+      if (pl) { openPlayer(pl.dataset.player); return; }
+      if (e.target.closest('a')) return;
+      const mf = e.target.closest('[data-fecha-nav]');
+      if (mf && g('goToMatchFecha')) goToMatchFecha(mf.dataset.fechaNav, mf.dataset.fechaLoc);
+    });
+    renderMHome();
+    setInterval(renderMHome, 60000);
+    setTimeout(() => ensureNido().then(renderMHome), 1800);
+  }
+
   // ════════════════ MODO APP (celular / web app instalada) ════════════════
   const mqApp = window.matchMedia('(max-width: 768px)');
   const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
@@ -1188,6 +1295,7 @@
     mqApp.addEventListener && mqApp.addEventListener('change', () => document.documentElement.classList.toggle('v3-app', mqApp.matches));
     splash();
     buildQuickActions();
+    buildMHome();
     initTopbarScroll();
     initPullToRefresh();
     initEdgeBack();
