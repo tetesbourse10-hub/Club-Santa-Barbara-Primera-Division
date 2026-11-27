@@ -2426,3 +2426,35 @@ em.hvx-g { color: #8fe03a; } em.hvx-e { color: #ffc83d; } em.hvx-p { color: #ff7
   .nmx-go { flex: 1 1 100%; justify-content: center; padding: 10px; }
   .nmx-match .nmx-team b { max-width: 100%; }
 }
+
+/* ── Secciones en modo app: encabezados compactos y barras fijas ── */
+@media (max-width: 768px) {
+  /* El selector A/B ya está en la barra superior */
+  .rv4-sq { display: none !important; }
+  .rv4-hero { padding: 16px !important; gap: 12px !important; }
+  .rv4-hero-crest { width: 48px !important; height: auto !important; }
+  .rv4-title { font-size: 1.8rem !important; }
+  /* Encabezados de sección más bajos */
+  .jx-head, .jhx-hero { padding: 16px !important; border-radius: 20px !important; gap: 12px !important; }
+  .jx-h, .jhx-h { font-size: 1.75rem !important; margin: 4px 0 2px !important; }
+  .jhx-lead, .jxi-lead { display: none; }
+  .jhx-kpis { width: 100%; } .jhx-kpis div { flex: 1; min-width: 0; padding: 9px 10px; } .jhx-kpis b { font-size: 1.5rem; }
+  /* Menú de Jugadores como lista de app */
+  .jhx-grid { grid-template-columns: 1fr !important; gap: 8px !important; }
+  .jhx-card { display: grid !important; grid-template-columns: auto 1fr auto; align-items: center; column-gap: 12px; row-gap: 2px; padding: 13px 14px !important; border-radius: 18px !important; }
+  .jhx-card .jhx-ico { grid-row: 1 / span 2; width: 42px; height: 42px; }
+  .jhx-card .jhx-title { grid-column: 2; font-size: 1.12rem; margin: 0; }
+  .jhx-card .jhx-sub { grid-column: 2; font-size: 0.72rem; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+  .jhx-card .jhx-stat { display: none; }
+  .jhx-card .jhx-go { grid-column: 3; grid-row: 1 / span 2; margin: 0; padding: 0; font-size: 0; }
+  .jhx-card .jhx-go::after { content: '›'; font-size: 1.6rem; color: var(--v3-dim); }
+  /* Sub-barras fijas debajo de la barra superior */
+  .jsx-bar, .ap-tab-nav { position: sticky !important; top: calc(var(--v3-top-h) + env(safe-area-inset-top, 0px)) !important; z-index: 40 !important; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); background: rgba(10, 22, 15, 0.9) !important; }
+  /* Historial vs clubes: portada más baja */
+  .hvx-rec b, .hdx-sum .hvx-rec b { font-size: 1.6rem !important; }
+  .hvx-kpis b { font-size: 1.25rem !important; }
+  .hvx-hl { gap: 8px !important; }
+  .hvx-hl-card { padding: 10px !important; }
+  /* Tablas de datos: scroll suave horizontal */
+  .jx-table-wrap, .tax-table, .jxt-wrap { -webkit-overflow-scrolling: touch; }
+}
