@@ -1105,7 +1105,7 @@
   }
   function mhLeaders() {
     const list = nidoList();
-    const M = [['goles', 'Goles'], ['asist', 'Asist.'], ['pj', 'Partidos'], ['vallas', 'Vallas'], ['titulos', 'Títulos']];
+    const M = [['goles', 'Goles'], ['asist', 'Asist.'], ['pj', 'PJ'], ['vallas', 'Vallas'], ['titulos', 'Títulos']];
     const top = (list || []).filter(p => (p[mhLeader] || 0) > 0).sort((a, b) => (b[mhLeader] || 0) - (a[mhLeader] || 0)).slice(0, 3);
     return `<div class="mh-chips" data-noptr>${M.map(([k, l]) => `<button class="${k === mhLeader ? 'on' : ''}" data-mh-leader="${k}">${l}</button>`).join('')}</div>
       <div class="mh-lead">${top.length ? top.map((p, i) => `<button class="mh-lead-r" data-player="${esc(p.nombre)}"><span class="mh-rk r${i + 1}">${i + 1}</span><span class="v3-avatar">${esc(initials(p.nombre))}</span><span class="mh-lead-n"><b>${esc(p.nombre)}</b><small>${esc(p.pos || '')} · ${p.pj || 0} PJ</small></span><span class="mh-lead-v">${p[mhLeader]}</span></button>`).join('') : '<div class="v3-skel"></div><div class="v3-skel"></div>'}</div>`;
@@ -1115,7 +1115,7 @@
     if (!all.length) return '';
     const sum = k => all.reduce((s, t) => s + (Number(t[k]) || 0), 0);
     const tit = ['a', 'b'].reduce((n, k) => n + ((getData(k) || {}).titulos || []).length, 0);
-    const items = [[sum('pj'), 'Partidos'], [sum('pg'), 'Ganados', 'w'], [sum('pe'), 'Empatados', 'd'], [sum('pp'), 'Perdidos', 'l'], [sum('gf'), 'Goles'], [all.length, 'Torneos'], [tit, 'Títulos', 'gold']];
+    const items = [[sum('pj'), 'Partidos'], [sum('pg'), 'Ganados', 'w'], [sum('pe'), 'Empatados', 'd'], [sum('pp'), 'Perdidos', 'l'], [sum('gf'), 'Goles'], [all.length, 'Torneos'], [new Set(all.map(t => t.anio)).size, 'Temporadas'], [tit, 'Títulos', 'gold']];
     return `<div class="mh-strip" data-noptr>${items.map(([v, l, c]) => `<div class="${c || ''}"><b>${v}</b><span>${l}</span></div>`).join('')}</div>`;
   }
   function renderMHome() {

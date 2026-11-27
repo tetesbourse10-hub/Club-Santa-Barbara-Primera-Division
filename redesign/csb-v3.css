@@ -2556,3 +2556,30 @@ html, body { overflow-x: hidden; }
   .mh-h2h span { font-size: 0.7rem; font-weight: 700; line-height: 1.2; color: #fff; }
   /* La barra superior en el Inicio móvil: el encabezado ya identifica al club */
 }
+
+/* Inicio móvil v2: todo entra en el ancho, nada tapado por la barra inferior */
+@media (max-width: 768px) {
+  #v3-mhome { padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px)); gap: 14px; }
+  /* Accesos: dentro de un panel, más juntos */
+  .mh-qa { grid-template-columns: repeat(4, 1fr); gap: 12px 4px; padding: 14px 8px 12px; border-radius: 20px; border: 1px solid var(--v3-line-2); background: var(--v3-surface); }
+  .mh-qa span { width: 46px; height: 46px; border-radius: 15px; }
+  .mh-qa button { font-size: 0.62rem; }
+  /* Partidos: uno debajo del otro, compactos (sin cortes al costado) */
+  .mh-matches { flex-direction: column; overflow: visible; margin: 0; padding: 0; scroll-snap-type: none; gap: 8px; }
+  .mh-m { flex: none; width: 100%; padding: 10px 12px; gap: 8px; }
+  /* Líderes: los cinco botones entran en el ancho */
+  .mh-chips { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; overflow: visible; }
+  .mh-chips button { padding: 6px 2px; font-size: 0.68rem; text-align: center; }
+  /* Números: grilla de 4 x 2, sin deslizar */
+  .mh-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; overflow: visible; margin: 0; padding: 0; }
+  .mh-strip div { min-width: 0; padding: 8px 6px; align-items: center; text-align: center; }
+  .mh-strip b { font-size: 1.15rem; }
+  .mh-strip span { font-size: 0.46rem; letter-spacing: 0.06em; }
+  /* Cara a cara: tres botones parejos */
+  .mh-h2h { gap: 6px; }
+  .mh-h2h button { padding: 10px 8px; align-items: center; text-align: center; }
+  .mh-h2h span { font-size: 0.64rem; }
+  .mh-squads { gap: 8px; }
+  .mh-sq { padding: 11px 10px; }
+  .mh-sq-top b { font-size: 0.86rem; }
+}
