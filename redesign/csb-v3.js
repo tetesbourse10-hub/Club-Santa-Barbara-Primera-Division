@@ -1078,8 +1078,8 @@
       <span class="mh-sq-top"><span class="lc-crest sm"><img src="logo-csb.webp" alt=""><b>${k.toUpperCase()}</b></span><b>Primera ${k.toUpperCase()}</b></span>
       <span class="mh-sq-pos">${own ? esc(String(own.pos).replace(/[°º]/g, '')) : '–'}<small>°</small></span>
       <span class="mh-sq-sub">${own ? `${esc(own.pts)} pts · ${esc(own.pj)} PJ` : 'Cargando…'}</span>
-      ${tag ? `<span class="mh-sq-tag">${tag}</span>` : ''}
       <span class="mh-sq-form">${last.map(p => `<i class="${res(p)}"></i>`).join('')}</span>
+      ${tag ? `<span class="mh-sq-tag">${tag}</span>` : ''}
     </button>`;
   }
   function mhMatch(k) {

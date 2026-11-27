@@ -2465,7 +2465,7 @@ em.hvx-g { color: #8fe03a; } em.hvx-e { color: #ffc83d; } em.hvx-p { color: #ff7
 
 /* ════════════════ INICIO MÓVIL (dashboard tipo app) ════════════════ */
 #v3-mhome { display: none; }
-html, body { overflow-x: hidden; }
+body { overflow-x: clip; }
 @media (max-width: 768px) {
   #landing > *:not(#v3-mhome) { display: none !important; }
   #landing { padding: 0 !important; }
@@ -2582,4 +2582,10 @@ html, body { overflow-x: hidden; }
   .mh-squads { gap: 8px; }
   .mh-sq { padding: 11px 10px; }
   .mh-sq-top b { font-size: 0.86rem; }
+}
+@media (max-width: 768px) {
+  body { background: var(--v3-bg) !important; background-attachment: scroll !important; }
+  #v3-mhome { max-width: none; width: 100%; box-sizing: border-box; }
+  .mh-sq-tag { position: static; order: 5; margin-top: 6px; }
+  .mh-sq-form { order: 6; }
 }
