@@ -2555,5 +2555,4 @@ html, body { overflow-x: hidden; }
   .mh-h2h svg { width: 20px; height: 20px; fill: none; stroke: var(--v3-brand); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .mh-h2h span { font-size: 0.7rem; font-weight: 700; line-height: 1.2; color: #fff; }
   /* La barra superior en el Inicio móvil: el encabezado ya identifica al club */
-  body.v3-on-home #v3-topbar .v3-top-title, body.v3-on-home #v3-topbar .v3-top-kicker { opacity: 0; }
 }

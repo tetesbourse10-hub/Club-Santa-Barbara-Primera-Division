@@ -213,7 +213,7 @@
     if (!$('#v3-kicker') || !$('#v3-title')) return;
     safe(animateView);
     const v = view();
-    let active = 'home', kicker = 'Club Santa Bárbara', title = 'Inicio';
+    let active = 'home', kicker = 'Club · Temporada 2026', title = 'Santa Bárbara';
     const sqLabel = v.sq === 'b' ? 'Primera B' : 'Primera A';
     if (v.profileOn) { active = null; kicker = 'El Nido'; title = 'Perfil de jugador'; }
     else if (v.landingOn) { active = 'home'; }
@@ -1123,11 +1123,6 @@
     const tit = ['a', 'b'].reduce((n, k) => n + ((getData(k) || {}).titulos || []).length, 0);
     const champs = ['a', 'b'].filter(k => { const d = getData(k); const e = d && ownRow(k) ? safe(() => _csbEstadoTorneo(d.tabla)) : null; return e && e.estado === 'campeon'; });
     const html = `
-      <header class="mh-head">
-        <img src="logo-csb.webp" alt="">
-        <div><small>Temporada 2026</small><b>Santa Bárbara</b></div>
-        <button class="mh-tit" data-act="titles">🏆 <b>${tit}</b></button>
-      </header>
       ${champs.map(k => `<button class="mh-champ" data-nav="posiciones" data-sq-target="${k}"><span>🏆</span><span><small>¡Campeones! · Primera ${k.toUpperCase()}</small><b>${esc((getData(k) || {}).badge || 'Torneo')}</b></span><i>›</i></button>`).join('')}
       <div class="mh-squads">${mhSquad('a')}${mhSquad('b')}</div>
       <div class="mh-qa">
@@ -1137,10 +1132,10 @@
         <button data-nav="h2h"><span>${I.h2h}</span>Cara a cara</button>
         <button data-nav="graficos"><span>${I.torneos}</span>Torneos</button>
         <button data-nav="historial"><span>${I.historial}</span>vs Clubes</button>
-        <button data-act="titles"><span>🏆</span>Títulos</button>
+        <button data-act="titles"><span>🏆</span>Títulos (${tit})</button>
         <button data-act="search"><span>${I.search}</span>Buscar</button>
       </div>
-      <section><div class="mh-sec"><b>Próximos partidos</b></div><div class="mh-matches" data-noptr>${mhMatch('a')}${mhMatch('b')}</div></section>
+      ${(() => { const ms = mhMatch('a') + mhMatch('b'); return ms ? `<section><div class="mh-sec"><b>Próximos partidos</b></div><div class="mh-matches" data-noptr>${ms}</div></section>` : ''; })()}
       <section><div class="mh-sec"><b>Líderes históricos</b><button data-nav="nido">Ver todos ›</button></div>${mhLeaders()}</section>
       <section><div class="mh-sec"><b>El club en números</b><button data-nav="graficos">Torneos ›</button></div>${mhNums()}</section>
       <section><div class="mh-sec"><b>Cara a cara</b></div><div class="mh-h2h">
