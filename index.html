@@ -15339,6 +15339,23 @@ function renderResumen() {
   </div>`;
   _resumenSoftSet(container, _resumenHtml);
 }
+// ── Pestañas internas para móvil (genérico) ──
+window._mp = window._mp || {};
+function _mpCur(id, def) { return window._mp[id] || def; }
+function _mpTabs(id, items, def) {
+  const cur = _mpCur(id, def);
+  return `<div class="mp-tabs" data-mp="${id}" style="--n:${items.length}">${items.map(([k, l]) => `<button data-k="${k}" class="${k === cur ? 'on' : ''}" onclick="_mpSet('${id}','${k}')">${l}</button>`).join('')}</div>`;
+}
+function _mpP(id, k, def, cls) { return `class="mp-p${cls ? ' ' + cls : ''}${_mpCur(id, def) === k ? '' : ' mp-off'}" data-mpg="${id}" data-mpk="${k}"`; }
+function _mpSet(id, k) {
+  window._mp[id] = k;
+  document.querySelectorAll(`[data-mpg="${id}"]`).forEach(e => e.classList.toggle('mp-off', e.dataset.mpk !== k));
+  document.querySelectorAll(`.mp-tabs[data-mp="${id}"] button`).forEach(b => b.classList.toggle('on', b.dataset.k === k));
+  const bar = document.querySelector(`.mp-tabs[data-mp="${id}"]`);
+  if (bar) { const t = bar.getBoundingClientRect().top; if (t < 130) window.scrollTo({ top: window.scrollY + t - 130, behavior: 'smooth' }); }
+  try { navigator.vibrate && navigator.vibrate(8); } catch (e) {}
+  if (id === 'tax' && k === 'hist' && window._taxEvolRender) setTimeout(() => { try { window._taxEvolRender(); } catch (e) {} }, 30);
+}
 function _rv4SetPane(k) {
   window._rv4Pane = k;
   const r = document.querySelector('#tab-resumen .rv4');
@@ -16371,13 +16388,14 @@ function renderHistorialDetalle(rival) {
             <div><b class="${dif > 0 ? 'pos' : dif < 0 ? 'neg' : ''}">${difSign}${dif}</b><span>Diferencia</span></div><div><b>${efectividad}%</b><span>Efectividad</span></div></div>
         </div>
       </section>
+      ${_mpTabs('hdx', [['part', 'Partidos'], ['datos', 'Datos y marcas']], 'part')}
       <div class="hdx-layout">
-        <div class="hdx-main">
+        <div ${_mpP('hdx', 'part', 'part', 'hdx-main')}>
           ${played.length ? `<div class="v3-card hdx-strip-card"><div class="hdx-card-h">Todos los partidos <small>del más reciente (izquierda) al más antiguo</small></div>
             <div class="hdx-strip">${[...played].reverse().map(m => `<i class="r-${rc(m)}" title="${esc(m.anio)} ${esc(m.torneo)} · ${esc(m.resultado)}"></i>`).join('')}</div></div>` : ''}
           ${groupsHtml}
         </div>
-        <aside class="hdx-aside">
+        <aside ${_mpP('hdx', 'datos', 'part', 'hdx-aside')}>
           ${recent.length ? `<div class="v3-card"><div class="hdx-card-h">Últimos partidos <small>más reciente primero</small></div>
             <div class="hdx-form">${recent.map(m => `<span class="hdx-res r-${rc(m)}">${esc(m.resultado)}</span>`).join('')}</div></div>` : ''}
           <div class="v3-card"><div class="hdx-card-h">Local y visitante</div>${splitCard('Local', sL)}${splitCard('Visitante', sV)}</div>
@@ -19357,7 +19375,7 @@ function renderGraficos() {
     const tabla = `<div class="jx-table-wrap"><table class="jx-table tax-table"><thead><tr><th>Torneo</th><th class="jx-num">Año</th><th>Posición</th><th class="jx-num">PJ</th><th class="jx-num">G</th><th class="jx-num">E</th><th class="jx-num">P</th><th class="jx-num">GF</th><th class="jx-num">GC</th><th class="jx-num">Dif</th><th class="jx-num">Pts</th></tr></thead><tbody>
       ${sorted.map(t => {
         const k = kind(t), df = (t.gf != null && t.gc != null) ? t.gf - t.gc : null, v = x => x != null ? x : '—';
-        return `<tr onclick="window._grafYear(${t.anio}); window._grafView('temp')"><td><span class="tax-tn">${cardIcon(t)} <b>${esc(t.competencia)}</b></span></td><td class="jx-num">${t.anio}</td>
+        return `<tr onclick="window._mp.tax='temp'; window._grafYear(${t.anio}); window._grafView('temp')"><td><span class="tax-tn">${cardIcon(t)} <b>${esc(t.competencia)}</b></span></td><td class="jx-num">${t.anio}</td>
           <td><span class="tax-chip k-${k || 'n'}">${esc(shortPos(t))}</span></td><td class="jx-num">${v(t.pj)}</td><td class="jx-num hvx-w">${v(t.pg)}</td><td class="jx-num hvx-d">${v(t.pe)}</td><td class="jx-num hvx-l">${v(t.pp)}</td>
           <td class="jx-num">${v(t.gf)}</td><td class="jx-num">${v(t.gc)}</td><td class="jx-num hvx-dif ${df > 0 ? 'pos' : df < 0 ? 'neg' : ''}">${df != null ? (df > 0 ? '+' : '') + df : '—'}</td><td class="jx-num"><b>${v(t.pts)}</b></td></tr>`;
       }).join('') || '<tr><td colspan="11" class="jx-empty">Sin torneos registrados.</td></tr>'}</tbody></table></div>`;
@@ -19377,10 +19395,14 @@ function renderGraficos() {
           <div><b>${T.gf}:${T.gc}</b><span>Goles</span></div>
         </div>
       </section>
+      ${_mpTabs('tax', [['temp', 'Temporadas'], ['hist', 'Palmarés y evolución']], 'temp')}
+      <div ${_mpP('tax', 'hist', 'temp')}>
       ${titulos.length ? `<div class="v3-card tax-palmares"><div class="hdx-card-h">Palmarés <small>${titulos.length} título${titulos.length > 1 ? 's' : ''}</small></div>
         <div class="tax-trophies">${titulos.map(t => `<button onclick="window._grafYear(${t.anio}); window._grafView('temp')"><span>🏆</span><b>${t.anio}</b><small>${esc(t.competencia)}</small></button>`).join('')}</div></div>` : ''}
       <div class="v3-card tax-evol"><div class="hdx-card-h">Evolución histórica <small>posición final en cada torneo de liga · 🏆 campeón · ⬆️ ascenso</small></div>
         <div class="tax-evol-scroll"><div style="position:relative;height:230px" id="hist-evol-canvas-wrap"><canvas id="hist-evol-canvas"></canvas></div></div></div>
+      </div>
+      <div ${_mpP('tax', 'temp', 'temp')}>
       <div class="tax-bar">
         <div class="jx-tabs"><button class="${view === 'temp' ? 'on' : ''}" onclick="window._grafView('temp')">Por temporada</button><button class="${view === 'tabla' ? 'on' : ''}" onclick="window._grafView('tabla')">Tabla completa</button></div>
         ${view === 'temp' ? `<div class="jxyp-years tax-years">${byYear.map(y => `<button class="${y.anio === selectedYear ? 'on' : ''}" onclick="window._grafYear(${y.anio})">${y.anio}</button>`).join('')}</div>` : ''}
@@ -19388,6 +19410,7 @@ function renderGraficos() {
       ${view === 'temp'
         ? `<div class="tax-grid">${(yearGroup?.torneos || []).map(card).join('') || '<div class="v3-card jx-empty">Sin torneos registrados para este año.</div>'}</div>`
         : tabla}
+      </div>
     </div>`;
     renderEvolucionChart();
   }
@@ -19440,6 +19463,7 @@ function renderGraficos() {
   }
 
   let _histEvolChart = null;
+  window._taxEvolRender = () => renderEvolucionChart();
   function renderEvolucionChart() {
     const canvas = document.getElementById('hist-evol-canvas');
     const wrap = document.getElementById('hist-evol-canvas-wrap');
@@ -23260,6 +23284,8 @@ function renderDebuts() {
         ${youngest ? `<div class="jx-kpi-lead" onclick="goToPlayer('${_jxJs(youngest.nombre)}')"><span>Debut más joven</span><b>${_jxEsc(youngest.nombre)}</b><em>${youngest.edad} años</em></div>` : ''}
       </div>
     </section>
+    ${_mpTabs('jxd', [['list', 'Debutantes'], ['stats', 'Estadísticas']], 'list')}
+    <div ${_mpP('jxd', 'stats', 'list')}>
     <div class="jxd-grid">
       <div class="v3-card jxd-chart-card">
         <div class="jxd-card-h">Debuts por temporada <small>Tocá un año para filtrar</small></div>
@@ -23275,11 +23301,14 @@ function renderDebuts() {
         ${topRivals.map(([r, c]) => `<div class="jxd-rival"><span class="jxd-crest">${crest(r)}</span><span>${_jxEsc(r)}</span><b>${c}</b></div>`).join('')}
       </div>
     </div>
+    </div>
+    <div ${_mpP('jxd', 'list', 'list')}>
     <div class="jxd-filter">
       <button class="${_jxDebYear === 'all' ? 'on' : ''}" onclick="_jxDebFilter('all')">Todos</button>
       ${[...years].reverse().map(y => `<button class="${String(_jxDebYear) === String(y) ? 'on' : ''}" onclick="_jxDebFilter('${y}')">${y}</button>`).join('')}
     </div>
     <div class="jxd-timeline">${cardsFor(subset)}</div>
+    </div>
   </div>`;
 }
 function _jxDebFilter(y) { _jxDebYear = (String(_jxDebYear) === String(y) && y !== 'all') ? 'all' : y; renderDebuts(); }
@@ -23374,20 +23403,27 @@ function _jxyYearView(o) {
       </div>
     </section>
 
+    ${o.hasPlayers ? _mpTabs('jxy', [['temp', 'Torneos'], ['rank', 'Rankings'], ['plantel', 'Plantel']], 'temp') : ''}
+    <div ${_mpP('jxy', 'temp', 'temp')}>
     <div class="jxyp-sec"><h3>Torneos de la temporada</h3><small>Liga + copa</small></div>
     ${torneos.length ? `<div class="jxyp-tgrid">${torneos.map(torneoCard).join('')}</div>` : `<div class="v3-card jx-empty">Todavía no hay partidos cargados en la temporada ${year}.</div>`}
     ${tablaBtn}
+    </div>
 
     ${o.hasPlayers ? `
+    <div ${_mpP('jxy', 'rank', 'temp')}>
     <div class="jxyp-sec"><h3>Rankings de la temporada</h3><small>Top 5 de cada rubro</small></div>
     <div id="jug-anual-rankings${sfx}"><div class="jx-loading"><span class="spinner"></span>Cargando jugadores…</div></div>
+    </div>
 
+    <div ${_mpP('jxy', 'plantel', 'temp')}>
     <div class="jxyp-sec"><h3>Plantel de la temporada</h3><small id="jug-anual-count${sfx}"></small></div>
     <div class="jx-controls">
       <label class="jx-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         <input id="jug-anual-search${sfx}" type="search" placeholder="Buscar jugador…" oninput="${isB ? '_anualesFilterB' : '_anualesFilter'}(this.value)"></label>
     </div>
-    <div id="jug-anual-table${sfx}" class="jx-table-wrap"><div class="jx-loading">Cargando tabla…</div></div>`
+    <div id="jug-anual-table${sfx}" class="jx-table-wrap"><div class="jx-loading">Cargando tabla…</div></div>
+    </div>`
     : `<div class="v3-card jx-empty">Rankings de jugadores por temporada no disponibles todavía para ${year}.</div>`}
   </div>`;
 }
@@ -23468,14 +23504,14 @@ function _jxtTablaHtml(rows, opts) {
       ${two ? `<td>${side(t.ap)}</td><td>${side(t.cl)}</td>` : `<td class="jxt-copa">${t.copas && t.copas !== '-' ? _anualesCopaBadgeSingle(t.copas) : '<span class="jxt-dash">—</span>'}</td>`}
       <td class="jxt-pts"><b>${t.pts}</b><u><s style="width:${(t.pts / maxPts * 100).toFixed(1)}%"></s></u></td>
       <td>${t.pj}</td>
-      <td class="w">${t.pg}</td><td class="d">${t.pe}</td><td class="l">${t.pp}</td>
-      <td class="jxt-form"><span><i class="w" style="width:${(t.pg / pj * 100).toFixed(1)}%"></i><i class="d" style="width:${(t.pe / pj * 100).toFixed(1)}%"></i><i class="l" style="width:${(t.pp / pj * 100).toFixed(1)}%"></i></span></td>
-      <td>${t.gf}:${t.gc}</td>
+      <td class="w m-x">${t.pg}</td><td class="d m-x">${t.pe}</td><td class="l m-x">${t.pp}</td>
+      <td class="jxt-form m-x"><span><i class="w" style="width:${(t.pg / pj * 100).toFixed(1)}%"></i><i class="d" style="width:${(t.pe / pj * 100).toFixed(1)}%"></i><i class="l" style="width:${(t.pp / pj * 100).toFixed(1)}%"></i></span></td>
+      <td class="m-x">${t.gf}:${t.gc}</td>
       <td class="${df > 0 ? 'pos' : df < 0 ? 'neg' : ''}">${df > 0 ? '+' : ''}${df}</td>
     </tr>`;
   }).join('');
   return `<div class="jx-table-wrap jxt-wrap"><table class="jx-table jxt-table">
-    <thead><tr><th class="jxt-pos">#</th><th>Equipo</th>${two ? '<th>Apertura</th><th>Clausura</th>' : '<th>Clasificación</th>'}<th class="jx-num">Pts</th><th class="jx-num">PJ</th><th class="jx-num">G</th><th class="jx-num">E</th><th class="jx-num">P</th><th>Rendimiento</th><th class="jx-num">Goles</th><th class="jx-num">Dif</th></tr></thead>
+    <thead><tr><th class="jxt-pos">#</th><th>Equipo</th>${two ? '<th>Apertura</th><th>Clausura</th>' : '<th>Clasificación</th>'}<th class="jx-num">Pts</th><th class="jx-num">PJ</th><th class="jx-num m-x">G</th><th class="jx-num m-x">E</th><th class="jx-num m-x">P</th><th class="m-x">Rendimiento</th><th class="jx-num m-x">Goles</th><th class="jx-num">Dif</th></tr></thead>
     <tbody>${trs}</tbody></table></div>`;
 }
 function _jxtLegend() {

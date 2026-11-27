@@ -2811,3 +2811,103 @@ body { overflow-x: clip; }
   .ppv3-bar * { font-size: 0.58rem; }
   .ppv3-bar .ppv3-bar-y, .ppv3-bar > b:last-child { font-size: 0.68rem !important; }
 }
+
+/* ═════ MÓVIL · ESTADÍSTICAS / TORNEOS / VS CLUBES (pestañas internas + compacto) ═════ */
+.mp-tabs { display: none; }
+.mp-p:not(.hdx-main):not(.hdx-aside) { display: contents; }
+@media (max-width: 768px) {
+  .mp-tabs { display: grid; grid-template-columns: repeat(var(--n, 2), minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 14px;
+    background: rgba(10, 22, 15, 0.94); border: 1px solid var(--v3-line-2);
+    position: sticky; top: calc(var(--v3-top-h) + env(safe-area-inset-top, 0px) + 62px); z-index: 30;
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+  #tab-jugadores .mp-tabs { top: calc(var(--v3-top-h) + env(safe-area-inset-top, 0px) + 112px); }
+  .mp-tabs button { border: 0; background: none; color: var(--v3-muted); font: 700 0.78rem 'Inter', sans-serif; padding: 9px 4px; border-radius: 10px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mp-tabs button.on { background: var(--v3-brand); color: var(--v3-brand-ink); }
+  .mp-p, .mp-p:not(.hdx-main):not(.hdx-aside) { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .mp-off, .mp-p.mp-off:not(.hdx-main):not(.hdx-aside) { display: none !important; }
+  .mp-p > .jxyp-sec:first-child { margin-top: 2px; }
+
+  /* Totales: la tabla entra completa en el ancho */
+  .jx-table { font-size: 0.8rem; }
+  .jx-table td, .jx-table th { padding: 8px 4px; }
+  .jx-table th { font-size: 0.56rem; letter-spacing: 0.04em; }
+  .jx-table td:first-of-type, .jx-table th:first-of-type { padding-left: 10px; }
+  .jx-pl { min-width: 0; max-width: 150px; }
+  .jx-pl-id { min-width: 0; }
+  .jx-pl-id b { display: block; max-width: 128px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .jx-num { width: 42px; }
+  .jx-table .jx-pl { padding-left: 10px; }
+  .nv3-podium { gap: 6px; }
+
+  /* Tabla anual: columnas esenciales */
+  .jxt-table .m-x { display: none; }
+  .jxt-pos { width: 26px; font-size: 0.95rem; }
+  .jxt-team { gap: 6px; }
+  .jxt-team b { display: block; max-width: 86px; overflow: hidden; text-overflow: ellipsis; font-size: 0.78rem; }
+  .jxt-crest { width: 20px; height: 20px; }
+  .jxt-cup { width: 22px; height: 22px; }
+  .jxt-pts { width: auto; }
+  .jxt-pts b { font-size: 1.1rem; }
+  .jxt-side-pos { font-size: 0.92rem; }
+  .jxt-side .copa-badge, .jxt-copa .copa-badge { font-size: 0.5rem; padding: 1px 4px; white-space: normal; max-width: 64px; line-height: 1.15; text-align: center; }
+  .jxt-legend .copa-badge { font-size: 0.6rem; }
+
+  /* Debuts: filas compactas */
+  .jxd-timeline { gap: 12px; }
+  .jxd-year-h { margin-bottom: 6px; }
+  .jxd-year-h span { font-size: 1.45rem; }
+  .jxd-cards { gap: 6px; }
+  .jxd-card { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 9px 11px; border-radius: 14px; }
+  .jxd-card-top { flex: 1 1 130px; min-width: 0; gap: 9px; }
+  .jxd-card-top .nv3-av { width: 32px; height: 32px; font-size: 0.68rem; flex-shrink: 0; }
+  .jxd-card-id b { font-size: 0.86rem; }
+  .jxd-card-id small { font-size: 0.66rem; }
+  .jxd-match { flex: 0 1 auto; max-width: 54%; background: none; padding: 0; gap: 6px; }
+  .jxd-vs { font-size: 0.74rem; color: var(--v3-muted); }
+  .jxd-res { font-size: 0.9rem; }
+  .jxd-badges { flex-basis: 100%; }
+  .jxd-badges span { font-size: 0.64rem; padding: 2px 7px; }
+  .jxd-rec b { font-size: 1.6rem; }
+
+  /* Inferiores: camadas compactas */
+  .jxi-kpis { gap: 8px; }
+  .jxi-kpis .v3-card { padding: 12px; gap: 5px; }
+  .jxi-kpis span { font-size: 0.56rem; }
+  .jxi-kpis b { font-size: 1.8rem; }
+  .jxi-grid { gap: 10px; }
+  .jxi-cam { padding: 13px; gap: 9px; border-radius: 16px; }
+  .jxi-cam-h b { font-size: 1.8rem; }
+  .jxi-stats > div { padding: 7px 10px; }
+  .jxi-stats b { font-size: 1.25rem; }
+  .jxi-hitos { font-size: 0.76rem; gap: 3px; }
+  .jxi-obs { font-size: 0.7rem; padding: 6px 9px; }
+  .jxi-players span { font-size: 0.7rem; padding: 3px 9px; }
+
+  /* Todos los torneos */
+  .tax-trophies { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; overflow: visible; }
+  .tax-trophies button { min-width: 0; padding: 9px 6px; }
+  .tax-trophies span { font-size: 1.2rem; }
+  .tax-trophies b { font-size: 1.2rem; }
+  .tax-trophies small { font-size: 0.6rem; line-height: 1.2; }
+  .tax-bar { gap: 8px; }
+  .tax-bar .jx-tabs { width: 100%; display: grid; grid-template-columns: 1fr 1fr; }
+  .tax-grid { gap: 10px; }
+  .tax-card { padding: 13px; gap: 9px; border-radius: 16px; }
+  .tax-ic { width: 34px; height: 34px; border-radius: 10px; }
+  .tax-pos b { font-size: 1.55rem; }
+  .tax-table th:nth-child(n+5):nth-child(-n+9), .tax-table td:nth-child(n+5):nth-child(-n+9) { display: none; }
+  .tax-tn b { display: inline-block; max-width: 130px; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
+  .tax-chip { font-size: 0.64rem; padding: 2px 6px; }
+
+  /* vs Clubes: detalle del rival */
+  .hdx-strip { gap: 2px; }
+  .hdx-strip i { width: 10px; height: 18px; border-radius: 3px; }
+  .hdx-group { gap: 5px; }
+  .hdx-group-h { margin: 4px 0 0; gap: 8px; }
+  .hdx-group-y { font-size: 1.15rem; }
+  .hdx-group-h b { font-size: 0.74rem; }
+  .hdx-res { min-width: 46px; height: 30px; font-size: 1rem; border-radius: 9px; }
+  .hdx-tag { font-size: 0.62rem; padding: 2px 6px; }
+  .hdx-match-sub { font-size: 0.7rem; line-height: 1.35; }
+  .hdx-aside .v3-card { padding: 13px; }
+}
