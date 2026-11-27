@@ -15262,7 +15262,7 @@ function renderResumen() {
       <div><small>🔥 Racha invicta récord</small><b>15 partidos</b><em>${isA ? 'Apertura AIFA A 2026 y Recopa 2026' : 'Clausura AIFA D 2023 y Apertura AIFA D 2024'}</em></div>
       <div class="${goleadaNav ? 'rv4-click' : ''}"${goleadaNav ? ` onclick="${goleadaNav}"` : ''}><small>⚡ Máxima goleada</small><b>${isA ? '8–0 vs Sitas' : '13–0 vs Rep. del Oeste'}</b><em>${goleadaNav ? 'Ver partido ›' : '&nbsp;'}</em></div>
     </div>
-    <button class="rv4-btn" onclick="_navPush('Resumen', () => renderResumen()); _navGoTab('graficos', document.querySelectorAll('#main-nav button')[4]);">Ver torneos antiguos →</button>
+    <button class="rv4-btn" onclick="_navPush('Resumen', () => renderResumen()); _navGoTab('graficos', document.querySelectorAll('#main-nav button')[4]);">Ver todos los torneos →</button>
   </div>`;
 
   const _dgH = h.gf - h.gc;
@@ -15313,16 +15313,27 @@ function renderResumen() {
     </div>
   </section>`;
 
-  const _resumenHtml = `<div class="rv4">
+  const _pane = window._rv4Pane || 'torneo';
+  const _mt = (k, l) => `<button class="${_pane === k ? 'on' : ''}" onclick="_rv4SetPane('${k}')">${l}</button>`;
+  const _resumenHtml = `<div class="rv4" data-pane="${_pane}">
     ${_hero}
-    <div class="rv4-grid2">${_proxCard}${_ultCard}</div>
-    ${_torneo}
-    <div class="rv4-grid2">${_tablaCard}${_destCard}</div>
-    <section class="rv4-sec"><div class="rv4-sec-h"><h2>Historia del club</h2></div>
+    <div class="rv4-mtabs">${_mt('torneo', 'Torneo')}${_mt('tabla', 'Tabla y figuras')}${_mt('historia', 'Historia')}</div>
+    <div class="rv4-grid2" data-mpane="torneo">${_proxCard}${_ultCard}</div>
+    <div data-mpane="torneo">${_torneo}</div>
+    <div class="rv4-grid2" data-mpane="tabla">${_tablaCard}${_destCard}</div>
+    <section class="rv4-sec" data-mpane="historia"><div class="rv4-sec-h"><h2>Historia del club</h2></div>
       <div class="rv4-grid-hist">${_palmares}${_totales}</div></section>
-    ${_top}
+    <div data-mpane="historia">${_top}</div>
   </div>`;
   _resumenSoftSet(container, _resumenHtml);
+}
+function _rv4SetPane(k) {
+  window._rv4Pane = k;
+  const r = document.querySelector('#tab-resumen .rv4');
+  if (r) r.dataset.pane = k;
+  document.querySelectorAll('#tab-resumen .rv4-mtabs button').forEach(b => b.classList.toggle('on', b.getAttribute('onclick').includes("'" + k + "'")));
+  const bar = document.querySelector('#tab-resumen .rv4-mtabs');
+  if (bar && bar.getBoundingClientRect().top < 0) bar.scrollIntoView({ block: 'start' });
 }
 function _rv4Top(k, btn) {
   const box = document.getElementById('rv4-top3');

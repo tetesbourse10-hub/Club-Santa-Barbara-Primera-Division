@@ -2589,3 +2589,41 @@ body { overflow-x: clip; }
   .mh-sq-tag { position: static; order: 5; margin-top: 6px; }
   .mh-sq-form { order: 6; }
 }
+
+/* ── RESUMEN en modo app: pestañas Torneo / Tabla / Historia ── */
+.rv4-mtabs { display: none; }
+@media (max-width: 768px) {
+  .rv4 { gap: 12px !important; padding-bottom: 20px; }
+  .rv4 > [data-mpane] > .rv4-card, .rv4 > [data-mpane] > section { margin: 0; }
+  .rv4[data-pane] [data-mpane] { display: none !important; }
+  .rv4[data-pane="torneo"] [data-mpane="torneo"], .rv4[data-pane="tabla"] [data-mpane="tabla"], .rv4[data-pane="historia"] [data-mpane="historia"] { display: grid !important; }
+  .rv4[data-pane="torneo"] div[data-mpane="torneo"]:not(.rv4-grid2), .rv4[data-pane="historia"] div[data-mpane="historia"] { display: block !important; }
+  .rv4[data-pane="historia"] section[data-mpane="historia"] { display: flex !important; flex-direction: column; }
+  .rv4-mtabs { display: grid; grid-template-columns: 1fr 1.25fr 1fr; gap: 4px; padding: 4px; border-radius: 14px; background: rgba(10, 22, 15, 0.92); border: 1px solid var(--v3-line-2);
+    position: sticky; top: calc(var(--v3-top-h) + env(safe-area-inset-top, 0px) + 6px); z-index: 30; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+  .rv4-mtabs button { border: 0; background: none; color: var(--v3-muted); font: 700 0.78rem 'Inter', sans-serif; padding: 9px 4px; border-radius: 10px; cursor: pointer; }
+  .rv4-mtabs button.on { background: var(--v3-brand); color: var(--v3-brand-ink); }
+  .rv4-grid2 { gap: 12px !important; }
+  /* Portada: una sola fila compacta */
+  .rv4-hero { flex-direction: row !important; align-items: center !important; flex-wrap: wrap; }
+  .rv4-hero .rv4-kicker { font-size: 0.6rem !important; }
+  .rv4-hero-pos { width: 100%; padding: 10px 12px !important; }
+  /* Destacados en grilla 2x2 */
+  .rv4-dest { display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .rv4-dest-row { flex-direction: column; align-items: flex-start !important; gap: 4px !important; padding: 10px !important; border: 1px solid var(--v3-line) !important; border-radius: 14px; background: rgba(3, 14, 8, 0.35); position: relative; }
+  .rv4-dest-row .rv4-dest-ico { width: 30px !important; height: 30px !important; font-size: 0.95rem; }
+  .rv4-dest-row .rv4-dest-txt b { font-size: 0.82rem; }
+  .rv4-dest-row .rv4-dest-val { position: absolute; top: 8px; right: 10px; font-size: 1.5rem !important; }
+  .rv4-card { padding: 14px !important; border-radius: 18px !important; }
+  .rv4-h3 { font-size: 1.05rem !important; }
+  /* Sin pie de página: es una app */
+  #app > footer, .site-footer, footer.footer { display: none !important; }
+}
+@media (max-width: 768px) {
+  .rv4 section[data-mpane="historia"] > .rv4-sec-h { display: none !important; }
+  .rv4-records { grid-template-columns: 1fr 1fr !important; }
+  .rv4-records b { font-size: 1.1rem !important; }
+  .rv4-hero { padding: 12px 14px !important; }
+  .rv4-hero-crest { width: 40px !important; }
+  .rv4-title { font-size: 1.5rem !important; }
+}
