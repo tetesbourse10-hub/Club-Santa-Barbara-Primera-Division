@@ -2667,3 +2667,26 @@ body { overflow-x: clip; }
   .nv3-card-meta { gap: 4px !important; }
   .nv3-card-meta .nv3-pos, .nv3-card-meta span { font-size: 0.56rem !important; padding: 2px 5px !important; }
 }
+
+/* ── Navegación por categorías (celular) ── */
+#v3-catbar { display: none; }
+@media (max-width: 768px) {
+  body.v3-catbar-on #v3-catbar { display: block; position: sticky; top: calc(var(--v3-top-h) + env(safe-area-inset-top, 0px)); z-index: 639; padding: 6px 12px 8px;
+    background: rgba(6, 16, 11, 0.92); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid var(--v3-line-2); }
+  .v3-cat { display: none; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; border-radius: 14px; background: var(--v3-surface); border: 1px solid var(--v3-line-2); }
+  .v3-cat.on { display: grid; }
+  .v3-cat button { display: flex; align-items: center; justify-content: center; gap: 6px; border: 0; background: none; color: var(--v3-muted); font: 700 0.76rem 'Inter', sans-serif; padding: 8px 4px; border-radius: 10px; cursor: pointer; }
+  .v3-cat svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .v3-cat-emo { font-size: 0.9rem; }
+  .v3-cat button.active { background: var(--v3-brand); color: var(--v3-brand-ink); }
+  /* Barras fijas internas debajo de la barra de categoría */
+  body.v3-catbar-on .jsx-bar, body.v3-catbar-on .nv3-controls { top: calc(var(--v3-top-h) + env(safe-area-inset-top, 0px) + 62px) !important; }
+}
+@media (max-width: 768px) {
+  .tax-head .jx-h, .hvx-head .jx-h, .jx-head .jx-h { font-size: 1.4rem !important; }
+  .tax-kpis b, .hvx-kpis b { font-size: 1.15rem !important; white-space: nowrap; }
+  .tax-kpis > div, .hvx-kpis > div { padding: 8px 9px !important; min-width: 0; overflow: hidden; }
+  .tax-kpis span, .hvx-kpis span { font-size: 0.5rem !important; }
+  .tax-head .hvx-rec b, .hvx-head .hvx-rec b { font-size: 1.4rem !important; }
+  .tax-head .hvx-rec > div, .hvx-head .hvx-rec > div { padding: 7px 9px !important; }
+}

@@ -29,7 +29,7 @@
   const getNavStackLen = () => safe(() => _navStack.length) || 0;
 
   const TABS = ['resumen', 'posiciones', 'jugadores', 'historial', 'graficos'];
-  const TAB_TITLES = ['Resumen', 'En Vivo', 'Jugadores', 'Historial vs Clubes', 'Torneos'];
+  const TAB_TITLES = ['Equipo', 'En Vivo', 'Estadísticas', 'vs Clubes', 'Torneos'];
 
   // ── Íconos (trazos simples, mismo grosor en todo el shell) ──
   const I = {
@@ -153,11 +153,27 @@
     bn.setAttribute('aria-label', 'Navegación principal');
     bn.innerHTML = `
       <button data-nav="home">${I.home}<span>Inicio</span></button>
-      <button data-nav="resumen">${I.resumen}<span>Plantel</span></button>
+      <button data-nav="resumen">${I.resumen}<span>Equipo</span></button>
       <button data-nav="posiciones">${I.vivo}<span>En Vivo</span></button>
-      <button data-nav="jugadores">${I.jugadores}<span>Jugadores</span></button>
-      <button data-nav="more">${I.more}<span>Más</span></button>`;
+      <button data-nav="jugadores" data-cat="jug">${I.jugadores}<span>Jugadores</span></button>
+      <button data-nav="graficos" data-cat="hist">${I.torneos}<span>Historia</span></button>`;
     document.body.appendChild(bn);
+
+    // Barra de categoría (solo celular): sub-secciones de Jugadores e Historia
+    const cat = document.createElement('div');
+    cat.id = 'v3-catbar';
+    cat.innerHTML = `<div class="v3-cat" data-cat="jug">
+        <button data-nav="nido">${I.nido}<span>El Nido</span></button>
+        <button data-nav="jugadores">${I.jugadores}<span>Estadísticas</span></button>
+        <button data-nav="h2h">${I.h2h}<span>Cara a cara</span></button>
+      </div>
+      <div class="v3-cat" data-cat="hist">
+        <button data-nav="graficos">${I.torneos}<span>Torneos</span></button>
+        <button data-nav="historial">${I.historial}<span>vs Clubes</span></button>
+        <button data-act="titles"><span class="v3-cat-emo">🏆</span><span>Títulos</span></button>
+      </div>`;
+    const tb = $('#v3-topbar');
+    if (tb) tb.after(cat); else document.body.appendChild(cat);
 
     const more = document.createElement('div');
     more.id = 'v3-more';
@@ -180,7 +196,7 @@
 
   function onShellClick(e) {
     const el = e.target.closest('[data-nav],[data-act],[data-sq]');
-    if (!el || !el.closest('#v3-sidebar,#v3-topbar,#v3-bottomnav,#v3-more,.v3-home,#v3-mhome')) return;
+    if (!el || !el.closest('#v3-sidebar,#v3-topbar,#v3-bottomnav,#v3-more,.v3-home,#v3-mhome,#v3-catbar')) return;
     if (el.matches('[data-sq]') && el.closest('.v3-squad-switch,.v3-top-sq')) { switchSquad(el.dataset.sq); return; }
     const nav = el.dataset.nav, act = el.dataset.act;
     if (nav) {
@@ -217,11 +233,14 @@
     const sqLabel = v.sq === 'b' ? 'Primera B' : 'Primera A';
     if (v.profileOn) { active = null; kicker = 'El Nido'; title = 'Perfil de jugador'; }
     else if (v.landingOn) { active = 'home'; }
-    else if (v.nidoOn) { active = 'nido'; kicker = 'Nuestros jugadores'; title = 'El Nido'; }
-    else if (v.idx >= 0) { active = TABS[v.idx]; kicker = sqLabel; title = TAB_TITLES[v.idx]; }
+    else if (v.nidoOn) { active = 'nido'; kicker = 'Jugadores'; title = 'El Nido'; }
+    else if (v.idx >= 0) { active = TABS[v.idx]; kicker = (v.idx === 2 ? 'Jugadores · ' : v.idx >= 3 ? 'Historia · ' : '') + sqLabel; title = TAB_TITLES[v.idx]; }
     $$('#v3-sidebar [data-nav], #v3-bottomnav [data-nav], #v3-more [data-nav]').forEach(b => b.classList.toggle('active', b.dataset.nav === active));
-    const bnMore = $('#v3-bottomnav [data-nav="more"]');
-    if (bnMore && ['historial', 'graficos', 'nido'].includes(active)) bnMore.classList.add('active');
+    const catKey = ['nido', 'jugadores'].includes(active) ? 'jug' : ['graficos', 'historial'].includes(active) ? 'hist' : '';
+    $$('#v3-bottomnav [data-cat]').forEach(b => b.classList.toggle('active', b.dataset.cat === catKey));
+    $$('#v3-catbar .v3-cat').forEach(c => c.classList.toggle('on', c.dataset.cat === catKey));
+    $$('#v3-catbar [data-nav]').forEach(b => b.classList.toggle('active', b.dataset.nav === active));
+    document.body.classList.toggle('v3-catbar-on', !!catKey && !v.profileOn);
     $('#v3-kicker').textContent = kicker;
     $('#v3-title').textContent = title;
     document.title = v.landingOn ? 'Club Santa Bárbara' : `${title} · Club Santa Bárbara`;
@@ -1126,14 +1145,14 @@
       ${champs.map(k => `<button class="mh-champ" data-nav="posiciones" data-sq-target="${k}"><span>🏆</span><span><small>¡Campeones! · Primera ${k.toUpperCase()}</small><b>${esc((getData(k) || {}).badge || 'Torneo')}</b></span><i>›</i></button>`).join('')}
       <div class="mh-squads">${mhSquad('a')}${mhSquad('b')}</div>
       <div class="mh-qa">
-        <button data-nav="nido"><span>${I.nido}</span>El Nido</button>
-        <button data-nav="jugadores"><span>${I.jugadores}</span>Jugadores</button>
+        <button data-nav="resumen"><span>${I.resumen}</span>Equipo</button>
         <button data-nav="posiciones"><span>${I.vivo}</span>En Vivo</button>
+        <button data-nav="nido"><span>${I.nido}</span>El Nido</button>
+        <button data-nav="jugadores"><span>${I.jugadores}</span>Estadísticas</button>
         <button data-nav="h2h"><span>${I.h2h}</span>Cara a cara</button>
         <button data-nav="graficos"><span>${I.torneos}</span>Torneos</button>
         <button data-nav="historial"><span>${I.historial}</span>vs Clubes</button>
         <button data-act="titles"><span>🏆</span>Títulos (${tit})</button>
-        <button data-act="search"><span>${I.search}</span>Buscar</button>
       </div>
       ${(() => { const ms = mhMatch('a') + mhMatch('b'); return ms ? `<section><div class="mh-sec"><b>Próximos partidos</b></div><div class="mh-matches" data-noptr>${ms}</div></section>` : ''; })()}
       <section><div class="mh-sec"><b>Líderes históricos</b><button data-nav="nido">Ver todos ›</button></div>${mhLeaders()}</section>
