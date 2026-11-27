@@ -2418,3 +2418,11 @@ em.hvx-g { color: #8fe03a; } em.hvx-e { color: #ffc83d; } em.hvx-p { color: #ff7
   .v3-h2h-teaser > p, .v3-h2h-teaser .v3-quick, .v3-h2h-teaser .v3-quick-h { display: none !important; }
   .v3-h2h-teaser::after { display: none; }
 }
+@media (max-width: 768px) {
+  #landing .landing-cards { flex-wrap: nowrap !important; justify-content: flex-start !important; }
+  #landing .landing-card { margin: 0 !important; }
+  .nmx-place-row { flex-wrap: wrap; }
+  .nmx-place-n { flex: 1 1 60%; }
+  .nmx-go { flex: 1 1 100%; justify-content: center; padding: 10px; }
+  .nmx-match .nmx-team b { max-width: 100%; }
+}
